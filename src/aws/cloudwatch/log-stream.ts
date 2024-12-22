@@ -2,7 +2,7 @@
 
 import { cloudwatchLogStream } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps, AwsSpec } from "..";
+import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../beacon";
 import { ILogGroup } from "./log-group";
 
 /**
@@ -89,12 +89,9 @@ export class LogStream extends AwsBeaconBase implements ILogStream {
 
   constructor(scope: Construct, id: string, props: LogStreamProps) {
     super(scope, id, props);
-
-    const spec = AwsSpec.ofAwsBeacon(this);
-
     const name =
       props.logStreamName ||
-      spec.uniqueResourceName(this, {
+      this.stack.uniqueResourceName(this, {
         prefix: this.gridUUID,
       });
 

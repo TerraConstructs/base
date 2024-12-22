@@ -1,11 +1,8 @@
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import {
-  AnyPrincipal,
-  PolicyDocument,
-  PolicyStatement,
-  Effect,
-} from "../../../src/aws/iam";
+import { PolicyDocument } from "../../../src/aws/iam/policy-document";
+import { PolicyStatement, Effect } from "../../../src/aws/iam/policy-statement";
+import { AnyPrincipal } from "../../../src/aws/iam/principals";
 import { AwsSpec } from "../../../src/aws/spec";
 
 const environmentName = "Test";

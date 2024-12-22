@@ -7,14 +7,10 @@ import {
 import { IResolvable, Token, Lazy } from "cdktf";
 import { Construct } from "constructs";
 import { ICertificate, IOrigin, FunctionAssociation } from ".";
-import {
-  AwsSpec,
-  ArnFormat,
-  AwsBeaconBase,
-  IAwsBeacon,
-  AwsBeaconProps,
-} from "..";
-import { Duration } from "../..";
+import { Duration } from "../../duration";
+import { ArnFormat } from "../arn";
+import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
+import { AwsSpec } from "../spec";
 
 // TODO: Re-add invalidation support
 // TODO: Re-add origin group (failover) support

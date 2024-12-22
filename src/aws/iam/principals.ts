@@ -1,7 +1,9 @@
 import { Token, IResolvable, IResolveContext } from "cdktf";
 import { IDependable } from "constructs";
+import { AwsSpec } from "../spec";
+import { IOpenIdConnectProvider } from "./oidc-provider";
+import { IPolicyDocument } from "./policy-document";
 import {
-  IPolicyDocument,
   PolicyStatement,
   Condition,
   Conditions,
@@ -9,13 +11,10 @@ import {
   toConditionJson,
   fromConditionJson,
   validateConditionObject,
-  IOpenIdConnectProvider,
-  ISamlProvider,
   ConditionMap,
   toConditions,
-} from ".";
-import { AwsSpec } from "..";
-
+} from "./policy-statement";
+import { ISamlProvider } from "./saml-provider";
 /**
  * Terraform Principal Props
  *

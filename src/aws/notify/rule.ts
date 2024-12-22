@@ -5,13 +5,9 @@ import {
 } from "@cdktf/provider-aws";
 import { Lazy, Token } from "cdktf";
 import { Construct } from "constructs";
-import {
-  AwsBeaconBase,
-  IAwsBeacon,
-  AwsBeaconProps,
-  AwsSpec,
-  ArnFormat,
-} from "..";
+import { ArnFormat } from "../arn";
+import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
+import { AwsSpec } from "../spec";
 import {
   Schedule,
   EventPattern,
@@ -363,6 +359,8 @@ export class Rule extends AwsBeaconBase implements IRule {
      */
     for (const target of this.targets) {
       // note: targetId is calculated in addTarget()
+      // TODO: Ideally we should have used IResolvable.resolve and use the IResolveContext.preparing flag
+      // ref: https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-iam/lib/policy-document.ts#L48
       if (this.node.tryFindChild(target.targetId!)) continue; // ignore if already generated
       new cloudwatchEventTarget.CloudwatchEventTarget(
         this,

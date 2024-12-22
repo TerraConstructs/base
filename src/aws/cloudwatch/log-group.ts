@@ -3,20 +3,44 @@
 import { cloudwatchLogGroup } from "@cdktf/provider-aws";
 import { Annotations, Token } from "cdktf";
 import { Construct } from "constructs";
-import { ArnFormat, Arn, AwsSpec, AwsBeaconBase } from "..";
+import { Arn, ArnFormat } from "../arn";
+import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { RetentionDays } from "../log-retention";
+import { AwsSpec } from "../spec";
 import { DataProtectionPolicy } from "./data-protection-policy";
 import { LogStream } from "./log-stream";
-// import { MetricFilter } from "./metric-filter";
+import { Metric, MetricOptions } from "./metric";
+import { MetricFilter } from "./metric-filter";
+import { Unit } from "./metric-types";
 import { FilterPattern, IFilterPattern } from "./pattern";
 import { ResourcePolicy } from "./policy";
 import {
   ILogSubscriptionDestination,
   SubscriptionFilter,
 } from "./subscription-filter";
+import * as kms from "../encryption";
 import * as iam from "../iam";
-// import * as kms from "../../encryption";
 
-export interface ILogGroup extends iam.IResourceWithPolicy {
+/**
+ * Outputs which may be registered for output via the Grid.
+ */
+export interface LogGroupOutputs {
+  /**
+   * The arn of this log group
+   * @attribute
+   */
+  readonly logGroupArn: string;
+  /**
+   * The name of this log group
+   * @attribute
+   */
+  readonly logGroupName: string;
+}
+
+export interface ILogGroup extends iam.IAwsBeaconWithPolicy {
+  /** Strongly typed outputs */
+  readonly logGroupOutputs: LogGroupOutputs;
+
   /**
    * The ARN of this log group, with ':*' appended
    *
@@ -75,7 +99,7 @@ export interface ILogGroup extends iam.IResourceWithPolicy {
     jsonField: string,
     metricNamespace: string,
     metricName: string,
-  ): cloudwatch.Metric;
+  ): Metric;
 
   /**
    * Give permissions to write to create and write to streams in this log group
@@ -103,10 +127,7 @@ export interface ILogGroup extends iam.IResourceWithPolicy {
    * @param metricName The name of the metric
    * @param props Properties for the metric
    */
-  metric(
-    metricName: string,
-    props?: cloudwatch.MetricOptions,
-  ): cloudwatch.Metric;
+  metric(metricName: string, props?: MetricOptions): Metric;
 
   /**
    * The number of log events uploaded to CloudWatch Logs.
@@ -115,7 +136,7 @@ export interface ILogGroup extends iam.IResourceWithPolicy {
    *
    * @param props Properties for the Cloudwatch metric
    */
-  metricIncomingLogEvents(props?: cloudwatch.MetricOptions): cloudwatch.Metric;
+  metricIncomingLogEvents(props?: MetricOptions): Metric;
 
   /**
    * The volume of log events in uncompressed bytes uploaded to CloudWatch Logs.
@@ -124,7 +145,7 @@ export interface ILogGroup extends iam.IResourceWithPolicy {
    *
    * @param props Properties for the Cloudwatch metric
    */
-  metricIncomingBytes(props?: cloudwatch.MetricOptions): cloudwatch.Metric;
+  metricIncomingBytes(props?: MetricOptions): Metric;
 }
 
 /**
@@ -140,6 +161,16 @@ abstract class LogGroupBase extends AwsBeaconBase implements ILogGroup {
    * The name of this log group
    */
   public abstract readonly logGroupName: string;
+
+  public get logGroupOutputs(): LogGroupOutputs {
+    return {
+      logGroupArn: this.logGroupArn,
+      logGroupName: this.logGroupName,
+    };
+  }
+  public get outputs(): Record<string, any> {
+    return this.logGroupOutputs;
+  }
 
   private policy?: ResourcePolicy;
 
@@ -212,7 +243,7 @@ abstract class LogGroupBase extends AwsBeaconBase implements ILogGroup {
       metricValue: jsonField,
     });
 
-    return new cloudwatch.Metric({
+    return new Metric({
       metricName,
       namespace: metricNamespace,
     }).attachTo(this);
@@ -258,9 +289,8 @@ abstract class LogGroupBase extends AwsBeaconBase implements ILogGroup {
    * @returns Physical name of log group
    */
   public logGroupPhysicalName(): string {
-    return this.physicalName;
+    return this.logGroupName;
   }
-
   /**
    * Adds a statement to the resource policy associated with this log group.
    * A resource policy will be automatically created upon the first call to `addToResourcePolicy`.
@@ -323,9 +353,7 @@ abstract class LogGroupBase extends AwsBeaconBase implements ILogGroup {
    * });
    * ```
    */
-  public metricIncomingLogEvents(
-    props?: cloudwatch.MetricOptions,
-  ): cloudwatch.Metric {
+  public metricIncomingLogEvents(props?: MetricOptions): Metric {
     return this.metric("IncomingLogs", props);
   }
 
@@ -348,9 +376,7 @@ abstract class LogGroupBase extends AwsBeaconBase implements ILogGroup {
    * });
    * ```
    */
-  public metricIncomingBytes(
-    props?: cloudwatch.MetricOptions,
-  ): cloudwatch.Metric {
+  public metricIncomingBytes(props?: MetricOptions): Metric {
     return this.metric("IncomingBytes", props);
   }
 
@@ -371,137 +397,14 @@ abstract class LogGroupBase extends AwsBeaconBase implements ILogGroup {
    * - 'IncomingLogEvents': The number of log events ingested into the log group.
    * ```
    */
-  public metric(
-    metricName: string,
-    props?: cloudwatch.MetricOptions,
-  ): cloudwatch.Metric {
-    return new cloudwatch.Metric({
+  public metric(metricName: string, props?: MetricOptions): Metric {
+    return new Metric({
       namespace: "AWS/Logs",
       metricName,
       statistic: "Sum",
       ...props,
     }).attachTo(this);
   }
-}
-
-/**
- * How long, in days, the log contents will be retained.
- */
-export enum RetentionDays {
-  /**
-   * 1 day
-   */
-  ONE_DAY = 1,
-
-  /**
-   * 3 days
-   */
-  THREE_DAYS = 3,
-
-  /**
-   * 5 days
-   */
-  FIVE_DAYS = 5,
-
-  /**
-   * 1 week
-   */
-  ONE_WEEK = 7,
-
-  /**
-   * 2 weeks
-   */
-  TWO_WEEKS = 14,
-
-  /**
-   * 1 month
-   */
-  ONE_MONTH = 30,
-
-  /**
-   * 2 months
-   */
-  TWO_MONTHS = 60,
-
-  /**
-   * 3 months
-   */
-  THREE_MONTHS = 90,
-
-  /**
-   * 4 months
-   */
-  FOUR_MONTHS = 120,
-
-  /**
-   * 5 months
-   */
-  FIVE_MONTHS = 150,
-
-  /**
-   * 6 months
-   */
-  SIX_MONTHS = 180,
-
-  /**
-   * 1 year
-   */
-  ONE_YEAR = 365,
-
-  /**
-   * 13 months
-   */
-  THIRTEEN_MONTHS = 400,
-
-  /**
-   * 18 months
-   */
-  EIGHTEEN_MONTHS = 545,
-
-  /**
-   * 2 years
-   */
-  TWO_YEARS = 731,
-
-  /**
-   * 3 years
-   */
-  THREE_YEARS = 1096,
-
-  /**
-   * 5 years
-   */
-  FIVE_YEARS = 1827,
-
-  /**
-   * 6 years
-   */
-  SIX_YEARS = 2192,
-
-  /**
-   * 7 years
-   */
-  SEVEN_YEARS = 2557,
-
-  /**
-   * 8 years
-   */
-  EIGHT_YEARS = 2922,
-
-  /**
-   * 9 years
-   */
-  NINE_YEARS = 3288,
-
-  /**
-   * 10 years
-   */
-  TEN_YEARS = 3653,
-
-  /**
-   * Retain logs forever
-   */
-  INFINITE = 9999,
 }
 
 /**
@@ -522,7 +425,7 @@ export enum LogGroupClass {
 /**
  * Properties for a LogGroup
  */
-export interface LogGroupProps {
+export interface LogGroupProps extends AwsBeaconProps {
   /**
    * The KMS customer managed key to encrypt the log group with.
    *
@@ -554,6 +457,13 @@ export interface LogGroupProps {
   readonly retention?: RetentionDays;
 
   /**
+   * Set to true if you do not wish the log group (and any logs it may contain) to be deleted at destroy time, and instead just remove the log group from the Terraform state.
+   *
+   * @default false - unless `retention` is set to RetentionDays.INFINITE, in which case this is set to true
+   */
+  readonly skipDestroy?: boolean;
+
+  /**
    * The class of the log group. Possible values are: STANDARD and INFREQUENT_ACCESS.
    *
    * INFREQUENT_ACCESS class provides customers a cost-effective way to consolidate
@@ -563,18 +473,6 @@ export interface LogGroupProps {
    * @default LogGroupClass.STANDARD
    */
   readonly logGroupClass?: LogGroupClass;
-
-  /**
-   * Determine the removal policy of this log group.
-   *
-   * Normally you want to retain the log group so you can diagnose issues
-   * from logs even after a deployment that no longer includes the log group.
-   * In that case, use the normal date-based retention policy to age out your
-   * logs.
-   *
-   * @default RemovalPolicy.Retain
-   */
-  readonly removalPolicy?: RemovalPolicy;
 }
 
 /**
@@ -608,7 +506,7 @@ export class LogGroup extends LogGroupBase {
 
     class Import extends LogGroupBase {
       public readonly logGroupArn = `${baseLogGroupArn}:*`;
-      public readonly logGroupName = AwsSpec.of(scope).splitArn(
+      public readonly logGroupName = AwsSpec.ofAwsBeacon(scope).splitArn(
         baseLogGroupArn,
         ArnFormat.COLON_RESOURCE_NAME,
       ).resourceName!;
@@ -631,7 +529,7 @@ export class LogGroup extends LogGroupBase {
 
     class Import extends LogGroupBase {
       public readonly logGroupName = baseLogGroupName;
-      public readonly logGroupArn = AwsSpec.of(scope).formatArn({
+      public readonly logGroupArn = AwsSpec.ofAwsBeacon(scope).formatArn({
         service: "logs",
         resource: "log-group",
         arnFormat: ArnFormat.COLON_RESOURCE_NAME,
@@ -641,6 +539,8 @@ export class LogGroup extends LogGroupBase {
 
     return new Import(scope, id);
   }
+
+  public readonly resource: cloudwatchLogGroup.CloudwatchLogGroup;
 
   /**
    * The ARN of this log group
@@ -653,11 +553,15 @@ export class LogGroup extends LogGroupBase {
   public readonly logGroupName: string;
 
   constructor(scope: Construct, id: string, props: LogGroupProps = {}) {
-    super(scope, id, {
-      physicalName: props.logGroupName,
-    });
+    super(scope, id, props);
+    const name =
+      props.logGroupName ||
+      this.stack.uniqueResourceName(this, {
+        prefix: this.gridUUID,
+      });
 
     let retentionInDays = props.retention;
+    let skipDestroy = props.skipDestroy;
     if (retentionInDays === undefined) {
       retentionInDays = RetentionDays.TWO_YEARS;
     }
@@ -666,6 +570,7 @@ export class LogGroup extends LogGroupBase {
       retentionInDays === RetentionDays.INFINITE
     ) {
       retentionInDays = undefined;
+      skipDestroy = props.skipDestroy ?? true;
     }
 
     if (
@@ -679,7 +584,7 @@ export class LogGroup extends LogGroupBase {
     }
 
     let logGroupClass = props.logGroupClass;
-    const stack = AwsSpec.of(scope);
+
     const logGroupClassUnsupportedRegions = [
       "us-iso-west-1", // APA
       "us-iso-east-1", // DCA
@@ -687,36 +592,34 @@ export class LogGroup extends LogGroupBase {
     ];
     if (
       logGroupClass !== undefined &&
-      !Token.isUnresolved(stack.region) &&
-      logGroupClassUnsupportedRegions.includes(stack.region)
+      !Token.isUnresolved(this.stack.region) &&
+      logGroupClassUnsupportedRegions.includes(this.stack.region)
     ) {
-      Annotations.of(this).addWarningV2(
-        "@aws-cdk/aws-logs:propertyNotSupported",
+      // "@aws-cdk/aws-logs:propertyNotSupported",
+      Annotations.of(this).addWarning(
         `The LogGroupClass property is not supported in the following regions: ${logGroupClassUnsupportedRegions}`,
       );
     }
 
-    const resource = new cloudwatchLogGroup.CloudwatchLogGroup(
+    this.resource = new cloudwatchLogGroup.CloudwatchLogGroup(
       this,
       "Resource",
       {
-        kmsKeyId: props.encryptionKey?.keyArn,
+        name,
         logGroupClass,
-        logGroupName: this.physicalName,
         retentionInDays,
-        dataProtectionPolicy: props.dataProtectionPolicy?._bind(this),
+        skipDestroy,
+        kmsKeyId: props.encryptionKey?.keyArn,
       },
     );
 
-    resource.applyRemovalPolicy(props.removalPolicy);
-
-    this.logGroupArn = this.getResourceArnAttribute(resource.attrArn, {
-      service: "logs",
-      resource: "log-group",
-      resourceName: this.physicalName,
-      arnFormat: ArnFormat.COLON_RESOURCE_NAME,
-    });
-    this.logGroupName = this.getResourceNameAttribute(resource.ref);
+    // https://registry.terraform.io/providers/hashicorp/aws/5.82.1/docs/resources/cloudwatch_log_group#attribute-reference
+    // terraform-provider-aws drops the trailing ':*' from the ARN when returning it as an attribute
+    this.logGroupArn = `${this.resource.arn}:*`;
+    this.logGroupName = this.resource.name;
+    if (props.dataProtectionPolicy) {
+      props.dataProtectionPolicy?._bind(this);
+    }
   }
 }
 
@@ -823,7 +726,7 @@ export interface MetricFilterOptions {
    * @see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-logs-metricfilter-metrictransformation.html#cfn-logs-metricfilter-metrictransformation-unit
    * @default - No unit attached to metrics.
    */
-  readonly unit?: cloudwatch.Unit;
+  readonly unit?: Unit;
 
   /**
    * The name of the metric filter.

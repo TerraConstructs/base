@@ -2,6 +2,7 @@ package integ
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"testing"
 
@@ -51,6 +52,8 @@ func AssertE(input any, assertions []Assertion) error {
 			}
 			continue
 		}
+		// debug print JMES expression result
+		// fmt.Printf("%q => %#v\n", a.Path, value)
 		if a.ExpectedRegexp != nil {
 			if err := assertRegexp(value, *a.ExpectedRegexp); err != nil {
 				combinedErr = multierror.Append(combinedErr, fmt.Errorf("error asserting value at '%s': %v", a.Path, err))
@@ -66,9 +69,18 @@ func assertRegexp(value any, expectedRegexp string) error {
 		return fmt.Errorf("invalid regexp '%s': %v", expectedRegexp, err)
 	}
 
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Ptr && !v.IsNil() {
+		value = v.Elem().Interface()
+	}
+
 	switch v := value.(type) {
 	case []interface{}:
 		for _, elem := range v {
+			e := reflect.ValueOf(elem)
+			if e.Kind() == reflect.Ptr && !e.IsNil() {
+				elem = e.Elem().Interface()
+			}
 			elemStr := fmt.Sprintf("%v", elem)
 			if re.MatchString(elemStr) {
 				return nil // Success if any element matches

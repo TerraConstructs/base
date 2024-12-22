@@ -1,6 +1,7 @@
 import { cloudwatchEventConnection } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { IAwsBeacon, AwsBeaconProps, AwsBeaconBase, AwsSpec } from "..";
+import { IAwsBeacon, AwsBeaconProps, AwsBeaconBase } from "../beacon";
+import { AwsSpec } from "../spec";
 
 /**
  * An API Destination Connection

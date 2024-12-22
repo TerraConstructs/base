@@ -1,6 +1,6 @@
 import { cloudwatchEventArchive } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "..";
+import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
 import { IEventBus } from "./event-bus";
 import { EventPattern } from "./event-pattern";
 import { renderEventPattern } from "./util";

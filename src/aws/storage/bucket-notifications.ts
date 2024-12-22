@@ -1,7 +1,7 @@
 import { s3BucketNotification } from "@cdktf/provider-aws";
 import { Lazy } from "cdktf";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "..";
+import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
 import { IBucket, EventType, NotificationKeyFilter } from "./bucket";
 import {
   BucketNotificationDestinationType,

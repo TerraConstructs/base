@@ -22,7 +22,7 @@ export class JsonPath {
    */
   public static readonly DISCARD = Token.asString(Token.nullValue(), {
     // ref https://github.com/hashicorp/terraform-cdk/blob/v0.20.9/packages/cdktf/lib/tokens/token.ts#L184
-    // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/core/lib/token.ts
+    // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/core/lib/token.ts#L239
     displayHint: "DISCARD (JSON `null`)",
   });
 

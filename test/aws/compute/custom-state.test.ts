@@ -7,6 +7,7 @@ import "cdktf/lib/testing/adapters/jest";
 import { Duration } from "../../../src";
 import { compute, AwsSpec } from "../../../src/aws";
 import { Errors } from "../../../src/aws/compute/types";
+import { Annotations } from "../../assertions";
 
 const gridUUID = "123e4567-e89b-12d3";
 describe("Custom State", () => {
@@ -500,6 +501,12 @@ describe("Custom State", () => {
       timeout: Duration.seconds(30),
     });
 
+    // expect(Annotations.fromStack(spec).warnings).toMatchSnapshot();
+    Annotations.fromStack(spec).hasWarnings({
+      constructPath: "TestSpec/my custom task",
+      message: /CustomState constructs can configure state retries/,
+    });
+
     // Annotations.of(spec).hasWarning(
     //   "/Default/my custom task",
     //   Match.stringLikeRegexp(
@@ -544,6 +551,11 @@ describe("Custom State", () => {
       timeout: Duration.seconds(30),
     });
 
+    // expect(Annotations.fromStack(spec).warnings).toMatchSnapshot();
+    Annotations.fromStack(spec).hasWarnings({
+      constructPath: "TestSpec/my custom task",
+      message: /CustomState constructs can configure state catchers/,
+    });
     // Annotations.of(spec).hasWarning(
     //   "/Default/my custom task",
     //   Match.stringLikeRegexp(

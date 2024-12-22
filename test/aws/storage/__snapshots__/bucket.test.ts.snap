@@ -139,7 +139,7 @@ exports[`Bucket Should synth and match SnapShot 1`] = `
       }
     },
     "aws_iam_policy_document": {
-      "HelloWorld_Policy_Document_6894C6E0": {
+      "HelloWorld_Policy_9607E751": {
         "statement": [
           {
             "actions": [
@@ -206,7 +206,7 @@ exports[`Bucket Should synth and match SnapShot 1`] = `
     "aws_s3_bucket_policy": {
       "HelloWorld_Policy_9E56801E": {
         "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
-        "policy": "\${data.aws_iam_policy_document.HelloWorld_Policy_Document_6894C6E0.json}"
+        "policy": "\${data.aws_iam_policy_document.HelloWorld_Policy_9607E751.json}"
       }
     },
     "aws_s3_bucket_public_access_block": {

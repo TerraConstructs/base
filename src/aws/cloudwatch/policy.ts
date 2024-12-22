@@ -1,13 +1,12 @@
-//https://github.com/aws/aws-cdk/blob/24adca3385e2321eac7e034d90a53b4290c048f1/packages/aws-cdk-lib/aws-logs/lib/policy.ts
+//https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/policy.ts
 
-import { CloudwatchLogResourcePolicy } from "@cdktf/provider-aws/lib/cloudwatch-log-resource-policy";
+import { cloudwatchLogResourcePolicy } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconProps } from "../beacon";
-
-import * as iam from "../iam";
+import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { PolicyDocument, PolicyStatement } from "../iam";
 
 /**
- * Properties to define CloudWatch log group resource policy
+ * Properties to define Cloudwatch log group resource policy
  */
 export interface ResourcePolicyProps extends AwsBeaconProps {
   /**
@@ -21,7 +20,7 @@ export interface ResourcePolicyProps extends AwsBeaconProps {
    *
    * @default - No statements
    */
-  readonly policyStatements?: iam.PolicyStatement;
+  readonly policyStatements?: PolicyStatement[];
 }
 
 /**
@@ -38,27 +37,39 @@ export interface ResourcePolicyProps extends AwsBeaconProps {
  *
  * Prefer to use `addToResourcePolicy()` instead.
  */
-export class ResourcePolicy extends iam.Policy {
+export class ResourcePolicy extends AwsBeaconBase {
+  public readonly resource: cloudwatchLogResourcePolicy.CloudwatchLogResourcePolicy;
+  public get outputs(): Record<string, any> {
+    return {
+      // The name of the CloudWatch log resource policy
+      id: this.resource.id,
+    };
+  }
+
   /**
    * The IAM policy document for this resource policy.
    */
-  public readonly document: iam.PolicyDocument;
+  public readonly document: PolicyDocument;
 
-  constructor(scope: Construct, id: string, props?: ResourcePolicyProps) {
-    super(scope, id);
+  constructor(scope: Construct, id: string, props: ResourcePolicyProps = {}) {
+    super(scope, id, props);
+    const policyName =
+      props.resourcePolicyName ||
+      this.stack.uniqueResourceName(this, {
+        prefix: this.gridUUID,
+      });
 
-    // Initialize the policy document
-    this.document = new iam.PolicyDocument(this, "Policy");
-
-    // Add initial statements to the policy document if provided
+    this.document = new PolicyDocument(this, "Policy");
+    this.resource = new cloudwatchLogResourcePolicy.CloudwatchLogResourcePolicy(
+      this,
+      "Resource",
+      {
+        policyDocument: this.document.json,
+        policyName,
+      },
+    );
     if (props?.policyStatements) {
-      this.document.addStatements(props?.policyStatements);
+      this.document.addStatements(...props.policyStatements);
     }
-
-    // Define the Cloudwatch log group resource policy
-    new CloudwatchLogResourcePolicy(this, "ResourcePolicy", {
-      policyName: props?.resourcePolicyName ?? this.node.id,
-      policyDocument: JSON.stringify(this.document),
-    });
   }
 }

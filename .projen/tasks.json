@@ -214,7 +214,7 @@
       "description": "Run tests",
       "steps": [
         {
-          "exec": "jest --passWithNoTests --updateSnapshot",
+          "exec": "jest --passWithNoTests --updateSnapshot --maxWorkers=4 --coverage=false",
           "receiveArgs": true
         },
         {

@@ -2,7 +2,7 @@ import { sqsQueue } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
 import { SqsQueueConfig, QueuePolicy } from ".";
-import { AwsBeaconBase, AwsBeaconProps } from "..";
+import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
 import * as iam from "../iam";
 
 export interface QueueProps extends AwsBeaconProps, SqsQueueConfig {

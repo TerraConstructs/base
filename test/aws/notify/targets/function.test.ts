@@ -271,8 +271,7 @@ describe("LambdaFunction as an event rule target", () => {
     expect(synthesized).toHaveResourceWithProperties(
       sqsQueuePolicy.SqsQueuePolicy,
       {
-        policy:
-          "${data.aws_iam_policy_document.Queue_Policy_Document_3FCD4399.json}",
+        policy: "${data.aws_iam_policy_document.Queue_Policy_E851DAAC.json}",
         queue_url: "${aws_sqs_queue.Queue_4A7E3555.url}",
       },
     );

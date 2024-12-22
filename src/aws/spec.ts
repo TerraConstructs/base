@@ -15,9 +15,10 @@ import {
 } from "cdktf";
 import { snakeCase } from "change-case";
 import { Construct, IConstruct } from "constructs";
-import { Arn, ArnComponents, ArnFormat, AwsProviderConfig } from ".";
-import { SpecBaseProps, SpecBase, ISpec } from "../";
+import { Arn, ArnComponents, ArnFormat } from "./arn";
+import { AwsProviderConfig } from "./provider-config.generated";
 import { SKIP_DEPENDENCY_PROPAGATION } from "../private/terraform-dependables-aspect";
+import { SpecBaseProps, SpecBase, ISpec } from "../spec-base";
 
 const AWS_SPEC_SYMBOL = Symbol.for("@envtio/base/lib/aws.AwsSpec");
 
@@ -101,6 +102,22 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
 
   private readonly lookup: AwsLookup;
   private regionalAwsProviders: { [region: string]: provider.AwsProvider } = {};
+
+  /**
+   * Cache these tokens for reliable comparisons.
+   *
+   * Every call for the same Token will produce a new unique string, no
+   * attempt is made to deduplicate. Token objects should cache the
+   * value themselves, if required.
+   *
+   * dataSource.getSTringattribute -> Token.asString -> tokenMap.registerString
+   * ref:
+   * - https://github.com/hashicorp/terraform-cdk/blob/v0.20.10/packages/cdktf/lib/terraform-data-source.ts#L68
+   * - https://github.com/hashicorp/terraform-cdk/blob/v0.20.10/packages/cdktf/lib/tokens/private/token-map.ts#L50-L66
+   */
+  private _accountIdToken: string | undefined;
+  private _paritionToken: string | undefined;
+  private _urlSuffixToken: string | undefined;
 
   constructor(scope: Construct, id: string, props: AwsSpecProps) {
     super(scope, id, props);
@@ -210,21 +227,30 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
    * Get the Account of the AWS Stack
    */
   public get account(): string {
-    return this.dataAwsCallerIdentity.accountId;
+    if (!this._accountIdToken) {
+      this._accountIdToken = this.dataAwsCallerIdentity.accountId;
+    }
+    return this._accountIdToken;
   }
 
   /**
    * Get the Partition of the AWS Stack
    */
   public get partition() {
-    return this.dataAwsPartition.partition;
+    if (!this._paritionToken) {
+      this._paritionToken = this.dataAwsPartition.partition;
+    }
+    return this._paritionToken;
   }
 
   /**
    * Base DNS domain name for the current partition (e.g., amazonaws.com in AWS Commercial, amazonaws.com.cn in AWS China).
    */
   public get urlSuffix() {
-    return this.dataAwsPartition.dnsSuffix;
+    if (!this._urlSuffixToken) {
+      this._urlSuffixToken = this.dataAwsPartition.dnsSuffix;
+    }
+    return this._urlSuffixToken;
   }
 
   /**

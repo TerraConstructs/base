@@ -13,6 +13,7 @@ import "cdktf/lib/testing/adapters/jest";
 import { TestFunction } from "./test-function";
 import { iam, compute, notify, AwsSpec } from "../../../../src/aws";
 import { Duration } from "../../../../src/duration";
+import { Template } from "../../../assertions";
 
 describe("SQSEventSource", () => {
   let spec: AwsSpec;
@@ -37,11 +38,8 @@ describe("SQSEventSource", () => {
     fn.addEventSource(new compute.sources.SqsEventSource(q));
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveDataSourceWithProperties(
+    const expected = Template.synth(spec);
+    expected.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: expect.arrayContaining([
@@ -59,7 +57,7 @@ describe("SQSEventSource", () => {
         ]),
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
+    expected.toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         event_source_arn: "${aws_sqs_queue.Q_63C6E3AB.arn}",
@@ -113,11 +111,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    Template.synth(spec).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         batch_size: 5,
@@ -157,11 +151,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    Template.synth(spec).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         batch_size: 500,
@@ -223,11 +213,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    Template.synth(spec).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         batch_size: 1000,
@@ -272,11 +258,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    Template.synth(spec).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         maximum_batching_window_in_seconds: 300,
@@ -383,11 +365,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    Template.synth(spec).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         enabled: false,
@@ -414,11 +392,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    Template.synth(spec).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         function_response_types: ["ReportBatchItemFailures"],
@@ -444,10 +418,7 @@ describe("SQSEventSource", () => {
   //   fn.addEventSource(new compute.sources.SqsEventSource(q));
   //   // const assembly = app.synth();
 
-  //   // Do prepare run to resolve all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
-  //   expect(synthesized).toMatchSnapshot();
+  //   Template.synth(spec).toMatchSnapshot();
 
   //   const messages = assembly.getStackArtifact(spec.artifactId).messages;
 
@@ -488,11 +459,8 @@ describe("SQSEventSource", () => {
     fn.addEventSource(new compute.sources.SqsEventSource(q));
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveDataSourceWithProperties(
+    const expected = Template.synth(spec);
+    expected.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: expect.arrayContaining([
@@ -511,16 +479,13 @@ describe("SQSEventSource", () => {
       },
     );
     // TODO: Should this be policy attachment instead??
-    expect(synthesized).toHaveResourceWithProperties(
-      iamRolePolicy.IamRolePolicy,
-      {
-        name: "TestSpecRolePolicyA8726EBF",
-        policy: "${data.aws_iam_policy_document.Role_Policy_A6D2CA68.json}",
-        role: "testFunctionRole",
-      },
-    );
+    expected.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
+      name: "TestSpecRolePolicyA8726EBF",
+      policy: "${data.aws_iam_policy_document.Role_Policy_A6D2CA68.json}",
+      role: "testFunctionRole",
+    });
     // TODO: this is dumb...
-    expect(synthesized).toHaveResourceWithProperties(
+    expected.toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         event_source_arn: "${aws_sqs_queue.Q_63C6E3AB.arn}",
@@ -609,11 +574,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    Template.synth(spec).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         filter_criteria: {
@@ -768,11 +729,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    Template.synth(spec).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         scaling_config: {

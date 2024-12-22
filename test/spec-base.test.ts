@@ -2,6 +2,7 @@ import { App, Testing, TerraformResource, TerraformElement } from "cdktf";
 import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
 import { SpecBase } from "../src";
+import { Template } from "./assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -82,11 +83,7 @@ describe("SpecBase", () => {
       );
 
       // THEN
-      spec.prepareStack(); // required to add pre-synth resources
-      const synthesized = Testing.synth(spec);
-      // expect(synthesized).toMatchSnapshot();
-      const template = JSON.parse(synthesized);
-      expect(template).toMatchObject({
+      Template.fromStack(spec).toMatchObject({
         resource: {
           [terraformResourceType]: {
             // direct resource depends on direct as well as nested resources
@@ -147,10 +144,7 @@ describe("SpecBase", () => {
       new CompositeWithNestedDependencyResource(spec, "ResourceB");
 
       // THEN
-      const synthesized = Testing.synth(spec);
-      // expect(synthesized).toMatchSnapshot();
-      const template = JSON.parse(synthesized);
-      expect(template).toMatchObject({
+      Template.fromStack(spec).toMatchObject({
         resource: {
           test_resource: {
             ResourceB_NestedResource1_0872214E: {
@@ -182,11 +176,7 @@ describe("SpecBase", () => {
       }).toThrow(/circular dependency/);
 
       // // THEN
-      // spec.prepareStack();
-      // const synthesized = Testing.synth(spec);
-      // expect(synthesized).toMatchSnapshot();
-      // const template = JSON.parse(synthesized);
-      // expect(template).toMatchObject({
+      // Template.fromStack(spec, { debug: true }).toMatchObject({
       //   resource: {
       //     [terraformResourceType]: {
       //       ResourceA: {
@@ -215,6 +205,8 @@ class CompositeResource extends TerraformElement {
   }
 }
 
+// TODO: Ideally we should use IResolvable.resolve and use the IResolveContext.preparing flag
+// ref: https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-iam/lib/policy-document.ts#L48
 class PreSynthResource extends TerraformElement {
   // additional resource added during prepareStack!
   public toTerraform(): any {

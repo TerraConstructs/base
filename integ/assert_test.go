@@ -11,11 +11,11 @@ func TestAssert_Success(t *testing.T) {
 		{
 			Path:           "request.uri",
 			Exists:         true,
-			ExpectedRegexp: strPtr("index.html$"),
+			ExpectedRegexp: ptr("index.html$"),
 		},
 		{
 			Path:           "status",
-			ExpectedRegexp: strPtr(`^\d+$`),
+			ExpectedRegexp: ptr(`^\d+$`),
 		},
 		// // lower is not supported by go-jmespath
 		// {
@@ -24,7 +24,19 @@ func TestAssert_Success(t *testing.T) {
 		// },
 		{
 			Path:           "request.querystring.test.value",
-			ExpectedRegexp: strPtr("true"),
+			ExpectedRegexp: ptr("true"),
+		},
+		{
+			Path:           "request.headers.accept.multiValue[].value",
+			ExpectedRegexp: ptr(`^text/html|application/xhtml+xml$`),
+		},
+		{
+			Path:           "request.headers.accept.multiValue[0].value",
+			ExpectedRegexp: ptr(`^text/html$`),
+		},
+		{
+			Path:           "request.headers.accept.multiValue[2].value",
+			ExpectedRegexp: ptr(`^1$`),
 		},
 	})
 }
@@ -33,11 +45,11 @@ func TestAssert_Failure(t *testing.T) {
 	err := AssertE(testObject, []Assertion{
 		{
 			Path:           "request.uri",
-			ExpectedRegexp: strPtr("^index.html"),
+			ExpectedRegexp: ptr("^index.html"),
 		},
 		{
 			Path:           "status",
-			ExpectedRegexp: strPtr(`^3..$`),
+			ExpectedRegexp: ptr(`^3..$`),
 		},
 		{
 			Path:   "request.querystring.foo",
@@ -74,17 +86,17 @@ func TestAssert_AdvancedJMESPath_ArrayValues(t *testing.T) {
 		{
 			// Check that 'val1' is among the 'multiValue[*].value'
 			Path:           "request.querystring.arg.multiValue[*].value",
-			ExpectedRegexp: strPtr("^val1$"),
+			ExpectedRegexp: ptr("^val1$"),
 		},
 		{
 			// Check that 'val2' is also among the 'multiValue[*].value'
 			Path:           "request.querystring.arg.multiValue[*].value",
-			ExpectedRegexp: strPtr("^val2$"),
+			ExpectedRegexp: ptr("^val2$"),
 		},
 		{
 			// Ensure that there are exactly two values in 'multiValue'
 			Path:           "length(request.querystring.arg.multiValue)",
-			ExpectedRegexp: strPtr("^2$"),
+			ExpectedRegexp: ptr("^2$"),
 		},
 	})
 }
@@ -94,12 +106,22 @@ func TestAssert_AdvancedJMESPath_Filters(t *testing.T) {
 		{
 			// Check if any value in 'multiValue' equals 'val2'
 			Path:           "request.querystring.arg.multiValue[?value=='val2'] | [0].value",
-			ExpectedRegexp: strPtr("^val2$"),
+			ExpectedRegexp: ptr("^val2$"),
 		},
 		{
 			// Verify that no value equals 'val3'
 			Path:   "request.querystring.arg.multiValue[?value=='val3']",
 			Exists: false,
+		},
+		{
+			// verify that all values are one of 'val1' or 'val2'
+			Path:           "request.querystring.arg.multiValue[?value=='val1' || value=='val2'] | length(@)",
+			ExpectedRegexp: ptr("^2$"),
+		},
+		{
+			// verify that all array elements are one of 'val1' or 'val2'
+			Path:           "array[] | [? !contains(['val1','val2'],@)] | length(@)",
+			ExpectedRegexp: ptr("^0$"),
 		},
 	})
 }
@@ -157,10 +179,13 @@ var testObject = map[string]any{
 				// some sample arrays and string pointers
 				"multiValue": []map[string]any{
 					{
-						"value": strPtr("text/html"),
+						"value": ptr("text/html"),
 					},
 					{
-						"value": strPtr("application/xhtml+xml"),
+						"value": ptr("application/xhtml+xml"),
+					},
+					{
+						"value": ptr(1),
 					},
 				},
 				"value": "text/html",
@@ -188,8 +213,9 @@ var testObject = map[string]any{
 		},
 		"uri": "/index.html",
 	},
+	"array": []string{"val1", "val2"},
 }
 
-func strPtr(s string) *string {
-	return &s
+func ptr[T any](v T) *T {
+	return &v
 }

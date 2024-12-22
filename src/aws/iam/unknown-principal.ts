@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-iam/lib/unknown-principal.ts
 import { Annotations } from "cdktf";
 import { DependencyGroup, IConstruct, Node } from "constructs";
-import { AwsSpec } from "..";
+import { AwsSpec } from "../spec";
 import { PolicyStatement } from "./policy-statement";
 import {
   AddToPrincipalPolicyResult,

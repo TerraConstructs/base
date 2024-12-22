@@ -1,17 +1,19 @@
 # Notify e2e tests
 
-
 > [!IMPORTANT]
 > Terratest uses compiled package from `lib` directory, run `pnpm compile` after making changes!
 
 Run terratest:
 
 ```console
-$ make
+$  make
 
 Test Targets:
   fifo-queue                 Test Queue with FIFO semantics
   dlq-queue                  Test DLQ Queue
+  stream                     Test Kinesis Data Stream
+  stream-dashboard           Test Kinesis Data Stream Dashboard
+  stream-resource-policy     Test Kinesis Data Stream Resource Policy
 
 Other Targets:
   help                       Print out every target with a description
@@ -24,33 +26,22 @@ Special pattern targets:
   %-cleanup-only:            Skip synth, deploy, and validate steps (i.e. foo-cleanup-only)
 ```
 
-Iterating tests, use the `SKIP_` variables for the stages defined:
+## Debug with Snapshots
 
-- SKIP_synth_app=true to skip converting Typescript into tf Json (this will prevent running any terraform stages)
-- SKIP_deploy_terraform=true to skip terraform init and apply
-- SKIP_validate=true to skip terratest validation stage
-- SKIP_cleanup_terraform=true to skip terraform destroy
+Use the `WRITE_SNAPSHOTS` environment variable to write cloud resources to disk and troubleshoot test assertions.
 
-For example, to synth app and deploy it, but keep everything running for troubleshooting (skip cleanup):
-
-```sh
-SKIP_cleanup_terraform=true make fifo-queue
+```console
+# run synth, tf apply and validate (snapshot only) without tf destroy
+WRITE_SNAPSHOTS=true make stream-resource-policy-no-cleanup
 ```
 
-To re-run the Validation stage only
+## Clean
 
-```sh
-SKIP_synth_app=true SKIP_cleanup_terraform=true make fifo-queue
-```
+To clean up after running tests
 
-To clean up after troubleshooting (skip build/deploy, but not cleanup)
+> [!WARNING]
+> This will remove TF State, preventing easy clean up of Cloud Resources
 
-```sh
-SKIP_synth_app=true SKIP_deploy_terraform=true SKIP_validate=true make fifo-queue
-```
-
-To synth app only
-
-```sh
-SKIP_deploy_terraform=true SKIP_validate=true SKIP_cleanup_terraform=true make fifo-queue
+```console
+make clean
 ```

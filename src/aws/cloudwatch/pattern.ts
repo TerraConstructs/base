@@ -1,3 +1,5 @@
+// https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/pattern.ts
+
 // Implementation of metric patterns
 
 /**

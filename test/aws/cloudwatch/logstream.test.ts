@@ -1,7 +1,11 @@
-// import { Template } from "../../assertions";
+// https://github.com/aws/aws-cdk/blob/a2c633f1e698249496f11338312ab42bd7b1e4f0/packages/aws-cdk-lib/aws-logs/test/logstream.test.ts
+
+import { cloudwatchLogStream } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
+import "cdktf/lib/testing/adapters/jest";
 import { AwsSpec } from "../../../src/aws";
 import { LogGroup, LogStream } from "../../../src/aws/cloudwatch";
+import { Template } from "../../assertions";
 
 const gridUUID = "123e4567-e89b-12d3";
 
@@ -28,10 +32,8 @@ describe("log stream", () => {
     });
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    expect(synthesized).toMatchSnapshot();
-    // Template.fromStack(spec).hasResourceProperties("AWS::Logs::LogStream", {});
+    Template.synth(spec).toHaveResource(
+      cloudwatchLogStream.CloudwatchLogStream,
+    );
   });
 });

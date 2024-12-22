@@ -1,13 +1,14 @@
 // ref: https://github.com/aws/aws-cdk/tree/v2.161.1/packages/aws-cdk-lib/aws-iam/lib/policy-document.ts
 // CAVEAT: instead of using IResolvable, this is a Construct and its constructor requires scope and id
-// This synths directly to the Terraform provider for aws `aws_iam_policy_document` data source.
+// This synths directly to the terraform-provider-aws `aws_iam_policy_document` data source.
 // This is not undefined when the policy document is empty.
 // TODO: Add validation and errors for empty policy documents
 import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
 import { Lazy, IResolveContext } from "cdktf";
 import { Construct } from "constructs";
-import { PolicyDocumentConfig, PolicyStatement } from ".";
-import { AwsBeaconBase, IAwsBeacon } from "..";
+import { PolicyDocumentConfig } from "./policy-document-config.generated";
+import { PolicyStatement } from "./policy-statement";
+import { AwsBeaconBase, IAwsBeacon } from "../beacon";
 import { mergeStatements } from "./private/merge-statements";
 import { PostProcessPolicyDocument } from "./private/postprocess-policy-document";
 

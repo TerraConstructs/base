@@ -2,7 +2,7 @@ import * as fs from "fs";
 import { cloudfrontFunction } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import { IKeyValueStore } from ".";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
+import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-cloudfront/lib/function.ts
 

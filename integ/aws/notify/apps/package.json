@@ -3,7 +3,10 @@
   "type": "module",
   "scripts": {
     "fifo-queue": "bun run ./fifo-queue.ts",
-    "dlq-queue": "bun run ./dlq-queue.ts"
+    "dlq-queue": "bun run ./dlq-queue.ts",
+    "stream": "bun run ./stream.ts",
+    "stream-dashboard": "bun run ./stream-dashboard.ts",
+    "stream-resource-policy": "bun run ./stream-resource-policy.ts"
   },
   "dependencies": {
     "cdktf": "^0.20.8",

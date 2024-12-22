@@ -8,7 +8,7 @@ import {
 } from "@cdktf/provider-aws";
 import { Fn, Lazy } from "cdktf";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "..";
+import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
 import { INetwork, NetworkOutputs } from "./network";
 import { PublicSubnet, PrivateSubnet, DataSubnet, ISubnet } from "./subnet";
 import {

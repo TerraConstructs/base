@@ -1,5 +1,7 @@
-import { Construct } from "constructs";
-import { AwsSpec } from "..";
+// https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/data-protection-policy.ts
+
+import { cloudwatchLogDataProtectionPolicy } from "@cdktf/provider-aws";
+import { AwsSpec } from "../spec";
 import { ILogGroup } from "./log-group";
 import { IBucket } from "../storage";
 /**
@@ -15,10 +17,14 @@ export class DataProtectionPolicy {
     this.dataProtectionPolicyProps = props;
   }
 
+  // NOTE: limited scope to logGroup class (for now)
+
   /**
    * @internal
    */
-  public _bind(_scope: Construct): DataProtectionPolicyConfig {
+  public _bind(
+    _scope: ILogGroup,
+  ): cloudwatchLogDataProtectionPolicy.CloudwatchLogDataProtectionPolicy {
     const name =
       this.dataProtectionPolicyProps.name || "data-protection-policy-cdk";
     const description =
@@ -94,7 +100,24 @@ export class DataProtectionPolicy {
     const configuration: PolicyConfiguration = {
       customDataIdentifier: customDataIdentifiers,
     };
-    return { name, description, version, configuration, statement };
+    const resource =
+      new cloudwatchLogDataProtectionPolicy.CloudwatchLogDataProtectionPolicy(
+        _scope,
+        "DataProtectionPolicy",
+        {
+          logGroupName: _scope.logGroupName,
+          // TODO: use cloudwatch_log_data_protection_policy_document data source instead of json stringify
+          // https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/data-sources/cloudwatch_log_data_protection_policy_document
+          policyDocument: JSON.stringify({
+            name,
+            description,
+            version,
+            configuration,
+            statement,
+          }),
+        },
+      );
+    return resource;
   }
 }
 
@@ -123,40 +146,6 @@ interface PolicyFirehoseDestination {
 
 interface PolicyS3Destination {
   bucket: string;
-}
-
-/**
- * Interface representing a data protection policy
- */
-interface DataProtectionPolicyConfig {
-  /**
-   * Name of the data protection policy
-   *
-   * @default - 'data-protection-policy-cdk'
-   */
-  readonly name: string;
-
-  /**
-   * Description of the data protection policy
-   *
-   * @default - 'cdk generated data protection policy'
-   */
-  readonly description: string;
-
-  /**
-   * Version of the data protection policy
-   */
-  readonly version: string;
-
-  /**
-   * Configuration of the data protection policy. Currently supports custom data identifiers
-   */
-  readonly configuration: PolicyConfiguration;
-
-  /**
-   * Statements within the data protection policy. Must contain one Audit and one Redact statement
-   */
-  readonly statement: any;
 }
 
 /**

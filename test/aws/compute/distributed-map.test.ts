@@ -1,11 +1,9 @@
-import {
-  Testing,
-  //Annotations,
-} from "cdktf";
+import { Testing } from "cdktf";
 import { render } from "./private/render-util";
 import { compute, storage, AwsSpec } from "../../../src/aws";
 import "cdktf/lib/testing/adapters/jest";
 import { CsvHeaders } from "../../../src/aws/compute/states/distributed-map/item-reader";
+import { Annotations } from "../../assertions";
 
 const gridUUID = "123e4567-e89b-12d3";
 
@@ -747,6 +745,11 @@ describe("Distributed Map State", () => {
         },
       });
 
+      Annotations.fromStack(spec).hasWarnings({
+        constructPath: "TestSpec/Map State",
+        message:
+          /Property 'ProcessorConfig.executionType' is ignored, use the 'mapExecutionType' in the 'DistributedMap' class instead./,
+      });
       // Annotations.fromStack(spec).hasWarning(
       //   "/Default/Map State",
       //   Match.stringLikeRegexp(
@@ -789,6 +792,11 @@ describe("Distributed Map State", () => {
         },
       });
 
+      Annotations.fromStack(spec).hasWarnings({
+        constructPath: "TestSpec/Map State",
+        message:
+          /Property 'ProcessorConfig.executionType' is ignored, use the 'mapExecutionType' in the 'DistributedMap' class instead./,
+      });
       // Annotations.fromStack(spec).hasWarning(
       //   "/Default/Map State",
       //   Match.stringLikeRegexp(

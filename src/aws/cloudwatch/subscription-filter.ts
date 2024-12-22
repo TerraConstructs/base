@@ -1,17 +1,28 @@
-// https://github.com/aws/aws-cdk/blob/24adca3385e2321eac7e034d90a53b4290c048f1/packages/aws-cdk-lib/aws-logs/lib/policy.ts
+// https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/subscription-filter.ts
 
-import { CloudwatchLogSubscriptionFilter } from "@cdktf/provider-aws/lib/cloudwatch-log-subscription-filter";
+import { cloudwatchLogSubscriptionFilter } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
 import { AwsBeaconBase, AwsBeaconProps } from "..";
 import { ILogGroup, SubscriptionFilterOptions } from "./log-group";
 import * as iam from "../iam";
+import { KinesisDestination } from "./log-destinations";
 
-//TODO: manage the KinesisDestination
-// import { KinesisDestination } from "../../aws-logs-destinations";
-
-// eslint-disable-next-line prettier/prettier
-// import { CfnSubscriptionFilter } from './logs.generated';
+/**
+ * Outputs which may be registered for output via the Grid.
+ */
+export interface LogSubscriptionDestinationOutputs {
+  /**
+   * The arn of this log group
+   * @attribute
+   */
+  readonly logGroupArn: string;
+  /**
+   * The name of this log group
+   * @attribute
+   */
+  readonly logGroupName: string;
+}
 
 /**
  * Interface for classes that can be the destination of a log Subscription
@@ -48,6 +59,11 @@ export interface LogSubscriptionDestinationConfig {
    * @default No role assumed
    */
   readonly role?: iam.IRole;
+
+  /**
+   * Dependencies required for subscription filter creation to succeed
+   */
+  readonly dependencies?: Construct[];
 }
 
 /**
@@ -66,21 +82,27 @@ export interface SubscriptionFilterProps
  * A new Subscription on a CloudWatch log group.
  */
 export class SubscriptionFilter extends AwsBeaconBase {
+  public resource: cloudwatchLogSubscriptionFilter.CloudwatchLogSubscriptionFilter;
+  /**
+   * This resource exports no additional attributes.
+   */
   public get outputs(): Record<string, any> {
-    return {
-      logGroupName: this.friendlyName,
-      destinationArn: this.env.account,
-    };
+    return {};
   }
-  physicalName: string;
+
   constructor(scope: Construct, id: string, props: SubscriptionFilterProps) {
-    super(scope, id);
+    super(scope, id, props);
+    const name =
+      props.filterName ||
+      this.stack.uniqueResourceName(this, {
+        prefix: this.gridUUID,
+      });
 
     if (
       props.distribution &&
       !Token.isUnresolved(props.distribution) &&
-      !Token.isUnresolved(props.destination)
-      // && !(props.destination instanceof KinesisDestination)
+      !Token.isUnresolved(props.destination) &&
+      !(props.destination instanceof KinesisDestination)
     ) {
       throw new Error(
         "distribution property can only be used with KinesisDestination.",
@@ -89,13 +111,21 @@ export class SubscriptionFilter extends AwsBeaconBase {
 
     const destProps = props.destination.bind(this, props.logGroup);
 
-    new CloudwatchLogSubscriptionFilter(this, "Resource", {
-      logGroupName: props.logGroup.logGroupName,
-      destinationArn: destProps.arn,
-      roleArn: destProps.role && destProps.role.roleArn,
-      filterPattern: props.filterPattern.logPatternString,
-      name: this.physicalName,
-      distribution: props.distribution,
-    });
+    this.resource =
+      new cloudwatchLogSubscriptionFilter.CloudwatchLogSubscriptionFilter(
+        this,
+        "Resource",
+        {
+          name,
+          logGroupName: props.logGroup.logGroupName,
+          destinationArn: destProps.arn,
+          roleArn: destProps.role && destProps.role.roleArn,
+          filterPattern: props.filterPattern.logPatternString,
+          distribution: props.distribution,
+        },
+      );
+    if (destProps.dependencies) {
+      this.resource.node.addDependency(...destProps.dependencies);
+    }
   }
 }

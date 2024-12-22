@@ -1,6 +1,6 @@
 import { s3BucketPolicy } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconProps, AwsBeaconBase } from "..";
+import { AwsBeaconProps, AwsBeaconBase } from "../beacon";
 import { IBucket } from "./bucket";
 import { PolicyDocument } from "../iam";
 
@@ -59,7 +59,7 @@ export class BucketPolicy extends AwsBeaconBase {
     super(scope, id);
 
     this.bucket = props.bucket;
-    this.document = new PolicyDocument(this, "Document");
+    this.document = new PolicyDocument(this, "Policy");
 
     this.resource = new s3BucketPolicy.S3BucketPolicy(this, "Resource", {
       bucket: this.bucket.bucketName,

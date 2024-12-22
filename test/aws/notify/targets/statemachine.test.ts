@@ -446,7 +446,7 @@ test("use a Dead Letter Queue for the rule target", () => {
     sqsQueuePolicy.SqsQueuePolicy,
     {
       policy:
-        "${data.aws_iam_policy_document.DeadLetterQueue_Policy_Document_6AD73DE3.json}",
+        "${data.aws_iam_policy_document.DeadLetterQueue_Policy_D01590FE.json}",
       queue_url: "${aws_sqs_queue.DeadLetterQueue_9F481546.url}",
     },
   );
