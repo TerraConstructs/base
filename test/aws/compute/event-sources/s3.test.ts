@@ -3,6 +3,7 @@ import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { TestFunction } from "./test-function";
 import { compute, storage, AwsSpec } from "../../../../src/aws";
+import { Template } from "../../../assertions";
 
 /* eslint-disable quote-props */
 
@@ -38,11 +39,8 @@ describe("S3EventSource", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    const expected = Template.synth(spec);
+    expected.toHaveResourceWithProperties(
       s3BucketNotification.S3BucketNotification,
       {
         bucket: "${aws_s3_bucket.B_08E7C7AF.bucket}",
@@ -74,16 +72,13 @@ describe("S3EventSource", () => {
         ],
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
-      lambdaPermission.LambdaPermission,
-      {
-        action: "lambda:InvokeFunction",
-        function_name: "${aws_lambda_function.Fn_9270CBC0.arn}",
-        principal: "s3.amazonaws.com",
-        source_account: "${data.aws_caller_identity.CallerIdentity.account_id}",
-        source_arn: "${aws_s3_bucket.B_08E7C7AF.arn}",
-      },
-    );
+    expected.toHaveResourceWithProperties(lambdaPermission.LambdaPermission, {
+      action: "lambda:InvokeFunction",
+      function_name: "${aws_lambda_function.Fn_9270CBC0.arn}",
+      principal: "s3.amazonaws.com",
+      source_account: "${data.aws_caller_identity.CallerIdentity.account_id}",
+      source_arn: "${aws_s3_bucket.B_08E7C7AF.arn}",
+    });
     // Template.fromStack(spec).hasResourceProperties(
     //   "Custom::S3BucketNotifications",
     //   {

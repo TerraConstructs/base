@@ -5,14 +5,12 @@ import { Construct } from "constructs";
 // import { EncryptionConfiguration } from "./encryption-configuration";
 // import { buildEncryptionConfiguration } from "./private/util";
 import {
-  AwsBeaconBase,
-  IAwsBeacon,
-  AwsBeaconProps,
-  AwsSpec,
   // Arn,
   ArnFormat,
-} from "..";
+} from "../arn";
+import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
 import * as iam from "../iam";
+import { AwsSpec } from "../spec";
 
 /**
  * Properties for defining a new Step Functions Activity

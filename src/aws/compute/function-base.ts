@@ -4,7 +4,9 @@ import * as crypto from "crypto";
 import { lambdaPermission } from "@cdktf/provider-aws";
 import { IResolvable, Annotations, Token } from "cdktf";
 import { Node } from "constructs";
-import { AwsBeaconBase, IAwsBeacon, AwsSpec, ArnFormat } from "..";
+import { ArnFormat } from "../arn";
+import { AwsBeaconBase, IAwsBeacon } from "../beacon";
+import { AwsSpec } from "../spec";
 import { Architecture } from "./architecture";
 import {
   EventInvokeConfig,

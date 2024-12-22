@@ -4,7 +4,7 @@ import {
   cloudfrontkeyvaluestoreKey,
 } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
+import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
 
 export interface IStoreData {
   /**

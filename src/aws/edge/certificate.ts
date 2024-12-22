@@ -11,8 +11,8 @@ import {
 } from "cdktf";
 import { Construct } from "constructs";
 import { IDnsZone, RecordSet, RecordTarget, RecordType } from ".";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
-import { Duration } from "../..";
+import { Duration } from "../../duration";
+import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
 
 export interface CertificateOutputs {
   /**

@@ -9,6 +9,9 @@ export * from "./queue";
 export * from "./rule";
 export * from "./schedule";
 export * from "./target";
+// kinesis
+export * from "./kinesis-stream";
+export * from "./resource-policy";
 
 export * as targets from "./targets";
 

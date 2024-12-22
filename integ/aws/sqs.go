@@ -118,6 +118,7 @@ func WaitForQueueMessage(t testing.TestingT, awsRegion string, queueURL string, 
 		result, err := sqsClient.ReceiveMessage(context.Background(), &input)
 
 		if err != nil {
+			logger.Log(t, fmt.Sprintf("Error while waiting: %s", err))
 			return QueueMessageResponse{Error: err}
 		}
 

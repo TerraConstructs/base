@@ -4,7 +4,7 @@ import {
   // docdbSubnetGroup, // not needed, rds and docdb share subnet groups
 } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps, IAwsBeacon } from "..";
+import { AwsBeaconBase, AwsBeaconProps, IAwsBeacon } from "../beacon";
 import { ISubnet } from "./subnet";
 
 export enum SubnetGroupType {

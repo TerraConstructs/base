@@ -1,5 +1,5 @@
 import { Dependable, IConstruct, IDependable } from "constructs";
-import { IAwsBeacon } from "..";
+import { IAwsBeacon } from "../beacon";
 import { PolicyStatement, Conditions } from "./policy-statement";
 import { IGrantable, IPrincipal } from "./principals";
 import { TokenComparison, tokenCompareStrings } from "../../token";

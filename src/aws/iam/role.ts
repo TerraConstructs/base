@@ -1,7 +1,9 @@
 import { iamRole } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
-import { ArnFormat, AwsBeaconBase, AwsSpec, AwsBeaconProps } from "..";
+import { ArnFormat } from "../arn";
+import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsSpec } from "../spec";
 import { Grant } from "./grant";
 import { IIdentity } from "./identity-base";
 import { IManagedPolicy } from "./managed-policy";

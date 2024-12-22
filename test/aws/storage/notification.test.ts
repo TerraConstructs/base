@@ -227,7 +227,7 @@ describe("notification", () => {
         aws_s3_bucket_notification: {
           MyBucket_Notifications_46AC0CD2: {
             depends_on: [
-              "data.aws_iam_policy_document.MyBucket_Policy_Document_1F38BB18",
+              "data.aws_iam_policy_document.MyBucket_Policy_F89E7330",
               "aws_s3_bucket_policy.MyBucket_Policy_E7FBAC7B",
             ],
           },
@@ -269,7 +269,7 @@ describe("notification", () => {
         aws_s3_bucket_notification: {
           MyBucket_Notifications_46AC0CD2: {
             depends_on: [
-              "data.aws_iam_policy_document.MyBucket_Policy_Document_1F38BB18",
+              "data.aws_iam_policy_document.MyBucket_Policy_F89E7330",
               "aws_s3_bucket_policy.MyBucket_Policy_E7FBAC7B",
             ],
           },

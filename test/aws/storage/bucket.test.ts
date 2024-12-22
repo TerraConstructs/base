@@ -4,6 +4,7 @@ import path from "path";
 import { App, Testing, TerraformLocal } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { storage, AwsSpec, iam } from "../../../src/aws";
+import { Template } from "../../assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -34,13 +35,7 @@ describe("Bucket", () => {
   //     encryption: storage.BucketEncryption.KMS_MANAGED,
   //   });
 
-  //   // Do prepare run to resolve/add all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
-  //   // refer to full snapshot for debug
-  //   expect(synthesized).toMatchSnapshot();
-  //   // const template = JSON.parse(synthesized);
-  //   // expect(template).toMatchObject({});
+  //   Template.fromStack(spec, {snapshot: true})..toMatchObject({});
   //   // Template.fromStack(stack).templateMatches({
   //   //   Resources: {
   //   //     MyBucketF68F3FF0: {
@@ -66,16 +61,10 @@ describe("Bucket", () => {
   test("enforceSsl can be enabled", () => {
     new storage.Bucket(spec, "MyBucket", { enforceSSL: true });
 
-    // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // refer to full snapshot for debug
-    // expect(synthesized).toMatchSnapshot();
-    const template = JSON.parse(synthesized);
-    expect(template).toMatchObject({
+    Template.fromStack(spec).toMatchObject({
       data: {
         aws_iam_policy_document: {
-          MyBucket_Policy_Document_1F38BB18: {
+          MyBucket_Policy_F89E7330: {
             statement: [
               {
                 actions: ["s3:*"],
@@ -112,7 +101,7 @@ describe("Bucket", () => {
           MyBucket_Policy_E7FBAC7B: {
             bucket: "${aws_s3_bucket.MyBucket_F68F3FF0.bucket}",
             policy:
-              "${data.aws_iam_policy_document.MyBucket_Policy_Document_1F38BB18.json}",
+              "${data.aws_iam_policy_document.MyBucket_Policy_F89E7330.json}",
           },
         },
       },
@@ -125,16 +114,10 @@ describe("Bucket", () => {
       minimumTLSVersion: 1.2,
     });
 
-    // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // refer to full snapshot for debug
-    // expect(synthesized).toMatchSnapshot();
-    const template = JSON.parse(synthesized);
-    expect(template).toMatchObject({
+    Template.fromStack(spec).toMatchObject({
       data: {
         aws_iam_policy_document: {
-          MyBucket_Policy_Document_1F38BB18: {
+          MyBucket_Policy_F89E7330: {
             statement: [
               {
                 actions: ["s3:*"],
@@ -192,7 +175,7 @@ describe("Bucket", () => {
           MyBucket_Policy_E7FBAC7B: {
             bucket: "${aws_s3_bucket.MyBucket_F68F3FF0.bucket}",
             policy:
-              "${data.aws_iam_policy_document.MyBucket_Policy_Document_1F38BB18.json}",
+              "${data.aws_iam_policy_document.MyBucket_Policy_F89E7330.json}",
           },
         },
       },
@@ -223,13 +206,7 @@ describe("Bucket", () => {
       versioned: true,
     });
 
-    // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // refer to full snapshot for debug
-    // expect(synthesized).toMatchSnapshot();
-    const template = JSON.parse(synthesized);
-    expect(template).toMatchObject({
+    Template.fromStack(spec).toMatchObject({
       resource: {
         aws_s3_bucket: {
           MyBucket_F68F3FF0: {
@@ -259,8 +236,8 @@ describe("Bucket", () => {
       public: true,
     });
     // THEN
-    spec.prepareStack(); // required to generate S3Objects
-    expect(Testing.synth(spec)).toMatchSnapshot();
+    // Template synth calls prepareStack -> required to generate S3Objects
+    Template.synth(spec).toMatchSnapshot();
   });
 
   test("Should support multiple sources", () => {
@@ -276,10 +253,8 @@ describe("Bucket", () => {
       registerOutputs: true,
     });
     // THEN
-    spec.prepareStack(); // required to generate S3Objects
-    // const result = Testing.synth(spec);
-
-    expect(Testing.synth(spec)).toMatchSnapshot();
+    // Template synth calls prepareStack -> required to generate S3Objects
+    Template.synth(spec).toMatchSnapshot();
   });
 
   test("Should throw error if bucket source is a file", () => {
@@ -306,12 +281,12 @@ describe("Bucket", () => {
       versioned: true,
     });
     // THEN
-    spec.prepareStack(); // required to generate S3Objects
-    const result = Testing.synth(spec);
-    expect(result).toHaveResource({
+    // Template synth calls prepareStack -> required to generate S3Objects
+    const expected = Template.synth(spec);
+    expected.toHaveResource({
       tfResourceType: "time_sleep",
     });
-    expect(result).toHaveResourceWithProperties(
+    expected.toHaveResourceWithProperties(
       {
         tfResourceType: "aws_s3_object",
       },
@@ -338,16 +313,10 @@ describe("Bucket", () => {
         }),
       );
 
-      // Do prepare run to resolve/add all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
-      // refer to full snapshot for debug
-      // expect(synthesized).toMatchSnapshot();
-      const template = JSON.parse(synthesized);
-      expect(template).toMatchObject({
+      Template.fromStack(spec).toMatchObject({
         data: {
           aws_iam_policy_document: {
-            MyBucket_Policy_Document_1F38BB18: {
+            MyBucket_Policy_F89E7330: {
               statement: [
                 {
                   actions: ["bar:baz"],
@@ -374,7 +343,7 @@ describe("Bucket", () => {
             MyBucket_Policy_E7FBAC7B: {
               bucket: "${aws_s3_bucket.MyBucket_F68F3FF0.bucket}",
               policy:
-                "${data.aws_iam_policy_document.MyBucket_Policy_Document_1F38BB18.json}",
+                "${data.aws_iam_policy_document.MyBucket_Policy_F89E7330.json}",
             },
           },
         },
@@ -460,13 +429,7 @@ describe("Bucket", () => {
       bucket.grantRead(role);
 
       // THEN
-      // Do prepare run to resolve/add all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
-      // refer to full snapshot to debug
-      // expect(synthesized).toMatchSnapshot();
-      const template = JSON.parse(synthesized);
-      expect(template).toMatchObject({
+      Template.fromStack(spec).toMatchObject({
         data: {
           aws_iam_policy_document: {
             MyRole_DefaultPolicy_6017B917: {
@@ -520,13 +483,7 @@ describe("Bucket", () => {
         bucket.grantReadWrite(role);
 
         // THEN
-        // Do prepare run to resolve/add all Terraform resources
-        spec.prepareStack();
-        const synthesized = Testing.synth(spec);
-        // refer to full snapshot to debug
-        // expect(synthesized).toMatchSnapshot();
-        const template = JSON.parse(synthesized);
-        expect(template).toMatchObject({
+        Template.fromStack(spec).toMatchObject({
           data: {
             aws_iam_policy_document: {
               MyRole_DefaultPolicy_6017B917: {
@@ -589,16 +546,10 @@ describe("Bucket", () => {
         bucket.grantRead(new iam.OrganizationPrincipal("o-1234"));
 
         // THEN
-        // Do prepare run to resolve/add all Terraform resources
-        spec.prepareStack();
-        const synthesized = Testing.synth(spec);
-        // refer to full snapshot to debug
-        // expect(synthesized).toMatchSnapshot();
-        const template = JSON.parse(synthesized);
-        expect(template).toMatchObject({
+        Template.fromStack(spec).toMatchObject({
           data: {
             aws_iam_policy_document: {
-              MyBucket_Policy_Document_1F38BB18: {
+              MyBucket_Policy_F89E7330: {
                 statement: [
                   {
                     actions: ["s3:GetObject*", "s3:GetBucket*", "s3:List*"],
@@ -635,7 +586,7 @@ describe("Bucket", () => {
               MyBucket_Policy_E7FBAC7B: {
                 bucket: "${aws_s3_bucket.MyBucket_F68F3FF0.bucket}",
                 policy:
-                  "${data.aws_iam_policy_document.MyBucket_Policy_Document_1F38BB18.json}",
+                  "${data.aws_iam_policy_document.MyBucket_Policy_F89E7330.json}",
               },
             },
           },
@@ -657,7 +608,7 @@ describe("Bucket", () => {
         // });
       });
 
-      // NOTE: in @envtio/base S3_GRANT_WRITE_WITHOUT_ACL is always enabled
+      // NOTE: in TerraConstructs S3_GRANT_WRITE_WITHOUT_ACL is always enabled
       // ref: https://github.com/aws/aws-cdk/pull/12391
       test("does not grant PutObjectAcl when the S3_GRANT_WRITE_WITHOUT_ACL feature is enabled", () => {
         // GIVEN
@@ -671,13 +622,7 @@ describe("Bucket", () => {
 
         // THEN
 
-        // Do prepare run to resolve/add all Terraform resources
-        spec.prepareStack();
-        const synthesized = Testing.synth(spec);
-        // refer to full snapshot to debug
-        // expect(synthesized).toMatchSnapshot();
-        const template = JSON.parse(synthesized);
-        expect(template).toMatchObject({
+        Template.fromStack(spec).toMatchObject({
           data: {
             aws_iam_policy_document: {
               MyRole_DefaultPolicy_6017B917: {
@@ -722,13 +667,7 @@ describe("Bucket", () => {
         bucket.grantWrite(role, "*", ["s3:PutObject", "s3:DeleteObject*"]);
 
         // THEN
-        // Do prepare run to resolve/add all Terraform resources
-        spec.prepareStack();
-        const synthesized = Testing.synth(spec);
-        // refer to full snapshot to debug
-        // expect(synthesized).toMatchSnapshot();
-        const template = JSON.parse(synthesized);
-        expect(template).toMatchObject({
+        Template.fromStack(spec).toMatchObject({
           data: {
             aws_iam_policy_document: {
               MyRole_DefaultPolicy_6017B917: {
@@ -805,13 +744,7 @@ describe("Bucket", () => {
     const bucket = new storage.Bucket(spec, "MyBucket");
     bucket.enableEventBridgeNotification();
 
-    // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // refer to full snapshot to debug
-    // expect(synthesized).toMatchSnapshot();
-    const template = JSON.parse(synthesized);
-    expect(template).toMatchObject({
+    Template.fromStack(spec).toMatchObject({
       resource: {
         aws_s3_bucket_notification: {
           MyBucket_Notifications_46AC0CD2: {

@@ -8,7 +8,7 @@ import {
   IAspect,
 } from "cdktf";
 import { Construct, IConstruct } from "constructs";
-import { SpecBase } from ".";
+import { SpecBase } from "./spec-base";
 
 export interface BeaconProps extends TerraformMetaArguments {
   /**
@@ -73,6 +73,15 @@ export class GridTags implements IAspect {
  * Allows a Beacon to lazily register its outputs with its parent Spec
  */
 export abstract class BeaconBase extends TerraformElement implements IBeacon {
+  /**
+   * Returns true if the construct was created by CDKTF, and false otherwise
+   */
+  public static isOwnedResource(construct: IConstruct): boolean {
+    return construct.node.defaultChild
+      ? TerraformResource.isTerraformResource(construct.node.defaultChild)
+      : false;
+  }
+
   /**
    * The name under which the outputs are registered in the parent Scope
    */

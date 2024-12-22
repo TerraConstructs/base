@@ -34,6 +34,7 @@ import {
 } from "../../../src/aws/iam/principals";
 import { Role } from "../../../src/aws/iam/role";
 import { AwsSpec } from "../../../src/aws/spec";
+import { Annotations, Template } from "../../assertions";
 
 const environmentName = "Test";
 const gridUUID1 = "123e4567-e89b-12d3";
@@ -1273,18 +1274,13 @@ test.skip("too many managed policies warning", () => {
     );
   }
 
+  Annotations.fromStack(spec).hasWarnings({
+    constructPath: "RoleStack/MyRole",
+  });
   // Annotations.fromStack(stack).hasWarning(
   //   "/my-stack/MyRole",
   //   Match.stringLikeRegexp(".*"),
   // );
-  spec.prepareStack();
-  // CDKTF attaches warnings/errors to stack metadata
-  // TODO: filter down by expected warning message?
-  const warnings = spec.node.metadata.filter(
-    (e) => e.type === AnnotationMetadataEntryType.WARN,
-  );
-  // expect(warnings).toMatchSnapshot();
-  expect(warnings).toHaveLength(1);
 });
 
 describe("role with too large inline policy", () => {
@@ -1330,7 +1326,6 @@ describe("role with too large inline policy", () => {
     // });
   });
 
-  // TODO: CDKTF doesn't support `node.addDependency` yet
   test.skip("Dependables track the final declaring construct", () => {
     // WHEN
     const result = role.addToPrincipalPolicy(
@@ -1344,15 +1339,10 @@ describe("role with too large inline policy", () => {
 
     const res = new TerraformElement(spec, "Depender", "AWS::Some::Resource");
 
-    // TODO: CDKTF doesn't support `node.addDependency` yet
-    // https://github.com/hashicorp/terraform-cdk/issues/2727#issuecomment-1473321075https://github.com/hashicorp/terraform-cdk/issues/2727#issuecomment-1473321075
     expect(result.policyDependable).toBeTruthy();
     res.node.addDependency(result.policyDependable!);
 
-    // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    expect(synthesized).toMatchSnapshot();
+    Template.synth(spec).toMatchSnapshot();
     // THEN
     // const template = Template.fromStack(spec);
     // template.hasResource("AWS::Some::Resource", {

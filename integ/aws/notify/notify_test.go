@@ -1,16 +1,20 @@
 package test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/environment-toolkit/go-synth/executors"
+	"github.com/envtio/base/integ"
 	util "github.com/envtio/base/integ/aws"
 	"github.com/gruntwork-io/terratest/modules/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 )
@@ -41,6 +45,27 @@ func TestDlqQueue(t *testing.T) {
 	test_structure.SaveInt(t, tfWorkingDir, "max_receive_count", maxReceiveCount)
 	// Confirm the DLQ queue is working as expected
 	runNotifyIntegrationTest(t, testApp, awsRegion, envVars, validateDlqQueue)
+}
+
+// Test the stream app
+func TestStream(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	// Confirm the kinesis stream is active and iam role has the correct permissions
+	runNotifyIntegrationTest(t, "stream", "us-east-1", envVars, validateStream)
+}
+
+// Test the stream-dashboard app
+func TestStreamDashboard(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	// Confirm the dashboard is working as expected
+	runNotifyIntegrationTest(t, "stream-dashboard", "us-east-1", envVars, validateStreamDashboard)
+}
+
+// Test the stream-resource-policy app
+func TestStreamResourcePolicy(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	// Confirm the stream resource policy is set as expected
+	runNotifyIntegrationTest(t, "stream-resource-policy", "us-east-1", envVars, validateStreamResourcePoliy)
 }
 
 func validateFifoQueue(t *testing.T, workingDir string, awsRegion string) {
@@ -98,6 +123,77 @@ func validateDlqQueue(t *testing.T, workingDir string, awsRegion string) {
 	aws.DeleteMessageFromQueue(t, awsRegion, dlqUrl, dlqMsgResponse.ReceiptHandle)
 }
 
+func validateStream(t *testing.T, workingDir string, awsRegion string) {
+	snapshotPath := filepath.Join("snapshots", "stream")
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+	streamName := util.LoadOutputAttribute(t, terraformOptions, "stream", "streamName")
+	roleName := util.LoadOutputAttribute(t, terraformOptions, "role", "name")
+	role := util.GetIamRole(t, awsRegion, roleName)
+	// require the InlinePolicies to have more than 0 elements
+	require.Greater(t, len(role.InlinePolicies), 0)
+	// require the policy document to be a valid JSON
+	var policyDoc any
+	err := json.Unmarshal([]byte(role.InlinePolicies[0].PolicyDocument), &policyDoc)
+	require.NoError(t, err)
+	if os.Getenv("WRITE_SNAPSHOTS") == "true" {
+		writeSnapshot(t, snapshotPath, role, "RoleOutputs")
+		writeSnapshot(t, snapshotPath, policyDoc, "PolicyDocument")
+	} else {
+		actionsRe := "^kinesis:PutRecord$"
+		integ.Assert(t, policyDoc, []integ.Assertion{
+			{
+				Path:           "Statement[].Action[]",
+				ExpectedRegexp: &actionsRe,
+			},
+		})
+	}
+	util.WaitForStreamActive(t, awsRegion, streamName, 10, 10*time.Second)
+}
+
+func validateStreamDashboard(t *testing.T, workingDir string, awsRegion string) {
+	snapshotPath := filepath.Join("snapshots", "stream-dashboard")
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+	dashboardName := util.LoadOutputAttribute(t, terraformOptions, "dashboard", "dashboardName")
+	dashboardBody := util.GetDashboardBody(t, awsRegion, dashboardName)
+	// assert the dashboard body is a valid JSON
+	var dashboard any
+	err := json.Unmarshal([]byte(*dashboardBody), &dashboard)
+	require.NoError(t, err)
+	if os.Getenv("WRITE_SNAPSHOTS") == "true" {
+		writeSnapshot(t, snapshotPath, dashboard, "DashBoardBody")
+	}
+}
+
+func validateStreamResourcePoliy(t *testing.T, workingDir string, awsRegion string) {
+	snapshotPath := filepath.Join("snapshots", "stream-resource-policy")
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+	streamArn := util.LoadOutputAttribute(t, terraformOptions, "stream", "streamArn")
+	policyString := util.GetStreamResourcePolicy(t, awsRegion, streamArn)
+	// assert the policyDoc body is a valid JSON
+	var policyDoc any
+	err := json.Unmarshal([]byte(policyString), &policyDoc)
+	require.NoError(t, err)
+	if os.Getenv("WRITE_SNAPSHOTS") == "true" {
+		writeSnapshot(t, snapshotPath, policyDoc, "StreamResourcePolicy")
+	} else {
+		actionsRe := "^kinesis:GetRecords$"
+		principalRe := "^arn:aws:iam::\\d{12}:root$"
+		integ.Assert(t, policyDoc, []integ.Assertion{
+			{
+				Path:           "Statement[].Action[]",
+				ExpectedRegexp: &actionsRe,
+			},
+			{
+				Path:           "Statement[].Principal.AWS",
+				ExpectedRegexp: &principalRe,
+			},
+		})
+	}
+}
+
 // run integration test
 func runNotifyIntegrationTest(t *testing.T, testApp, awsRegion string, envVars map[string]string, validate func(t *testing.T, tfWorkingDir string, awsRegion string)) {
 	t.Parallel()
@@ -119,4 +215,17 @@ func runNotifyIntegrationTest(t *testing.T, testApp, awsRegion string, envVars m
 	test_structure.RunTestStage(t, "validate", func() {
 		validate(t, tfWorkingDir, awsRegion)
 	})
+}
+
+// writeSnapshot writes the full entity to a snapshot file
+// this is useful in an initial run to capture the created resources in AWS.
+func writeSnapshot(t *testing.T, snapshotDir string, entity any, entityName string) {
+	fileName := filepath.Join(snapshotDir, "outputs", entityName+".json")
+	roleString, err := json.MarshalIndent(entity, "", "  ")
+	require.NoError(t, err)
+	err = os.MkdirAll(filepath.Dir(fileName), 0755)
+	require.NoError(t, err)
+	terratestLogger.Logf(t, "Writing snapshot to %s", fileName)
+	err = os.WriteFile(fileName, roleString, 0644)
+	require.NoError(t, err)
 }

@@ -12,13 +12,17 @@ replace github.com/gruntwork-io/terratest => github.com/wakeful/terratest v0.47.
 replace github.com/jmespath/go-jmespath => github.com/AndrewKlopper/go-jmespath v0.4.1
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.32.3
+	github.com/aws/aws-sdk-go-v2 v1.32.7
 	github.com/aws/aws-sdk-go-v2/config v1.27.41
 	github.com/aws/aws-sdk-go-v2/service/acm v1.30.0
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.38.7
+	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.43.4
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchevents v1.27.3
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.41.0
+	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.36.1
 	github.com/aws/aws-sdk-go-v2/service/iam v1.37.0
+	github.com/aws/aws-sdk-go-v2/service/kinesis v1.32.8
+	github.com/aws/aws-sdk-go-v2/service/kms v1.37.0
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.63.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.0
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.33.2
@@ -44,14 +48,14 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/aws/aws-sdk-go v1.44.122 // indirect
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.6 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.7 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.39 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.15 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.28 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.22 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.22 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.26 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.26 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.19 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.26 // indirect
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.45.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/codeartifact v1.30.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.36.0 // indirect
@@ -63,7 +67,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.10.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/kms v1.37.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/rds v1.87.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.45.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.0 // indirect
@@ -72,7 +75,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.32.0 // indirect
-	github.com/aws/smithy-go v1.22.0 // indirect
+	github.com/aws/smithy-go v1.22.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect

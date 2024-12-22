@@ -13,7 +13,9 @@ import {
   PrincipalPolicyFragment,
 } from "./principals";
 import { IRole } from "./role";
-import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps, Arn, AwsSpec } from "../";
+import { Arn } from "../arn";
+import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsSpec } from "../spec";
 
 /**
  * Outputs which may be registered for output via the Grid.
@@ -173,6 +175,8 @@ abstract class ManagedPolicyBase
     // add iamRolePolicy resource for each referenced role
     for (let i = 0; i < this.roles.length; i++) {
       const id = `Roles${i}`;
+      // TODO: Ideally we should have used IResolvable.resolve and use the IResolveContext.preparing flag
+      // ref: https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-iam/lib/policy-document.ts#L48
       if (this.node.tryFindChild(id)) continue; // ignore if already generated
 
       new iamRolePolicyAttachment.IamRolePolicyAttachment(this, id, {

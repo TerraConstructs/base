@@ -5,7 +5,7 @@ import { TerraformAsset, AssetType, Fn, ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import * as mime from "mime-types";
 import { normalPath, IBucket, AddSourceOptions } from ".";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
+import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
 
 export interface BucketSourceProps extends AddSourceOptions, AwsBeaconProps {
   /**

@@ -3,6 +3,8 @@ import * as compute from "..";
 import { EventBridgeDestination } from "./event-bridge";
 import * as notify from "../../notify";
 
+// TODO: Name this back to LambdaDestination instead?
+
 /**
  * Options for a Lambda destination
  */

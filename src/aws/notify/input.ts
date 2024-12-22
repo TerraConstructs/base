@@ -8,8 +8,8 @@ import {
   Token,
   Tokenization,
 } from "cdktf";
-import { IRule } from ".";
-import { AwsSpec } from "..";
+import { IRule } from "./rule";
+import { AwsSpec } from "../spec";
 
 /**
  * The input to send to the event target
@@ -363,4 +363,4 @@ function isEventField(x: any): x is EventField {
   return EVENT_FIELD_SYMBOL in x;
 }
 
-const EVENT_FIELD_SYMBOL = Symbol.for("@aws-cdk/aws-events.EventField");
+const EVENT_FIELD_SYMBOL = Symbol.for("@envtio/base/lib/aws/notify.EventField");

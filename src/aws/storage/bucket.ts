@@ -1293,6 +1293,8 @@ export class Bucket extends AwsBeaconBase implements IBucket {
     }
 
     for (const source of this.sources) {
+      // TODO: Ideally we should have used IResolvable.resolve and use the IResolveContext.preparing flag
+      // ref: https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-iam/lib/policy-document.ts#L48
       if (this.node.tryFindChild(source.id)) continue; // ignore if already generated
       new BucketSource(this, source.id, source.props);
     }

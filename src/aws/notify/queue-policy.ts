@@ -1,6 +1,6 @@
 import { sqsQueuePolicy } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "..";
+import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
 import { IQueue } from "./";
 import { PolicyDocument } from "../iam";
 
@@ -38,7 +38,7 @@ export class QueuePolicy extends AwsBeaconBase {
   }
   constructor(scope: Construct, id: string, props: QueuePolicyProps) {
     super(scope, id, props);
-    this.document = new PolicyDocument(this, "Document");
+    this.document = new PolicyDocument(this, "Policy");
 
     new sqsQueuePolicy.SqsQueuePolicy(this, "Resource", {
       policy: this.document.json,

@@ -5,13 +5,9 @@ import {
 } from "@cdktf/provider-aws";
 import { Lazy, Token } from "cdktf";
 import { Construct } from "constructs";
-import {
-  ArnFormat,
-  // IAwsBeacon,
-  AwsBeaconProps,
-  AwsBeaconBase,
-  AwsSpec,
-} from "..";
+import { ArnFormat } from "../arn";
+import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsSpec } from "../spec";
 import { Archive, BaseArchiveProps } from "./archive";
 // import * as encryption from "../encryption";
 import * as iam from "../iam";
@@ -197,7 +193,7 @@ abstract class EventBusBase extends AwsBeaconBase implements IEventBus {
 /**
  * Define an EventBridge EventBus
  *
- * @resource AWS::Events::EventBus
+ * @resource aws_cloudwatch_event_bus
  */
 export class EventBus extends EventBusBase {
   /**

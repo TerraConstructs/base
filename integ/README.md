@@ -12,6 +12,10 @@ Launch an Authenticated AWS Shell.
 
 Run all e2e tests:
 
+> [!IMPORTANT]
+> Ensure [bun](https://bun.sh) is installed and available on `$PATH` for terratest to synth.
+> To manually run the integration "apps", use `bun run`.
+
 ```sh
 go test -v -count 1 -timeout 180m ./...
 ```

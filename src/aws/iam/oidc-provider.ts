@@ -1,6 +1,7 @@
 import { iamOpenidConnectProvider } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { Arn, IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "..";
+import { Arn } from "../arn";
+import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../beacon";
 
 export interface OpenIdConnectProviderOutputs {
   /**

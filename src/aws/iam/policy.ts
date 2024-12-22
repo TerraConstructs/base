@@ -1,6 +1,7 @@
 import { iamRolePolicy } from "@cdktf/provider-aws";
+import { TerraformElement } from "cdktf";
 import { Construct } from "constructs";
-import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "..";
+import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../beacon";
 import { IPolicyDocument, PolicyDocument } from "./policy-document";
 import { PolicyStatement } from "./policy-statement";
 import {
@@ -248,13 +249,22 @@ export class Policy extends AwsBeaconBase implements IPolicy, IGrantable {
     // else need: https://github.com/hashicorp/terraform-provider-aws/issues/29828#issuecomment-1693307500
     for (let i = 0; i < this.roles.length; i++) {
       const id = `ResourceRoles${i}`;
+      // TODO: Ideally we should have used IResolvable.resolve and use the IResolveContext.preparing flag
+      // ref: https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-iam/lib/policy-document.ts#L48
       if (this.node.tryFindChild(id)) continue; // ignore if already generated
 
-      new iamRolePolicy.IamRolePolicy(this, id, {
+      const rolePolicy = new iamRolePolicy.IamRolePolicy(this, id, {
         policy: this.document.json,
         role: this.roles[i].roleName,
         name: this.policyName,
       });
+      // copy any overrides to the underlying L0 resources
+      for (const [key, value] of Object.entries(this.rawOverrides)) {
+        rolePolicy.addOverride(key, value);
+        const policyDocument = this.document.node
+          .defaultChild as TerraformElement;
+        policyDocument.addOverride(key, value);
+      }
     }
     return {};
   }

@@ -1,5 +1,6 @@
 import { Construct } from "constructs";
-import { AwsSpec, ArnFormat } from ".";
+import { ArnFormat } from "./arn";
+import { AwsSpec } from "./spec";
 import { BeaconBase, BeaconProps, IBeacon } from "../beacon-base";
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/resource.ts#L15

@@ -116,6 +116,12 @@ project.gitignore.exclude(".env");
 project.addPackageIgnore("/integ/");
 project.tsconfigDev?.addInclude("integ/**/*.ts");
 
+// Limit workers and disable coverage for faster test runs
+project.testTask.updateStep(0, {
+  exec: "jest --passWithNoTests --updateSnapshot --maxWorkers=4 --coverage=false",
+  receiveArgs: true,
+});
+
 project.package.addField("packageManager", "pnpm@9.9.0"); // silence COREPACK_ENABLE_AUTO_PIN warning
 project.package.addEngine("node", nodeVersion);
 new TextFile(project, ".nvmrc", {
