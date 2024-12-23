@@ -8,14 +8,15 @@ import {
 import { Testing, App } from "cdktf";
 import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../../src/aws/aws-stack";
 import { NodejsFunction } from "../../../../src/aws/compute/function-nodejs";
 import { RuleTargetInput } from "../../../../src/aws/notify/input";
 import { Queue } from "../../../../src/aws/notify/queue";
 import { Rule } from "../../../../src/aws/notify/rule";
 import { Schedule } from "../../../../src/aws/notify/schedule";
 import { LambdaFunction as LambdaFunctionTarget } from "../../../../src/aws/notify/targets/function";
-import { AwsSpec } from "../../../../src/aws/spec";
 import { Duration } from "../../../../src/duration";
+import { Template } from "../../../assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -24,24 +25,24 @@ const gridBackendConfig = {
 };
 describe("LambdaFunction as an event rule target", () => {
   let app: App;
-  let spec: AwsSpec;
+  let stack: AwsStack;
   // let rule: Rule;
 
   beforeEach(() => {
     app = Testing.app();
-    spec = getAwsSpec(app);
-    // rule = new Rule(spec, "Rule", {
+    stack = getAwsStack(app);
+    // rule = new Rule(stack, "Rule", {
     //   schedule: Schedule.expression("rate(1 min)"),
     // });
   });
 
   test("with multiple rules", () => {
     // GIVEN
-    const fn = newTestLambda(spec);
-    const rule1 = new Rule(spec, "Rule", {
+    const fn = newTestLambda(stack);
+    const rule1 = new Rule(stack, "Rule", {
       schedule: Schedule.rate(Duration.minutes(1)),
     });
-    const rule2 = new Rule(spec, "Rule2", {
+    const rule2 = new Rule(stack, "Rule2", {
       schedule: Schedule.rate(Duration.minutes(5)),
     });
 
@@ -50,47 +51,39 @@ describe("LambdaFunction as an event rule target", () => {
     rule2.addTarget(new LambdaFunctionTarget(fn));
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    const template = Template.synth(stack);
     // expect(synthesized).toMatchSnapshot();
-    const lambdaId = "MyLambda_CCE802FB";
-    expect(synthesized).toHaveResourceWithProperties(
-      lambdaPermission.LambdaPermission,
-      {
-        function_name: `\${aws_lambda_function.${lambdaId}.arn}`,
-        action: "lambda:InvokeFunction",
-        principal: "events.amazonaws.com",
-        source_arn: "${aws_cloudwatch_event_rule.Rule_4C995B7F.arn}",
-      },
-    );
-    expect(synthesized).toHaveResourceWithProperties(
-      lambdaPermission.LambdaPermission,
-      {
-        function_name: `\${aws_lambda_function.${lambdaId}.arn}`,
-        action: "lambda:InvokeFunction",
-        principal: "events.amazonaws.com",
-        source_arn: "${aws_cloudwatch_event_rule.Rule2_70732244.arn}",
-      },
-    );
-    expect(synthesized).toHaveResourceWithProperties(
+    const lambdaArn = stack.resolve(fn.functionArn);
+    template.toHaveResourceWithProperties(lambdaPermission.LambdaPermission, {
+      function_name: lambdaArn,
+      action: "lambda:InvokeFunction",
+      principal: "events.amazonaws.com",
+      source_arn: "${aws_cloudwatch_event_rule.Rule_4C995B7F.arn}",
+    });
+    template.toHaveResourceWithProperties(lambdaPermission.LambdaPermission, {
+      function_name: lambdaArn,
+      action: "lambda:InvokeFunction",
+      principal: "events.amazonaws.com",
+      source_arn: "${aws_cloudwatch_event_rule.Rule2_70732244.arn}",
+    });
+    template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
         target_id: "Target0",
         rule: "${aws_cloudwatch_event_rule.Rule_4C995B7F.name}",
-        arn: `\${aws_lambda_function.${lambdaId}.arn}`,
+        arn: lambdaArn,
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
+    template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
         target_id: "Target0",
         rule: "${aws_cloudwatch_event_rule.Rule2_70732244.name}",
-        arn: `\${aws_lambda_function.${lambdaId}.arn}`,
+        arn: lambdaArn,
       },
     );
 
-    // Template.fromStack(spec).hasResourceProperties("AWS::Lambda::Permission", {
+    // .hasResourceProperties("AWS::Lambda::Permission", {
     //   Action: "lambda:InvokeFunction",
     //   FunctionName: {
     //     "Fn::GetAtt": [lambdaId, "Arn"],
@@ -99,7 +92,7 @@ describe("LambdaFunction as an event rule target", () => {
     //   SourceArn: { "Fn::GetAtt": ["Rule4C995B7F", "Arn"] },
     // });
 
-    // Template.fromStack(spec).hasResourceProperties("AWS::Lambda::Permission", {
+    // .hasResourceProperties("AWS::Lambda::Permission", {
     //   Action: "lambda:InvokeFunction",
     //   FunctionName: {
     //     "Fn::GetAtt": [lambdaId, "Arn"],
@@ -108,8 +101,8 @@ describe("LambdaFunction as an event rule target", () => {
     //   SourceArn: { "Fn::GetAtt": ["Rule270732244", "Arn"] },
     // });
 
-    // Template.fromStack(spec).resourceCountIs("AWS::Events::Rule", 2);
-    // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+    // .resourceCountIs("AWS::Events::Rule", 2);
+    // .hasResourceProperties("AWS::Events::Rule", {
     //   Targets: [
     //     {
     //       Arn: { "Fn::GetAtt": [lambdaId, "Arn"] },
@@ -121,8 +114,8 @@ describe("LambdaFunction as an event rule target", () => {
 
   test("adding same lambda function as target mutiple times creates permission only once", () => {
     // GIVEN
-    const fn = newTestLambda(spec);
-    const rule = new Rule(spec, "Rule", {
+    const fn = newTestLambda(stack);
+    const rule = new Rule(stack, "Rule", {
       schedule: Schedule.rate(Duration.minutes(1)),
     });
 
@@ -139,21 +132,17 @@ describe("LambdaFunction as an event rule target", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(
-      resourceCount(JSON.parse(synthesized), lambdaPermission.LambdaPermission),
-    ).toBe(1);
-    // Template.fromStack(spec).resourceCountIs("AWS::Lambda::Permission", 1);
+    Template.resources(stack, lambdaPermission.LambdaPermission).toHaveLength(
+      1,
+    );
+    // .resourceCountIs("AWS::Lambda::Permission", 1);
   });
 
   test("adding different lambda functions as target mutiple times creates multiple permissions", () => {
     // GIVEN
-    const fn1 = newTestLambda(spec);
-    const fn2 = newTestLambda(spec, "2");
-    const rule = new Rule(spec, "Rule", {
+    const fn1 = newTestLambda(stack);
+    const fn2 = newTestLambda(stack, "2");
+    const rule = new Rule(stack, "Rule", {
       schedule: Schedule.rate(Duration.minutes(1)),
     });
 
@@ -170,14 +159,10 @@ describe("LambdaFunction as an event rule target", () => {
     );
 
     // THEN
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(
-      resourceCount(JSON.parse(synthesized), lambdaPermission.LambdaPermission),
-    ).toBe(2);
-    // Template.fromStack(spec).resourceCountIs("AWS::Lambda::Permission", 2);
+    Template.resources(stack, lambdaPermission.LambdaPermission).toHaveLength(
+      2,
+    );
+    // Template.fromStack(stack).resourceCountIs("AWS::Lambda::Permission", 2);
   });
 
   // // TODO: Re-add SingletonFunction
@@ -239,11 +224,11 @@ describe("LambdaFunction as an event rule target", () => {
 
   test("use a Dead Letter Queue for the rule target", () => {
     // GIVEN
-    const fn = newTestLambda(spec);
+    const fn = newTestLambda(stack);
 
-    const queue = new Queue(spec, "Queue");
+    const queue = new Queue(stack, "Queue");
 
-    new Rule(spec, "Rule", {
+    new Rule(stack, "Rule", {
       schedule: Schedule.rate(Duration.minutes(1)),
       targets: [
         new LambdaFunctionTarget(fn, {
@@ -253,34 +238,30 @@ describe("LambdaFunction as an event rule target", () => {
     });
 
     // expect(() => app.synth()).not.toThrow();
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    const template = Template.synth(stack);
+    const queueArn = stack.resolve(queue.queueArn);
+    const queueUrl = stack.resolve(queue.queueUrl);
+    template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
         rule: "${aws_cloudwatch_event_rule.Rule_4C995B7F.name}",
         target_id: "Target0",
-        arn: "${aws_lambda_function.MyLambda_CCE802FB.arn}",
+        arn: stack.resolve(fn.functionArn),
         dead_letter_config: {
-          arn: "${aws_sqs_queue.Queue_4A7E3555.arn}",
+          arn: queueArn,
         },
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
-      sqsQueuePolicy.SqsQueuePolicy,
-      {
-        policy: "${data.aws_iam_policy_document.Queue_Policy_E851DAAC.json}",
-        queue_url: "${aws_sqs_queue.Queue_4A7E3555.url}",
-      },
-    );
-    expect(synthesized).toHaveDataSourceWithProperties(
+    template.toHaveResourceWithProperties(sqsQueuePolicy.SqsQueuePolicy, {
+      policy: "${data.aws_iam_policy_document.Queue_Policy_E851DAAC.json}",
+      queue_url: queueUrl,
+    });
+    template.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: [
           {
-            sid: "AllowEventRuleTestSpecRule5C250C1D",
+            sid: "AllowEventRuleTestStackRule3795E55D",
             effect: "Allow",
             actions: ["sqs:SendMessage"],
             condition: [
@@ -298,13 +279,13 @@ describe("LambdaFunction as an event rule target", () => {
                 type: "Service",
               },
             ],
-            resources: ["${aws_sqs_queue.Queue_4A7E3555.arn}"],
+            resources: [queueArn],
           },
         ],
       },
     );
     // // the Permission resource should be in the event stack
-    // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+    // .hasResourceProperties("AWS::Events::Rule", {
     //   Targets: [
     //     {
     //       Arn: {
@@ -320,7 +301,7 @@ describe("LambdaFunction as an event rule target", () => {
     //   ],
     // });
 
-    // Template.fromStack(spec).hasResourceProperties("AWS::SQS::QueuePolicy", {
+    // .hasResourceProperties("AWS::SQS::QueuePolicy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -354,13 +335,13 @@ describe("LambdaFunction as an event rule target", () => {
 
   test("throw an error when using a Dead Letter Queue for the rule target in a different region", () => {
     // GIVEN
-    const spec2 = getAwsSpec(app, "us-east-2", "2");
+    const stack2 = getAwsStack(app, "us-east-2", "2");
 
-    const fn = newTestLambda(spec);
+    const fn = newTestLambda(stack);
 
-    const queue = new Queue(spec2, "Queue");
+    const queue = new Queue(stack2, "Queue");
 
-    let rule = new Rule(spec, "Rule", {
+    let rule = new Rule(stack, "Rule", {
       schedule: Schedule.rate(Duration.minutes(1)),
     });
 
@@ -371,26 +352,26 @@ describe("LambdaFunction as an event rule target", () => {
         }),
       );
     }).toThrow(
-      /Cannot assign Dead Letter Queue in region us-east-2 to the rule TestSpecRule5C250C1D in region us-east-1. Both the queue and the rule must be in the same region./,
+      /Cannot assign Dead Letter Queue in region us-east-2 to the rule TestStackRule3795E55D in region us-east-1. Both the queue and the rule must be in the same region./,
     );
   });
 
-  // TODO: Re-add cross account tests?
+  // // TODO: Re-add cross account tests?
   // test("must display a warning when using a Dead Letter Queue from another account", () => {
   //   // GIVEN
-  //   const spec2 = getAwsSpec(app, "us-east-2", "2"); //  account: "222222222222"
+  //   const stack2 = getAwsStack(app, "us-east-2", "2"); //  account: "222222222222"
 
-  //   const fn = new NodejsFunction(spec, "MyLambda", {
+  //   const fn = new NodejsFunction(stack, "MyLambda", {
   //     path: path.join(__dirname, "handlers", "hello-world.ts"),
   //   });
 
   //   const queue = Queue.fromQueueArn(
-  //     spec2,
+  //     stack2,
   //     "Queue",
   //     "arn:aws:sqs:eu-west-1:444455556666:queue1",
   //   );
 
-  //   new Rule(spec, "Rule", {
+  //   new Rule(stack, "Rule", {
   //     schedule: Schedule.rate(Duration.minutes(1)),
   //     targets: [
   //       new LambdaFunctionTarget(fn, {
@@ -401,12 +382,12 @@ describe("LambdaFunction as an event rule target", () => {
 
   //   expect(() => app.synth()).not.toThrow();
   //   // Do prepare run to resolve all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
+  //   stack.prepareStack();
+  //   const synthesized = Testing.synth(stack);
   //   expect(synthesized).toMatchSnapshot();
 
   //   // // the Permission resource should be in the event stack
-  //   // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+  //   // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
   //   //   ScheduleExpression: "rate(1 minute)",
   //   //   State: "ENABLED",
   //   //   Targets: [
@@ -422,9 +403,9 @@ describe("LambdaFunction as an event rule target", () => {
   //   //   ],
   //   // });
 
-  //   // Template.fromStack(spec).resourceCountIs("AWS::SQS::QueuePolicy", 0);
+  //   // Template.fromStack(stack).resourceCountIs("AWS::SQS::QueuePolicy", 0);
 
-  //   // Annotations.fromStack(spec).hasWarning(
+  //   // Annotations.fromStack(stack).hasWarning(
   //   //   "/Stack1/Rule",
   //   //   Match.objectLike({
   //   //     "Fn::Join": Match.arrayWith([
@@ -438,10 +419,10 @@ describe("LambdaFunction as an event rule target", () => {
 
   test("specifying retry policy", () => {
     // GIVEN
-    const fn = newTestLambda(spec);
+    const fn = newTestLambda(stack);
 
     // WHEN
-    new Rule(spec, "Rule", {
+    new Rule(stack, "Rule", {
       schedule: Schedule.rate(Duration.minutes(1)),
       targets: [
         new LambdaFunctionTarget(fn, {
@@ -453,24 +434,20 @@ describe("LambdaFunction as an event rule target", () => {
 
     // THEN
     // expect(() => app.synth()).not.toThrow();
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-
-    expect(synthesized).toHaveResourceWithProperties(
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
         target_id: "Target0",
         rule: "${aws_cloudwatch_event_rule.Rule_4C995B7F.name}",
-        arn: "${aws_lambda_function.MyLambda_CCE802FB.arn}",
+        arn: stack.resolve(fn.functionArn),
         retry_policy: {
           maximum_event_age_in_seconds: 7200,
           maximum_retry_attempts: 2,
         },
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+    // .hasResourceProperties("AWS::Events::Rule", {
     //   ScheduleExpression: "rate(1 minute)",
     //   State: "ENABLED",
     //   Targets: [
@@ -490,9 +467,9 @@ describe("LambdaFunction as an event rule target", () => {
 
   test("specifying retry policy with 0 retryAttempts", () => {
     // GIVEN
-    const fn = newTestLambda(spec);
+    const fn = newTestLambda(stack);
     // WHEN
-    new Rule(spec, "Rule", {
+    new Rule(stack, "Rule", {
       schedule: Schedule.rate(Duration.minutes(1)),
       targets: [
         new LambdaFunctionTarget(fn, {
@@ -503,22 +480,19 @@ describe("LambdaFunction as an event rule target", () => {
 
     // THEN
     // expect(() => app.synth()).not.toThrow();
-    // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
         target_id: "Target0",
         rule: "${aws_cloudwatch_event_rule.Rule_4C995B7F.name}",
-        arn: "${aws_lambda_function.MyLambda_CCE802FB.arn}",
+        arn: stack.resolve(fn.functionArn),
         retry_policy: {
           maximum_retry_attempts: 0,
         },
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+    // .hasResourceProperties("AWS::Events::Rule", {
     //   ScheduleExpression: "rate(1 minute)",
     //   State: "ENABLED",
     //   Targets: [
@@ -542,12 +516,12 @@ function newTestLambda(scope: Construct, suffix = "") {
   });
 }
 
-function getAwsSpec(
+function getAwsStack(
   app: App,
   region: string = "us-east-1",
   suffix: string = "",
-): AwsSpec {
-  return new AwsSpec(app, `TestSpec${suffix}`, {
+): AwsStack {
+  return new AwsStack(app, `TestStack${suffix}`, {
     environmentName,
     gridUUID,
     providerConfig: {
@@ -555,18 +529,4 @@ function getAwsSpec(
     },
     gridBackendConfig,
   });
-}
-
-/**
- * Get resources count of a given type from a synthesized stack
- */
-function resourceCount(parsed: any, constructor: TerraformConstructor) {
-  // HACK HACK - this is a workaround for CDKTF Matchers not providing resourceCount matchers
-  if (!parsed.resource || !parsed.resource[constructor.tfResourceType]) {
-    return 0;
-  }
-  return Object.values(parsed.resource[constructor.tfResourceType]).length;
-}
-interface TerraformConstructor {
-  readonly tfResourceType: string;
 }

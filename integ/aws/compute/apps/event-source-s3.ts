@@ -9,8 +9,8 @@ const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
 const stackName = process.env.STACK_NAME ?? "event-source-s3";
 
-class S3EventSourceTest extends aws.AwsSpec {
-  constructor(scope: Construct, id: string, props: aws.AwsSpecProps) {
+class S3EventSourceTest extends aws.AwsStack {
+  constructor(scope: Construct, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
 
     const fn = new aws.compute.NodejsFunction(this, "F", {
@@ -38,14 +38,14 @@ const app = new App({
   outdir,
 });
 
-const spec = new S3EventSourceTest(app, stackName, {
+const stack = new S3EventSourceTest(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 

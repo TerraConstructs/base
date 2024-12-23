@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/environment-toolkit/go-synth/executors"
-	"github.com/envtio/base/integ"
-	util "github.com/envtio/base/integ/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
+	"github.com/terraconstructs/base/integ"
+	util "github.com/terraconstructs/base/integ/aws"
+	"github.com/terraconstructs/go-synth/executors"
 
 	"github.com/gruntwork-io/terratest/modules/aws"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"

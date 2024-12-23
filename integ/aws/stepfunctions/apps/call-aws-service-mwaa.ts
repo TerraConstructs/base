@@ -10,19 +10,19 @@ const stackName = process.env.STACK_NAME ?? "call-aws-service-mwaa";
 const app = new App({
   outdir,
 });
-const spec = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 
 const task = new aws.compute.tasks.CallAwsService(
-  spec,
+  stack,
   "ListMWAAEnvironments",
   {
     service: "mwaa",
@@ -32,7 +32,7 @@ const task = new aws.compute.tasks.CallAwsService(
   },
 );
 
-new aws.compute.StateMachine(spec, "StateMachine", {
+new aws.compute.StateMachine(stack, "StateMachine", {
   definitionBody: aws.compute.DefinitionBody.fromChainable(task),
   registerOutputs: true,
   outputName: "state_machine",

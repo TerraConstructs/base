@@ -12,9 +12,6 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/environment-toolkit/go-synth"
-	"github.com/environment-toolkit/go-synth/executors"
-	"github.com/environment-toolkit/go-synth/models"
 	"github.com/google/go-cmp/cmp"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/terraform"
@@ -22,6 +19,9 @@ import (
 	tfjson "github.com/hashicorp/terraform-json"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
+	"github.com/terraconstructs/go-synth"
+	"github.com/terraconstructs/go-synth/executors"
+	"github.com/terraconstructs/go-synth/models"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -32,7 +32,7 @@ const (
 	// path from integ/aws/* to repo root
 	repoRoot = "../../../"
 	// copy the root as relative Path for bun install
-	relPath = "./envtio/base"
+	relPath = "./terraconstructs"
 )
 
 var (
@@ -76,13 +76,13 @@ func SynthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string,
 	if synthDependencies == nil {
 		synthDependencies = make(map[string]string)
 	}
-	synthDependencies["@envtio/base"] = relPath
+	synthDependencies["terraconstructs"] = relPath
 
 	thisFs := afero.NewOsFs()
 	app := synth.NewApp(executors.NewBunExecutor, zapLogger)
 	app.Configure(ctx, models.AppConfig{
 		EnvVars: env,
-		// copy additionalDirs and @envtio/base to synth App fs
+		// copy additionalDirs and terraconstructs to synth App fs
 		PreSetupFn: func(e models.Executor) error {
 			for _, dirName := range additionalAppDirs {
 				relDir := filepath.Join("apps", dirName)
@@ -94,8 +94,8 @@ func SynthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string,
 		},
 		Dependencies: synthDependencies,
 	})
-	// replace the path to src with relative package "@envtio/base"
-	mainTs := strings.ReplaceAll(string(mainTsBytes), mainPathToSrc, "@envtio/base")
+	// replace the path to src with relative package "terraconstructs"
+	mainTs := strings.ReplaceAll(string(mainTsBytes), mainPathToSrc, "terraconstructs")
 	err = app.Eval(ctx, thisFs, mainTs, "cdktf.out/stacks/"+testApp, tfWorkingDir)
 	if err != nil {
 		t.Fatal("Failed to synth app", err)

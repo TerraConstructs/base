@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-iam/lib/unknown-principal.ts
 import { Annotations } from "cdktf";
 import { DependencyGroup, IConstruct, Node } from "constructs";
-import { AwsSpec } from "../spec";
+import { AwsStack } from "../aws-stack";
 import { PolicyStatement } from "./policy-statement";
 import {
   AddToPrincipalPolicyResult,
@@ -49,8 +49,8 @@ export class UnknownPrincipal implements IPrincipal {
   public addToPrincipalPolicy(
     statement: PolicyStatement,
   ): AddToPrincipalPolicyResult {
-    const spec = AwsSpec.ofAwsBeacon(this.resource);
-    const repr = JSON.stringify(spec.resolve(statement));
+    const stack = AwsStack.ofAwsConstruct(this.resource);
+    const repr = JSON.stringify(stack.resolve(statement));
     // "@aws-cdk/aws-iam:unknownPrincipalAddStatementToRole",
     Annotations.of(this.resource).addWarning(
       `Add statement to this resource's role: ${repr}`,

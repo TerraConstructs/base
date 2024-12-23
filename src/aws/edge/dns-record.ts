@@ -3,7 +3,7 @@ import { Token } from "cdktf";
 import { Construct } from "constructs";
 // import { GeoLocation } from "./geo-location";
 import { IDnsZone, IAliasRecordTarget } from ".";
-import { IAwsBeacon, AwsBeaconProps, AwsBeaconBase } from "../";
+import { IAwsConstruct, AwsConstructProps, AwsConstructBase } from "../";
 import { Duration } from "../..";
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-route53/lib/record-set.ts
@@ -111,7 +111,7 @@ export interface RecordSetOptions {
 /**
  * Construction properties for a RecordSet.
  */
-export interface RecordSetProps extends RecordSetOptions, AwsBeaconProps {
+export interface RecordSetProps extends RecordSetOptions, AwsConstructProps {
   /**
    * The record type.
    */
@@ -140,7 +140,7 @@ export interface RecordSetOutputs {
 /**
  * A record set Attributes
  */
-export interface IRecordSet extends IAwsBeacon {
+export interface IRecordSet extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly recordSetOutputs: RecordSetOutputs;
 
@@ -159,7 +159,7 @@ export interface IRecordSet extends IAwsBeacon {
 /**
  * A record set.
  */
-export class RecordSet extends AwsBeaconBase implements IRecordSet {
+export class RecordSet extends AwsConstructBase implements IRecordSet {
   public readonly resource: route53Record.Route53Record;
   private readonly _outputs: RecordSetOutputs;
   public get recordSetOutputs(): RecordSetOutputs {
@@ -459,7 +459,7 @@ export class RecordTarget {
 /**
  * Construction properties for a ARecord.
  */
-export interface ARecordProps extends RecordSetOptions, AwsBeaconProps {
+export interface ARecordProps extends RecordSetOptions, AwsConstructProps {
   /**
    * The target.
    */
@@ -484,7 +484,7 @@ export class ARecord extends RecordSet {
 /**
  * Construction properties for a AaaaRecord.
  */
-export interface AaaaRecordProps extends RecordSetOptions, AwsBeaconProps {
+export interface AaaaRecordProps extends RecordSetOptions, AwsConstructProps {
   /**
    * The target.
    */

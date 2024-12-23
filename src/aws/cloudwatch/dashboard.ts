@@ -3,8 +3,8 @@
 import { cloudwatchDashboard } from "@cdktf/provider-aws";
 import { Lazy, Token, Annotations } from "cdktf";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
-import { AwsSpec } from "../spec";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { Column, Row } from "./layout";
 import { IVariable } from "./variable";
 import { IWidget } from "./widget";
@@ -28,7 +28,7 @@ export enum PeriodOverride {
 /**
  * Properties for defining a CloudWatch Dashboard
  */
-export interface DashboardProps extends AwsBeaconProps {
+export interface DashboardProps extends AwsConstructProps {
   /**
    * Name of the dashboard.
    *
@@ -116,7 +116,7 @@ export interface DashboardOutputs {
 /**
  * A CloudWatch dashboard
  */
-export class Dashboard extends AwsBeaconBase {
+export class Dashboard extends AwsConstructBase {
   public readonly resource: cloudwatchDashboard.CloudwatchDashboard;
   /**
    * The name of this dashboard
@@ -189,7 +189,7 @@ export class Dashboard extends AwsBeaconBase {
           produce: () => {
             const column = new Column(...this.rows);
             column.position(0, 0);
-            return AwsSpec.ofAwsBeacon(this).toJsonString({
+            return AwsStack.ofAwsConstruct(this).toJsonString({
               start:
                 props.defaultInterval !== undefined
                   ? `-${props.defaultInterval?.toIsoString()}`

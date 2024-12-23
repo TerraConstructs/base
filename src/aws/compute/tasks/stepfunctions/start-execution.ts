@@ -1,8 +1,8 @@
 import { Construct } from "constructs";
 import * as compute from "../../";
 import { ArnFormat } from "../../../arn";
+import { AwsStack } from "../../../aws-stack";
 import * as iam from "../../../iam";
-import { AwsSpec } from "../../../spec";
 import {
   integrationResourceArn,
   validatePatternSupported,
@@ -147,8 +147,7 @@ export class StepFunctionsStartExecution extends compute.TaskStateBase {
    * This means the action of StartExecution should be restricted on the given state machine, instead of being granted to all the resources (*).
    */
   private createScopedAccessPolicy(): iam.PolicyStatement[] {
-    const spec = AwsSpec.ofAwsBeacon(this);
-
+    const stack = AwsStack.ofAwsConstruct(this);
     const policyStatements = [
       new iam.PolicyStatement({
         actions: ["states:StartExecution"],
@@ -163,11 +162,11 @@ export class StepFunctionsStartExecution extends compute.TaskStateBase {
           actions: ["states:DescribeExecution", "states:StopExecution"],
           // https://docs.aws.amazon.com/step-functions/latest/dg/concept-create-iam-advanced.html#concept-create-iam-advanced-execution
           resources: [
-            spec.formatArn({
+            stack.formatArn({
               service: "states",
               resource: "execution",
               arnFormat: ArnFormat.COLON_RESOURCE_NAME,
-              resourceName: `${spec.splitArn(this.props.stateMachine.stateMachineArn, ArnFormat.COLON_RESOURCE_NAME).resourceName}*`,
+              resourceName: `${stack.splitArn(this.props.stateMachine.stateMachineArn, ArnFormat.COLON_RESOURCE_NAME).resourceName}*`,
             }),
           ],
         }),
@@ -181,7 +180,7 @@ export class StepFunctionsStartExecution extends compute.TaskStateBase {
             "events:DescribeRule",
           ],
           resources: [
-            spec.formatArn({
+            stack.formatArn({
               service: "events",
               resource: "rule",
               resourceName:

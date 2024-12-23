@@ -6,7 +6,7 @@ AWS Cloud Development Kit (AWS CDK)
 Copyright 2018-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 The Initial Developer of some parts of the framework, which are copied from, derived from, or
-inspired by AWS CDK, is envtio.
-Copyright 2024 - 2024 envtio. All Rights Reserved.
+inspired by AWS CDK, is TerraConstructs.
+Copyright 2024 - 2024 TerraConstructs. All Rights Reserved.
 
 Modifications were made to support Terraform AWS Provider resource semantics.

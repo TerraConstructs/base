@@ -12,31 +12,31 @@ const app = new App({
   outdir,
 });
 
-const spec = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 
-const fs = new efsFileSystem.EfsFileSystem(spec, "EfsFileSystem", {
+const fs = new efsFileSystem.EfsFileSystem(stack, "EfsFileSystem", {
   creationToken: `${stackName}-test-efs`,
 });
-const efs = new efsAccessPoint.EfsAccessPoint(spec, "EfsAccessPoint", {
+const efs = new efsAccessPoint.EfsAccessPoint(stack, "EfsAccessPoint", {
   fileSystemId: fs.id,
 });
-new TerraformOutput(spec, "efs_accesspoint_arn", {
+new TerraformOutput(stack, "efs_accesspoint_arn", {
   value: efs.arn,
   staticId: true,
 });
 
 // this is edge case with sfn and service names
 // https://github.com/aws/aws-cdk/pull/30896
-const task = new aws.compute.tasks.CallAwsService(spec, "TagEfsAccessPoint", {
+const task = new aws.compute.tasks.CallAwsService(stack, "TagEfsAccessPoint", {
   service: "efs",
   action: "tagResource",
   iamResources: ["*"],
@@ -54,7 +54,7 @@ const task = new aws.compute.tasks.CallAwsService(spec, "TagEfsAccessPoint", {
   resultPath: aws.compute.JsonPath.DISCARD,
 });
 
-new aws.compute.StateMachine(spec, "StateMachine", {
+new aws.compute.StateMachine(stack, "StateMachine", {
   definitionBody: aws.compute.DefinitionBody.fromChainable(task),
   registerOutputs: true,
   outputName: "state_machine",

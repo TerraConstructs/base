@@ -1,7 +1,11 @@
 import { iamRolePolicy } from "@cdktf/provider-aws";
 import { TerraformElement } from "cdktf";
 import { Construct } from "constructs";
-import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import {
+  IAwsConstruct,
+  AwsConstructBase,
+  AwsConstructProps,
+} from "../aws-construct";
 import { IPolicyDocument, PolicyDocument } from "./policy-document";
 import { PolicyStatement } from "./policy-statement";
 import {
@@ -19,7 +23,7 @@ export const MAX_POLICY_NAME_LEN = 128;
  *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_manage.html
  */
-export interface IPolicy extends IAwsBeacon {
+export interface IPolicy extends IAwsConstruct {
   /**
    * The name of this policy.
    *
@@ -31,7 +35,7 @@ export interface IPolicy extends IAwsBeacon {
 /**
  * Properties for defining an IAM inline policy document
  */
-export interface PolicyProps extends AwsBeaconProps {
+export interface PolicyProps extends AwsConstructProps {
   /**
    * The name of the policy. If you specify multiple policies for an entity,
    * specify unique names. For example, if you specify a list of policies for
@@ -87,7 +91,7 @@ export interface PolicyProps extends AwsBeaconProps {
  * - [Iam Role Policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy)
  * - [Iam Group Policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_group_policy)
  */
-export class Policy extends AwsBeaconBase implements IPolicy, IGrantable {
+export class Policy extends AwsConstructBase implements IPolicy, IGrantable {
   /**
    * Import a policy in this app based on its name
    */
@@ -96,7 +100,7 @@ export class Policy extends AwsBeaconBase implements IPolicy, IGrantable {
     id: string,
     policyName: string,
   ): IPolicy {
-    class Import extends AwsBeaconBase implements IPolicy {
+    class Import extends AwsConstructBase implements IPolicy {
       public readonly policyName = policyName;
       public get outputs(): Record<string, any> {
         // TODO: Support undefined outputs?

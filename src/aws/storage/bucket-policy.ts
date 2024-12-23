@@ -1,10 +1,10 @@
 import { s3BucketPolicy } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconProps, AwsBeaconBase } from "../beacon";
+import { AwsConstructProps, AwsConstructBase } from "../aws-construct";
 import { IBucket } from "./bucket";
 import { PolicyDocument } from "../iam";
 
-export interface BucketPolicyProps extends AwsBeaconProps {
+export interface BucketPolicyProps extends AwsConstructProps {
   /**
    * The Amazon S3 bucket that the policy applies to.
    */
@@ -38,7 +38,7 @@ export interface BucketPolicyProps extends AwsBeaconProps {
  * new permissions to existing policy.
  *
  */
-export class BucketPolicy extends AwsBeaconBase {
+export class BucketPolicy extends AwsConstructBase {
   // TODO: re-add static from Method
   public readonly resource: s3BucketPolicy.S3BucketPolicy;
   public get outputs(): Record<string, any> {

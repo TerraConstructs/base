@@ -8,7 +8,7 @@ import {
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { Duration } from "../../../../src//duration";
-import { AwsSpec } from "../../../../src/aws";
+import { AwsStack } from "../../../../src/aws";
 import * as logs from "../../../../src/aws/cloudwatch";
 import * as notify from "../../../../src/aws/notify/";
 import * as targets from "../../../../src/aws/notify/targets";
@@ -24,16 +24,16 @@ const gridBackendConfig = {
 
 describe("log group", () => {
   let app: App;
-  let stack: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,
       gridBackendConfig,
-      // TODO: Should support passing account via Spec props to match AWS CDK cross account support
+      // TODO: Should support passing account via Stack props to match AWS CDK cross account support
       // account: "1234",
     });
   });

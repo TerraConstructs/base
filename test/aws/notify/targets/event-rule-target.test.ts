@@ -6,13 +6,13 @@ import {
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 // import { LambdaFunction } from "../../../../src/aws/compute/function";
+import { AwsStack } from "../../../../src/aws/aws-stack";
 import { Role, ServicePrincipal } from "../../../../src/aws/iam"; // TODO: Get rid of barrel file imports?
 import { EventBus } from "../../../../src/aws/notify/event-bus";
 import { Queue } from "../../../../src/aws/notify/queue";
 import { Rule } from "../../../../src/aws/notify/rule";
 import { Schedule } from "../../../../src/aws/notify/schedule";
 import { EventBus as EventBusTarget } from "../../../../src/aws/notify/targets/event-bus";
-import { AwsSpec } from "../../../../src/aws/spec";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -22,12 +22,12 @@ const gridBackendConfig = {
 };
 
 describe("EventBus as an event rule target", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   let rule: Rule;
 
   beforeEach(() => {
-    spec = getAwsSpec();
-    rule = new Rule(spec, "Rule", {
+    stack = getAwsStack();
+    rule = new Rule(stack, "Rule", {
       schedule: Schedule.expression("rate(1 min)"),
     });
   });
@@ -36,15 +36,15 @@ describe("EventBus as an event rule target", () => {
     rule.addTarget(
       new EventBusTarget(
         EventBus.fromEventBusArn(
-          spec,
+          stack,
           "External",
           "arn:aws:events:us-east-1:111111111111:default",
         ),
       ),
     );
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     // ensure AWS eventBridge can access event bus
     expect(synthesized).toHaveDataSourceWithProperties(
@@ -90,7 +90,7 @@ describe("EventBus as an event rule target", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
     //   Targets: [
     //     {
     //       Arn: "arn:aws:events:us-east-1:111111111111:default",
@@ -101,7 +101,7 @@ describe("EventBus as an event rule target", () => {
     //     },
     //   ],
     // });
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -121,7 +121,7 @@ describe("EventBus as an event rule target", () => {
   });
 
   test("with supplied role", () => {
-    const role = new Role(spec, "Role", {
+    const role = new Role(stack, "Role", {
       assumedBy: new ServicePrincipal("events.amazonaws.com"),
       roleName: "GivenRole",
     });
@@ -129,7 +129,7 @@ describe("EventBus as an event rule target", () => {
     rule.addTarget(
       new EventBusTarget(
         EventBus.fromEventBusArn(
-          spec,
+          stack,
           "External",
           "arn:aws:events:us-east-1:123456789012:default",
         ),
@@ -137,8 +137,8 @@ describe("EventBus as an event rule target", () => {
       ),
     );
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     // ensure AWS eventBridge can access event bus
     expect(synthesized).toHaveDataSourceWithProperties(
@@ -162,7 +162,7 @@ describe("EventBus as an event rule target", () => {
       },
     );
 
-    // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
     //   Targets: [
     //     {
     //       Arn: "arn:aws:events:us-east-1:123456789012:default",
@@ -173,7 +173,7 @@ describe("EventBus as an event rule target", () => {
     //     },
     //   ],
     // });
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -193,12 +193,12 @@ describe("EventBus as an event rule target", () => {
   });
 
   test("with a Dead Letter Queue specified", () => {
-    const queue = new Queue(spec, "Queue");
+    const queue = new Queue(stack, "Queue");
 
     rule.addTarget(
       new EventBusTarget(
         EventBus.fromEventBusArn(
-          spec,
+          stack,
           "External",
           "arn:aws:events:us-east-1:123456789012:default",
         ),
@@ -206,8 +206,8 @@ describe("EventBus as an event rule target", () => {
       ),
     );
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     // ensure AWS eventBridge can access event bus
     expect(synthesized).toHaveDataSourceWithProperties(
@@ -257,13 +257,13 @@ describe("EventBus as an event rule target", () => {
               },
             ],
             resources: ["${aws_sqs_queue.Queue_4A7E3555.arn}"],
-            sid: "AllowEventRuleTestSpecRule5C250C1D",
+            sid: "AllowEventRuleTestStackRule3795E55D",
           },
         ],
       },
     );
 
-    // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
     //   Targets: [
     //     {
     //       Arn: "arn:aws:events:us-east-1:123456789012:default",
@@ -280,7 +280,7 @@ describe("EventBus as an event rule target", () => {
     //   ],
     // });
 
-    // Template.fromStack(spec).hasResourceProperties("AWS::SQS::QueuePolicy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::SQS::QueuePolicy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -313,14 +313,14 @@ describe("EventBus as an event rule target", () => {
   });
 
   test("with multiple event buses and correctly added to the rule's principal policy", () => {
-    const bus1 = new EventBus(spec, "bus" + 1);
-    const bus2 = new EventBus(spec, "bus" + 2);
+    const bus1 = new EventBus(stack, "bus" + 1);
+    const bus2 = new EventBus(stack, "bus" + 2);
 
     rule.addTarget(new EventBusTarget(bus1));
     rule.addTarget(new EventBusTarget(bus2));
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
 
     expect(synthesized).toHaveResourceWithProperties(
@@ -358,7 +358,7 @@ describe("EventBus as an event rule target", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
     //   Targets: [
     //     {
     //       Arn: {
@@ -380,7 +380,7 @@ describe("EventBus as an event rule target", () => {
     //     },
     //   ],
     // });
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -409,9 +409,9 @@ describe("EventBus as an event rule target", () => {
   });
 });
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

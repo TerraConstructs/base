@@ -2,8 +2,12 @@ import { kinesisStream } from "@cdktf/provider-aws";
 import { Fn, Token, TerraformLocal } from "cdktf";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
-import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../beacon";
-import { AwsSpec } from "../spec";
+import {
+  IAwsConstruct,
+  AwsConstructBase,
+  AwsConstructProps,
+} from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { KinesisMetrics } from "./kinesis-fixed-canned-metrics";
 import { ResourcePolicy } from "./resource-policy";
 import { Duration } from "../../duration";
@@ -50,7 +54,7 @@ export interface StreamOutputs {
 /**
  * A Kinesis Stream
  */
-export interface IStream extends IAwsBeacon {
+export interface IStream extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly streamOutputs: StreamOutputs;
   /**
@@ -366,7 +370,7 @@ export interface StreamAttributes {
 /**
  * Represents a Kinesis Stream.
  */
-abstract class StreamBase extends AwsBeaconBase implements IStream {
+abstract class StreamBase extends AwsConstructBase implements IStream {
   /**
    * The ARN of the stream.
    */
@@ -402,7 +406,7 @@ abstract class StreamBase extends AwsBeaconBase implements IStream {
 
   private resourcePolicy?: ResourcePolicy;
 
-  constructor(scope: Construct, id: string, props: AwsBeaconProps = {}) {
+  constructor(scope: Construct, id: string, props: AwsConstructProps = {}) {
     super(scope, id, props);
 
     this.node.addValidation({
@@ -833,7 +837,7 @@ abstract class StreamBase extends AwsBeaconBase implements IStream {
 /**
  * Properties for a Kinesis Stream
  */
-export interface StreamProps extends AwsBeaconProps {
+export interface StreamProps extends AwsConstructProps {
   /**
    * Enforces a particular physical stream name.
    * @default <generated>
@@ -921,7 +925,7 @@ export class Stream extends StreamBase {
   ): IStream {
     class Import extends StreamBase {
       public readonly streamArn = attrs.streamArn;
-      public readonly streamName = AwsSpec.ofAwsBeacon(scope).splitArn(
+      public readonly streamName = AwsStack.ofAwsConstruct(scope).splitArn(
         attrs.streamArn,
         ArnFormat.SLASH_RESOURCE_NAME,
       ).resourceName!;

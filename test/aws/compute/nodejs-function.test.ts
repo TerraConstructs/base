@@ -1,7 +1,8 @@
 import path from "path";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { compute, AwsSpec } from "../../../src/aws";
+import { compute, AwsStack } from "../../../src/aws";
+import { Template } from "../../assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -12,19 +13,19 @@ const providerConfig = { region: "us-east-1" };
 describe("Function", () => {
   test("Should synth and match SnapShot", () => {
     // GIVEN
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
     // WHEN
-    new compute.NodejsFunction(spec, "HelloWorld", {
+    new compute.NodejsFunction(stack, "HelloWorld", {
       path: path.join(__dirname, "fixtures", "hello-world.ts"),
     });
     // THEN
-    expect(Testing.synth(spec)).toMatchSnapshot();
+    Template.synth(stack).toMatchSnapshot();
   });
   test("Should support adding vpc configuration", () => {
     // GIVEN
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
     // WHEN
-    new compute.NodejsFunction(spec, "HelloWorld", {
+    new compute.NodejsFunction(stack, "HelloWorld", {
       path: path.join(__dirname, "fixtures", "hello-world.ts"),
       networkConfig: {
         vpcId: "vpc-123",
@@ -32,10 +33,8 @@ describe("Function", () => {
       },
     });
     // THEN
-    spec.prepareStack(); // add last minute resources to the stack
-    const result = Testing.synth(spec);
-    // expect(result).toMatchSnapshot();
-    expect(result).toHaveResourceWithProperties(
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(
       {
         tfResourceType: "aws_security_group",
       },
@@ -43,7 +42,7 @@ describe("Function", () => {
         vpc_id: "vpc-123",
       },
     );
-    expect(result).toHaveResourceWithProperties(
+    template.toHaveResourceWithProperties(
       {
         tfResourceType: "aws_iam_role",
       },
@@ -54,7 +53,7 @@ describe("Function", () => {
         ],
       },
     );
-    expect(result).toHaveResourceWithProperties(
+    template.toHaveResourceWithProperties(
       {
         tfResourceType: "aws_lambda_function",
       },
@@ -71,9 +70,9 @@ describe("Function", () => {
   });
 });
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

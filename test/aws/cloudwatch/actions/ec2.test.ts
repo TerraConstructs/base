@@ -3,7 +3,7 @@
 import { cloudwatchMetricAlarm } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../../src/aws";
+import { AwsStack } from "../../../../src/aws";
 import { Alarm, Metric } from "../../../../src/aws/cloudwatch";
 import {
   Ec2Action,
@@ -21,7 +21,7 @@ const gridBackendConfig = {
 test("can use instance reboot as alarm action", () => {
   // GIVEN
   const app = Testing.app();
-  const stack = new AwsSpec(app, "MyStack", {
+  const stack = new AwsStack(app, "MyStack", {
     environmentName,
     gridUUID,
     providerConfig,

@@ -1,6 +1,6 @@
 import { Testing } from "cdktf";
 import { render } from "./private/render-util";
-import { compute, storage, AwsSpec } from "../../../src/aws";
+import { compute, storage, AwsStack } from "../../../src/aws";
 import "cdktf/lib/testing/adapters/jest";
 import { CsvHeaders } from "../../../src/aws/compute/states/distributed-map/item-reader";
 import { Annotations } from "../../assertions";
@@ -11,7 +11,7 @@ describe("Distributed Map State", () => {
   test("DistributedMap isDistributedMap", () => {
     // GIVEN
     const app = Testing.app();
-    const spec = new AwsSpec(app, `TestSpec`, {
+    const stack = new AwsStack(app, `TestStack`, {
       environmentName: "Test",
       gridUUID,
       providerConfig: {
@@ -23,7 +23,7 @@ describe("Distributed Map State", () => {
     });
 
     //WHEN
-    const map = new compute.DistributedMap(spec, "Map State", {
+    const map = new compute.DistributedMap(stack, "Map State", {
       maxConcurrency: 1,
       itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
       itemSelector: {
@@ -39,11 +39,11 @@ describe("Distributed Map State", () => {
   });
 
   describe("State Machine With Distributed Map State", () => {
-    let spec: AwsSpec;
+    let stack: AwsStack;
     beforeEach(() => {
       // GIVEN
       const app = Testing.app();
-      spec = new AwsSpec(app, `TestSpec`, {
+      stack = new AwsStack(app, `TestStack`, {
         environmentName: "Test",
         gridUUID,
         providerConfig: {
@@ -57,7 +57,7 @@ describe("Distributed Map State", () => {
 
     test("simple", () => {
       // WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         maxConcurrency: 1,
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
         itemSelector: {
@@ -65,10 +65,10 @@ describe("Distributed Map State", () => {
           bar: compute.JsonPath.stringAt("$.bar"),
         },
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       // THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -100,7 +100,7 @@ describe("Distributed Map State", () => {
 
     test("with ResultPath", () => {
       // WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         maxConcurrency: 1,
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
         itemSelector: {
@@ -110,13 +110,13 @@ describe("Distributed Map State", () => {
         resultPath: compute.JsonPath.DISCARD,
       });
       map.itemProcessor(
-        new compute.Pass(spec, "Pass State", {
+        new compute.Pass(stack, "Pass State", {
           resultPath: compute.JsonPath.DISCARD,
         }),
       );
 
       // THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -150,7 +150,7 @@ describe("Distributed Map State", () => {
 
     test("and ResultSelector", () => {
       // WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         maxConcurrency: 1,
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
         resultSelector: {
@@ -158,10 +158,10 @@ describe("Distributed Map State", () => {
           baz: compute.JsonPath.stringAt("$.baz"),
         },
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       // THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -193,10 +193,10 @@ describe("Distributed Map State", () => {
 
     test("and S3ObjectsItemReader", () => {
       // GIVEN
-      const readerBucket = new storage.Bucket(spec, "TestBucket");
+      const readerBucket = new storage.Bucket(stack, "TestBucket");
 
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         maxConcurrency: 1,
         itemReader: new compute.S3ObjectsItemReader({
           bucket: readerBucket,
@@ -208,10 +208,10 @@ describe("Distributed Map State", () => {
           bar: compute.JsonPath.stringAt("$.bar"),
         },
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -253,10 +253,10 @@ describe("Distributed Map State", () => {
 
     test("and S3JsonItemReader", () => {
       // GIVEN
-      const readerBucket = new storage.Bucket(spec, "TestBucket");
+      const readerBucket = new storage.Bucket(stack, "TestBucket");
 
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         maxConcurrency: 1,
         itemReader: new compute.S3JsonItemReader({
           bucket: readerBucket,
@@ -267,10 +267,10 @@ describe("Distributed Map State", () => {
           bar: compute.JsonPath.stringAt("$.bar"),
         },
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -312,10 +312,10 @@ describe("Distributed Map State", () => {
 
     test("and First Row S3CsvItemReader", () => {
       // GIVEN
-      const readerBucket = new storage.Bucket(spec, "TestBucket");
+      const readerBucket = new storage.Bucket(stack, "TestBucket");
 
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         maxConcurrency: 1,
         itemReader: new compute.S3CsvItemReader({
           bucket: readerBucket,
@@ -327,10 +327,10 @@ describe("Distributed Map State", () => {
           bar: compute.JsonPath.stringAt("$.bar"),
         },
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -373,10 +373,10 @@ describe("Distributed Map State", () => {
 
     test("and Given S3CsvItemReader", () => {
       // GIVEN
-      const readerBucket = new storage.Bucket(spec, "TestBucket");
+      const readerBucket = new storage.Bucket(stack, "TestBucket");
 
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         maxConcurrency: 1,
         itemReader: new compute.S3CsvItemReader({
           bucket: readerBucket,
@@ -388,10 +388,10 @@ describe("Distributed Map State", () => {
           bar: compute.JsonPath.stringAt("$.bar"),
         },
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -435,10 +435,10 @@ describe("Distributed Map State", () => {
 
     test("and S3ManifestItemReader", () => {
       // GIVEN
-      const readerBucket = new storage.Bucket(spec, "TestBucket");
+      const readerBucket = new storage.Bucket(stack, "TestBucket");
 
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         maxConcurrency: 1,
         itemReader: new compute.S3ManifestItemReader({
           bucket: readerBucket,
@@ -449,10 +449,10 @@ describe("Distributed Map State", () => {
           bar: compute.JsonPath.stringAt("$.bar"),
         },
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -494,17 +494,17 @@ describe("Distributed Map State", () => {
 
     test(", ItemReader and BucketNamePath", () => {
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         itemReader: new compute.S3ManifestItemReader({
           bucketNamePath: compute.JsonPath.stringAt("$.bucketName"),
-          bucketNameScope: spec,
+          bucketNameScope: stack,
           key: compute.JsonPath.stringAt("$.key"),
         }),
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -541,10 +541,10 @@ describe("Distributed Map State", () => {
 
     test("and ResultWriter", () => {
       // GIVEN
-      const writerBucket = new storage.Bucket(spec, "TestBucket");
+      const writerBucket = new storage.Bucket(stack, "TestBucket");
 
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         maxConcurrency: 1,
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
         itemSelector: {
@@ -556,10 +556,10 @@ describe("Distributed Map State", () => {
           prefix: "test",
         }),
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -599,7 +599,7 @@ describe("Distributed Map State", () => {
 
     test("Path Properties", () => {
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
         mapExecutionType: compute.StateMachineType.EXPRESS,
         toleratedFailurePercentagePath: compute.JsonPath.stringAt(
@@ -615,10 +615,10 @@ describe("Distributed Map State", () => {
           ),
         }),
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -651,7 +651,7 @@ describe("Distributed Map State", () => {
 
     test("Number Properties", () => {
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
         mapExecutionType: compute.StateMachineType.EXPRESS,
         toleratedFailurePercentage: 100,
@@ -665,10 +665,10 @@ describe("Distributed Map State", () => {
           },
         }),
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"));
+      map.itemProcessor(new compute.Pass(stack, "Pass State"));
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -704,7 +704,7 @@ describe("Distributed Map State", () => {
     });
 
     test("does not throw while accessing bucket of itemReader which was initialised with bucket", () => {
-      const bucket = new storage.Bucket(spec, "TestBucket");
+      const bucket = new storage.Bucket(stack, "TestBucket");
       const itemReader = new compute.S3JsonItemReader({
         bucket,
         key: "test.json",
@@ -715,14 +715,14 @@ describe("Distributed Map State", () => {
 
     test("should use default mapExecutionType and ignore itemProcessor executionType", () => {
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {});
-      map.itemProcessor(new compute.Pass(spec, "Pass State"), {
+      const map = new compute.DistributedMap(stack, "Map State", {});
+      map.itemProcessor(new compute.Pass(stack, "Pass State"), {
         mode: compute.ProcessorMode.DISTRIBUTED,
         executionType: compute.ProcessorType.EXPRESS,
       });
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -745,12 +745,12 @@ describe("Distributed Map State", () => {
         },
       });
 
-      Annotations.fromStack(spec).hasWarnings({
-        constructPath: "TestSpec/Map State",
+      Annotations.fromStack(stack).hasWarnings({
+        constructPath: "TestStack/Map State",
         message:
           /Property 'ProcessorConfig.executionType' is ignored, use the 'mapExecutionType' in the 'DistributedMap' class instead./,
       });
-      // Annotations.fromStack(spec).hasWarning(
+      // Annotations.fromStack(stack).hasWarning(
       //   "/Default/Map State",
       //   Match.stringLikeRegexp(
       //     "Property 'ProcessorConfig.executionType' is ignored, use the 'mapExecutionType' in the 'DistributedMap' class instead.",
@@ -760,16 +760,16 @@ describe("Distributed Map State", () => {
 
     test("should use configured mapExecutionType and ignore itemProcessor executionType", () => {
       //WHEN
-      const map = new compute.DistributedMap(spec, "Map State", {
+      const map = new compute.DistributedMap(stack, "Map State", {
         mapExecutionType: compute.StateMachineType.EXPRESS,
       });
-      map.itemProcessor(new compute.Pass(spec, "Pass State"), {
+      map.itemProcessor(new compute.Pass(stack, "Pass State"), {
         mode: compute.ProcessorMode.DISTRIBUTED,
         executionType: compute.ProcessorType.STANDARD,
       });
 
       //THEN
-      expect(render(spec, map)).toStrictEqual({
+      expect(render(stack, map)).toStrictEqual({
         StartAt: "Map State",
         States: {
           "Map State": {
@@ -792,12 +792,12 @@ describe("Distributed Map State", () => {
         },
       });
 
-      Annotations.fromStack(spec).hasWarnings({
-        constructPath: "TestSpec/Map State",
+      Annotations.fromStack(stack).hasWarnings({
+        constructPath: "TestStack/Map State",
         message:
           /Property 'ProcessorConfig.executionType' is ignored, use the 'mapExecutionType' in the 'DistributedMap' class instead./,
       });
-      // Annotations.fromStack(spec).hasWarning(
+      // Annotations.fromStack(stack).hasWarning(
       //   "/Default/Map State",
       //   Match.stringLikeRegexp(
       //     "Property 'ProcessorConfig.executionType' is ignored, use the 'mapExecutionType' in the 'DistributedMap' class instead.",
@@ -809,7 +809,7 @@ describe("Distributed Map State", () => {
       // TODO: Improve this error message?
       expect(
         () =>
-          new compute.DistributedMap(spec, "Map State", {
+          new compute.DistributedMap(stack, "Map State", {
             itemReader: new compute.S3JsonItemReader({
               key: "test.json",
             }),
@@ -819,24 +819,24 @@ describe("Distributed Map State", () => {
   });
 
   test("synth is successful", () => {
-    const spec = createStackWithMap((stack) => {
-      const map = new compute.DistributedMap(stack, "Map State", {
+    const stack = createStackWithMap((s) => {
+      const map = new compute.DistributedMap(s, "Map State", {
         maxConcurrency: 1,
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
       });
-      map.itemProcessor(new compute.Pass(stack, "Pass State"));
+      map.itemProcessor(new compute.Pass(s, "Pass State"));
       return map;
     });
 
     // synth with validations
-    Testing.synth(spec, true);
+    Testing.synth(stack, true);
   });
 
   test("fails in synthesis if itemsPath and itemReader", () => {
-    const spec = createStackWithMap((stack) => {
-      const map = new compute.DistributedMap(stack, "Map State", {
+    const stack = createStackWithMap((s) => {
+      const map = new compute.DistributedMap(s, "Map State", {
         itemReader: new compute.S3JsonItemReader({
-          bucket: new storage.Bucket(stack, "TestBucket"),
+          bucket: new storage.Bucket(s, "TestBucket"),
           key: "test.json",
         }),
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
@@ -845,16 +845,16 @@ describe("Distributed Map State", () => {
       return map;
     });
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /Provide either `itemsPath` or `itemReader`, but not both/,
     );
   });
 
   test("fails in synthesis if itemReader contains both bucket and bucketNamePath", () => {
-    const spec = createStackWithMap((stack) => {
-      const map = new compute.DistributedMap(stack, "Map State", {
+    const stack = createStackWithMap((s) => {
+      const map = new compute.DistributedMap(s, "Map State", {
         itemReader: new compute.S3JsonItemReader({
-          bucket: new storage.Bucket(stack, "TestBucket"),
+          bucket: new storage.Bucket(s, "TestBucket"),
           bucketNamePath: compute.JsonPath.stringAt("$.bucketName"),
           key: "test.json",
         }),
@@ -863,15 +863,15 @@ describe("Distributed Map State", () => {
       return map;
     });
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /Provide either `bucket` or `bucketNamePath` and `bucketNameScope`, but not both/,
     );
   });
 
   // // This is now thrown when S3JsonItemReader is created instead of synth time
   // test("fails in synthesis if itemReader contains neither bucket nor bucketNamePath", () => {
-  //   const spec = createStackWithMap((stack) => {
-  //     const map = new compute.DistributedMap(stack, "Map State", {
+  //   const stack = createStackWithMap((s) => {
+  //     const map = new compute.DistributedMap(s, "Map State", {
   //       itemReader: new compute.S3JsonItemReader({
   //         key: "test.json",
   //       }),
@@ -880,31 +880,31 @@ describe("Distributed Map State", () => {
   //     return map;
   //   });
 
-  //   expect(() => Testing.synth(spec, true)).toThrow(
+  //   expect(() => Testing.synth(stack, true)).toThrow(
   //     /Provide either `bucket` or `bucketNamePath`/,
   //   );
   // });
 
   test("fails in synthesis if ItemProcessor is in INLINE mode", () => {
-    const spec = createStackWithMap((stack) => {
-      const map = new compute.DistributedMap(stack, "Map State", {
+    const stack = createStackWithMap((s) => {
+      const map = new compute.DistributedMap(s, "Map State", {
         maxConcurrency: 1,
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
       });
-      map.itemProcessor(new compute.Pass(stack, "Pass State"), {
+      map.itemProcessor(new compute.Pass(s, "Pass State"), {
         mode: compute.ProcessorMode.INLINE,
       });
       return map;
     });
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /Processing mode cannot be `INLINE` for a Distributed Map/,
     );
   });
 
   test("fails in synthesis if label is too long", () => {
-    const spec = createStackWithMap((stack) => {
-      const map = new compute.DistributedMap(stack, "Map State", {
+    const stack = createStackWithMap((s) => {
+      const map = new compute.DistributedMap(s, "Map State", {
         label: "a".repeat(45),
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
       });
@@ -912,14 +912,14 @@ describe("Distributed Map State", () => {
       return map;
     });
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /label must be 40 characters or less/,
     );
   });
 
   test("fails in synthesis if label has special characters", () => {
-    const spec = createStackWithMap((stack) => {
-      const map = new compute.DistributedMap(stack, "Map State", {
+    const stack = createStackWithMap((s) => {
+      const map = new compute.DistributedMap(s, "Map State", {
         label: "this is invalid?",
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
       });
@@ -927,14 +927,14 @@ describe("Distributed Map State", () => {
       return map;
     });
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /label cannot contain any whitespace or special characters/,
     );
   });
 
   test("does not fail in synthesis if label has `s`", () => {
-    const spec = createStackWithMap((stack) => {
-      const map = new compute.DistributedMap(stack, "Map State", {
+    const stack = createStackWithMap((s) => {
+      const map = new compute.DistributedMap(s, "Map State", {
         label: "s",
         itemsPath: compute.JsonPath.stringAt("$.inputForMap"),
       });
@@ -942,21 +942,21 @@ describe("Distributed Map State", () => {
       return map;
     });
 
-    Testing.synth(spec, true);
+    Testing.synth(stack, true);
   });
 });
 
 // function render(sm: compute.IChainable) {
-//   return new AwsSpec().resolve(
+//   return new AwsStack().resolve(
 //     new compute.StateGraph(sm.startState, "Test Graph").toGraphJson(),
 //   );
 // }
 
 function createStackWithMap(
-  mapFactory: (spec: AwsSpec) => compute.DistributedMap,
+  mapFactory: (stack: AwsStack) => compute.DistributedMap,
 ) {
   const app = Testing.app();
-  const spec = new AwsSpec(app, `TestSpec`, {
+  const stack = new AwsStack(app, `TestStack`, {
     environmentName: "Test",
     gridUUID,
     providerConfig: {
@@ -966,7 +966,7 @@ function createStackWithMap(
       address: "http://localhost:3000",
     },
   });
-  const map = mapFactory(spec);
+  const map = mapFactory(stack);
   new compute.StateGraph(map, "Test Graph");
-  return spec;
+  return stack;
 }

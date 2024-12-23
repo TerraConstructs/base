@@ -1,14 +1,14 @@
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { iam, compute, AwsSpec } from "../../../src/aws";
+import { iam, compute, AwsStack } from "../../../src/aws";
 
 const gridUUID = "123e4567-e89b-12d3";
 describe("TaskRole", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    spec = new AwsSpec(app, `TestSpec`, {
+    stack = new AwsStack(app, `TestStack`, {
       environmentName: "Test",
       gridUUID,
       providerConfig: {
@@ -23,13 +23,13 @@ describe("TaskRole", () => {
   describe("fromRole()", () => {
     test("returns expected roleArn and resource", () => {
       const iamRole = iam.Role.fromRoleArn(
-        spec,
+        stack,
         "Role",
         "arn:aws:iam::123456789012:role/example-role",
       );
       const role = compute.TaskRole.fromRole(iamRole);
 
-      expect(spec.resolve(role.roleArn)).toEqual(
+      expect(stack.resolve(role.roleArn)).toEqual(
         "arn:aws:iam::123456789012:role/example-role",
       );
       expect(role.resource).toEqual(
@@ -42,7 +42,7 @@ describe("TaskRole", () => {
     test("returns expected roleArn and resource", () => {
       const role = compute.TaskRole.fromRoleArnJsonPath("$.RoleArn");
 
-      expect(spec.resolve(role.roleArn)).toEqual("$.RoleArn");
+      expect(stack.resolve(role.roleArn)).toEqual("$.RoleArn");
       expect(role.resource).toEqual("*");
     });
 

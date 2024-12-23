@@ -12,7 +12,11 @@ import {
 import { Construct } from "constructs";
 import { IDnsZone, RecordSet, RecordTarget, RecordType } from ".";
 import { Duration } from "../../duration";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
+import {
+  AwsConstructBase,
+  IAwsConstruct,
+  AwsConstructProps,
+} from "../aws-construct";
 
 export interface CertificateOutputs {
   /**
@@ -40,7 +44,7 @@ export interface CertificateOutputs {
 // through the stack state while the resource interface is used
 // while building composite beacons (L3) build out of base (L2) beacons.
 
-export interface ICertificate extends IAwsBeacon {
+export interface ICertificate extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly certificateOutputs: CertificateOutputs;
   /**
@@ -53,7 +57,7 @@ export interface ICertificate extends IAwsBeacon {
   readonly certificateArn: string;
 }
 
-export interface PublicCertificateProps extends AwsBeaconProps {
+export interface PublicCertificateProps extends AwsConstructProps {
   /**
    * Domain name of the certificate.
    *
@@ -117,7 +121,10 @@ export interface CertificateValidationOption {
 /**
  * Amazon issued certificate
  */
-export class PublicCertificate extends AwsBeaconBase implements ICertificate {
+export class PublicCertificate
+  extends AwsConstructBase
+  implements ICertificate
+{
   // TODO: Add static fromLookup?
   resource: acmCertificate.AcmCertificate;
 

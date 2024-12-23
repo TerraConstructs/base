@@ -1,8 +1,8 @@
 {
-  "name": "@envtio/base",
+  "name": "terraconstructs",
   "repository": {
     "type": "git",
-    "url": "https://github.com/envtio/base"
+    "url": "https://github.com/TerraConstructs/base"
   },
   "scripts": {
     "build": "npx projen build",
@@ -80,9 +80,7 @@
   ],
   "pnpm": {},
   "keywords": [
-    "beacon",
-    "beacon-bundle",
-    "environment-toolkit"
+    "terraconstructs"
   ],
   "engines": {
     "node": "20"
@@ -99,9 +97,9 @@
       "<rootDir>/setup.js"
     ],
     "testMatch": [
-      "<rootDir>/@(src|test)/**/*(*.)@(test).ts?(x)",
+      "<rootDir>/@(src|test)/**/*(*.)@(spec|test).ts?(x)",
       "<rootDir>/@(src|test)/**/__tests__/**/*.ts?(x)",
-      "<rootDir>/@(projenrc)/**/*(*.)@(test).ts?(x)",
+      "<rootDir>/@(projenrc)/**/*(*.)@(spec|test).ts?(x)",
       "<rootDir>/@(projenrc)/**/__tests__/**/*.ts?(x)"
     ],
     "clearMocks": true,

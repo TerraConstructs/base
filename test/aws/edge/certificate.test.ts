@@ -1,6 +1,6 @@
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { edge, AwsSpec } from "../../../src/aws";
+import { edge, AwsStack } from "../../../src/aws";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -11,12 +11,12 @@ const providerConfig = { region: "us-east-1" };
 describe("PublicCertificate", () => {
   test("Create should synth and match SnapShot", () => {
     // GIVEN
-    const spec = getAwsSpec();
-    const zone = new edge.DnsZone(spec, "Zone", {
+    const stack = getAwsStack();
+    const zone = new edge.DnsZone(stack, "Zone", {
       zoneName: "example.com",
     });
     // WHEN
-    new edge.PublicCertificate(spec, "Certificate", {
+    new edge.PublicCertificate(stack, "Certificate", {
       domainName: "example.com",
       subjectAlternativeNames: ["*.example.com"],
       validation: {
@@ -28,19 +28,19 @@ describe("PublicCertificate", () => {
       },
     });
     // THEN
-    expect(Testing.synth(spec)).toMatchSnapshot();
+    expect(Testing.synth(stack)).toMatchSnapshot();
   });
   test("Create multi-zone should synth and match SnapShot", () => {
     // GIVEN
-    const spec = getAwsSpec();
-    const zone1 = new edge.DnsZone(spec, "ExampleNetZone", {
+    const stack = getAwsStack();
+    const zone1 = new edge.DnsZone(stack, "ExampleNetZone", {
       zoneName: "example.net",
     });
-    const zone2 = new edge.DnsZone(spec, "ExampleComZone", {
+    const zone2 = new edge.DnsZone(stack, "ExampleComZone", {
       zoneName: "example.com",
     });
     // WHEN
-    new edge.PublicCertificate(spec, "Certificate", {
+    new edge.PublicCertificate(stack, "Certificate", {
       domainName: "example.net",
       subjectAlternativeNames: [
         "*.example.net",
@@ -59,14 +59,14 @@ describe("PublicCertificate", () => {
       },
     });
     // THEN
-    expect(Testing.synth(spec)).toMatchSnapshot();
+    expect(Testing.synth(stack)).toMatchSnapshot();
   });
   test("Imported DnsZone should synth and match SnapShot", () => {
     // GIVEN
-    const spec = getAwsSpec();
-    const zone = edge.DnsZone.fromZoneId(spec, "Zone", "Z1234567890");
+    const stack = getAwsStack();
+    const zone = edge.DnsZone.fromZoneId(stack, "Zone", "Z1234567890");
     // WHEN
-    new edge.PublicCertificate(spec, "Certificate", {
+    new edge.PublicCertificate(stack, "Certificate", {
       domainName: "example.com",
       subjectAlternativeNames: ["*.example.com"],
       validation: {
@@ -75,13 +75,13 @@ describe("PublicCertificate", () => {
       },
     });
     // THEN
-    expect(Testing.synth(spec)).toMatchSnapshot();
+    expect(Testing.synth(stack)).toMatchSnapshot();
   });
 });
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

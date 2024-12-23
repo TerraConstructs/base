@@ -3,12 +3,12 @@ import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { Construct } from "constructs";
 import { innerJson } from "./private/render-util";
-import { compute, AwsSpec } from "../../../src/aws";
+import { compute, AwsStack } from "../../../src/aws";
 
 describe("State Machine Fragment", () => {
   test("Prefix applied correctly on Fragments with Parallel states", () => {
     // GIVEN
-    const spec = new AwsSpec(Testing.app(), `TestSpec`, {
+    const stack = new AwsStack(Testing.app(), `TestStack`, {
       environmentName: "Test",
       gridUUID: "123e4567-e89b-12d3",
       providerConfig: {
@@ -21,15 +21,15 @@ describe("State Machine Fragment", () => {
 
     // WHEN
     const fragment1 = new ParallelMachineFragment(
-      spec,
+      stack,
       "Fragment 1",
     ).prefixStates();
     const fragment2 = new ParallelMachineFragment(
-      spec,
+      stack,
       "Fragment 2",
     ).prefixStates();
 
-    new compute.StateMachine(spec, "State Machine", {
+    new compute.StateMachine(stack, "State Machine", {
       definitionBody: compute.DefinitionBody.fromChainable(
         fragment1.next(fragment2),
       ),
@@ -37,8 +37,8 @@ describe("State Machine Fragment", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(
       innerJson(synthesized, sfnStateMachine.SfnStateMachine, {

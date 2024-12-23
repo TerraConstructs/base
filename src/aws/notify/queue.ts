@@ -2,10 +2,10 @@ import { sqsQueue } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
 import { SqsQueueConfig, QueuePolicy } from ".";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import * as iam from "../iam";
 
-export interface QueueProps extends AwsBeaconProps, SqsQueueConfig {
+export interface QueueProps extends AwsConstructProps, SqsQueueConfig {
   /**
    * Queue Name prefix
    *
@@ -103,7 +103,7 @@ export interface QueueOutputs {
 /**
  * Imported or created Queue attributes
  */
-export interface IQueue extends iam.IAwsBeaconWithPolicy {
+export interface IQueue extends iam.IAwsConstructWithPolicy {
   /** Strongly typed outputs */
   readonly queueOutputs: QueueOutputs;
   /**
@@ -202,7 +202,7 @@ export interface IQueue extends iam.IAwsBeaconWithPolicy {
  * @resource aws_sqs_queue
  * @beacon-class notify.IQueue
  */
-export class Queue extends AwsBeaconBase implements IQueue {
+export class Queue extends AwsConstructBase implements IQueue {
   // TODO: Add static fromLookup?
   public readonly resource: sqsQueue.SqsQueue;
 

@@ -1,6 +1,6 @@
 import { lambdaFunctionUrl } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { IAwsBeacon, AwsBeaconBase } from "..";
+import { IAwsConstruct, AwsConstructBase } from "..";
 import { IAlias } from "./function-alias";
 import { IFunction } from "./function-base";
 import { Duration } from "../..";
@@ -143,7 +143,7 @@ export interface FunctionUrlOutputs {
 /**
  * A Lambda function Url
  */
-export interface IFunctionUrl extends IAwsBeacon {
+export interface IFunctionUrl extends IAwsConstruct {
   /** strongly typed FunctionUrlOutputs */
   readonly functionUrlOutputs: FunctionUrlOutputs;
 
@@ -209,7 +209,7 @@ export interface FunctionUrlProps extends FunctionUrlOptions {
  *
  * @resource aws_lambda_function_url
  */
-export class FunctionUrl extends AwsBeaconBase implements IFunctionUrl {
+export class FunctionUrl extends AwsConstructBase implements IFunctionUrl {
   public readonly functionUrlOutputs: FunctionUrlOutputs;
   public get outputs(): Record<string, any> {
     return this.functionUrlOutputs;

@@ -20,8 +20,8 @@ const stackName = process.env.STACK_NAME ?? "sfn-invoke-activity";
  * -- aws stepfunctions start-execution --state-machine-arn <state-machine-arn-from-output> provides execution arn
  * -- aws stepfunctions describe-execution --execution-arn <state-machine-arn-from-output> returns a status of `Running`
  */
-class InvokeActivityStack extends aws.AwsSpec {
-  constructor(scope: App, id: string, props: aws.AwsSpecProps) {
+class InvokeActivityStack extends aws.AwsStack {
+  constructor(scope: App, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
 
     const submitJobActivity = new aws.compute.Activity(this, "SubmitJob", {
@@ -102,14 +102,14 @@ class InvokeActivityStack extends aws.AwsSpec {
 const app = new App({
   outdir,
 });
-const spec = new InvokeActivityStack(app, stackName, {
+const stack = new InvokeActivityStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 app.synth();

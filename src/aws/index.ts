@@ -1,7 +1,7 @@
 // core
 export * from "./arn";
-export * from "./beacon";
-export * from "./spec";
+export * from "./aws-construct";
+export * from "./aws-stack";
 export * from "./log-retention";
 
 // core JSII compatible generated interfaces

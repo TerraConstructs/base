@@ -16,23 +16,23 @@ const stackName = process.env.STACK_NAME ?? "eventbridge-put-events";
 const app = new App({
   outdir,
 });
-const spec = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 
-const eventBus = new aws.notify.EventBus(spec, "EventBus", {
+const eventBus = new aws.notify.EventBus(stack, "EventBus", {
   eventBusName: "MyEventBus1",
 });
 
 const putEventsTask = new aws.compute.tasks.EventBridgePutEvents(
-  spec,
+  stack,
   "Put Custom Events",
   {
     entries: [
@@ -57,7 +57,7 @@ const putEventsTask = new aws.compute.tasks.EventBridgePutEvents(
   },
 );
 
-new aws.compute.StateMachine(spec, "StateMachine", {
+new aws.compute.StateMachine(stack, "StateMachine", {
   definitionBody: aws.compute.DefinitionBody.fromChainable(putEventsTask),
   timeout: Duration.seconds(30),
   registerOutputs: true,

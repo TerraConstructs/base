@@ -4,9 +4,9 @@ import { cloudwatchLogGroup } from "@cdktf/provider-aws";
 import { Annotations, Token } from "cdktf";
 import { Construct } from "constructs";
 import { Arn, ArnFormat } from "../arn";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { RetentionDays } from "../log-retention";
-import { AwsSpec } from "../spec";
 import { DataProtectionPolicy } from "./data-protection-policy";
 import { LogStream } from "./log-stream";
 import { Metric, MetricOptions } from "./metric";
@@ -37,7 +37,7 @@ export interface LogGroupOutputs {
   readonly logGroupName: string;
 }
 
-export interface ILogGroup extends iam.IAwsBeaconWithPolicy {
+export interface ILogGroup extends iam.IAwsConstructWithPolicy {
   /** Strongly typed outputs */
   readonly logGroupOutputs: LogGroupOutputs;
 
@@ -151,7 +151,7 @@ export interface ILogGroup extends iam.IAwsBeaconWithPolicy {
 /**
  * An CloudWatch Log Group
  */
-abstract class LogGroupBase extends AwsBeaconBase implements ILogGroup {
+abstract class LogGroupBase extends AwsConstructBase implements ILogGroup {
   /**
    * The ARN of this log group, with ':*' appended
    */
@@ -425,7 +425,7 @@ export enum LogGroupClass {
 /**
  * Properties for a LogGroup
  */
-export interface LogGroupProps extends AwsBeaconProps {
+export interface LogGroupProps extends AwsConstructProps {
   /**
    * The KMS customer managed key to encrypt the log group with.
    *
@@ -506,7 +506,7 @@ export class LogGroup extends LogGroupBase {
 
     class Import extends LogGroupBase {
       public readonly logGroupArn = `${baseLogGroupArn}:*`;
-      public readonly logGroupName = AwsSpec.ofAwsBeacon(scope).splitArn(
+      public readonly logGroupName = AwsStack.ofAwsConstruct(scope).splitArn(
         baseLogGroupArn,
         ArnFormat.COLON_RESOURCE_NAME,
       ).resourceName!;
@@ -529,7 +529,7 @@ export class LogGroup extends LogGroupBase {
 
     class Import extends LogGroupBase {
       public readonly logGroupName = baseLogGroupName;
-      public readonly logGroupArn = AwsSpec.ofAwsBeacon(scope).formatArn({
+      public readonly logGroupArn = AwsStack.ofAwsConstruct(scope).formatArn({
         service: "logs",
         resource: "log-group",
         arnFormat: ArnFormat.COLON_RESOURCE_NAME,

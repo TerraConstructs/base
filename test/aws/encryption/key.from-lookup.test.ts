@@ -3,7 +3,7 @@
 // import { iamPolicy, dataAwsIamPolicy } from "@cdktf/provider-aws";
 import { App, Testing, Lazy } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws";
 import { Key } from "../../../src/aws/encryption/key";
 // import { Template } from "../../assertions";
 
@@ -16,16 +16,16 @@ const gridBackendConfig = {
 
 describe("key from lookup", () => {
   let app: App;
-  let spec: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    spec = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,
       gridBackendConfig,
-      // TODO: Should support passing account via Spec props?
+      // TODO: Should support passing account via Stack props?
       // account: "1234",
       // env: { region: "us-east-1", account: "123456789012" },
     });
@@ -35,7 +35,7 @@ describe("key from lookup", () => {
     expect(() => {
       // GIVEN
 
-      Key.fromLookup(spec, "Key", {
+      Key.fromLookup(stack, "Key", {
         aliasName: Lazy.stringValue({ produce: () => "some-id" }),
       });
     }).toThrow(
@@ -44,22 +44,22 @@ describe("key from lookup", () => {
   });
 
   test("return correct key", () => {
-    const key = Key.fromLookup(spec, "Key", {
+    const key = Key.fromLookup(stack, "Key", {
       aliasName: "alias/foo",
     });
 
     expect(key.keyId).toEqual("alias/foo");
-    expect(spec.resolve(key.keyArn)).toEqual(
+    expect(stack.resolve(key.keyArn)).toEqual(
       "${data.aws_kms_key.Key_961B73FD.arn}",
     );
   });
 
   // test("return dummy key if returnDummyKeyOnMissing is true", () => {
-  //   const key = Key.fromLookup(spec, "Key", {
+  //   const key = Key.fromLookup(stack, "Key", {
   //     aliasName: "alias/foo",
   //   });
 
-  //   Template.synth(spec).toMatchSnapshot();
+  //   Template.synth(stack).toMatchSnapshot();
   //   expect(key.keyId).toEqual(Key.DEFAULT_DUMMY_KEY_ID);
   //   // expect(app.synth().manifest.missing).toEqual([
   //   //   {
@@ -82,7 +82,7 @@ describe("key from lookup", () => {
 
   // describe("isLookupDummy method", () => {
   //   // test("return false if the lookup key is not a dummy key", () => {
-  //   //   const key = Key.fromLookup(spec, "Key", {
+  //   //   const key = Key.fromLookup(stack, "Key", {
   //   //     aliasName: "alias/foo",
   //   //     returnDummyKeyOnMissing: true,
   //   //   });
@@ -91,7 +91,7 @@ describe("key from lookup", () => {
   //   // });
 
   //   test("return true if the lookup key is a dummy key", () => {
-  //     const key = Key.fromLookup(spec, "Key", {
+  //     const key = Key.fromLookup(stack, "Key", {
   //       aliasName: "alias/foo",
   //       returnDummyKeyOnMissing: true,
   //     });

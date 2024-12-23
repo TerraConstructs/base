@@ -2,14 +2,14 @@
 
 import { kinesisResourcePolicy } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { IStream } from "./kinesis-stream";
 import { PolicyDocument } from "../iam";
 
 /**
  * Properties to associate a data stream with a policy
  */
-export interface ResourcePolicyProps extends AwsBeaconProps {
+export interface ResourcePolicyProps extends AwsConstructProps {
   /**
    * The stream this policy applies to.
    */
@@ -37,7 +37,7 @@ export interface ResourcePolicyProps extends AwsBeaconProps {
  *
  * Prefer to use `addToResourcePolicy()` instead.
  */
-export class ResourcePolicy extends AwsBeaconBase {
+export class ResourcePolicy extends AwsConstructBase {
   /**
    * The IAM policy document for this policy.
    */

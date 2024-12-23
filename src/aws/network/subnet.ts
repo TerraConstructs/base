@@ -8,7 +8,7 @@ import {
   routeTableAssociation,
 } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps, IAwsBeacon } from "../";
+import { AwsConstructBase, AwsConstructProps, IAwsConstruct } from "../";
 
 export enum SubnetType {
   PUBLIC = "PUBLIC",
@@ -16,7 +16,7 @@ export enum SubnetType {
   DATA = "DATA",
 }
 
-export interface BaseSubnetProps extends AwsBeaconProps {
+export interface BaseSubnetProps extends AwsConstructProps {
   /**
    * The VPC to create the subnet into
    */
@@ -37,7 +37,7 @@ export interface BaseSubnetProps extends AwsBeaconProps {
   readonly tags?: Record<string, string>;
 }
 
-export interface ISubnet extends IAwsBeacon {
+export interface ISubnet extends IAwsConstruct {
   /**
    * The VPC ID of the subnet.
    */
@@ -56,7 +56,7 @@ export interface ISubnet extends IAwsBeacon {
   readonly subnetId: string;
 }
 
-export abstract class BaseSubnet extends AwsBeaconBase implements ISubnet {
+export abstract class BaseSubnet extends AwsConstructBase implements ISubnet {
   private readonly type: SubnetType;
   private readonly _availabilityZone: string;
   public get availabilityZone(): string {

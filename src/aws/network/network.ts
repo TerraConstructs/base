@@ -1,7 +1,7 @@
 import { IResolvable } from "cdktf";
 import { ISubnet } from "./subnet";
 import { ISubnetGroup } from "./subnet-group";
-import { IAwsBeacon } from "../";
+import { IAwsConstruct } from "../";
 
 /**
  * Outputs which may be registered for output via the Grid.
@@ -37,7 +37,7 @@ export interface NetworkOutputs {
   readonly serviceDiscoveryNamespaceName: string;
 }
 
-export interface INetwork extends IAwsBeacon {
+export interface INetwork extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly networkOutputs: NetworkOutputs;
   /**

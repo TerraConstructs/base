@@ -4,7 +4,11 @@ import {
   cloudfrontkeyvaluestoreKey,
 } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
+import {
+  AwsConstructBase,
+  IAwsConstruct,
+  AwsConstructProps,
+} from "../aws-construct";
 
 export interface IStoreData {
   /**
@@ -41,7 +45,7 @@ export abstract class KeyValuePairs implements IStoreData {
   }
 
   /**
-   * Key Value pairs inline with Beacon props.
+   * Key Value pairs inline with Construct props.
    *
    * @param data the contents of the KeyValueStore
    */
@@ -120,7 +124,7 @@ export class FileKeyValuePairs extends KeyValuePairs {
 /**
  * The properties to create a Key Value Store.
  */
-export interface KeyValueStoreProps extends AwsBeaconProps {
+export interface KeyValueStoreProps extends AwsConstructProps {
   /**
    * The unique name of the Key Value Store.
    *
@@ -174,7 +178,7 @@ export interface KeyValueStoreOutputs {
 /**
  * A CloudFront Key Value Store.
  */
-export interface IKeyValueStore extends IAwsBeacon {
+export interface IKeyValueStore extends IAwsConstruct {
   /** Strongly typed outputs
    *
    * @attribute
@@ -216,7 +220,7 @@ export interface IKeyValueStore extends IAwsBeacon {
  *
  * @resource aws_cloudfront_key_value_store
  */
-export class KeyValueStore extends AwsBeaconBase implements IKeyValueStore {
+export class KeyValueStore extends AwsConstructBase implements IKeyValueStore {
   // TODO: Add static fromLookup?
   public readonly resource: cloudfrontKeyValueStore.CloudfrontKeyValueStore;
 

@@ -8,7 +8,7 @@ import {
 } from "@cdktf/provider-aws";
 import { Fn, Lazy } from "cdktf";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { INetwork, NetworkOutputs } from "./network";
 import { PublicSubnet, PrivateSubnet, DataSubnet, ISubnet } from "./subnet";
 import {
@@ -22,7 +22,7 @@ export enum NatGatewayOption {
   NAT_PER_AVAILABILITY_ZONE = "nat-per-availability-zone",
 }
 
-export interface SimpleIPv4Props extends AwsBeaconProps {
+export interface SimpleIPv4Props extends AwsConstructProps {
   /**
    * The number of availability zones to use.
    *
@@ -54,7 +54,7 @@ export interface SimpleIPv4Props extends AwsBeaconProps {
  * For example:
  *
  * ```ts
- * const network = new network.SimpleIPv4(awsSpec, "network", {
+ * const network = new network.SimpleIPv4(awsStack, "network", {
  *  ipv4CidrBlock: "10.0.0.0/16",
  *  internalDomain: "example.local",
  * });
@@ -66,7 +66,7 @@ export interface SimpleIPv4Props extends AwsBeaconProps {
  * @resource aws_vpc
  * @beacon-class network.SimpleIPv4Vpc
  */
-export class SimpleIPv4Vpc extends AwsBeaconBase implements INetwork {
+export class SimpleIPv4Vpc extends AwsConstructBase implements INetwork {
   private readonly _props: SimpleIPv4Props;
   private readonly _outputs: NetworkOutputs;
   public get networkOutputs(): NetworkOutputs {

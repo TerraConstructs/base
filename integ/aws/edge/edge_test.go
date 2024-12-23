@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/environment-toolkit/go-synth/executors"
-	"github.com/envtio/base/integ"
-	util "github.com/envtio/base/integ/aws"
 	"github.com/stretchr/testify/require"
+	"github.com/terraconstructs/base/integ"
+	util "github.com/terraconstructs/base/integ/aws"
+	"github.com/terraconstructs/go-synth/executors"
 
 	// loggers "github.com/gruntwork-io/terratest/modules/logger"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
@@ -21,10 +21,10 @@ import (
 // Test the multi-zone-acm-pub-cert app
 func TestMultiZoneAcmPubCert(t *testing.T) {
 	envVars := executors.EnvMap(os.Environ())
-	envVars["DNS_DOMAIN_NAME1"] = "test2.e2e.envt.io"
-	envVars["DNS_ZONE_ID1"] = "Z094619391UOQUZ5PKD4"
-	envVars["DNS_DOMAIN_NAME2"] = "test1.e2e.envt.io"
-	envVars["DNS_ZONE_ID2"] = "Z09470921W73LC945033M"
+	envVars["DNS_DOMAIN_NAME1"] = "test2.e2e.terraconstructs.dev"
+	envVars["DNS_ZONE_ID1"] = "Z08908061QI3ISWIOB5X"
+	envVars["DNS_DOMAIN_NAME2"] = "test1.e2e.terraconstructs.dev"
+	envVars["DNS_ZONE_ID2"] = "Z08908052RMPRLAUIXH2Z"
 	runEdgeIntegrationTest(t, "multi-zone-acm-pub-cert", "us-east-1", envVars, validateMultiZoneAcmPubCert)
 }
 

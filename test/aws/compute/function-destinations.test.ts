@@ -8,11 +8,11 @@ import {
 } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { compute, notify, AwsSpec } from "../../../src/aws";
+import { compute, notify, AwsStack } from "../../../src/aws";
 
-let spec: AwsSpec;
+let stack: AwsStack;
 beforeEach(() => {
-  spec = new AwsSpec(Testing.app(), `TestSpec`, {
+  stack = new AwsStack(Testing.app(), `TestStack`, {
     environmentName: "Test",
     gridUUID: "123e4567-e89b-12d3",
     providerConfig: {
@@ -30,18 +30,18 @@ const fnProps: compute.NodejsFunctionProps = {
 
 test("event bus as destination", () => {
   // GIVEN
-  const eventBus = new notify.EventBus(spec, "EventBus");
+  const eventBus = new notify.EventBus(stack, "EventBus");
 
   // WHEN
-  new compute.NodejsFunction(spec, "Function", {
+  new compute.NodejsFunction(stack, "Function", {
     ...fnProps,
     onSuccess: new compute.destinations.EventBridgeDestination(eventBus),
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     lambdaFunctionEventInvokeConfig.LambdaFunctionEventInvokeConfig,
@@ -66,7 +66,7 @@ test("event bus as destination", () => {
       ]),
     },
   );
-  // Template.fromStack(spec).hasResourceProperties(
+  // Template.fromStack(stack).hasResourceProperties(
   //   "AWS::Lambda::EventInvokeConfig",
   //   {
   //     DestinationConfig: {
@@ -78,7 +78,7 @@ test("event bus as destination", () => {
   //     },
   //   },
   // );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -97,21 +97,21 @@ test("event bus as destination", () => {
 test("lambda as destination", () => {
   // GIVEN
   const successFunction = new compute.NodejsFunction(
-    spec,
+    stack,
     "SuccessFunction",
     fnProps,
   );
 
   // WHEN
-  new compute.NodejsFunction(spec, "Function", {
+  new compute.NodejsFunction(stack, "Function", {
     ...fnProps,
     onSuccess: new compute.destinations.FunctionDestination(successFunction),
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     lambdaFunctionEventInvokeConfig.LambdaFunctionEventInvokeConfig,
@@ -138,7 +138,7 @@ test("lambda as destination", () => {
       ]),
     },
   );
-  // Template.fromStack(spec).hasResourceProperties(
+  // Template.fromStack(stack).hasResourceProperties(
   //   "AWS::Lambda::EventInvokeConfig",
   //   {
   //     DestinationConfig: {
@@ -151,7 +151,7 @@ test("lambda as destination", () => {
   //   },
   // );
 
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -176,18 +176,18 @@ test("lambda as destination", () => {
 test("lambda payload as destination", () => {
   // GIVEN
   const successFunction = new compute.NodejsFunction(
-    spec,
+    stack,
     "SuccessFunction",
     fnProps,
   );
   const failureFunction = new compute.NodejsFunction(
-    spec,
+    stack,
     "FailureFunction",
     fnProps,
   );
 
   // WHEN
-  new compute.NodejsFunction(spec, "Function", {
+  new compute.NodejsFunction(stack, "Function", {
     ...fnProps,
     onSuccess: new compute.destinations.FunctionDestination(successFunction, {
       responseOnly: true,
@@ -199,8 +199,8 @@ test("lambda payload as destination", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   // Lambda destinations to event bus
   expect(synthesized).toHaveResourceWithProperties(
@@ -292,7 +292,7 @@ test("lambda payload as destination", () => {
       input_path: "$.detail.responsePayload",
     },
   );
-  // Template.fromStack(spec).hasResourceProperties(
+  // Template.fromStack(stack).hasResourceProperties(
   //   "AWS::Lambda::EventInvokeConfig",
   //   {
   //     DestinationConfig: {
@@ -344,7 +344,7 @@ test("lambda payload as destination", () => {
   //   },
   // );
 
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -376,7 +376,7 @@ test("lambda payload as destination", () => {
   //   },
   // });
 
-  // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
   //   EventPattern: {
   //     "detail-type": ["Lambda Function Invocation Result - Success"],
   //     resources: [
@@ -405,7 +405,7 @@ test("lambda payload as destination", () => {
   //   ],
   // });
 
-  // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
   //   EventPattern: {
   //     "detail-type": ["Lambda Function Invocation Result - Failure"],
   //     resources: [
@@ -437,16 +437,16 @@ test("lambda payload as destination", () => {
 
 // test("sns as destination", () => {
 //   // GIVEN
-//   const topic = new notify.Topic(spec, "Topic");
+//   const topic = new notify.Topic(stack, "Topic");
 
 //   // WHEN
-//   new compute.NodejsFunction(spec, "Function", {
+//   new compute.NodejsFunction(stack, "Function", {
 //     ...lambdaProps,
 //     onSuccess: new compute.destinations.SnsDestination(topic),
 //   });
 
 //   // THEN
-//   Template.fromStack(spec).hasResourceProperties(
+//   Template.fromStack(stack).hasResourceProperties(
 //     "AWS::Lambda::EventInvokeConfig",
 //     {
 //       DestinationConfig: {
@@ -459,7 +459,7 @@ test("lambda payload as destination", () => {
 //     },
 //   );
 
-//   Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+//   Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
 //     PolicyDocument: {
 //       Statement: [
 //         {
@@ -477,18 +477,18 @@ test("lambda payload as destination", () => {
 
 test("sqs as destination", () => {
   // GIVEN
-  const queue = new notify.Queue(spec, "Queue");
+  const queue = new notify.Queue(stack, "Queue");
 
   // WHEN
-  new compute.NodejsFunction(spec, "Function", {
+  new compute.NodejsFunction(stack, "Function", {
     ...fnProps,
     onSuccess: new compute.destinations.SqsDestination(queue),
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     lambdaFunctionEventInvokeConfig.LambdaFunctionEventInvokeConfig,
@@ -516,7 +516,7 @@ test("sqs as destination", () => {
       ]),
     },
   );
-  // Template.fromStack(spec).hasResourceProperties(
+  // Template.fromStack(stack).hasResourceProperties(
   //   "AWS::Lambda::EventInvokeConfig",
   //   {
   //     DestinationConfig: {
@@ -529,7 +529,7 @@ test("sqs as destination", () => {
   //   },
   // );
 
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {

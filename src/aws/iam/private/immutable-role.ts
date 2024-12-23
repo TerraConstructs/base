@@ -1,5 +1,5 @@
 import { Construct, Dependable } from "constructs";
-import { AwsBeaconBase, AwsSpec } from "../..";
+import { AwsConstructBase, AwsStack } from "../..";
 import { Grant } from "../grant";
 import { IManagedPolicy } from "../managed-policy";
 import { Policy } from "../policy";
@@ -24,14 +24,14 @@ import { IRole, RoleOutputs } from "../role";
  * which was imported into the CDK with `Role.fromRoleArn`, you don't have to use this class -
  * simply pass the property mutable = false when calling `Role.fromRoleArn`.
  */
-export class ImmutableRole extends AwsBeaconBase implements IRole {
+export class ImmutableRole extends AwsConstructBase implements IRole {
   public readonly assumeRoleAction: string;
   public readonly policyFragment: PrincipalPolicyFragment;
   public readonly grantPrincipal = this;
   public readonly principalAccount: string | undefined;
   public readonly roleArn: string;
   public readonly roleName: string;
-  public readonly stack: AwsSpec;
+  public readonly stack: AwsStack;
 
   private readonly _roleOutputs: RoleOutputs;
   public get roleOutputs(): RoleOutputs {

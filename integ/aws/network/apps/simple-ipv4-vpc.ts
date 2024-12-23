@@ -10,7 +10,7 @@ const stackName = process.env.STACK_NAME ?? "simple-ipv4-vpc";
 const app = new App({
   outdir,
 });
-const stack = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   // gridBackendConfig: {
@@ -20,7 +20,7 @@ const stack = new aws.AwsSpec(app, stackName, {
     region,
   },
 });
-// TODO: use E.T. e2e s3 backend?
+// TODO: use TerraConstruct e2e s3 backend?
 new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });

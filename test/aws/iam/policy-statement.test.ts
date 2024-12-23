@@ -1,9 +1,9 @@
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import { PolicyDocument } from "../../../src/aws/iam/policy-document";
 import { PolicyStatement, Effect } from "../../../src/aws/iam/policy-statement";
 import { AnyPrincipal } from "../../../src/aws/iam/principals";
-import { AwsSpec } from "../../../src/aws/spec";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -12,29 +12,29 @@ describe("IAM policy statement", () => {
   describe("from JSON", () => {
     test("parses with no principal", () => {
       // GIVEN
-      const spec1 = getAwsSpec();
-      const spec2 = getAwsSpec();
+      const stack1 = getAwsStack();
+      const stack2 = getAwsStack();
 
       const s = new PolicyStatement();
       s.addActions("service:action1", "service:action2");
       s.addAllResources();
       s.addConditionObject("test", { key: "value" });
 
-      const doc1 = new PolicyDocument(spec1, "doc");
+      const doc1 = new PolicyDocument(stack1, "doc");
       doc1.addStatements(s);
 
       // when
-      PolicyDocument.fromJson(spec2, "doc", doc1.toDocumentJson());
+      PolicyDocument.fromJson(stack2, "doc", doc1.toDocumentJson());
 
       // then
-      const doc1Synth = Testing.synth(spec1);
-      expect(doc1Synth).toEqual(Testing.synth(spec2));
+      const doc1Synth = Testing.synth(stack1);
+      expect(doc1Synth).toEqual(Testing.synth(stack2));
       expect(doc1Synth).toMatchSnapshot();
     });
 
     test("parses a given Principal", () => {
-      const spec1 = getAwsSpec();
-      const spec2 = getAwsSpec();
+      const stack1 = getAwsStack();
+      const stack2 = getAwsStack();
 
       const s = new PolicyStatement();
       s.addActions("service:action1", "service:action2");
@@ -42,25 +42,25 @@ describe("IAM policy statement", () => {
       s.addArnPrincipal("somearn");
       s.addConditionObject("equals", { key: "value" });
 
-      const doc1 = new PolicyDocument(spec1, "doc");
+      const doc1 = new PolicyDocument(stack1, "doc");
       doc1.addStatements(s);
 
-      PolicyDocument.fromJson(spec2, "doc", doc1.toDocumentJson());
+      PolicyDocument.fromJson(stack2, "doc", doc1.toDocumentJson());
 
-      const doc1Synth = Testing.synth(spec1);
-      expect(doc1Synth).toEqual(Testing.synth(spec2));
+      const doc1Synth = Testing.synth(stack1);
+      expect(doc1Synth).toEqual(Testing.synth(stack2));
       expect(doc1Synth).toMatchSnapshot();
     });
 
     test("should not convert `Principal: *` to `Principal: { AWS: * }`", () => {
-      const spec = getAwsSpec();
+      const stack = getAwsStack();
       const s = PolicyStatement.fromJson({
         Action: ["service:action1"],
         Principal: "*",
         Resource: "*",
       });
 
-      const doc1 = new PolicyDocument(spec, "doc");
+      const doc1 = new PolicyDocument(stack, "doc");
       doc1.addStatements(s);
 
       const rendered = doc1.toDocumentJson();
@@ -76,12 +76,12 @@ describe("IAM policy statement", () => {
         ],
         Version: "2012-10-17",
       });
-      expect(Testing.synth(spec)).toMatchSnapshot();
+      expect(Testing.synth(stack)).toMatchSnapshot();
     });
 
     test("parses a given notPrincipal", () => {
-      const spec1 = getAwsSpec();
-      const spec2 = getAwsSpec();
+      const stack1 = getAwsStack();
+      const stack2 = getAwsStack();
 
       const s = new PolicyStatement();
       s.addActions("service:action1", "service:action2");
@@ -89,90 +89,90 @@ describe("IAM policy statement", () => {
       s.addNotPrincipals(new AnyPrincipal());
       s.addConditionObject("equals", { key: "value" });
 
-      const doc1 = new PolicyDocument(spec1, "doc");
+      const doc1 = new PolicyDocument(stack1, "doc");
       doc1.addStatements(s);
 
-      PolicyDocument.fromJson(spec2, "doc", doc1.toDocumentJson());
+      PolicyDocument.fromJson(stack2, "doc", doc1.toDocumentJson());
 
-      const doc1Synth = Testing.synth(spec1);
-      expect(doc1Synth).toEqual(Testing.synth(spec2));
+      const doc1Synth = Testing.synth(stack1);
+      expect(doc1Synth).toEqual(Testing.synth(stack2));
       expect(doc1Synth).toMatchSnapshot();
     });
 
     test("parses with notAction", () => {
-      const spec1 = getAwsSpec();
-      const spec2 = getAwsSpec();
+      const stack1 = getAwsStack();
+      const stack2 = getAwsStack();
 
       const s = new PolicyStatement();
       s.addNotActions("service:action3");
       s.addAllResources();
 
-      const doc1 = new PolicyDocument(spec1, "doc");
+      const doc1 = new PolicyDocument(stack1, "doc");
       doc1.addStatements(s);
 
-      PolicyDocument.fromJson(spec2, "doc", doc1.toDocumentJson());
+      PolicyDocument.fromJson(stack2, "doc", doc1.toDocumentJson());
 
-      const doc1Synth = Testing.synth(spec1);
-      expect(doc1Synth).toEqual(Testing.synth(spec2));
+      const doc1Synth = Testing.synth(stack1);
+      expect(doc1Synth).toEqual(Testing.synth(stack2));
       expect(doc1Synth).toMatchSnapshot();
     });
 
     test("parses with notActions", () => {
-      const spec1 = getAwsSpec();
-      const spec2 = getAwsSpec();
+      const stack1 = getAwsStack();
+      const stack2 = getAwsStack();
 
       const s = new PolicyStatement();
       s.addNotActions("service:action3", "service:action4");
       s.addAllResources();
 
-      const doc1 = new PolicyDocument(spec1, "doc");
+      const doc1 = new PolicyDocument(stack1, "doc");
       doc1.addStatements(s);
 
-      PolicyDocument.fromJson(spec2, "doc", doc1.toDocumentJson());
+      PolicyDocument.fromJson(stack2, "doc", doc1.toDocumentJson());
 
-      const doc1Synth = Testing.synth(spec1);
-      expect(doc1Synth).toEqual(Testing.synth(spec2));
+      const doc1Synth = Testing.synth(stack1);
+      expect(doc1Synth).toEqual(Testing.synth(stack2));
       expect(doc1Synth).toMatchSnapshot();
     });
 
     test("parses with notResource", () => {
-      const spec1 = getAwsSpec();
-      const spec2 = getAwsSpec();
+      const stack1 = getAwsStack();
+      const stack2 = getAwsStack();
 
       const s = new PolicyStatement();
       s.addActions("service:action3", "service:action4");
       s.addNotResources("resource1");
 
-      const doc1 = new PolicyDocument(spec1, "doc");
+      const doc1 = new PolicyDocument(stack1, "doc");
       doc1.addStatements(s);
 
-      PolicyDocument.fromJson(spec2, "doc", doc1.toDocumentJson());
+      PolicyDocument.fromJson(stack2, "doc", doc1.toDocumentJson());
 
-      const doc1Synth = Testing.synth(spec1);
-      expect(doc1Synth).toEqual(Testing.synth(spec2));
+      const doc1Synth = Testing.synth(stack1);
+      expect(doc1Synth).toEqual(Testing.synth(stack2));
       expect(doc1Synth).toMatchSnapshot();
     });
 
     test("parses with notResources", () => {
-      const spec1 = getAwsSpec();
-      const spec2 = getAwsSpec();
+      const stack1 = getAwsStack();
+      const stack2 = getAwsStack();
 
       const s = new PolicyStatement();
       s.addActions("service:action3", "service:action4");
       s.addNotResources("resource1", "resource2");
 
-      const doc1 = new PolicyDocument(spec1, "doc");
+      const doc1 = new PolicyDocument(stack1, "doc");
       doc1.addStatements(s);
 
-      PolicyDocument.fromJson(spec2, "doc", doc1.toDocumentJson());
+      PolicyDocument.fromJson(stack2, "doc", doc1.toDocumentJson());
 
-      const doc1Synth = Testing.synth(spec1);
-      expect(doc1Synth).toEqual(Testing.synth(spec2));
+      const doc1Synth = Testing.synth(stack1);
+      expect(doc1Synth).toEqual(Testing.synth(stack2));
       expect(doc1Synth).toMatchSnapshot();
     });
 
     test("the kitchen sink", () => {
-      const spec = getAwsSpec();
+      const stack = getAwsStack();
 
       const policyDocument = {
         Version: "2012-10-17",
@@ -202,10 +202,10 @@ describe("IAM policy statement", () => {
         ],
       };
 
-      const doc = PolicyDocument.fromJson(spec, "doc", policyDocument);
+      const doc = PolicyDocument.fromJson(stack, "doc", policyDocument);
 
       expect(doc.toDocumentJson()).toEqual(policyDocument);
-      expect(Testing.synth(spec)).toMatchSnapshot();
+      expect(Testing.synth(stack)).toMatchSnapshot();
     });
 
     test("throws error with field data being object", () => {
@@ -226,8 +226,8 @@ describe("IAM policy statement", () => {
   });
 
   // test("throws error when group is specified for 'Principal' or 'NotPrincipal'", () => {
-  //   const spec = getAwsSpec();
-  //   const group = new Group(spec, "groupId");
+  //   const stack = getAwsStack();
+  //   const group = new Group(stack, "groupId");
   //   const policyStatement = new PolicyStatement();
 
   //   expect(() => policyStatement.addPrincipals(group)).toThrow(
@@ -292,9 +292,9 @@ describe("IAM policy statement", () => {
   });
 });
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

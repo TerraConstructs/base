@@ -11,7 +11,7 @@ import {
 import { App, Testing, TerraformVariable } from "cdktf";
 import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec, RetentionDays } from "../../../src/aws";
+import { AwsStack, RetentionDays } from "../../../src/aws";
 import {
   LogGroup,
   LogGroupClass,
@@ -36,16 +36,16 @@ const gridBackendConfig = {
 
 describe("log group", () => {
   let app: App;
-  let stack: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,
       gridBackendConfig,
-      // TODO: Should support passing account via Spec props to match AWS CDK cross account support
+      // TODO: Should support passing account via Stack props to match AWS CDK cross account support
       // account: "1234",
     });
   });
@@ -219,7 +219,7 @@ describe("log group", () => {
 
   test("with log group class in a non-supported region", () => {
     // GIVEN
-    const stack2 = new AwsSpec(app, "TestStack", {
+    const stack2 = new AwsStack(app, "TestStack", {
       environmentName,
       gridUUID,
       gridBackendConfig,
@@ -267,7 +267,7 @@ describe("log group", () => {
 
   test("import from ARN, same region", () => {
     // GIVEN
-    const stack2 = new AwsSpec(app, "MyStack2", {
+    const stack2 = new AwsStack(app, "MyStack2", {
       environmentName,
       gridUUID,
       providerConfig,
@@ -1423,7 +1423,7 @@ describe("subscription filter", () => {
   test("add subscription filter with custom name", () => {
     // GIVEN
     const app = Testing.app();
-    const stack = new AwsSpec(app, "MyStack", {
+    const stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,

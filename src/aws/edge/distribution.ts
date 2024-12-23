@@ -9,8 +9,12 @@ import { Construct } from "constructs";
 import { ICertificate, IOrigin, FunctionAssociation } from ".";
 import { Duration } from "../../duration";
 import { ArnFormat } from "../arn";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
-import { AwsSpec } from "../spec";
+import {
+  AwsConstructBase,
+  IAwsConstruct,
+  AwsConstructProps,
+} from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 
 // TODO: Re-add invalidation support
 // TODO: Re-add origin group (failover) support
@@ -60,7 +64,7 @@ export interface DistributionOutputs {
 /**
  * Imported or created DNS zone attributes
  */
-export interface IDistribution extends IAwsBeacon {
+export interface IDistribution extends IAwsConstruct {
   /** Strongly typed outputs
    *
    * @attribute
@@ -84,7 +88,7 @@ export interface IDistribution extends IAwsBeacon {
   readonly hostedZoneId: string;
 }
 
-export interface DistributionProps extends AwsBeaconProps {
+export interface DistributionProps extends AwsConstructProps {
   /**
    * Extra CNAMEs (alternate domain names), if any, for this distribution.
    */
@@ -208,7 +212,7 @@ export interface DistributionProps extends AwsBeaconProps {
 /**
  * Amazon Cloudfront Distribution
  */
-export class Distribution extends AwsBeaconBase implements IDistribution {
+export class Distribution extends AwsConstructBase implements IDistribution {
   // TODO: Add static fromLookup?
   private readonly resource: cloudfrontDistribution.CloudfrontDistribution;
 
@@ -236,7 +240,7 @@ export class Distribution extends AwsBeaconBase implements IDistribution {
     super(scope, name, props);
 
     if (props.certificate) {
-      const certificateRegion = AwsSpec.ofAwsBeacon(this).splitArn(
+      const certificateRegion = AwsStack.ofAwsConstruct(this).splitArn(
         props.certificate.certificateArn,
         ArnFormat.SLASH_RESOURCE_NAME,
       ).region;

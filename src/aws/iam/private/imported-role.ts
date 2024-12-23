@@ -1,6 +1,6 @@
 import { Annotations } from "cdktf";
 import { Construct } from "constructs";
-import { AwsBeaconBase } from "../..";
+import { AwsConstructBase } from "../..";
 import { TokenComparison, tokenCompareStrings } from "../../../token";
 import { Grant } from "../grant";
 import { IManagedPolicy } from "../managed-policy";
@@ -22,7 +22,7 @@ export interface ImportedRoleProps extends FromRoleArnOptions {
 }
 
 export class ImportedRole
-  extends AwsBeaconBase
+  extends AwsConstructBase
   implements IRole, IComparablePrincipal
 {
   public readonly grantPrincipal: IPrincipal = this;

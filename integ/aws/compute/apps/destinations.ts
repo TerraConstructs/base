@@ -15,10 +15,10 @@ const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
 const stackName = process.env.STACK_NAME ?? "destinations";
 
-class SampleSpec extends aws.AwsSpec {
+class SampleStack extends aws.AwsStack {
   public readonly fn: aws.compute.LambdaFunction;
   public readonly queue: aws.notify.Queue;
-  constructor(scope: Construct, id: string, props: aws.AwsSpecProps) {
+  constructor(scope: Construct, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
 
     // const topic = new sns.Topic(this, "Topic");
@@ -68,14 +68,14 @@ const app = new App({
   outdir,
 });
 
-const spec = new SampleSpec(app, stackName, {
+const stack = new SampleStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 

@@ -95,8 +95,8 @@ exports[`Distribution Should support multiple origins and cache behaviors 1`] = 
         },
         "tags": {
           "Name": "Test-HelloWorldDistribution",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "viewer_certificate": {
           "cloudfront_default_certificate": true,
@@ -107,19 +107,19 @@ exports[`Distribution Should support multiple origins and cache behaviors 1`] = 
     },
     "aws_s3_bucket": {
       "Bucket0_C98EAF71": {
-        "bucket_prefix": "bucket-0-testspecbucket0",
+        "bucket_prefix": "bucket-0-teststackbucket0",
         "tags": {
           "Name": "Test-Bucket0",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       },
       "Bucket1_2520700A": {
-        "bucket_prefix": "bucket-1-testspecbucket1",
+        "bucket_prefix": "bucket-1-teststackbucket1",
         "tags": {
           "Name": "Test-Bucket1",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },
@@ -238,8 +238,8 @@ exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
         },
         "tags": {
           "Name": "Test-HelloWorldDistribution",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "viewer_certificate": {
           "cloudfront_default_certificate": true,
@@ -255,11 +255,11 @@ exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
     },
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "hello-world-testspechelloworld",
+        "bucket_prefix": "hello-world-teststackhelloworld",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },
@@ -352,8 +352,8 @@ exports[`Distribution Should synth with websiteConfig and match SnapShot 1`] = `
         },
         "tags": {
           "Name": "Test-HelloWorldDistribution",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "viewer_certificate": {
           "cloudfront_default_certificate": true,
@@ -364,11 +364,11 @@ exports[`Distribution Should synth with websiteConfig and match SnapShot 1`] = `
     },
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "hello-world-testspechelloworld",
+        "bucket_prefix": "hello-world-teststackhelloworld",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },

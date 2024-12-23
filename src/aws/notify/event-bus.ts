@@ -6,8 +6,8 @@ import {
 import { Lazy, Token } from "cdktf";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
-import { AwsSpec } from "../spec";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { Archive, BaseArchiveProps } from "./archive";
 // import * as encryption from "../encryption";
 import * as iam from "../iam";
@@ -35,7 +35,7 @@ export interface EventBusOutputs {
 /**
  * Interface which all EventBus based classes MUST implement
  */
-export interface IEventBus extends iam.IAwsBeaconWithPolicy {
+export interface IEventBus extends iam.IAwsConstructWithPolicy {
   /**
    * The physical ID of this event bus resource
    *
@@ -80,7 +80,7 @@ export interface IEventBus extends iam.IAwsBeaconWithPolicy {
 /**
  * Properties to define an event bus
  */
-export interface EventBusProps extends AwsBeaconProps {
+export interface EventBusProps extends AwsConstructProps {
   /**
    * The name of the event bus you are creating
    * Note: If 'eventSourceName' is passed in, you cannot set this
@@ -149,7 +149,7 @@ export interface EventBusAttributes {
   readonly eventSourceName?: string;
 }
 
-abstract class EventBusBase extends AwsBeaconBase implements IEventBus {
+abstract class EventBusBase extends AwsConstructBase implements IEventBus {
   /**
    * The physical ID of this event bus resource
    */
@@ -207,7 +207,7 @@ export class EventBus extends EventBusBase {
     id: string,
     eventBusArn: string,
   ): IEventBus {
-    const parts = AwsSpec.ofAwsBeacon(scope).splitArn(
+    const parts = AwsStack.ofAwsConstruct(scope).splitArn(
       eventBusArn,
       ArnFormat.SLASH_RESOURCE_NAME,
     );
@@ -229,7 +229,7 @@ export class EventBus extends EventBusBase {
     id: string,
     eventBusName: string,
   ): IEventBus {
-    const eventBusArn = AwsSpec.ofAwsBeacon(scope).formatArn({
+    const eventBusArn = AwsStack.ofAwsConstruct(scope).formatArn({
       resource: "event-bus",
       service: "events",
       resourceName: eventBusName,
@@ -364,7 +364,7 @@ export class EventBus extends EventBusBase {
   constructor(scope: Construct, id: string, props?: EventBusProps) {
     const { eventBusName, eventSourceName } = EventBus.eventBusProps(
       // TODO(vincent): Figure out how this works...
-      Lazy.stringValue({ produce: () => AwsSpec.uniqueId(this) }),
+      Lazy.stringValue({ produce: () => AwsStack.uniqueId(this) }),
       props,
     );
 
@@ -406,12 +406,12 @@ export class EventBus extends EventBusBase {
     //       conditions: {
     //         StringEquals: {
     //           "aws:SourceAccount": this.stack.account,
-    //           "aws:SourceArn": AwsSpec.of(this).formatArn({
+    //           "aws:SourceArn": AwsStack.ofAwsConstruct(this).formatArn({
     //             service: "events",
     //             resource: "event-bus",
     //             resourceName: eventBusName,
     //           }),
-    //           "kms:EncryptionContext:aws:events:event-bus:arn": AwsSpec.of(
+    //           "kms:EncryptionContext:aws:events:event-bus:arn": AwsStack.ofAwsConstruct(
     //             this,
     //           ).formatArn({
     //             service: "events",
@@ -461,7 +461,7 @@ class ImportedEventBus extends EventBusBase {
   }
 
   constructor(scope: Construct, id: string, attrs: EventBusAttributes) {
-    const arnParts = AwsSpec.ofAwsBeacon(scope).splitArn(
+    const arnParts = AwsStack.ofAwsConstruct(scope).splitArn(
       attrs.eventBusArn,
       ArnFormat.SLASH_RESOURCE_NAME,
     );
@@ -495,7 +495,7 @@ class ImportedEventBus extends EventBusBase {
 /**
  * Properties to associate Event Buses with a policy
  */
-export interface EventBusPolicyProps extends AwsBeaconProps {
+export interface EventBusPolicyProps extends AwsConstructProps {
   /**
    * The event bus to which the policy applies
    */
@@ -522,7 +522,7 @@ export interface EventBusPolicyProps extends AwsBeaconProps {
  *
  * @resource aws_cloudwatch_event_bus_policy
  */
-export class EventBusPolicy extends AwsBeaconBase {
+export class EventBusPolicy extends AwsConstructBase {
   /**
    * The IAM policy document for this policy.
    */
@@ -545,7 +545,7 @@ export class EventBusPolicy extends AwsBeaconBase {
 /**
  * Properties to add permissions to an Event Bus
  */
-export interface EventBridgePermissionProps extends AwsBeaconProps {
+export interface EventBridgePermissionProps extends AwsConstructProps {
   // TODO: Auto generate this using struct builder to keep docs updated?
   /**
    * The event bus to which the policy applies
@@ -607,7 +607,7 @@ export interface EventBridgePermissionProps extends AwsBeaconProps {
  *
  * @resource aws_cloudwatch_event_permission
  */
-export class EventBridgePermission extends AwsBeaconBase {
+export class EventBridgePermission extends AwsConstructBase {
   public get outputs(): Record<string, any> {
     return {};
   }

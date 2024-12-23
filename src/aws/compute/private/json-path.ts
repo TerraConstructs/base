@@ -3,7 +3,7 @@ import { Token, IResolvable, IResolveContext, Tokenization } from "cdktf";
 import { IntrinsicParser, IntrinsicExpression } from "./intrinstics";
 
 const JSON_PATH_TOKEN_SYMBOL = Symbol.for(
-  "@envtio/base/lib/aws/compute.JsonPathToken",
+  "terraconstructs/lib/aws/compute.JsonPathToken",
 );
 
 export class JsonPathToken implements IResolvable {

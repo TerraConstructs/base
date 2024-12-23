@@ -3,7 +3,7 @@
 import { cloudwatchLogSubscriptionFilter } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "..";
+import { AwsConstructBase, AwsConstructProps } from "..";
 import { ILogGroup, SubscriptionFilterOptions } from "./log-group";
 import * as iam from "../iam";
 import { KinesisDestination } from "./log-destinations";
@@ -71,7 +71,7 @@ export interface LogSubscriptionDestinationConfig {
  */
 export interface SubscriptionFilterProps
   extends SubscriptionFilterOptions,
-    AwsBeaconProps {
+    AwsConstructProps {
   /**
    * The log group to create the subscription on.
    */
@@ -81,7 +81,7 @@ export interface SubscriptionFilterProps
 /**
  * A new Subscription on a CloudWatch log group.
  */
-export class SubscriptionFilter extends AwsBeaconBase {
+export class SubscriptionFilter extends AwsConstructBase {
   public resource: cloudwatchLogSubscriptionFilter.CloudwatchLogSubscriptionFilter;
   /**
    * This resource exports no additional attributes.

@@ -10,7 +10,7 @@ const stackName = process.env.STACK_NAME ?? "managed-policy";
 const app = new App({
   outdir,
 });
-const stack = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {

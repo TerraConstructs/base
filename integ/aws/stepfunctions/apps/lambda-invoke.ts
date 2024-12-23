@@ -24,19 +24,19 @@ const stackName = process.env.STACK_NAME ?? "lambda-invoke";
 const app = new App({
   outdir,
 });
-const spec = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 
-const submitJob = new aws.compute.tasks.LambdaInvoke(spec, "Invoke Handler", {
-  lambdaFunction: new aws.compute.NodejsFunction(spec, "submitJobLambda", {
+const submitJob = new aws.compute.tasks.LambdaInvoke(stack, "Invoke Handler", {
+  lambdaFunction: new aws.compute.NodejsFunction(stack, "submitJobLambda", {
     path: path.join(__dirname, "handlers", "hello-world-status", "index.ts"),
   }),
   payload: aws.compute.TaskInput.fromObject({
@@ -55,11 +55,11 @@ const submitJob = new aws.compute.tasks.LambdaInvoke(spec, "Invoke Handler", {
 });
 
 const checkJobState = new aws.compute.tasks.LambdaInvoke(
-  spec,
+  stack,
   "Check the job state",
   {
     lambdaFunction: new aws.compute.NodejsFunction(
-      spec,
+      stack,
       "checkJobStateLambda",
       {
         path: path.join(__dirname, "handlers", "check-job-state", "index.ts"),
@@ -71,12 +71,12 @@ const checkJobState = new aws.compute.tasks.LambdaInvoke(
   },
 );
 
-const isComplete = new aws.compute.Choice(spec, "Job Complete?");
-const jobFailed = new aws.compute.Fail(spec, "Job Failed", {
+const isComplete = new aws.compute.Choice(stack, "Job Complete?");
+const jobFailed = new aws.compute.Fail(stack, "Job Failed", {
   cause: "Job Failed",
   error: "Received a status that was not 200",
 });
-const finalStatus = new aws.compute.Pass(spec, "Final step");
+const finalStatus = new aws.compute.Pass(stack, "Final step");
 
 const chain = aws.compute.Chain.start(submitJob)
   .next(checkJobState)
@@ -89,7 +89,7 @@ const chain = aws.compute.Chain.start(submitJob)
       ),
   );
 
-new aws.compute.StateMachine(spec, "StateMachine", {
+new aws.compute.StateMachine(stack, "StateMachine", {
   definitionBody: aws.compute.DefinitionBody.fromChainable(chain),
   timeout: Duration.seconds(30),
   registerOutputs: true,

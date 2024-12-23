@@ -1,13 +1,13 @@
 import { sqsQueuePolicy } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { IQueue } from "./";
 import { PolicyDocument } from "../iam";
 
 /**
  * Properties to associate SQS queues with a policy
  */
-export interface QueuePolicyProps extends AwsBeaconProps {
+export interface QueuePolicyProps extends AwsConstructProps {
   /**
    * The set of queues this policy applies to.
    */
@@ -28,7 +28,7 @@ export interface QueuePolicyProps extends AwsBeaconProps {
  *
  * Prefer to use `addToResourcePolicy()` instead.
  */
-export class QueuePolicy extends AwsBeaconBase {
+export class QueuePolicy extends AwsConstructBase {
   /**
    * The IAM policy document for this policy.
    */

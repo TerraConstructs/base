@@ -4,8 +4,12 @@ import { kmsKey, dataAwsKmsKey } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
-import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../beacon";
-import { AwsSpec } from "../spec";
+import {
+  IAwsConstruct,
+  AwsConstructBase,
+  AwsConstructProps,
+} from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { Alias } from "./alias";
 import { KeyLookupOptions } from "./key-lookup";
 import * as iam from "../iam";
@@ -35,7 +39,7 @@ export interface KeyOutputs {
 /**
  * A KMS Key, either managed by this CDK app, or imported.
  */
-export interface IKey extends IAwsBeacon {
+export interface IKey extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly keyOutputs: KeyOutputs;
 
@@ -102,7 +106,7 @@ export interface IKey extends IAwsBeacon {
   grantVerifyMac(grantee: iam.IGrantable): iam.Grant;
 }
 
-abstract class KeyBase extends AwsBeaconBase implements IKey {
+abstract class KeyBase extends AwsConstructBase implements IKey {
   /**
    * The ARN of the key.
    */
@@ -143,7 +147,7 @@ abstract class KeyBase extends AwsBeaconBase implements IKey {
    */
   private readonly aliases: Alias[] = [];
 
-  constructor(scope: Construct, id: string, props: AwsBeaconProps = {}) {
+  constructor(scope: Construct, id: string, props: AwsConstructProps = {}) {
     super(scope, id, props);
 
     this.node.addValidation({
@@ -174,7 +178,7 @@ abstract class KeyBase extends AwsBeaconBase implements IKey {
     statement: iam.PolicyStatement,
     allowNoOp = true,
   ): iam.AddToResourcePolicyResult {
-    const stack = AwsSpec.ofAwsBeacon(this);
+    const stack = AwsStack.ofAwsConstruct(this);
 
     if (!this.policy) {
       if (allowNoOp) {
@@ -286,8 +290,8 @@ abstract class KeyBase extends AwsBeaconBase implements IKey {
     if (!iam.principalIsOwnedResource(grantPrincipal)) {
       return undefined;
     }
-    const keyStack = AwsSpec.ofAwsBeacon(this);
-    const granteeStack = AwsSpec.ofAwsBeacon(grantPrincipal);
+    const keyStack = AwsStack.ofAwsConstruct(this);
+    const granteeStack = AwsStack.ofAwsConstruct(grantPrincipal);
     if (keyStack === granteeStack) {
       return undefined;
     }
@@ -302,8 +306,8 @@ abstract class KeyBase extends AwsBeaconBase implements IKey {
     if (!iam.principalIsOwnedResource(grantee.grantPrincipal)) {
       return false;
     }
-    const keyStack = AwsSpec.ofAwsBeacon(this);
-    const identityStack = AwsSpec.ofAwsBeacon(grantee.grantPrincipal);
+    const keyStack = AwsStack.ofAwsConstruct(this);
+    const identityStack = AwsStack.ofAwsConstruct(grantee.grantPrincipal);
 
     // if two compared stacks have the same region, this should return 'false' since it's from the
     // same region; if two stacks have different region, then compare env.region
@@ -317,8 +321,8 @@ abstract class KeyBase extends AwsBeaconBase implements IKey {
     if (!iam.principalIsOwnedResource(grantee.grantPrincipal)) {
       return false;
     }
-    const keyStack = AwsSpec.ofAwsBeacon(this);
-    const identityStack = AwsSpec.ofAwsBeacon(grantee.grantPrincipal);
+    const keyStack = AwsStack.ofAwsConstruct(this);
+    const identityStack = AwsStack.ofAwsConstruct(grantee.grantPrincipal);
 
     // if two compared stacks have the same account, this should return 'false' since it's from the
     // same account; if two stacks have different account, then compare env.account
@@ -456,7 +460,7 @@ export enum KeyUsage {
 /**
  * Construction properties for a KMS Key object
  */
-export interface KeyProps extends AwsBeaconProps {
+export interface KeyProps extends AwsConstructProps {
   /**
    * A description of the key. Use a description that helps your users decide
    * whether the key is appropriate for a particular task.
@@ -606,14 +610,14 @@ export class Key extends KeyBase {
       // policies is really the only option
       protected readonly trustAccountIdentities: boolean = true;
 
-      constructor(keyId: string, props: AwsBeaconProps = {}) {
+      constructor(keyId: string, props: AwsConstructProps = {}) {
         super(scope, id, props);
 
         this.keyId = keyId;
       }
     }
 
-    const keyResourceName = AwsSpec.ofAwsBeacon(scope).splitArn(
+    const keyResourceName = AwsStack.ofAwsConstruct(scope).splitArn(
       keyArn,
       ArnFormat.SLASH_RESOURCE_NAME,
     ).resourceName;
@@ -653,7 +657,7 @@ export class Key extends KeyBase {
     let keyPolicy: iam.PolicyDocument;
     if (Token.isUnresolved(tfKey.policyInput)) {
       // find first PolicyDocument in the scope who's json token points to the key policy
-      keyPolicy = AwsSpec.of(tfKey)
+      keyPolicy = AwsStack.of(tfKey)
         .node.findAll()
         .filter(
           (c) =>

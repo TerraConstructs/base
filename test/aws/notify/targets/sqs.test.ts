@@ -6,11 +6,11 @@ import {
 } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../../src/aws/aws-stack";
 import { Queue } from "../../../../src/aws/notify/queue";
 import { Rule } from "../../../../src/aws/notify/rule";
 import { Schedule } from "../../../../src/aws/notify/schedule";
 import { SqsQueue } from "../../../../src/aws/notify/targets/sqs";
-import { AwsSpec } from "../../../../src/aws/spec";
 import { Duration } from "../../../../src/duration";
 
 const environmentName = "Test";
@@ -22,9 +22,9 @@ const gridBackendConfig = {
 
 test("sqs queue as an event rule target", () => {
   // GIVEN
-  const spec = getAwsSpec();
-  const queue = new Queue(spec, "MyQueue");
-  const rule = new Rule(spec, "MyRule", {
+  const stack = getAwsStack();
+  const queue = new Queue(stack, "MyQueue");
+  const rule = new Rule(stack, "MyRule", {
     schedule: Schedule.rate(Duration.hours(1)),
   });
 
@@ -33,8 +33,8 @@ test("sqs queue as an event rule target", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   // ensure aws_svcp_default_region_events is created
   expect(synthesized).toHaveDataSourceWithProperties(
@@ -121,7 +121,7 @@ test("sqs queue as an event rule target", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::SQS::QueuePolicy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::SQS::QueuePolicy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -149,7 +149,7 @@ test("sqs queue as an event rule target", () => {
   //   Queues: [{ Ref: "MyQueueE6CA6235" }],
   // });
 
-  // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
   //   ScheduleExpression: "rate(1 hour)",
   //   State: "ENABLED",
   //   Targets: [
@@ -166,12 +166,12 @@ test("sqs queue as an event rule target", () => {
 // TODO: Encryption isn't supported so this actually results in a single policy statement (due to statement merge)
 test("multiple uses of a queue as a target results in multi policy statement because of condition", () => {
   // GIVEN
-  const spec = getAwsSpec();
-  const queue = new Queue(spec, "MyQueue");
+  const stack = getAwsStack();
+  const queue = new Queue(stack, "MyQueue");
 
   // WHEN
   for (let i = 0; i < 2; ++i) {
-    const rule = new Rule(spec, `Rule${i}`, {
+    const rule = new Rule(stack, `Rule${i}`, {
       schedule: Schedule.rate(Duration.hours(1)),
     });
     rule.addTarget(new SqsQueue(queue));
@@ -179,8 +179,8 @@ test("multiple uses of a queue as a target results in multi policy statement bec
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   // TODO: if encryption is enabled, the policy should test aws:SourceArn (== ruleArn) not aws:SourceAccount
   // when encryption is enabled, this will result in a statement per RuleArn
@@ -215,7 +215,7 @@ test("multiple uses of a queue as a target results in multi policy statement bec
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::SQS::QueuePolicy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::SQS::QueuePolicy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -328,7 +328,7 @@ test("multiple uses of a queue as a target results in multi policy statement bec
 
 // test("Encrypted queues result in a permissive policy statement when the feature flag is off", () => {
 //   // GIVEN
-//   const stack = getAwsSpec();
+//   const stack = getAwsStack();
 //   const queue = new Queue(stack, "MyQueue", {
 //     encryptionMasterKey: kms.Key.fromKeyArn(
 //       stack,
@@ -381,8 +381,8 @@ test("multiple uses of a queue as a target results in multi policy statement bec
 // });
 
 test("fail if messageGroupId is specified on non-fifo queues", () => {
-  const spec = getAwsSpec();
-  const queue = new Queue(spec, "MyQueue");
+  const stack = getAwsStack();
+  const queue = new Queue(stack, "MyQueue");
 
   expect(
     () => new SqsQueue(queue, { messageGroupId: "MyMessageGroupId" }),
@@ -390,9 +390,9 @@ test("fail if messageGroupId is specified on non-fifo queues", () => {
 });
 
 test("fifo queues are synthesized correctly", () => {
-  const spec = getAwsSpec();
-  const queue = new Queue(spec, "MyQueue", { fifo: true });
-  const rule = new Rule(spec, "MyRule", {
+  const stack = getAwsStack();
+  const queue = new Queue(stack, "MyQueue", { fifo: true });
+  const rule = new Rule(stack, "MyRule", {
     schedule: Schedule.rate(Duration.hours(1)),
   });
 
@@ -405,8 +405,8 @@ test("fifo queues are synthesized correctly", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     cloudwatchEventTarget.CloudwatchEventTarget,
@@ -417,7 +417,7 @@ test("fifo queues are synthesized correctly", () => {
       },
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
   //   ScheduleExpression: "rate(1 hour)",
   //   State: "ENABLED",
   //   Targets: [
@@ -435,10 +435,10 @@ test("fifo queues are synthesized correctly", () => {
 });
 
 test("dead letter queue is configured correctly", () => {
-  const spec = getAwsSpec();
-  const queue = new Queue(spec, "MyQueue", { fifo: true });
-  const deadLetterQueue = new Queue(spec, "MyDeadLetterQueue");
-  const rule = new Rule(spec, "MyRule", {
+  const stack = getAwsStack();
+  const queue = new Queue(stack, "MyQueue", { fifo: true });
+  const deadLetterQueue = new Queue(stack, "MyDeadLetterQueue");
+  const rule = new Rule(stack, "MyRule", {
     schedule: Schedule.rate(Duration.hours(1)),
   });
 
@@ -451,8 +451,8 @@ test("dead letter queue is configured correctly", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // refer to full snapshot for debug
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
@@ -464,7 +464,7 @@ test("dead letter queue is configured correctly", () => {
       },
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
   //   ScheduleExpression: "rate(1 hour)",
   //   State: "ENABLED",
   //   Targets: [
@@ -484,9 +484,9 @@ test("dead letter queue is configured correctly", () => {
 });
 
 test("specifying retry policy", () => {
-  const spec = getAwsSpec();
-  const queue = new Queue(spec, "MyQueue", { fifo: true });
-  const rule = new Rule(spec, "MyRule", {
+  const stack = getAwsStack();
+  const queue = new Queue(stack, "MyQueue", { fifo: true });
+  const rule = new Rule(stack, "MyRule", {
     schedule: Schedule.rate(Duration.hours(1)),
   });
 
@@ -500,8 +500,8 @@ test("specifying retry policy", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     cloudwatchEventTarget.CloudwatchEventTarget,
@@ -513,7 +513,7 @@ test("specifying retry policy", () => {
       },
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
   //   ScheduleExpression: "rate(1 hour)",
   //   State: "ENABLED",
   //   Targets: [
@@ -532,9 +532,9 @@ test("specifying retry policy", () => {
 });
 
 test("specifying retry policy with 0 retryAttempts", () => {
-  const spec = getAwsSpec();
-  const queue = new Queue(spec, "MyQueue", { fifo: true });
-  const rule = new Rule(spec, "MyRule", {
+  const stack = getAwsStack();
+  const queue = new Queue(stack, "MyQueue", { fifo: true });
+  const rule = new Rule(stack, "MyRule", {
     schedule: Schedule.rate(Duration.hours(1)),
   });
 
@@ -547,8 +547,8 @@ test("specifying retry policy with 0 retryAttempts", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     cloudwatchEventTarget.CloudwatchEventTarget,
@@ -559,7 +559,7 @@ test("specifying retry policy with 0 retryAttempts", () => {
       },
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
   //   ScheduleExpression: "rate(1 hour)",
   //   State: "ENABLED",
   //   Targets: [
@@ -577,7 +577,7 @@ test("specifying retry policy with 0 retryAttempts", () => {
 });
 
 // test("dead letter queue is imported", () => {
-//   const stack = getAwsSpec();
+//   const stack = getAwsStack();
 //   const queue = new Queue(stack, "MyQueue", { fifo: true });
 //   const rule = new Rule(stack, "MyRule", {
 //     schedule: Schedule.rate(Duration.hours(1)),
@@ -614,9 +614,9 @@ test("specifying retry policy with 0 retryAttempts", () => {
 //   });
 // });
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

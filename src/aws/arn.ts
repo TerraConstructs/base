@@ -1,6 +1,6 @@
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/arn.ts
 import * as cdktf from "cdktf";
-import { IAwsSpec } from "./spec";
+import { IAwsStack } from "./aws-stack";
 import { filterUndefined } from "./util";
 /**
  * An enum representing the various ARN formats that different services use.
@@ -129,7 +129,7 @@ export class Arn {
    * the 'scope' is attached to. If all ARN pieces are supplied, the supplied scope
    * can be 'undefined'.
    */
-  public static format(components: ArnComponents, stack?: IAwsSpec): string {
+  public static format(components: ArnComponents, stack?: IAwsStack): string {
     const partition = components.partition ?? stack?.partition;
     const region = components.region ?? stack?.region;
     const account = components.account ?? stack?.account;

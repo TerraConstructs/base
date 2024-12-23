@@ -4,7 +4,7 @@ import { cannotCalcIdForEmptySetOfComponents } from "cdktf/lib/errors";
 import {
   UniqueResourceNameOptions,
   UniqueResourceNamePrefixOptions,
-} from "../spec-base";
+} from "../stack-base";
 
 // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/core/lib/private/unique-resource-name.ts
 

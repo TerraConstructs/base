@@ -2,7 +2,7 @@
 
 import { cloudwatchQueryDefinition } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { ILogGroup } from "./log-group";
 /**
  * Properties for a QueryString
@@ -180,7 +180,7 @@ export interface QueryDefinitionOutputs {
 /**
  * Properties for a QueryDefinition
  */
-export interface QueryDefinitionProps extends AwsBeaconProps {
+export interface QueryDefinitionProps extends AwsConstructProps {
   /**
    * Name of the query definition.
    */
@@ -202,7 +202,7 @@ export interface QueryDefinitionProps extends AwsBeaconProps {
 /**
  * Define a query definition for CloudWatch Logs Insights
  */
-export class QueryDefinition extends AwsBeaconBase {
+export class QueryDefinition extends AwsConstructBase {
   /**
    * The ID of the query definition.
    *

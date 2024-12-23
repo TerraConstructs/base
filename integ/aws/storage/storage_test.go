@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/environment-toolkit/go-synth/executors"
+	"github.com/terraconstructs/go-synth/executors"
 
-	util "github.com/envtio/base/integ/aws"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
+	util "github.com/terraconstructs/base/integ/aws"
 )
 
 // Test the bucket-notifications integration

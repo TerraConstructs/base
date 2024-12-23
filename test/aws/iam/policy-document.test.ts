@@ -1,6 +1,7 @@
 import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
 import { Testing, Token, Lazy } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import { PolicyDocument } from "../../../src/aws/iam/policy-document";
 import { PolicyStatement, Effect } from "../../../src/aws/iam/policy-statement";
 import {
@@ -16,7 +17,6 @@ import {
   AnyPrincipal,
 } from "../../../src/aws/iam/principals";
 import { Role } from "../../../src/aws/iam/role";
-import { AwsSpec } from "../../../src/aws/spec";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -26,7 +26,7 @@ const gridBackendConfig = {
 };
 describe("IAM policy document", () => {
   test("the Permission class is a programming model for iam", () => {
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
 
     const p = new PolicyStatement();
     p.addActions("sqs:SendMessage");
@@ -38,7 +38,7 @@ describe("IAM policy document", () => {
     p.addAwsAccountPrincipal(`my${Token.asString("account")}name`);
     p.addAccountCondition("12221121221");
 
-    expect(spec.resolve(p.toStatementJson())).toEqual({
+    expect(stack.resolve(p.toStatementJson())).toEqual({
       Action: [
         "sqs:SendMessage",
         "dynamodb:CreateTable",
@@ -66,7 +66,7 @@ describe("IAM policy document", () => {
   });
 
   test("addSourceAccountCondition and addSourceArnCondition for cross-service resource access", () => {
-    const stack = getAwsSpec();
+    const stack = getAwsStack();
 
     const p = new PolicyStatement();
     p.addActions("sns:Publish");
@@ -92,8 +92,8 @@ describe("IAM policy document", () => {
   });
 
   test("the PolicyDocument class is a dom for iam policy documents", () => {
-    const spec = getAwsSpec();
-    const doc = new PolicyDocument(spec, "doc");
+    const stack = getAwsStack();
+    const doc = new PolicyDocument(stack, "doc");
     const p1 = new PolicyStatement();
     p1.addActions("sqs:SendMessage");
     p1.addNotResources("arn:aws:sqs:us-east-1:123456789012:forbidden_queue");
@@ -115,7 +115,7 @@ describe("IAM policy document", () => {
     doc.addStatements(p3);
     doc.addStatements(p4);
 
-    expect(spec.resolve(doc.toDocumentJson())).toEqual({
+    expect(stack.resolve(doc.toDocumentJson())).toEqual({
       Version: "2012-10-17",
       Statement: [
         {
@@ -165,12 +165,12 @@ describe("IAM policy document", () => {
 
   // https://github.com/aws/aws-cdk/issues/13479
   test("Does not validate unresolved tokens", () => {
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
     const perm = new PolicyStatement({
       actions: [`${Lazy.stringValue({ produce: () => "sqs:sendMessage" })}`],
     });
 
-    expect(spec.resolve(perm.toStatementJson())).toEqual({
+    expect(stack.resolve(perm.toStatementJson())).toEqual({
       Effect: "Allow",
       Action: "sqs:sendMessage",
     });
@@ -210,12 +210,12 @@ describe("IAM policy document", () => {
   });
 
   test("Permission allows specifying multiple actions upon construction", () => {
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
     const perm = new PolicyStatement();
     perm.addResources("MyResource");
     perm.addActions("service:Action1", "service:Action2", "service:Action3");
 
-    expect(spec.resolve(perm.toStatementJson())).toEqual({
+    expect(stack.resolve(perm.toStatementJson())).toEqual({
       Effect: "Allow",
       Action: ["service:Action1", "service:Action2", "service:Action3"],
       Resource: "MyResource",
@@ -225,19 +225,19 @@ describe("IAM policy document", () => {
   // TODO: Make sure policy doc is not added to the stack if it is empty?
   // SHould probably Throw error if empty policy doc is added to the stack...
   test.skip("PolicyDoc resolves to undefined if there are no permissions", () => {
-    const spec = getAwsSpec();
-    const p = new PolicyDocument(spec, "doc");
-    expect(spec.resolve(p.toDocumentJson())).toBeUndefined();
+    const stack = getAwsStack();
+    const p = new PolicyDocument(stack, "doc");
+    expect(stack.resolve(p.toDocumentJson())).toBeUndefined();
     // TODO: synth should not contain policy doc...
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     const docs = getDataSources(synthesized, "aws_iam_policy_document");
     expect(docs).toHaveLength(0);
   });
 
   test("canonicalUserPrincipal adds a principal to a policy with the passed canonical user id", () => {
-    const stack = getAwsSpec();
+    const stack = getAwsStack();
     const p = new PolicyStatement();
     const canoncialUser = "averysuperduperlongstringfor";
     p.addPrincipals(new CanonicalUserPrincipal(canoncialUser));
@@ -250,7 +250,7 @@ describe("IAM policy document", () => {
   });
 
   test("addAccountRootPrincipal adds a principal with the current account root", () => {
-    const stack = getAwsSpec();
+    const stack = getAwsStack();
 
     const p = new PolicyStatement();
     p.addAccountRootPrincipal();
@@ -263,7 +263,7 @@ describe("IAM policy document", () => {
   });
 
   test("addFederatedPrincipal adds a Federated principal with the passed value", () => {
-    const stack = getAwsSpec();
+    const stack = getAwsStack();
     const p = new PolicyStatement();
     p.addFederatedPrincipal("com.amazon.cognito", [
       {
@@ -284,12 +284,12 @@ describe("IAM policy document", () => {
   });
 
   test("addAwsAccountPrincipal can be used multiple times", () => {
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
 
     const p = new PolicyStatement();
     p.addAwsAccountPrincipal("1234");
     p.addAwsAccountPrincipal("5678");
-    expect(spec.resolve(p.toStatementJson())).toEqual({
+    expect(stack.resolve(p.toStatementJson())).toEqual({
       Effect: "Allow",
       Principal: {
         AWS: [
@@ -338,8 +338,8 @@ describe("IAM policy document", () => {
   });
 
   test("statementCount returns the number of statement in the policy document", () => {
-    const spec = getAwsSpec();
-    const p = new PolicyDocument(spec, "doc");
+    const stack = getAwsStack();
+    const p = new PolicyDocument(stack, "doc");
     expect(p.statementCount).toEqual(0);
     p.addStatements(new PolicyStatement({ actions: ["service:action1"] }));
     expect(p.statementCount).toEqual(1);
@@ -349,20 +349,20 @@ describe("IAM policy document", () => {
 
   describe('{ AWS: "*" } principal', () => {
     test("is represented as `AnyPrincipal`", () => {
-      const spec = getAwsSpec();
-      const p = new PolicyDocument(spec, "doc");
+      const stack = getAwsStack();
+      const p = new PolicyDocument(stack, "doc");
 
       p.addStatements(
         new PolicyStatement({ principals: [new AnyPrincipal()] }),
       );
 
-      expect(spec.resolve(p.toDocumentJson())).toEqual({
+      expect(stack.resolve(p.toDocumentJson())).toEqual({
         Statement: [{ Effect: "Allow", Principal: { AWS: "*" } }],
         Version: "2012-10-17",
       });
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       expect(synthesized).toHaveDataSourceWithProperties(
         dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
         {
@@ -382,20 +382,20 @@ describe("IAM policy document", () => {
     });
 
     test("is represented as `addAnyPrincipal`", () => {
-      const spec = getAwsSpec();
-      const p = new PolicyDocument(spec, "doc");
+      const stack = getAwsStack();
+      const p = new PolicyDocument(stack, "doc");
 
       const s = new PolicyStatement();
       s.addAnyPrincipal();
       p.addStatements(s);
 
-      expect(spec.resolve(p.toDocumentJson())).toEqual({
+      expect(stack.resolve(p.toDocumentJson())).toEqual({
         Statement: [{ Effect: "Allow", Principal: { AWS: "*" } }],
         Version: "2012-10-17",
       });
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       expect(synthesized).toHaveDataSourceWithProperties(
         dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
         {
@@ -416,7 +416,7 @@ describe("IAM policy document", () => {
   });
 
   test("addResources() will not break a list-encoded Token", () => {
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
 
     const statement = new PolicyStatement();
     statement.addActions(
@@ -428,7 +428,7 @@ describe("IAM policy document", () => {
       ...Lazy.listValue({ produce: () => ["x", "y", "z"] }),
     );
 
-    expect(spec.resolve(statement.toStatementJson())).toEqual({
+    expect(stack.resolve(statement.toStatementJson())).toEqual({
       Effect: "Allow",
       Action: ["service:a", "service:b", "service:c"],
       Resource: ["x", "y", "z"],
@@ -436,7 +436,7 @@ describe("IAM policy document", () => {
   });
 
   test("addResources()/addActions() will not add duplicates", () => {
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
 
     const statement = new PolicyStatement();
     statement.addActions("service:a");
@@ -445,7 +445,7 @@ describe("IAM policy document", () => {
     statement.addResources("x");
     statement.addResources("x");
 
-    expect(spec.resolve(statement.toStatementJson())).toEqual({
+    expect(stack.resolve(statement.toStatementJson())).toEqual({
       Effect: "Allow",
       Action: "service:a",
       Resource: "x",
@@ -453,7 +453,7 @@ describe("IAM policy document", () => {
   });
 
   test("addNotResources()/addNotActions() will not add duplicates", () => {
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
 
     const statement = new PolicyStatement();
     statement.addNotActions("service:a");
@@ -462,7 +462,7 @@ describe("IAM policy document", () => {
     statement.addNotResources("x");
     statement.addNotResources("x");
 
-    expect(spec.resolve(statement.toStatementJson())).toEqual({
+    expect(stack.resolve(statement.toStatementJson())).toEqual({
       Effect: "Allow",
       NotAction: "service:a",
       NotResource: "x",
@@ -470,8 +470,8 @@ describe("IAM policy document", () => {
   });
 
   test("addCanonicalUserPrincipal can be used to add cannonical user principals", () => {
-    const spec = getAwsSpec();
-    const p = new PolicyDocument(spec, "doc");
+    const stack = getAwsStack();
+    const p = new PolicyDocument(stack, "doc");
 
     const s1 = new PolicyStatement();
     s1.addCanonicalUserPrincipal("cannonical-user-1");
@@ -482,7 +482,7 @@ describe("IAM policy document", () => {
     p.addStatements(s1);
     p.addStatements(s2);
 
-    expect(spec.resolve(p.toDocumentJson())).toEqual({
+    expect(stack.resolve(p.toDocumentJson())).toEqual({
       Statement: [
         { Effect: "Allow", Principal: { CanonicalUser: "cannonical-user-1" } },
         { Effect: "Allow", Principal: { CanonicalUser: "cannonical-user-2" } },
@@ -490,8 +490,8 @@ describe("IAM policy document", () => {
       Version: "2012-10-17",
     });
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
@@ -520,7 +520,7 @@ describe("IAM policy document", () => {
   });
 
   test("addPrincipal correctly merges array in", () => {
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
     const arrayPrincipal: IPrincipal = {
       get grantPrincipal() {
         return this;
@@ -539,7 +539,7 @@ describe("IAM policy document", () => {
     const s = new PolicyStatement();
     s.addAccountRootPrincipal();
     s.addPrincipals(arrayPrincipal);
-    expect(spec.resolve(s.toStatementJson())).toEqual({
+    expect(stack.resolve(s.toStatementJson())).toEqual({
       Effect: "Allow",
       Principal: {
         AWS: [
@@ -553,7 +553,7 @@ describe("IAM policy document", () => {
 
   // https://github.com/aws/aws-cdk/issues/1201
   test("policy statements with multiple principal types can be created using multiple addPrincipal calls", () => {
-    const stack = getAwsSpec();
+    const stack = getAwsStack();
     const s = new PolicyStatement();
     s.addArnPrincipal("349494949494");
     s.addServicePrincipal("test.service");
@@ -606,19 +606,19 @@ describe("IAM policy document", () => {
 
   describe("CompositePrincipal can be used to represent a principal that has multiple types", () => {
     test("with a single principal", () => {
-      const spec = getAwsSpec();
+      const stack = getAwsStack();
       const p = new CompositePrincipal(new ArnPrincipal("i:am:an:arn"));
       const statement = new PolicyStatement();
       statement.addPrincipals(p);
-      expect(spec.resolve(statement.toStatementJson())).toEqual({
+      expect(stack.resolve(statement.toStatementJson())).toEqual({
         Effect: "Allow",
         Principal: { AWS: "i:am:an:arn" },
       });
     });
 
     test("conditions are allowed in an assumerolepolicydocument", () => {
-      const spec = getAwsSpec();
-      new Role(spec, "Role", {
+      const stack = getAwsStack();
+      new Role(stack, "Role", {
         assumedBy: new CompositePrincipal(
           new ArnPrincipal("i:am"),
           new FederatedPrincipal("federated", [
@@ -632,8 +632,8 @@ describe("IAM policy document", () => {
       });
 
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // verify assume role policy document
       expect(synthesized).toHaveDataSourceWithProperties(
         dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -711,7 +711,7 @@ describe("IAM policy document", () => {
     });
 
     test("principals and conditions are a big nice merge", () => {
-      const spec = getAwsSpec();
+      const stack = getAwsStack();
       // add via ctor
       const p = new CompositePrincipal(
         new ArnPrincipal("i:am:an:arn"),
@@ -731,7 +731,7 @@ describe("IAM policy document", () => {
       statement.addArnPrincipal("aws-principal-3");
       statement.addConditionObject("cond2", { boom: "123" });
 
-      expect(spec.resolve(statement.toStatementJson())).toEqual({
+      expect(stack.resolve(statement.toStatementJson())).toEqual({
         Condition: {
           cond2: { boom: "123" },
         },
@@ -747,10 +747,10 @@ describe("IAM policy document", () => {
     });
 
     test("can mix types of assumeRoleAction in a single composite", () => {
-      const spec = getAwsSpec();
+      const stack = getAwsStack();
 
       // WHEN
-      new Role(spec, "Role", {
+      new Role(stack, "Role", {
         assumedBy: new CompositePrincipal(
           new ArnPrincipal("arn"),
           new FederatedPrincipal("fed", [], "sts:Boom"),
@@ -759,8 +759,8 @@ describe("IAM policy document", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       expect(synthesized).toHaveDataSourceWithProperties(
         dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
         {
@@ -788,7 +788,7 @@ describe("IAM policy document", () => {
           ],
         },
       );
-      // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Role", {
+      // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Role", {
       //   AssumeRolePolicyDocument: {
       //     Statement: [
       //       {
@@ -809,7 +809,7 @@ describe("IAM policy document", () => {
 
   describe("PrincipalWithConditions can be used to add a principal with conditions", () => {
     test("includes conditions from both the wrapped principal and the wrapper", () => {
-      const spec = getAwsSpec();
+      const stack = getAwsStack();
       const principalOpts = {
         conditions: [
           {
@@ -829,7 +829,7 @@ describe("IAM policy document", () => {
       });
       const statement = new PolicyStatement();
       statement.addPrincipals(p);
-      expect(spec.resolve(statement.toStatementJson())).toEqual({
+      expect(stack.resolve(statement.toStatementJson())).toEqual({
         Condition: {
           BinaryEquals: { "principal-key": "SGV5LCBmcmllbmQh" },
           StringEquals: { "wrapper-key": ["val-1", "val-2"] },
@@ -843,7 +843,7 @@ describe("IAM policy document", () => {
     });
 
     test("conditions from addCondition are merged with those from the principal", () => {
-      const stack = getAwsSpec();
+      const stack = getAwsStack();
       const p = new AccountPrincipal("012345678900").withConditions({
         test: "StringEquals",
         variable: "key",
@@ -932,7 +932,7 @@ describe("IAM policy document", () => {
     // // TODO: Allow IResolvable to be used in Conditions?
     // test("tokens can be used in conditions", () => {
     //   // GIVEN
-    //   const spec = getAwsSpec();
+    //   const stack = getAwsStack();
     //   const statement = new PolicyStatement();
 
     //   // WHEN
@@ -949,7 +949,7 @@ describe("IAM policy document", () => {
     //   statement.addPrincipals(p);
 
     //   // THEN
-    //   const resolved = spec.resolve(statement.toStatementJson());
+    //   const resolved = stack.resolve(statement.toStatementJson());
     //   expect(resolved).toEqual({
     //     Condition: {
     //       StringEquals: {
@@ -967,7 +967,7 @@ describe("IAM policy document", () => {
     //   const p = new FederatedPrincipal("fed", {
     //     StringEquals: { foo: "bar" },
     //   }).withConditions({
-    //     StringEquals: Lazy.any({ produce: () => ({ goo: "zar" }) }),
+    //     StringEquals: Lazy.anyValue({ produce: () => ({ goo: "zar" }) }),
     //   });
 
     //   const statement = new PolicyStatement();
@@ -1002,8 +1002,8 @@ describe("IAM policy document", () => {
   describe("duplicate statements", () => {
     test("without tokens", () => {
       // GIVEN
-      const spec = getAwsSpec();
-      const p = new PolicyDocument(spec, "doc", {
+      const stack = getAwsStack();
+      const p = new PolicyDocument(stack, "doc", {
         minimize: true,
       });
 
@@ -1030,7 +1030,7 @@ describe("IAM policy document", () => {
       p.addStatements(statement);
 
       // THEN
-      const stmtJson = spec.resolve(p.toDocumentJson()).Statement;
+      const stmtJson = stack.resolve(p.toDocumentJson()).Statement;
       // expect(stmtJson).toMatchSnapshot();
       expect(stmtJson).toHaveLength(1);
     });
@@ -1038,8 +1038,8 @@ describe("IAM policy document", () => {
     // TODO: Fix merge Statements
     test("with tokens", () => {
       // GIVEN
-      const spec = getAwsSpec();
-      const p = new PolicyDocument(spec, "doc", {
+      const stack = getAwsStack();
+      const p = new PolicyDocument(stack, "doc", {
         minimize: true,
       });
 
@@ -1061,8 +1061,8 @@ describe("IAM policy document", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       const template = JSON.parse(synthesized);
       expect(template).toMatchObject({
@@ -1123,7 +1123,7 @@ describe("IAM policy document", () => {
   //   );
 
   //   // THEN
-  //   const stack = getAwsSpec();
+  //   const stack = getAwsStack();
   //   expect(stack.resolve(doc)).toEqual({
   //     Version: "2012-10-17",
   //     Statement: [
@@ -1144,8 +1144,8 @@ describe("IAM policy document", () => {
   // });
 
   test("constructor args are equivalent to mutating in-place", () => {
-    const spec1 = getAwsSpec();
-    const spec2 = getAwsSpec();
+    const stack1 = getAwsStack();
+    const stack2 = getAwsStack();
 
     const s = new PolicyStatement();
     s.addActions("service:action1", "service:action2");
@@ -1153,10 +1153,10 @@ describe("IAM policy document", () => {
     s.addArnPrincipal("arn");
     s.addConditionObject("key", { equals: "value" });
 
-    const doc1 = new PolicyDocument(spec1, "doc");
+    const doc1 = new PolicyDocument(stack1, "doc");
     doc1.addStatements(s);
 
-    const doc2 = new PolicyDocument(spec2, "doc");
+    const doc2 = new PolicyDocument(stack2, "doc");
     doc2.addStatements(
       new PolicyStatement({
         actions: ["service:action1", "service:action2"],
@@ -1172,20 +1172,20 @@ describe("IAM policy document", () => {
       }),
     );
 
-    expect(spec1.resolve(doc1.toDocumentJson())).toEqual(
-      spec2.resolve(doc2.toDocumentJson()),
+    expect(stack1.resolve(doc1.toDocumentJson())).toEqual(
+      stack2.resolve(doc2.toDocumentJson()),
     );
     // Do prepare run to resolve all Terraform resources
-    spec1.prepareStack();
-    spec2.prepareStack();
-    expect(Testing.synth(spec1)).toEqual(Testing.synth(spec2));
+    stack1.prepareStack();
+    stack2.prepareStack();
+    expect(Testing.synth(stack1)).toEqual(Testing.synth(stack2));
   });
 
   describe("fromJson", () => {
     test("throws error when Statement isn't an array", () => {
-      const spec = getAwsSpec();
+      const stack = getAwsStack();
       expect(() => {
-        PolicyDocument.fromJson(spec, "doc", {
+        PolicyDocument.fromJson(stack, "doc", {
           Statement: "asdf",
         });
       }).toThrow(/Statement must be an array/);
@@ -1193,7 +1193,7 @@ describe("IAM policy document", () => {
   });
 
   test("adding another condition with the same operator does not delete the original", () => {
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
 
     const p = new PolicyStatement();
 
@@ -1201,7 +1201,7 @@ describe("IAM policy document", () => {
 
     p.addAccountCondition("12221121221");
 
-    expect(spec.resolve(p.toStatementJson())).toEqual({
+    expect(stack.resolve(p.toStatementJson())).toEqual({
       Effect: "Allow",
       Condition: {
         StringEquals: {
@@ -1252,9 +1252,9 @@ function getDataSources(synthesized: string, resourceType: string): any[] {
   return Object.values(parsed.data[resourceType]) as any[];
 }
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

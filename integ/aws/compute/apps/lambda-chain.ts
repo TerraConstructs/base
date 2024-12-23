@@ -21,8 +21,8 @@ const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
 const stackName = process.env.STACK_NAME ?? "lambda-chain";
 
-class SampleSpec extends aws.AwsSpec {
-  constructor(scope: Construct, id: string, props: aws.AwsSpecProps) {
+class SampleStack extends aws.AwsStack {
+  constructor(scope: Construct, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
 
     const handlerPath = path.join(
@@ -72,14 +72,14 @@ const app = new App({
   outdir,
 });
 
-const spec = new SampleSpec(app, stackName, {
+const stack = new SampleStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 

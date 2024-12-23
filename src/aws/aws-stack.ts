@@ -18,28 +18,28 @@ import { Construct, IConstruct } from "constructs";
 import { Arn, ArnComponents, ArnFormat } from "./arn";
 import { AwsProviderConfig } from "./provider-config.generated";
 import { SKIP_DEPENDENCY_PROPAGATION } from "../private/terraform-dependables-aspect";
-import { SpecBaseProps, SpecBase, ISpec } from "../spec-base";
+import { StackBaseProps, StackBase, IStack } from "../stack-base";
 
-const AWS_SPEC_SYMBOL = Symbol.for("@envtio/base/lib/aws.AwsSpec");
+const AWS_STACK_SYMBOL = Symbol.for("terraconstructs/lib/aws.AwsStack");
 
-export interface AwsSpecProps extends SpecBaseProps {
+export interface AwsStackProps extends StackBaseProps {
   /**
    * The AWS Provider configuration (without the alias field)
    */
   readonly providerConfig: AwsProviderConfig;
 }
 
-export interface IAwsSpec extends ISpec {
+export interface IAwsStack extends IStack {
   /**
-   * The AWS Region for the beacon
+   * The AWS Region for the TerraConstruct
    */
   readonly region: string;
   /**
-   * The AWS Account for the beacon
+   * The AWS Account for the TerraConstruct
    */
   readonly account: string;
   /**
-   * The AWS Partition for the beacon
+   * The AWS Partition for the TerraConstruct
    */
   readonly partition: string;
 
@@ -72,7 +72,7 @@ interface AwsLookup {
 /**
  * A Terraform stack constrained to a single AWS Account/Region to simulate CFN behavior.
  */
-export class AwsSpec extends SpecBase implements IAwsSpec {
+export class AwsStack extends StackBase implements IAwsStack {
   // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/stack.ts#L204
 
   /**
@@ -80,23 +80,23 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
    *
    * attribute detection since as 'instanceof' potentially fails across Library releases.
    */
-  public static isAwsSpec(x: any): x is AwsSpec {
-    return x !== null && typeof x === "object" && AWS_SPEC_SYMBOL in x;
+  public static isAwsStack(x: any): x is AwsStack {
+    return x !== null && typeof x === "object" && AWS_STACK_SYMBOL in x;
   }
 
   // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/stack.ts#L212
 
   /**
-   * Looks up the first stack scope in which `construct` is defined. Fails if there is no stack up the tree or the stack is not an AwsSpec.
+   * Looks up the first stack scope in which `construct` is defined. Fails if there is no stack up the tree or the stack is not an AwsStack.
    * @param construct The construct to start the search from.
    */
-  public static ofAwsBeacon(construct: IConstruct): AwsSpec {
+  public static ofAwsConstruct(construct: IConstruct): AwsStack {
     const s = TerraformStack.of(construct);
-    if (AwsSpec.isAwsSpec(s)) {
+    if (AwsStack.isAwsStack(s)) {
       return s;
     }
     throw new Error(
-      `Resource '${construct.constructor?.name}' at '${construct.node.path}' should be created in the scope of an AwsSpec, but no AwsSpec found`,
+      `Resource '${construct.constructor?.name}' at '${construct.node.path}' should be created in the scope of an AwsStack, but no AwsStack found`,
     );
   }
 
@@ -119,7 +119,7 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
   private _paritionToken: string | undefined;
   private _urlSuffixToken: string | undefined;
 
-  constructor(scope: Construct, id: string, props: AwsSpecProps) {
+  constructor(scope: Construct, id: string, props: AwsStackProps) {
     super(scope, id, props);
     this.lookup = {
       awsProvider: new provider.AwsProvider(
@@ -130,7 +130,7 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
       dataAwsServicePrincipals: {},
     };
     // these should never depend on anything (HACK to avoid cycles)
-    Object.defineProperty(this, AWS_SPEC_SYMBOL, { value: true });
+    Object.defineProperty(this, AWS_STACK_SYMBOL, { value: true });
   }
 
   public get provider(): provider.AwsProvider {

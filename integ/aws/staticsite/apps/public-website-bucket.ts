@@ -10,14 +10,14 @@ const stackName = process.env.STACK_NAME ?? "public-website-bucket";
 const app = new App({
   outdir,
 });
-const stack = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-// TODO: use E.T. e2e s3 backend?
+// TODO: use TerraConstruct e2e s3 backend?
 new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });

@@ -1,5 +1,5 @@
-export * from "./beacon-base";
-export * from "./spec-base";
+export * from "./construct-base";
+export * from "./stack-base";
 export * from "./duration";
 export * from "./size";
 

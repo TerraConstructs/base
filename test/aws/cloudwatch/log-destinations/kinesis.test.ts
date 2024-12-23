@@ -7,7 +7,7 @@ import {
 } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../../src/aws";
+import { AwsStack } from "../../../../src/aws";
 import * as logs from "../../../../src/aws/cloudwatch";
 import * as dests from "../../../../src/aws/cloudwatch/log-destinations/";
 import * as iam from "../../../../src/aws/iam";
@@ -23,11 +23,11 @@ const gridBackendConfig = {
 
 describe("kinesis stream", () => {
   let app: App;
-  let stack: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,

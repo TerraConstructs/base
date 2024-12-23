@@ -10,10 +10,10 @@ const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
 const stackName = process.env.STACK_NAME ?? "log-destination-lambda";
 
-class LambdaStack extends aws.AwsSpec {
+class LambdaStack extends aws.AwsStack {
   public readonly queue: aws.notify.Queue;
 
-  constructor(scope: Construct, id: string, props: aws.AwsSpecProps) {
+  constructor(scope: Construct, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
 
     const handlerPath = path.join(

@@ -9,7 +9,7 @@ import {
 } from "@cdktf/provider-aws";
 import { IResolveContext, Lazy, IResolvable, Token, Fn } from "cdktf";
 import { Construct } from "constructs";
-import { RetentionDays, AwsSpec, ArnFormat } from "..";
+import { RetentionDays, AwsStack, ArnFormat } from "..";
 import { Architecture } from "./architecture";
 import { EventInvokeConfigOptions } from "./event-invoke-config";
 import { IEventSourceMapping } from "./event-source-mapping";
@@ -269,7 +269,7 @@ export interface FunctionProps extends EventInvokeConfigOptions {
 // /**
 //  * A Lambda function.
 //  */
-// export interface IFunction extends IAwsBeacon, iam.IGrantable {
+// export interface IFunction extends IAwsConstruct, iam.IGrantable {
 
 //   /**
 //    * Add an environment variable to this function.
@@ -283,7 +283,7 @@ export interface FunctionProps extends EventInvokeConfigOptions {
  *
  * The Lambda Function itself includes source code and runtime configuration.
  *
- * This Beacon manages permissions as part of the function Principal iam policy.
+ * This Construct manages permissions as part of the function Principal iam policy.
  * This works for same account resources, but for cross-account resources,
  * you may need to manage access as part of the Resource iam policy.
  *
@@ -302,7 +302,7 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
   }
 
   /**
-   * Import a lambda function into the E.T. spec using its name
+   * Import a lambda function into the TerraConstruct spec using its name
    */
   public static fromFunctionName(
     scope: Construct,
@@ -310,7 +310,7 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
     functionName: string,
   ): IFunction {
     return LambdaFunction.fromFunctionAttributes(scope, id, {
-      functionArn: AwsSpec.ofAwsBeacon(scope).formatArn({
+      functionArn: AwsStack.ofAwsConstruct(scope).formatArn({
         service: "lambda",
         resource: "function",
         resourceName: functionName,
@@ -321,7 +321,7 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
   }
 
   /**
-   * Import a lambda function into the E.T. spec using its ARN.
+   * Import a lambda function into the TerraConstruct spec using its ARN.
    *
    * For `Function.addPermissions()` to work on this imported lambda, make sure that is
    * in the same account and region as the stack you are importing it into.
@@ -746,7 +746,7 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
     this.functionName = this.resource.functionName;
 
     // make sure any role attachments are added as dependencies for this lambda
-    // this achieved by the CDKTF Aspect on the parent SpecBase
+    // this achieved by the CDKTF Aspect on the parent StackBase
     this.resource.node.addDependency(this.role);
 
     this.timeout = props.timeout;

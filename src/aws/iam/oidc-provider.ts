@@ -1,7 +1,11 @@
 import { iamOpenidConnectProvider } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import { Arn } from "../arn";
-import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import {
+  IAwsConstruct,
+  AwsConstructBase,
+  AwsConstructProps,
+} from "../aws-construct";
 
 export interface OpenIdConnectProviderOutputs {
   /**
@@ -20,7 +24,7 @@ export interface OpenIdConnectProviderOutputs {
  * Represents an IAM OpenID Connect provider.
  *
  */
-export interface IOpenIdConnectProvider extends IAwsBeacon {
+export interface IOpenIdConnectProvider extends IAwsConstruct {
   // strongly typed outputs
   readonly openIdConnectProviderOutputs: OpenIdConnectProviderOutputs;
 
@@ -38,7 +42,7 @@ export interface IOpenIdConnectProvider extends IAwsBeacon {
 /**
  * Initialization properties for `OpenIdConnectProvider`.
  */
-export interface OpenIdConnectProviderProps extends AwsBeaconProps {
+export interface OpenIdConnectProviderProps extends AwsConstructProps {
   /**
    * The URL of the identity provider. The URL must begin with https:// and
    * should correspond to the iss claim in the provider's OpenID Connect ID
@@ -101,7 +105,7 @@ export interface OpenIdConnectProviderProps extends AwsBeaconProps {
  * @resource AWS::CloudFormation::CustomResource
  */
 export class OpenIdConnectProvider
-  extends AwsBeaconBase
+  extends AwsConstructBase
   implements IOpenIdConnectProvider
 {
   /**
@@ -120,7 +124,7 @@ export class OpenIdConnectProvider
       "oidc-provider",
     );
 
-    class Import extends AwsBeaconBase implements IOpenIdConnectProvider {
+    class Import extends AwsConstructBase implements IOpenIdConnectProvider {
       public readonly openIdConnectProviderArn = openIdConnectProviderArn;
       public readonly openIdConnectProviderIssuer = resourceName;
       public readonly openIdConnectProviderOutputs = {

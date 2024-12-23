@@ -1,21 +1,21 @@
 import { Testing } from "cdktf";
 import { TerraformConstructor } from "cdktf/lib/testing/matchers";
-import { compute, AwsSpec } from "../../../../src/aws";
+import { compute, AwsStack } from "../../../../src/aws";
 
 /**
  * Renders a state machine definition
  *
- * @param spec AwsSpec for the state machine
+ * @param stack AwsStack for the state machine
  * @param definition state machine definition
  */
-export function render(spec: AwsSpec, definition: compute.IChainable) {
-  return spec.resolve(
+export function render(stack: AwsStack, definition: compute.IChainable) {
+  return stack.resolve(
     new compute.StateGraph(definition.startState, "Test Graph").toGraphJson(),
   );
 }
 
 export function renderGraph(definition: compute.IChainable) {
-  const spec = new AwsSpec(Testing.app(), `TestSpec`, {
+  const stack = new AwsStack(Testing.app(), `TestStack`, {
     environmentName: "Test",
     gridUUID: "123e4567-e89b-12d3",
     providerConfig: {
@@ -25,7 +25,7 @@ export function renderGraph(definition: compute.IChainable) {
       address: "http://localhost:3000",
     },
   });
-  return render(spec, definition);
+  return render(stack, definition);
 }
 
 export interface GetPropertyOptions {

@@ -1,12 +1,12 @@
 import { cloudwatchEventTarget } from "@cdktf/provider-aws";
 import { Testing, ref, Lazy } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import { Role, ServicePrincipal } from "../../../src/aws/iam"; // TODO: Get rid of barrel file imports?
 import { EventField, RuleTargetInput } from "../../../src/aws/notify/input";
 import { Rule } from "../../../src/aws/notify/rule";
 import { Schedule } from "../../../src/aws/notify/schedule";
 import { IRuleTarget } from "../../../src/aws/notify/target";
-import { AwsSpec } from "../../../src/aws/spec";
 import { Duration } from "../../../src/duration";
 
 const environmentName = "Test";
@@ -17,12 +17,12 @@ const gridBackendConfig = {
 };
 
 describe("input", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   let rule: Rule;
 
   beforeEach(() => {
-    spec = getAwsSpec();
-    rule = new Rule(spec, "Rule", {
+    stack = getAwsStack();
+    rule = new Rule(stack, "Rule", {
       schedule: Schedule.rate(Duration.minutes(1)),
     });
   });
@@ -37,8 +37,8 @@ describe("input", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       expect(synthesized).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
@@ -61,8 +61,8 @@ describe("input", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       expect(synthesized).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
@@ -75,7 +75,7 @@ describe("input", () => {
           },
         },
       );
-      // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
       //   Targets: [
       //     {
       //       InputTransformer: {
@@ -111,8 +111,8 @@ describe("input", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       expect(synthesized).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
@@ -128,7 +128,7 @@ describe("input", () => {
       );
       // const template = JSON.parse(synthesized);
       // expect(template).toMatchObject({});
-      // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
       //   Targets: [
       //     {
       //       InputTransformer: {
@@ -164,8 +164,8 @@ describe("input", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       expect(synthesized).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
@@ -179,7 +179,7 @@ describe("input", () => {
           },
         },
       );
-      // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
       //   Targets: [
       //     {
       //       InputTransformer: {
@@ -215,8 +215,8 @@ describe("input", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       expect(synthesized).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
@@ -230,7 +230,7 @@ describe("input", () => {
           },
         },
       );
-      // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
       //   Targets: [
       //     {
       //       InputTransformer: {
@@ -266,8 +266,8 @@ describe("input", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       expect(synthesized).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
@@ -282,7 +282,7 @@ describe("input", () => {
           },
         },
       );
-      // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
       //   Targets: [
       //     {
       //       InputTransformer: {
@@ -307,7 +307,7 @@ describe("input", () => {
 
     test("can use token", () => {
       // GIVEN
-      const role = new Role(spec, "Role", {
+      const role = new Role(stack, "Role", {
         assumedBy: new ServicePrincipal("test.service"),
       });
 
@@ -318,8 +318,8 @@ describe("input", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       expect(synthesized).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
@@ -359,8 +359,8 @@ describe("input", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       expect(synthesized).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
@@ -387,8 +387,8 @@ describe("input", () => {
 
       // THEN
       // Do prepare run to resolve all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       expect(synthesized).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
@@ -414,8 +414,8 @@ describe("input", () => {
       );
 
       // THEN
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       expect(synthesized).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
@@ -442,9 +442,9 @@ class SomeTarget implements IRuleTarget {
   }
 }
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

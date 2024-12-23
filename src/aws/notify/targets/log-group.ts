@@ -10,9 +10,9 @@ import { IRuleTarget, RuleTargetConfig } from "../target";
 // import { LogGroupResourcePolicy } from "./log-group-resource-policy";
 import { TargetBaseProps, bindBaseTargetConfig } from "./util";
 import { ArnFormat } from "../../arn";
+import { AwsStack } from "../../aws-stack";
 import * as logs from "../../cloudwatch";
 import * as iam from "../../iam";
-import { AwsSpec } from "../../spec";
 
 /**
  * Options used when creating a target input template
@@ -102,7 +102,7 @@ export class CloudWatchLogGroup implements IRuleTarget {
    * Returns a RuleTarget that can be used to log an event into a CloudWatch LogGroup
    */
   public bind(_rule: IRule, _id?: string): RuleTargetConfig {
-    const logGroupStack = AwsSpec.ofAwsBeacon(this.logGroup);
+    const logGroupStack = AwsStack.ofAwsConstruct(this.logGroup);
     if (this.props.event && this.props.logEvent) {
       throw new Error('Only one of "event" or "logEvent" can be specified');
     }
@@ -141,7 +141,7 @@ export class CloudWatchLogGroup implements IRuleTarget {
    */
   private validateInputTemplate(): string[] {
     if (this.target?.inputTemplate) {
-      const resolvedTemplate = AwsSpec.ofAwsBeacon(this.logGroup).resolve(
+      const resolvedTemplate = AwsStack.ofAwsConstruct(this.logGroup).resolve(
         this.target.inputTemplate,
       );
       if (typeof resolvedTemplate === "string") {

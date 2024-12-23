@@ -1,7 +1,7 @@
 import { App, Testing, TerraformResource, TerraformElement } from "cdktf";
 import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
-import { SpecBase } from "../src";
+import { StackBase } from "../src";
 import { Template } from "./assertions";
 
 const environmentName = "Test";
@@ -11,13 +11,13 @@ const gridBackendConfig = {
 };
 const terraformResourceType = "test_resource";
 
-describe("SpecBase", () => {
+describe("StackBase", () => {
   let app: App;
-  let spec: MySpec;
+  let stack: MyStack;
 
   beforeEach(() => {
     app = Testing.app();
-    spec = new MySpec(app, "TestSpec", {
+    stack = new MyStack(app, "TestStack", {
       environmentName,
       gridUUID,
       gridBackendConfig,
@@ -27,32 +27,36 @@ describe("SpecBase", () => {
   describe("TerraformDependencyAspect", () => {
     test("maps Construct dependencies to TerraformResource.dependsOn", () => {
       // GIVEN
-      const simpleResource = new TerraformResource(spec, "SimpleResource", {
+      const simpleResource = new TerraformResource(stack, "SimpleResource", {
         terraformResourceType,
       });
       // a construct which is composed of nested resources
       const compositeResource = new CompositeResource(
-        spec,
+        stack,
         "CompositeResource",
       );
       // a construct which adds nested resources during prepareStack
-      const preSynthResource = new PreSynthResource(spec, "PreSynthResource");
+      const preSynthResource = new PreSynthResource(stack, "PreSynthResource");
       // a construct with 2 layers of nesting
       const deeplyNestedResource = new DeeplyNestedResource(
-        spec,
+        stack,
         "DeeplyNestedResource",
       );
 
       // Dependables
-      const directDependency = new TerraformResource(spec, "DirectDependency", {
-        terraformResourceType,
-      });
+      const directDependency = new TerraformResource(
+        stack,
+        "DirectDependency",
+        {
+          terraformResourceType,
+        },
+      );
       const compositeDependency = new CompositeResource(
-        spec,
+        stack,
         "CompositeDependency",
       );
       const presynthDependency = new PreSynthResource(
-        spec,
+        stack,
         "PreSynthDependency",
       );
 
@@ -83,7 +87,7 @@ describe("SpecBase", () => {
       );
 
       // THEN
-      Template.fromStack(spec).toMatchObject({
+      Template.fromStack(stack).toMatchObject({
         resource: {
           [terraformResourceType]: {
             // direct resource depends on direct as well as nested resources
@@ -122,7 +126,7 @@ describe("SpecBase", () => {
 
     test("does not propagate nested dependency to siblings", () => {
       // GIVEN
-      const resourceA = new TerraformResource(spec, "ResourceA", {
+      const resourceA = new TerraformResource(stack, "ResourceA", {
         terraformResourceType,
       });
 
@@ -141,10 +145,10 @@ describe("SpecBase", () => {
         }
       }
       // WHEN
-      new CompositeWithNestedDependencyResource(spec, "ResourceB");
+      new CompositeWithNestedDependencyResource(stack, "ResourceB");
 
       // THEN
-      Template.fromStack(spec).toMatchObject({
+      Template.fromStack(stack).toMatchObject({
         resource: {
           test_resource: {
             ResourceB_NestedResource1_0872214E: {
@@ -161,10 +165,10 @@ describe("SpecBase", () => {
     // TODO: Should throw circular dependency error during synth because TF sure will...
     test.skip("throws on circular dependencies", () => {
       // GIVEN
-      const resourceA = new TerraformResource(spec, "ResourceA", {
+      const resourceA = new TerraformResource(stack, "ResourceA", {
         terraformResourceType,
       });
-      const resourceB = new TerraformResource(spec, "ResourceB", {
+      const resourceB = new TerraformResource(stack, "ResourceB", {
         terraformResourceType,
       });
 
@@ -176,7 +180,7 @@ describe("SpecBase", () => {
       }).toThrow(/circular dependency/);
 
       // // THEN
-      // Template.fromStack(spec, { debug: true }).toMatchObject({
+      // Template.fromStack(stack, { debug: true }).toMatchObject({
       //   resource: {
       //     [terraformResourceType]: {
       //       ResourceA: {
@@ -192,7 +196,7 @@ describe("SpecBase", () => {
   });
 });
 
-class MySpec extends SpecBase {}
+class MyStack extends StackBase {}
 class CompositeResource extends TerraformElement {
   constructor(scope: Construct, id: string) {
     super(scope, id);

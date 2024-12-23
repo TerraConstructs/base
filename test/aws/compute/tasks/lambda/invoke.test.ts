@@ -1,21 +1,21 @@
 import path from "path";
 import "cdktf/lib/testing/adapters/jest";
 import { Testing } from "cdktf";
+import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import {
   LambdaInvocationType,
   LambdaInvoke,
 } from "../../../../../src/aws/compute/tasks";
-import { AwsSpec } from "../../../../../src/aws/spec";
 
 describe("LambdaInvoke", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   let lambdaFunction: compute.NodejsFunction;
 
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    spec = new AwsSpec(app, "TestSpec", {
+    stack = new AwsStack(app, "TestStack", {
       environmentName: "Test",
       gridUUID: "123e4567-e89b-12d3",
       providerConfig: { region: "us-east-1" },
@@ -23,19 +23,19 @@ describe("LambdaInvoke", () => {
         address: "http://localhost:3000",
       },
     });
-    lambdaFunction = new compute.NodejsFunction(spec, "Fn", {
+    lambdaFunction = new compute.NodejsFunction(stack, "Fn", {
       path: path.join(__dirname, "fixtures", "hello-world.ts"),
     });
   });
 
   test("default settings", () => {
     // WHEN
-    const task = new LambdaInvoke(spec, "Task", {
+    const task = new LambdaInvoke(stack, "Task", {
       lambdaFunction,
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       End: true,
       Type: "Task",
       Resource:
@@ -77,7 +77,7 @@ describe("LambdaInvoke", () => {
 
   test("optional settings", () => {
     // WHEN
-    const task = new LambdaInvoke(spec, "Task", {
+    const task = new LambdaInvoke(stack, "Task", {
       lambdaFunction,
       payload: compute.TaskInput.fromObject({
         foo: "bar",
@@ -88,7 +88,7 @@ describe("LambdaInvoke", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual(
+    expect(stack.resolve(task.toStateJson())).toEqual(
       expect.objectContaining({
         Type: "Task",
         Resource:
@@ -124,7 +124,7 @@ describe("LambdaInvoke", () => {
 
   test("resultSelector", () => {
     // WHEN
-    const task = new LambdaInvoke(spec, "Task", {
+    const task = new LambdaInvoke(stack, "Task", {
       lambdaFunction,
       resultSelector: {
         Result: compute.JsonPath.stringAt("$.output.Payload"),
@@ -132,7 +132,7 @@ describe("LambdaInvoke", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual(
+    expect(stack.resolve(task.toStateJson())).toEqual(
       expect.objectContaining({
         Type: "Task",
         Resource:
@@ -179,7 +179,7 @@ describe("LambdaInvoke", () => {
 
   test("invoke Lambda function and wait for task token", () => {
     // GIVEN
-    const task = new LambdaInvoke(spec, "Task", {
+    const task = new LambdaInvoke(stack, "Task", {
       lambdaFunction,
       integrationPattern: compute.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
       payload: compute.TaskInput.fromObject({
@@ -189,7 +189,7 @@ describe("LambdaInvoke", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual(
+    expect(stack.resolve(task.toStateJson())).toEqual(
       expect.objectContaining({
         Type: "Task",
         Resource:
@@ -223,13 +223,13 @@ describe("LambdaInvoke", () => {
 
   test("pass part of state input as input to Lambda function ", () => {
     // WHEN
-    const task = new LambdaInvoke(spec, "Task", {
+    const task = new LambdaInvoke(stack, "Task", {
       lambdaFunction,
       payload: compute.TaskInput.fromJsonPathAt("$.foo"),
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual(
+    expect(stack.resolve(task.toStateJson())).toEqual(
       expect.objectContaining({
         Type: "Task",
         Resource:
@@ -260,13 +260,13 @@ describe("LambdaInvoke", () => {
 
   test("Invoke lambda with payloadResponseOnly", () => {
     // WHEN
-    const task = new LambdaInvoke(spec, "Task", {
+    const task = new LambdaInvoke(stack, "Task", {
       lambdaFunction,
       payloadResponseOnly: true,
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual(
+    expect(stack.resolve(task.toStateJson())).toEqual(
       expect.objectContaining({
         End: true,
         Type: "Task",
@@ -280,7 +280,7 @@ describe("LambdaInvoke", () => {
 
   test("Invoke lambda with payloadResponseOnly with payload", () => {
     // WHEN
-    const task = new LambdaInvoke(spec, "Task", {
+    const task = new LambdaInvoke(stack, "Task", {
       lambdaFunction,
       payloadResponseOnly: true,
       payload: compute.TaskInput.fromObject({
@@ -289,7 +289,7 @@ describe("LambdaInvoke", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual(
+    expect(stack.resolve(task.toStateJson())).toEqual(
       expect.objectContaining({
         End: true,
         Type: "Task",
@@ -306,13 +306,13 @@ describe("LambdaInvoke", () => {
 
   test("with retryOnServiceExceptions set to false", () => {
     // WHEN
-    const task = new LambdaInvoke(spec, "Task", {
+    const task = new LambdaInvoke(stack, "Task", {
       lambdaFunction,
       retryOnServiceExceptions: false,
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       End: true,
       Type: "Task",
       Resource:
@@ -341,7 +341,7 @@ describe("LambdaInvoke", () => {
 
   test("fails when integrationPattern used with payloadResponseOnly", () => {
     expect(() => {
-      new LambdaInvoke(spec, "Task", {
+      new LambdaInvoke(stack, "Task", {
         lambdaFunction,
         payloadResponseOnly: true,
         integrationPattern: compute.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
@@ -356,7 +356,7 @@ describe("LambdaInvoke", () => {
 
   test("fails when invocationType used with payloadResponseOnly", () => {
     expect(() => {
-      new LambdaInvoke(spec, "Task", {
+      new LambdaInvoke(stack, "Task", {
         lambdaFunction,
         payloadResponseOnly: true,
         payload: compute.TaskInput.fromObject({
@@ -371,7 +371,7 @@ describe("LambdaInvoke", () => {
 
   test("fails when clientContext used with payloadResponseOnly", () => {
     expect(() => {
-      new LambdaInvoke(spec, "Task", {
+      new LambdaInvoke(stack, "Task", {
         lambdaFunction,
         payloadResponseOnly: true,
         payload: compute.TaskInput.fromObject({
@@ -386,7 +386,7 @@ describe("LambdaInvoke", () => {
 
   test("fails when qualifier used with payloadResponseOnly", () => {
     expect(() => {
-      new LambdaInvoke(spec, "Task", {
+      new LambdaInvoke(stack, "Task", {
         lambdaFunction,
         payloadResponseOnly: true,
         payload: compute.TaskInput.fromObject({
@@ -401,7 +401,7 @@ describe("LambdaInvoke", () => {
 
   test("fails when WAIT_FOR_TASK_TOKEN integration pattern is used without supplying a task token in payload", () => {
     expect(() => {
-      new LambdaInvoke(spec, "Task", {
+      new LambdaInvoke(stack, "Task", {
         lambdaFunction,
         integrationPattern: compute.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
       });
@@ -412,7 +412,7 @@ describe("LambdaInvoke", () => {
 
   test("fails when RUN_JOB integration pattern is used", () => {
     expect(() => {
-      new LambdaInvoke(spec, "Task", {
+      new LambdaInvoke(stack, "Task", {
         lambdaFunction,
         integrationPattern: compute.IntegrationPattern.RUN_JOB,
       });

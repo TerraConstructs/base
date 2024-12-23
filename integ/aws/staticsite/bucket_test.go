@@ -6,15 +6,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/environment-toolkit/go-synth/executors"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/terraconstructs/go-synth/executors"
 
-	util "github.com/envtio/base/integ/aws"
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
+	util "github.com/terraconstructs/base/integ/aws"
 )
 
 var terratestLogger = loggers.Default
@@ -28,12 +28,12 @@ func TestPublicWebsiteBucket(t *testing.T) {
 // Test the Website Bucket with CDN
 func TestCdnWebsiteBucket(t *testing.T) {
 	testApp := "cdn-website-bucket"
-	hostname := "e2e.envt.io"
+	hostname := "e2e.terraconstructs.dev"
 
 	envVars := executors.EnvMap(os.Environ())
 	envVars["DNS_DOMAIN_NAME"] = hostname
 	// TODO: Test Curl with the domain name
-	envVars["DNS_ZONE_ID"] = "Z09421741DJE7FPT6K42I"
+	envVars["DNS_ZONE_ID"] = "Z000441110FP43NILLF2D"
 
 	// save hostname for future stages
 	tfWorkingDir := filepath.Join("tf", testApp)

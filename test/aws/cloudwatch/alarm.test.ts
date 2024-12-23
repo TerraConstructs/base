@@ -4,7 +4,7 @@ import { cloudwatchMetricAlarm } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws";
 import {
   Alarm,
   IAlarm,
@@ -35,11 +35,11 @@ const testMetric = new Metric({
 
 describe("Alarm", () => {
   let app: App;
-  let stack: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,
@@ -352,7 +352,7 @@ describe("Alarm", () => {
   test("EC2 alarm actions with InstanceId dimension", () => {
     // GIVEN
     // const app = new App({ context: { [ENABLE_PARTITION_LITERALS]: true } });
-    // const stack = new AwsSpec(app, "EC2AlarmStack", {
+    // const stack = new AwsStack(app, "EC2AlarmStack", {
     //   env: { region: "us-west-2", account: "123456789012" },
     // });
 
@@ -383,7 +383,7 @@ describe("Alarm", () => {
   test("EC2 alarm actions without InstanceId dimension", () => {
     // GIVEN
     // const app = new App({ context: { [ENABLE_PARTITION_LITERALS]: true } });
-    // const stack = new AwsSpec(app, "EC2AlarmStack", {
+    // const stack = new AwsStack(app, "EC2AlarmStack", {
     //   env: { region: "us-west-2", account: "123456789012" },
     // });
 

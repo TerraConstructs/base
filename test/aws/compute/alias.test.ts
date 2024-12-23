@@ -6,15 +6,15 @@ import {
 } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { compute, AwsSpec } from "../../../src/aws";
+import { compute, AwsStack } from "../../../src/aws";
 
 const gridUUID = "123e4567-e89b-12d3";
 
 describe("alias", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   let fn: compute.NodejsFunction;
   beforeEach(() => {
-    spec = new AwsSpec(Testing.app(), `TestSpec`, {
+    stack = new AwsStack(Testing.app(), `TestStack`, {
       environmentName: "Test",
       gridUUID,
       providerConfig: {
@@ -24,33 +24,33 @@ describe("alias", () => {
         address: "http://localhost:3000",
       },
     });
-    fn = new compute.NodejsFunction(spec, "MyLambda", {
+    fn = new compute.NodejsFunction(stack, "MyLambda", {
       path: path.join(__dirname, "fixtures", "hello-world.ts"),
     });
   });
 
   test("can create an alias to $LATEST", () => {
-    new compute.Alias(spec, "Alias", {
+    new compute.Alias(stack, "Alias", {
       aliasName: "latest",
       version: fn.version,
       function: fn,
     });
 
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(lambdaAlias.LambdaAlias, {
       function_name: "${aws_lambda_function.MyLambda_CCE802FB.function_name}",
       function_version: "${aws_lambda_function.MyLambda_CCE802FB.version}",
       name: "123e4567-e89b-12d3-latest",
     });
-    // Template.fromStack(spec).hasResourceProperties("AWS::Lambda::Alias", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::Lambda::Alias", {
     //   FunctionName: { Ref: "MyLambdaCCE802FB" },
     //   FunctionVersion: "$LATEST",
     //   Name: "latest",
     // });
-    // Template.fromStack(spec).resourceCountIs("AWS::Lambda::Version", 0);
+    // Template.fromStack(stack).resourceCountIs("AWS::Lambda::Version", 0);
   });
 
   test("sanity checks on version weights", () => {
@@ -58,7 +58,7 @@ describe("alias", () => {
 
     // WHEN: Individual weight too high
     expect(() => {
-      new compute.Alias(spec, "Alias1", {
+      new compute.Alias(stack, "Alias1", {
         aliasName: "prod",
         version,
         additionalVersions: [{ version, weight: 5 }],
@@ -68,7 +68,7 @@ describe("alias", () => {
 
     // WHEN: Sum too high
     expect(() => {
-      new compute.Alias(spec, "Alias2", {
+      new compute.Alias(stack, "Alias2", {
         aliasName: "prod",
         version,
         additionalVersions: [
@@ -82,7 +82,7 @@ describe("alias", () => {
 
   test("alias exposes real Lambdas role", () => {
     const version = fn.version;
-    const alias = new compute.Alias(spec, "Alias", {
+    const alias = new compute.Alias(stack, "Alias", {
       aliasName: "prod",
       function: fn,
       version,
@@ -94,7 +94,7 @@ describe("alias", () => {
 
   test("functionName is derived from the aliasArn so that dependencies are sound", () => {
     const version = fn.version;
-    new compute.Alias(spec, "Alias", {
+    new compute.Alias(stack, "Alias", {
       aliasName: "prod",
       function: fn,
       version,
@@ -102,8 +102,8 @@ describe("alias", () => {
 
     // WHEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(lambdaAlias.LambdaAlias, {
       function_name: "${aws_lambda_function.MyLambda_CCE802FB.function_name}",
@@ -113,7 +113,7 @@ describe("alias", () => {
 
   test("with event invoke config", () => {
     // WHEN
-    new compute.Alias(spec, "Alias", {
+    new compute.Alias(stack, "Alias", {
       aliasName: "prod",
       function: fn,
       version: fn.version,
@@ -126,8 +126,8 @@ describe("alias", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       lambdaFunctionEventInvokeConfig.LambdaFunctionEventInvokeConfig,
@@ -141,7 +141,7 @@ describe("alias", () => {
         qualifier: "${aws_lambda_function.MyLambda_CCE802FB.version}", // TODO: Qualifier should be alias name?
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventInvokeConfig",
     //   {
     //     FunctionName: {
@@ -172,7 +172,7 @@ describe("alias", () => {
   // TODO: Lambda Alias should point to Function name through Ref, not fixed string
   test("throws when calling configureAsyncInvoke on already configured alias", () => {
     // GIVEN
-    const alias = new compute.Alias(spec, "Alias", {
+    const alias = new compute.Alias(stack, "Alias", {
       aliasName: "prod",
       function: fn,
       version: fn.version,
@@ -192,11 +192,11 @@ describe("alias", () => {
   test("event invoke config on imported alias", () => {
     // GIVEN
     const fn2 = compute.LambdaFunction.fromFunctionArn(
-      spec,
+      stack,
       "Fn2",
       "arn:aws:lambda:region:account-id:function:function-name:version",
     );
-    const alias = compute.Alias.fromAliasAttributes(spec, "Alias", {
+    const alias = compute.Alias.fromAliasAttributes(stack, "Alias", {
       aliasName: "alias-name",
       function: fn2,
     });
@@ -208,8 +208,8 @@ describe("alias", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       lambdaFunctionEventInvokeConfig.LambdaFunctionEventInvokeConfig,
@@ -220,7 +220,7 @@ describe("alias", () => {
         qualifier: "${data.aws_lambda_alias.Alias_325C5727.function_version}",
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventInvokeConfig",
     //   {
     //     FunctionName: "function-name",
@@ -234,7 +234,7 @@ describe("alias", () => {
   // test("can enable AutoScaling on aliases with Provisioned Concurrency set", () => {
   //   // GIVEN
 
-  //   const alias = new compute.Alias(spec, "Alias", {
+  //   const alias = new compute.Alias(stack, "Alias", {
   //     aliasName: "prod",
   //     function: fn,
   //     version: fn.version,
@@ -246,10 +246,10 @@ describe("alias", () => {
 
   //   // THEN
   //   // Do prepare run to resolve all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
+  //   stack.prepareStack();
+  //   const synthesized = Testing.synth(stack);
   //   expect(synthesized).toMatchSnapshot();
-  //   // Template.fromStack(spec).hasResourceProperties(
+  //   // Template.fromStack(stack).hasResourceProperties(
   //   //   "AWS::ApplicationAutoScaling::ScalableTarget",
   //   //   {
   //   //     MinCapacity: 1,
@@ -272,7 +272,7 @@ describe("alias", () => {
   //   //   },
   //   // );
 
-  //   // Template.fromStack(spec).hasResourceProperties("AWS::Lambda::Alias", {
+  //   // Template.fromStack(stack).hasResourceProperties("AWS::Lambda::Alias", {
   //   //   ProvisionedConcurrencyConfig: {
   //   //     ProvisionedConcurrentExecutions: 10,
   //   //   },
@@ -283,7 +283,7 @@ describe("alias", () => {
   // test("validation for utilizationTarget does not fail when using Tokens", () => {
   //   // GIVEN
 
-  //   const alias = new compute.Alias(spec, "Alias", {
+  //   const alias = new compute.Alias(stack, "Alias", {
   //     aliasName: "prod",
   //     function: fn,
   //     version: fn.version,
@@ -299,10 +299,10 @@ describe("alias", () => {
 
   //   // THEN: no exception
   //   // Do prepare run to resolve all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
+  //   stack.prepareStack();
+  //   const synthesized = Testing.synth(stack);
   //   expect(synthesized).toMatchSnapshot();
-  //   // Template.fromStack(spec).hasResourceProperties(
+  //   // Template.fromStack(stack).hasResourceProperties(
   //   //   "AWS::ApplicationAutoScaling::ScalingPolicy",
   //   //   {
   //   //     PolicyType: "TargetTrackingScaling",
@@ -320,7 +320,7 @@ describe("alias", () => {
   // test("cannot enable AutoScaling twice on same property", () => {
   //   // GIVEN
 
-  //   const alias = new compute.Alias(spec, "Alias", {
+  //   const alias = new compute.Alias(stack, "Alias", {
   //     aliasName: "prod",
   //     function: fn,
   //     version: fn.version,
@@ -338,7 +338,7 @@ describe("alias", () => {
   // test("error when specifying invalid utilization value when AutoScaling on utilization", () => {
   //   // GIVEN
 
-  //   const alias = new compute.Alias(spec, "Alias", {
+  //   const alias = new compute.Alias(stack, "Alias", {
   //     aliasName: "prod",
   //     function: fn,
   //     version: fn.version,
@@ -356,7 +356,7 @@ describe("alias", () => {
   // test("can autoscale on a schedule", () => {
   //   // GIVEN
 
-  //   const alias = new compute.Alias(spec, "Alias", {
+  //   const alias = new compute.Alias(stack, "Alias", {
   //     aliasName: "prod",
   //     function: fn,
   //     version: fn.version,
@@ -371,10 +371,10 @@ describe("alias", () => {
 
   //   // THEN
   //   // Do prepare run to resolve all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
+  //   stack.prepareStack();
+  //   const synthesized = Testing.synth(stack);
   //   expect(synthesized).toMatchSnapshot();
-  //   // Template.fromStack(spec).hasResourceProperties(
+  //   // Template.fromStack(stack).hasResourceProperties(
   //   //   "AWS::ApplicationAutoScaling::ScalableTarget",
   //   //   {
   //   //     ScheduledActions: [
@@ -390,7 +390,7 @@ describe("alias", () => {
 
   // test("scheduled scaling shows warning when minute is not defined in cron", () => {
   //   // GIVEN
-  //   const alias = new compute.Alias(spec, "Alias", {
+  //   const alias = new compute.Alias(stack, "Alias", {
   //     aliasName: "prod",
   //     function: fn,
   //     version: fn.version,
@@ -404,7 +404,7 @@ describe("alias", () => {
   //   });
 
   //   // THEN
-  //   Annotations.fromStack(spec).hasWarning(
+  //   Annotations.fromStack(stack).hasWarning(
   //     "/Default/Alias/AliasScaling/Target",
   //     "cron: If you don't pass 'minute', by default the event runs every minute. Pass 'minute: '*'' if that's what you intend, or 'minute: 0' to run once per hour instead. [ack: @aws-cdk/aws-applicationautoscaling:defaultRunEveryMinute]",
   //   );
@@ -413,7 +413,7 @@ describe("alias", () => {
   // test("scheduled scaling shows no warning when minute is * in cron", () => {
   //   // GIVEN
 
-  //   const alias = new compute.Alias(spec, "Alias", {
+  //   const alias = new compute.Alias(stack, "Alias", {
   //     aliasName: "prod",
   //     function: fn,
   //     version: fn.version,
@@ -427,7 +427,7 @@ describe("alias", () => {
   //   });
 
   //   // THEN
-  //   const annotations = Annotations.fromStack(spec).findWarning(
+  //   const annotations = Annotations.fromStack(stack).findWarning(
   //     "*",
   //     Match.anyValue(),
   //   );
@@ -437,7 +437,7 @@ describe("alias", () => {
   test("addFunctionUrl creates a function url", () => {
     // GIVEN
     const aliasName = "prod";
-    const alias = new compute.Alias(spec, "Alias", {
+    const alias = new compute.Alias(stack, "Alias", {
       aliasName,
       function: fn,
       version: fn.version,
@@ -448,8 +448,8 @@ describe("alias", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       lambdaFunctionUrl.LambdaFunctionUrl,
@@ -460,7 +460,7 @@ describe("alias", () => {
         qualifier: `${gridUUID}-${aliasName}`,
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::Lambda::Url", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::Lambda::Url", {
     //   AuthType: "AWS_IAM",
     //   TargetFunctionArn: {
     //     "Fn::GetAtt": ["MyLambdaCCE802FB", "Arn"],

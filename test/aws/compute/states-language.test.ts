@@ -2,16 +2,16 @@ import { Testing } from "cdktf";
 import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
 import { render } from "./private/render-util";
-import { iam, compute, AwsSpec } from "../../../src/aws";
+import { iam, compute, AwsStack } from "../../../src/aws";
 import { Duration } from "../../../src/duration";
 
 const gridUUID = "123e4567-e89b-12d3";
 describe("States Language", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    spec = new AwsSpec(app, `TestSpec`, {
+    stack = new AwsStack(app, `TestStack`, {
       environmentName: "Test",
       gridUUID,
       providerConfig: {
@@ -25,10 +25,10 @@ describe("States Language", () => {
 
   test("A single task is a State Machine", () => {
     // WHEN
-    const chain = new compute.Pass(spec, "Some State");
+    const chain = new compute.Pass(stack, "Some State");
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Some State",
       States: {
         "Some State": { Type: "Pass", End: true },
@@ -38,13 +38,13 @@ describe("States Language", () => {
 
   test("A sequence of two tasks is a State Machine", () => {
     // WHEN
-    const task1 = new compute.Pass(spec, "State One");
-    const task2 = new compute.Pass(spec, "State Two");
+    const task1 = new compute.Pass(stack, "State One");
+    const task2 = new compute.Pass(stack, "State Two");
 
     const chain = compute.Chain.start(task1).next(task2);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "State One",
       States: {
         "State One": { Type: "Pass", Next: "State Two" },
@@ -55,13 +55,13 @@ describe("States Language", () => {
 
   test("You dont need to hold on to the state to render the entire state machine correctly", () => {
     // WHEN
-    const task1 = new compute.Pass(spec, "State One");
-    const task2 = new compute.Pass(spec, "State Two");
+    const task1 = new compute.Pass(stack, "State One");
+    const task2 = new compute.Pass(stack, "State Two");
 
     task1.next(task2);
 
     // THEN
-    expect(render(spec, task1)).toStrictEqual({
+    expect(render(stack, task1)).toStrictEqual({
       StartAt: "State One",
       States: {
         "State One": { Type: "Pass", Next: "State Two" },
@@ -72,15 +72,15 @@ describe("States Language", () => {
 
   test("A chain can be appended to", () => {
     // GIVEN
-    const task1 = new compute.Pass(spec, "State One");
-    const task2 = new compute.Pass(spec, "State Two");
-    const task3 = new compute.Pass(spec, "State Three");
+    const task1 = new compute.Pass(stack, "State One");
+    const task2 = new compute.Pass(stack, "State Two");
+    const task3 = new compute.Pass(stack, "State Three");
 
     // WHEN
     const chain = compute.Chain.start(task1).next(task2).next(task3);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "State One",
       States: {
         "State One": { Type: "Pass", Next: "State Two" },
@@ -92,9 +92,9 @@ describe("States Language", () => {
 
   test("A state machine can be appended to another state machine", () => {
     // GIVEN
-    const task1 = new compute.Pass(spec, "State One");
-    const task2 = new compute.Pass(spec, "State Two");
-    const task3 = new compute.Wait(spec, "State Three", {
+    const task1 = new compute.Pass(stack, "State One");
+    const task2 = new compute.Pass(stack, "State Two");
+    const task3 = new compute.Wait(stack, "State Three", {
       time: compute.WaitTime.duration(Duration.seconds(10)),
     });
 
@@ -104,7 +104,7 @@ describe("States Language", () => {
     );
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "State One",
       States: {
         "State One": { Type: "Pass", Next: "State Two" },
@@ -115,16 +115,16 @@ describe("States Language", () => {
   });
 
   test("A state machine definition can be instantiated and chained", () => {
-    const before = new compute.Pass(spec, "Before");
-    const after = new compute.Pass(spec, "After");
+    const before = new compute.Pass(stack, "Before");
+    const after = new compute.Pass(stack, "After");
 
     // WHEN
     const chain = before
-      .next(new ReusableStateMachine(spec, "Reusable"))
+      .next(new ReusableStateMachine(stack, "Reusable"))
       .next(after);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Before",
       States: {
         Before: { Type: "Pass", Next: "Choice" },
@@ -153,8 +153,8 @@ describe("States Language", () => {
   test("A success state cannot be chained onto", () => {
     // GIVEN
 
-    const succeed = new compute.Succeed(spec, "Succeed");
-    const pass = new compute.Pass(spec, "Pass");
+    const succeed = new compute.Succeed(stack, "Succeed");
+    const pass = new compute.Pass(stack, "Pass");
 
     // WHEN
     expect(() => pass.next(succeed).next(pass)).toThrow();
@@ -162,11 +162,11 @@ describe("States Language", () => {
 
   test("A failure state cannot be chained onto", () => {
     // GIVEN
-    const fail = new compute.Fail(spec, "Fail", {
+    const fail = new compute.Fail(stack, "Fail", {
       error: "X",
       cause: "Y",
     });
-    const pass = new compute.Pass(spec, "Pass");
+    const pass = new compute.Pass(stack, "Pass");
 
     // WHEN
     expect(() => pass.next(fail).next(pass)).toThrow();
@@ -174,17 +174,17 @@ describe("States Language", () => {
 
   test("Parallels can contain direct states", () => {
     // GIVEN
-    const one = new compute.Pass(spec, "One");
-    const two = new compute.Pass(spec, "Two");
-    const three = new compute.Pass(spec, "Three");
+    const one = new compute.Pass(stack, "One");
+    const two = new compute.Pass(stack, "Two");
+    const three = new compute.Pass(stack, "Three");
 
     // WHEN
-    const para = new compute.Parallel(spec, "Parallel");
+    const para = new compute.Parallel(stack, "Parallel");
     para.branch(one.next(two));
     para.branch(three);
 
     // THEN
-    expect(render(spec, para)).toStrictEqual({
+    expect(render(stack, para)).toStrictEqual({
       StartAt: "Parallel",
       States: {
         Parallel: {
@@ -212,16 +212,16 @@ describe("States Language", () => {
 
   test("Parallels can contain instantiated reusable definitions", () => {
     // WHEN
-    const para = new compute.Parallel(spec, "Parallel");
+    const para = new compute.Parallel(stack, "Parallel");
     para.branch(
-      new ReusableStateMachine(spec, "Reusable1").prefixStates("Reusable1/"),
+      new ReusableStateMachine(stack, "Reusable1").prefixStates("Reusable1/"),
     );
     para.branch(
-      new ReusableStateMachine(spec, "Reusable2").prefixStates("Reusable2/"),
+      new ReusableStateMachine(stack, "Reusable2").prefixStates("Reusable2/"),
     );
 
     // THEN
-    expect(render(spec, para)).toStrictEqual({
+    expect(render(stack, para)).toStrictEqual({
       StartAt: "Parallel",
       States: {
         Parallel: {
@@ -279,10 +279,10 @@ describe("States Language", () => {
   });
 
   test("State Machine Fragments can be wrapped in a single state", () => {
-    const reusable = new SimpleChain(spec, "Hello");
+    const reusable = new SimpleChain(stack, "Hello");
     const state = reusable.toSingleState();
 
-    expect(render(spec, state)).toStrictEqual({
+    expect(render(stack, state)).toStrictEqual({
       StartAt: "Hello",
       States: {
         Hello: {
@@ -311,13 +311,13 @@ describe("States Language", () => {
   });
 
   test("Chaining onto branched failure state ignores failure state", () => {
-    const yes = new compute.Pass(spec, "Yes");
-    const no = new compute.Fail(spec, "No", {
+    const yes = new compute.Pass(stack, "Yes");
+    const no = new compute.Fail(stack, "No", {
       error: "Failure",
       cause: "Wrong branch",
     });
-    const enfin = new compute.Pass(spec, "Finally");
-    const choice = new compute.Choice(spec, "Choice")
+    const enfin = new compute.Pass(stack, "Finally");
+    const choice = new compute.Choice(stack, "Choice")
       .when(compute.Condition.stringEquals("$.foo", "bar"), yes)
       .otherwise(no);
 
@@ -325,7 +325,7 @@ describe("States Language", () => {
     choice.afterwards().next(enfin);
 
     // THEN
-    expect(render(spec, choice)).toStrictEqual({
+    expect(render(stack, choice)).toStrictEqual({
       StartAt: "Choice",
       States: {
         Choice: {
@@ -342,16 +342,16 @@ describe("States Language", () => {
 
   test("Can include OTHERWISE transition for Choice in afterwards()", () => {
     // WHEN
-    const chain = new compute.Choice(spec, "Choice")
+    const chain = new compute.Choice(stack, "Choice")
       .when(
         compute.Condition.stringEquals("$.foo", "bar"),
-        new compute.Pass(spec, "Yes"),
+        new compute.Pass(stack, "Yes"),
       )
       .afterwards({ includeOtherwise: true })
-      .next(new compute.Pass(spec, "Finally"));
+      .next(new compute.Pass(stack, "Finally"));
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Choice",
       States: {
         Choice: {
@@ -366,14 +366,14 @@ describe("States Language", () => {
   });
 
   test("State machines can have unconstrainted gotos", () => {
-    const one = new compute.Pass(spec, "One");
-    const two = new compute.Pass(spec, "Two");
+    const one = new compute.Pass(stack, "One");
+    const two = new compute.Pass(stack, "Two");
 
     // WHEN
     const chain = one.next(two).next(one);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "One",
       States: {
         One: { Type: "Pass", Next: "Two" },
@@ -384,8 +384,8 @@ describe("States Language", () => {
 
   test("States can have error branches", () => {
     // GIVEN
-    const task1 = new FakeTask(spec, "Task1");
-    const failure = new compute.Fail(spec, "Failed", {
+    const task1 = new FakeTask(stack, "Task1");
+    const failure = new compute.Fail(stack, "Failed", {
       error: "DidNotWork",
       cause: "We got stuck",
     });
@@ -394,7 +394,7 @@ describe("States Language", () => {
     const chain = task1.addCatch(failure);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Task1",
       States: {
         Task1: {
@@ -414,8 +414,8 @@ describe("States Language", () => {
 
   test("Retries and errors with a result path", () => {
     // GIVEN
-    const task1 = new FakeTask(spec, "Task1");
-    const failure = new compute.Fail(spec, "Failed", {
+    const task1 = new FakeTask(stack, "Task1");
+    const failure = new compute.Fail(stack, "Failed", {
       error: "DidNotWork",
       cause: "We got stuck",
     });
@@ -427,7 +427,7 @@ describe("States Language", () => {
       .next(failure);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Task1",
       States: {
         Task1: {
@@ -454,9 +454,9 @@ describe("States Language", () => {
 
   test("Can wrap chain and attach error handler", () => {
     // GIVEN
-    const task1 = new FakeTask(spec, "Task1");
-    const task2 = new FakeTask(spec, "Task2");
-    const errorHandler = new compute.Pass(spec, "ErrorHandler");
+    const task1 = new FakeTask(stack, "Task1");
+    const task2 = new FakeTask(stack, "Task2");
+    const errorHandler = new compute.Pass(stack, "ErrorHandler");
 
     // WHEN
     const chain = task1
@@ -465,7 +465,7 @@ describe("States Language", () => {
       .addCatch(errorHandler);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Wrapped",
       States: {
         Wrapped: {
@@ -496,15 +496,15 @@ describe("States Language", () => {
   });
 
   test("Chaining does not chain onto error handler state", () => {
-    const task1 = new FakeTask(spec, "Task1");
-    const task2 = new FakeTask(spec, "Task2");
-    const errorHandler = new compute.Pass(spec, "ErrorHandler");
+    const task1 = new FakeTask(stack, "Task1");
+    const task2 = new FakeTask(stack, "Task2");
+    const errorHandler = new compute.Pass(stack, "ErrorHandler");
 
     // WHEN
     const chain = task1.addCatch(errorHandler).next(task2);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Task1",
       States: {
         Task1: {
@@ -521,10 +521,10 @@ describe("States Language", () => {
 
   test("Chaining does not chain onto error handler, extended", () => {
     // GIVEN
-    const task1 = new FakeTask(spec, "Task1");
-    const task2 = new FakeTask(spec, "Task2");
-    const task3 = new FakeTask(spec, "Task3");
-    const errorHandler = new compute.Pass(spec, "ErrorHandler");
+    const task1 = new FakeTask(stack, "Task1");
+    const task2 = new FakeTask(stack, "Task2");
+    const task3 = new FakeTask(stack, "Task3");
+    const errorHandler = new compute.Pass(stack, "ErrorHandler");
 
     // WHEN
     const chain = task1
@@ -538,7 +538,7 @@ describe("States Language", () => {
       Resource: "resource",
       Catch: [{ ErrorEquals: ["States.ALL"], Next: "ErrorHandler" }],
     };
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Task1",
       States: {
         Task1: { Next: "Task2", ...sharedTaskProps },
@@ -550,22 +550,22 @@ describe("States Language", () => {
   });
 
   test("Error handler with a fragment", () => {
-    const task1 = new FakeTask(spec, "Task1");
-    const task2 = new FakeTask(spec, "Task2");
-    const errorHandler = new compute.Pass(spec, "ErrorHandler");
+    const task1 = new FakeTask(stack, "Task1");
+    const task2 = new FakeTask(stack, "Task2");
+    const errorHandler = new compute.Pass(stack, "ErrorHandler");
 
     // WHEN
     task1
       .addCatch(errorHandler)
-      .next(new SimpleChain(spec, "Chain").catch(errorHandler))
+      .next(new SimpleChain(stack, "Chain").catch(errorHandler))
       .next(task2.addCatch(errorHandler));
   });
 
   test("Can merge state machines with shared states", () => {
     // GIVEN
-    const task1 = new FakeTask(spec, "Task1");
-    const task2 = new FakeTask(spec, "Task2");
-    const failure = new compute.Fail(spec, "Failed", {
+    const task1 = new FakeTask(stack, "Task1");
+    const task2 = new FakeTask(stack, "Task2");
+    const failure = new compute.Fail(stack, "Failed", {
       error: "DidNotWork",
       cause: "We got stuck",
     });
@@ -577,7 +577,7 @@ describe("States Language", () => {
     task1.next(task2);
 
     // THEN
-    expect(render(spec, task1)).toStrictEqual({
+    expect(render(stack, task1)).toStrictEqual({
       StartAt: "Task1",
       States: {
         Task1: {
@@ -603,51 +603,51 @@ describe("States Language", () => {
 
   test("No duplicate state IDs", () => {
     // GIVEN
-    const intermediateParent = new Construct(spec, "Parent");
+    const intermediateParent = new Construct(stack, "Parent");
 
-    const state1 = new compute.Pass(spec, "State");
+    const state1 = new compute.Pass(stack, "State");
     const state2 = new compute.Pass(intermediateParent, "State");
 
     state1.next(state2);
 
     // WHEN
-    expect(() => render(spec, state1)).toThrow();
+    expect(() => render(stack, state1)).toThrow();
   });
 
   test("No duplicate state IDs even across Parallel branches", () => {
     // GIVEN
-    const intermediateParent = new Construct(spec, "Parent");
+    const intermediateParent = new Construct(stack, "Parent");
 
-    const state1 = new compute.Pass(spec, "State");
+    const state1 = new compute.Pass(stack, "State");
     const state2 = new compute.Pass(intermediateParent, "State");
 
-    const parallel = new compute.Parallel(spec, "Parallel")
+    const parallel = new compute.Parallel(stack, "Parallel")
       .branch(state1)
       .branch(state2);
 
     // WHEN
-    expect(() => render(spec, parallel)).toThrow();
+    expect(() => render(stack, parallel)).toThrow();
   });
 
   test("No cross-parallel jumps", () => {
     // GIVEN
-    const state1 = new compute.Pass(spec, "State1");
-    const state2 = new compute.Pass(spec, "State2");
+    const state1 = new compute.Pass(stack, "State1");
+    const state2 = new compute.Pass(stack, "State2");
 
-    const parallel = new compute.Parallel(spec, "Parallel")
+    const parallel = new compute.Parallel(stack, "Parallel")
       .branch(state1.next(state2))
       .branch(state2);
 
     // WHEN
-    expect(() => render(spec, parallel)).toThrow();
+    expect(() => render(stack, parallel)).toThrow();
   });
 
   describe("findReachableStates", () => {
     test("Can retrieve possible states from initial state", () => {
       // GIVEN
-      const state1 = new compute.Pass(spec, "State1");
-      const state2 = new compute.Pass(spec, "State2");
-      const state3 = new compute.Pass(spec, "State3");
+      const state1 = new compute.Pass(stack, "State1");
+      const state2 = new compute.Pass(stack, "State2");
+      const state3 = new compute.Pass(stack, "State3");
 
       const definition = state1.next(state2).next(state3);
 
@@ -662,9 +662,9 @@ describe("States Language", () => {
 
     test("Does not retrieve unreachable states", () => {
       // GIVEN
-      const state1 = new compute.Pass(spec, "State1");
-      const state2 = new compute.Pass(spec, "State2");
-      const state3 = new compute.Pass(spec, "State3");
+      const state1 = new compute.Pass(stack, "State1");
+      const state2 = new compute.Pass(stack, "State2");
+      const state3 = new compute.Pass(stack, "State3");
 
       state1.next(state2).next(state3);
 
@@ -679,13 +679,13 @@ describe("States Language", () => {
 
     test("Works with Choice and Parallel states", () => {
       // GIVEN
-      const state1 = new compute.Choice(spec, "MainChoice");
-      const stateCA = new compute.Pass(spec, "StateA");
-      const stateCB = new compute.Pass(spec, "StateB");
-      const statePA = new compute.Pass(spec, "ParallelA");
-      const statePB = new compute.Pass(spec, "ParallelB");
-      const state2 = new compute.Parallel(spec, "RunParallel");
-      const state3 = new compute.Pass(spec, "FinalState");
+      const state1 = new compute.Choice(stack, "MainChoice");
+      const stateCA = new compute.Pass(stack, "StateA");
+      const stateCB = new compute.Pass(stack, "StateB");
+      const statePA = new compute.Pass(stack, "ParallelA");
+      const statePB = new compute.Pass(stack, "ParallelB");
+      const state2 = new compute.Parallel(stack, "RunParallel");
+      const state3 = new compute.Pass(stack, "FinalState");
       state2.branch(statePA);
       state2.branch(statePB);
       state1.when(compute.Condition.stringEquals("$.myInput", "A"), stateCA);

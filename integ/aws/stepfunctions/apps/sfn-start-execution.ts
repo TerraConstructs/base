@@ -13,8 +13,8 @@ const stackName = process.env.STACK_NAME ?? "sfn-start-execution";
  * * The output here should contain `status: "SUCCEEDED"` and `output`: '"Output": { "hello": "world"},'
  */
 
-class TestSpec extends aws.AwsSpec {
-  constructor(scope: App, id: string, props: aws.AwsSpecProps) {
+class TestStack extends aws.AwsStack {
+  constructor(scope: App, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
 
     const child = new aws.compute.StateMachine(this, "Child", {
@@ -42,14 +42,14 @@ class TestSpec extends aws.AwsSpec {
 const app = new App({
   outdir,
 });
-const spec = new TestSpec(app, stackName, {
+const stack = new TestStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 app.synth();

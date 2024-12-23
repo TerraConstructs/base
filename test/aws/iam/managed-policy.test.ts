@@ -1,8 +1,8 @@
 import { iamPolicy, dataAwsIamPolicy } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec, AwsBeaconBase } from "../../../src/aws";
-import { Grant, IAwsBeaconWithPolicy } from "../../../src/aws/iam/grant";
+import { AwsStack, AwsConstructBase } from "../../../src/aws";
+import { Grant, IAwsConstructWithPolicy } from "../../../src/aws/iam/grant";
 import { ManagedPolicy } from "../../../src/aws/iam/managed-policy";
 import { PolicyDocument } from "../../../src/aws/iam/policy-document";
 import { PolicyStatement } from "../../../src/aws/iam/policy-statement";
@@ -21,16 +21,16 @@ const gridBackendConfig = {
 
 describe("managed policy", () => {
   let app: App;
-  let spec: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    spec = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,
       gridBackendConfig,
-      // TODO: Should support passing account via Spec props?
+      // TODO: Should support passing account via Stack props?
       // account: "1234",
       // region: "us-east-1",
     });
@@ -38,42 +38,42 @@ describe("managed policy", () => {
 
   test("simple AWS managed policy", () => {
     const mp = ManagedPolicy.fromAwsManagedPolicyName(
-      spec,
+      stack,
       "SomePolicy",
       "service-role/SomePolicy",
     );
 
-    expect(spec.resolve(mp.managedPolicyArn)).toEqual(
+    expect(stack.resolve(mp.managedPolicyArn)).toEqual(
       "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/SomePolicy",
     );
   });
 
   test("simple customer managed policy", () => {
     const mp = ManagedPolicy.fromManagedPolicyName(
-      spec,
+      stack,
       "MyCustomerManagedPolicy",
       "SomeCustomerPolicy",
     );
 
-    expect(spec.resolve(mp.managedPolicyArn)).toEqual(
+    expect(stack.resolve(mp.managedPolicyArn)).toEqual(
       "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:policy/SomeCustomerPolicy",
     );
   });
 
   test("managed policy by arn", () => {
     const mp = ManagedPolicy.fromManagedPolicyArn(
-      spec,
+      stack,
       "MyManagedPolicyByArn",
       "arn:aws:iam::1234:policy/my-policy",
     );
 
-    expect(spec.resolve(mp.managedPolicyArn)).toEqual(
+    expect(stack.resolve(mp.managedPolicyArn)).toEqual(
       "arn:aws:iam::1234:policy/my-policy",
     );
   });
 
   test("managed policy with statements", () => {
-    const policy = new ManagedPolicy(spec, "MyManagedPolicy", {
+    const policy = new ManagedPolicy(stack, "MyManagedPolicy", {
       managedPolicyName: "MyManagedPolicyName",
     });
     policy.addStatements(
@@ -83,14 +83,14 @@ describe("managed policy", () => {
       new PolicyStatement({ resources: ["arn"], actions: ["sns:Subscribe"] }),
     );
 
-    const role = new Role(spec, "MyRole", {
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
     });
     role.addManagedPolicy(policy);
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -137,9 +137,9 @@ describe("managed policy", () => {
   });
 
   test("managed policy from policy document alone", () => {
-    new ManagedPolicy(spec, "MyManagedPolicy", {
+    new ManagedPolicy(stack, "MyManagedPolicy", {
       managedPolicyName: "MyManagedPolicyName",
-      document: PolicyDocument.fromJson(spec, "MyPolicyDocument", {
+      document: PolicyDocument.fromJson(stack, "MyPolicyDocument", {
         Statement: [
           {
             Action: "sqs:SendMessage",
@@ -151,8 +151,8 @@ describe("managed policy", () => {
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const template = JSON.parse(Testing.synth(spec));
+    stack.prepareStack();
+    const template = JSON.parse(Testing.synth(stack));
     expect(template).toMatchObject({
       data: {
         aws_iam_policy_document: {
@@ -181,9 +181,9 @@ describe("managed policy", () => {
   });
 
   test("managed policy from policy document with additional statements", () => {
-    new ManagedPolicy(spec, "MyManagedPolicy", {
+    new ManagedPolicy(stack, "MyManagedPolicy", {
       managedPolicyName: "MyManagedPolicyName",
-      document: PolicyDocument.fromJson(spec, "MyPolicyDocument", {
+      document: PolicyDocument.fromJson(stack, "MyPolicyDocument", {
         Statement: [
           {
             Action: "sqs:SendMessage",
@@ -198,8 +198,8 @@ describe("managed policy", () => {
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const template = JSON.parse(Testing.synth(spec));
+    stack.prepareStack();
+    const template = JSON.parse(Testing.synth(stack));
     expect(template).toMatchObject({
       data: {
         aws_iam_policy_document: {
@@ -233,7 +233,7 @@ describe("managed policy", () => {
   });
 
   test("policy name can be omitted, in which case the logical id will be used", () => {
-    const policy = new ManagedPolicy(spec, "MyManagedPolicy");
+    const policy = new ManagedPolicy(stack, "MyManagedPolicy");
     policy.addStatements(
       new PolicyStatement({ resources: ["*"], actions: ["sqs:SendMessage"] }),
     );
@@ -241,14 +241,14 @@ describe("managed policy", () => {
       new PolicyStatement({ resources: ["arn"], actions: ["sns:Subscribe"] }),
     );
 
-    const role = new Role(spec, "MyRole", {
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
     });
     role.addManagedPolicy(policy);
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // snapshot to debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -293,11 +293,11 @@ describe("managed policy", () => {
 
   // TODO: Re-add users and groups support
   test("via props, managed policy can be attached to users, groups and roles and permissions, description and path can be added", () => {
-    const role1 = new Role(spec, "Role1", {
+    const role1 = new Role(stack, "Role1", {
       assumedBy: new ServicePrincipal("test.service"),
     });
 
-    new ManagedPolicy(spec, "MyTestManagedPolicy", {
+    new ManagedPolicy(stack, "MyTestManagedPolicy", {
       managedPolicyName: "Foo",
       roles: [role1],
       description: "My Policy Description",
@@ -311,8 +311,8 @@ describe("managed policy", () => {
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const template = JSON.parse(Testing.synth(spec));
+    stack.prepareStack();
+    const template = JSON.parse(Testing.synth(stack));
     expect(template).toMatchObject({
       data: {
         aws_iam_policy_document: {
@@ -360,18 +360,18 @@ describe("managed policy", () => {
   });
 
   test("idempotent if a principal (user/group/role) is attached twice", () => {
-    const p = new ManagedPolicy(spec, "MyManagedPolicy");
+    const p = new ManagedPolicy(stack, "MyManagedPolicy");
     p.addStatements(new PolicyStatement({ actions: ["*"], resources: ["*"] }));
 
-    const role = new Role(spec, "MyRole", {
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
     });
     p.attachToRole(role);
     p.attachToRole(role);
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot to debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -421,19 +421,23 @@ describe("managed policy", () => {
   });
 
   test("idempotent if an imported principal (user/group/role) is attached twice", () => {
-    const p = new ManagedPolicy(spec, "MyManagedPolicy");
+    const p = new ManagedPolicy(stack, "MyManagedPolicy");
     p.addStatements(new PolicyStatement({ actions: ["*"], resources: ["*"] }));
 
-    const role = new Role(spec, "MyRole", {
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
     });
-    const importedRole = Role.fromRoleArn(spec, "MyImportedRole", role.roleArn);
+    const importedRole = Role.fromRoleArn(
+      stack,
+      "MyImportedRole",
+      role.roleArn,
+    );
     p.attachToRole(role);
     p.attachToRole(importedRole);
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot to debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -483,17 +487,17 @@ describe("managed policy", () => {
   });
 
   test("users, groups, roles and permissions can be added using methods", () => {
-    const p = new ManagedPolicy(spec, "MyManagedPolicy", {
+    const p = new ManagedPolicy(stack, "MyManagedPolicy", {
       managedPolicyName: "Foo",
     });
 
     p.attachToRole(
-      new Role(spec, "Role1", {
+      new Role(stack, "Role1", {
         assumedBy: new ServicePrincipal("test.service"),
       }),
     );
     p.attachToRole(
-      new Role(spec, "Role2", {
+      new Role(stack, "Role2", {
         assumedBy: new ServicePrincipal("test.service"),
       }),
     );
@@ -502,8 +506,8 @@ describe("managed policy", () => {
     );
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
 
     // refer to full snapshot to debug
     // expect(synthesized).toMatchSnapshot();
@@ -563,8 +567,8 @@ describe("managed policy", () => {
   });
 
   test("policy can be attached to users, groups or role via methods on the principal", () => {
-    const policy = new ManagedPolicy(spec, "MyManagedPolicy");
-    const role = new Role(spec, "MyRole", {
+    const policy = new ManagedPolicy(stack, "MyManagedPolicy");
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
     });
 
@@ -575,8 +579,8 @@ describe("managed policy", () => {
     );
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
 
     // refer to full snapshot to debug
     // expect(synthesized).toMatchSnapshot();
@@ -625,19 +629,19 @@ describe("managed policy", () => {
 
   test("policy from AWS managed policy lookup can be attached to users, groups or role via methods on the principal", () => {
     const policy = ManagedPolicy.fromAwsManagedPolicyName(
-      spec,
+      stack,
       "polRef",
       "AnAWSManagedPolicy",
     );
-    const role = new Role(spec, "MyRole", {
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
     });
 
     role.addManagedPolicy(policy);
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot to debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -661,19 +665,19 @@ describe("managed policy", () => {
 
   test("policy from customer managed policy lookup can be attached to users, groups or role via methods", () => {
     const policy = ManagedPolicy.fromManagedPolicyName(
-      spec,
+      stack,
       "MyManagedPolicy",
       "ACustomerManagedPolicyName",
     );
-    const role = new Role(spec, "MyRole", {
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
     });
 
     role.addManagedPolicy(policy);
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot to debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -696,18 +700,22 @@ describe("managed policy", () => {
   });
 
   test("policy from customer managed policy attributes data source can be attached to users, groups or role via methods", () => {
-    const policy = ManagedPolicy.fromPolicyAttributes(spec, "MyManagedPolicy", {
-      name: "ACustomerManagedPolicyName",
-    });
-    const role = new Role(spec, "MyRole", {
+    const policy = ManagedPolicy.fromPolicyAttributes(
+      stack,
+      "MyManagedPolicy",
+      {
+        name: "ACustomerManagedPolicyName",
+      },
+    );
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
     });
 
     role.addManagedPolicy(policy);
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot to debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -732,27 +740,27 @@ describe("managed policy", () => {
   });
 
   test("fails if policy document is empty", () => {
-    new ManagedPolicy(spec, "MyPolicy");
+    new ManagedPolicy(stack, "MyPolicy");
     expect(() => app.synth()).toThrow(
       /Managed Policy is empty. You must add statements to the policy/,
     );
   });
 
   test("managed policy name is correctly calculated", () => {
-    const mp = new ManagedPolicy(spec, "Policy");
+    const mp = new ManagedPolicy(stack, "Policy");
     mp.addStatements(
       new PolicyStatement({
         actions: ["a:abc"],
       }),
     );
 
-    expect(spec.resolve(mp.managedPolicyName)).toEqual(
+    expect(stack.resolve(mp.managedPolicyName)).toEqual(
       "${aws_iam_policy.Policy_23B91518.name}",
     );
   });
 
   test("fails if policy document does not specify resources", () => {
-    new ManagedPolicy(spec, "MyManagedPolicy", {
+    new ManagedPolicy(stack, "MyManagedPolicy", {
       statements: [new PolicyStatement({ actions: ["*"] })],
     });
 
@@ -762,7 +770,7 @@ describe("managed policy", () => {
   });
 
   test("fails if policy document specifies principals", () => {
-    new ManagedPolicy(spec, "MyManagedPolicy", {
+    new ManagedPolicy(stack, "MyManagedPolicy", {
       statements: [
         new PolicyStatement({
           actions: ["*"],
@@ -816,7 +824,7 @@ describe("managed policy", () => {
   // });
 
   test("Policies can be granted principal permissions", () => {
-    const mp = new ManagedPolicy(spec, "Policy", {
+    const mp = new ManagedPolicy(stack, "Policy", {
       managedPolicyName: "MyManagedPolicyName",
     });
     Grant.addToPrincipal({
@@ -825,8 +833,8 @@ describe("managed policy", () => {
       resourceArns: ["*"],
     });
 
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot to debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -857,11 +865,14 @@ describe("managed policy", () => {
   });
 
   test("addPrincipalOrResource() correctly grants Policies permissions", () => {
-    const mp = new ManagedPolicy(spec, "Policy", {
+    const mp = new ManagedPolicy(stack, "Policy", {
       managedPolicyName: "MyManagedPolicyName",
     });
 
-    class DummyResource extends AwsBeaconBase implements IAwsBeaconWithPolicy {
+    class DummyResource
+      extends AwsConstructBase
+      implements IAwsConstructWithPolicy
+    {
       public get outputs() {
         return {};
       }
@@ -871,7 +882,7 @@ describe("managed policy", () => {
         throw new Error("should not be called.");
       }
     }
-    const resource = new DummyResource(spec, "Dummy");
+    const resource = new DummyResource(stack, "Dummy");
     Grant.addToPrincipalOrResource({
       actions: ["dummy:Action"],
       grantee: mp,
@@ -879,8 +890,8 @@ describe("managed policy", () => {
       resource,
     });
 
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot to debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -911,11 +922,14 @@ describe("managed policy", () => {
   });
 
   test("Policies cannot be granted principal permissions across accounts", () => {
-    const mp = new ManagedPolicy(spec, "Policy", {
+    const mp = new ManagedPolicy(stack, "Policy", {
       managedPolicyName: "MyManagedPolicyName",
     });
 
-    class DummyResource extends AwsBeaconBase implements IAwsBeaconWithPolicy {
+    class DummyResource
+      extends AwsConstructBase
+      implements IAwsConstructWithPolicy
+    {
       public get outputs() {
         return {};
       }
@@ -925,7 +939,7 @@ describe("managed policy", () => {
         throw new Error("should not be called.");
       }
     }
-    const resource = new DummyResource(spec, "Dummy", { account: "5678" });
+    const resource = new DummyResource(stack, "Dummy", { account: "5678" });
 
     expect(() => {
       Grant.addToPrincipalOrResource({
@@ -938,11 +952,14 @@ describe("managed policy", () => {
   });
 
   test("Policies cannot be granted resource permissions", () => {
-    const mp = new ManagedPolicy(spec, "Policy", {
+    const mp = new ManagedPolicy(stack, "Policy", {
       managedPolicyName: "MyManagedPolicyName",
     });
 
-    class DummyResource extends AwsBeaconBase implements IAwsBeaconWithPolicy {
+    class DummyResource
+      extends AwsConstructBase
+      implements IAwsConstructWithPolicy
+    {
       public get outputs() {
         return {};
       }
@@ -952,7 +969,7 @@ describe("managed policy", () => {
         throw new Error("should not be called.");
       }
     }
-    const resource = new DummyResource(spec, "Dummy");
+    const resource = new DummyResource(stack, "Dummy");
 
     expect(() => {
       Grant.addToPrincipalAndResource({
@@ -1007,8 +1024,8 @@ describe("managed policy", () => {
 
   //   // THEN
   //   // Do prepare run to resolve/add all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
+  //   stack.prepareStack();
+  //   const synthesized = Testing.synth(stack);
   //   expect(synthesized).toMatchSnapshot();
   //   // Template.fromStack(otherStack).resourceCountIs(
   //   //   "AWS::IAM::ManagedPolicy",
@@ -1019,7 +1036,7 @@ describe("managed policy", () => {
 
 test("ARN for two instances of the same AWS Managed Policy is the same", () => {
   const app = Testing.app();
-  const spec = new AwsSpec(app, "MyStack", {
+  const stack = new AwsStack(app, "MyStack", {
     environmentName,
     gridUUID,
     providerConfig,
@@ -1027,11 +1044,11 @@ test("ARN for two instances of the same AWS Managed Policy is the same", () => {
     //   account: "1234",
     //   region: "us-east-1",
   });
-  const mp1 = ManagedPolicy.fromAwsManagedPolicyName(spec, "Bar", "foo/bar");
-  const mp2 = ManagedPolicy.fromAwsManagedPolicyName(spec, "Foo", "foo/bar");
+  const mp1 = ManagedPolicy.fromAwsManagedPolicyName(stack, "Bar", "foo/bar");
+  const mp2 = ManagedPolicy.fromAwsManagedPolicyName(stack, "Foo", "foo/bar");
 
-  expect(spec.resolve(mp1.managedPolicyArn)).toEqual(
-    spec.resolve(mp2.managedPolicyArn),
+  expect(stack.resolve(mp1.managedPolicyArn)).toEqual(
+    stack.resolve(mp2.managedPolicyArn),
   );
 });
 

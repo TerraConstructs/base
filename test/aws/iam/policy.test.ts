@@ -1,12 +1,12 @@
 import { iamRolePolicy, dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import { Policy } from "../../../src/aws/iam/policy";
 import { PolicyDocument } from "../../../src/aws/iam/policy-document";
 import { PolicyStatement } from "../../../src/aws/iam/policy-statement";
 import { ServicePrincipal } from "../../../src/aws/iam/principals";
 import { Role } from "../../../src/aws/iam/role";
-import { AwsSpec } from "../../../src/aws/spec";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -16,22 +16,22 @@ const gridBackendConfig = {
 };
 
 describe("IAM policy", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     // app = new App();
-    spec = getAwsSpec();
+    stack = getAwsStack();
   });
 
   // TODO: throw Error if force is true and policy is empty
   // test('fails when "forced" policy is empty', () => {
-  //   new Policy(spec, "MyPolicy", { force: true });
+  //   new Policy(stack, "MyPolicy", { force: true });
 
-  //   expect(() => Testing.synth(spec)).toThrow(/is empty/);
+  //   expect(() => Testing.synth(stack)).toThrow(/is empty/);
   // });
 
   test("policy with statements", () => {
-    const policy = new Policy(spec, "MyPolicy", {
+    const policy = new Policy(stack, "MyPolicy", {
       policyName: "MyPolicyName",
     });
     policy.addStatements(
@@ -41,13 +41,13 @@ describe("IAM policy", () => {
       new PolicyStatement({ resources: ["arn"], actions: ["sns:Subscribe"] }),
     );
 
-    const role = new Role(spec, "Role", {
+    const role = new Role(stack, "Role", {
       assumedBy: new ServicePrincipal("sns"),
     });
     role.attachInlinePolicy(policy);
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // NOTE: without prepareStack, the IamRolePolicy is missing!
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -79,9 +79,9 @@ describe("IAM policy", () => {
   });
 
   test("policy from policy document alone", () => {
-    const policy = new Policy(spec, "MyPolicy", {
+    const policy = new Policy(stack, "MyPolicy", {
       policyName: "MyPolicyName",
-      document: PolicyDocument.fromJson(spec, "doc", {
+      document: PolicyDocument.fromJson(stack, "doc", {
         Statement: [
           {
             Action: "sqs:SendMessage",
@@ -92,13 +92,13 @@ describe("IAM policy", () => {
       }),
     });
 
-    const role = new Role(spec, "Role", {
+    const role = new Role(stack, "Role", {
       assumedBy: new ServicePrincipal("sns"),
     });
     role.attachInlinePolicy(policy);
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
 
     // NOTE: without prepareStack, the IamRolePolicy is missing!
@@ -125,7 +125,7 @@ describe("IAM policy", () => {
   });
 
   test("policy name can be omitted, in which case the logical id will be used", () => {
-    const policy = new Policy(spec, "MyPolicy");
+    const policy = new Policy(stack, "MyPolicy");
     policy.addStatements(
       new PolicyStatement({ resources: ["*"], actions: ["sqs:SendMessage"] }),
     );
@@ -133,14 +133,14 @@ describe("IAM policy", () => {
       new PolicyStatement({ resources: ["arn"], actions: ["sns:Subscribe"] }),
     );
 
-    const role = new Role(spec, "Role", {
+    const role = new Role(stack, "Role", {
       assumedBy: new ServicePrincipal("sns"),
     });
     role.attachInlinePolicy(policy);
 
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // NOTE: without prepareStack, the IamRolePolicy is missing!
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -162,7 +162,7 @@ describe("IAM policy", () => {
     expect(synthesized).toHaveResourceWithProperties(
       iamRolePolicy.IamRolePolicy,
       {
-        name: expect.stringContaining("TestSpecMyPolicy"),
+        name: expect.stringContaining("TestStackMyPolicy"),
         policy: expect.stringContaining(
           "data.aws_iam_policy_document.MyPolicy",
         ),
@@ -174,14 +174,14 @@ describe("IAM policy", () => {
   test("policy can be attached users, groups and roles and added permissions via props", () => {
     // const user1 = new User(stack, "User1");
     // const group1 = new Group(stack, "Group1");
-    const role1 = new Role(spec, "Role1", {
+    const role1 = new Role(stack, "Role1", {
       assumedBy: new ServicePrincipal("test.service"),
     });
-    const role2 = new Role(spec, "Role2", {
+    const role2 = new Role(stack, "Role2", {
       assumedBy: new ServicePrincipal("test.service"),
     });
 
-    new Policy(spec, "MyTestPolicy", {
+    new Policy(stack, "MyTestPolicy", {
       policyName: "Foo",
       // users: [user1],
       // groups: [group1],
@@ -195,8 +195,8 @@ describe("IAM policy", () => {
     });
 
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // NOTE: without prepareStack, the IamRolePolicy is missing!
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -232,18 +232,18 @@ describe("IAM policy", () => {
   });
 
   test("idempotent if a principal (user/group/role) is attached twice", () => {
-    const p = new Policy(spec, "MyPolicy");
+    const p = new Policy(stack, "MyPolicy");
     p.addStatements(new PolicyStatement({ actions: ["*"], resources: ["*"] }));
 
-    const role = new Role(spec, "Role1", {
+    const role = new Role(stack, "Role1", {
       assumedBy: new ServicePrincipal("test.service"),
     });
     p.attachToRole(role);
     p.attachToRole(role);
 
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // NOTE: without prepareStack, the IamRolePolicy is missing!
     const iamRolePolicies = Object.values(
       JSON.parse(synthesized).resource.aws_iam_role_policy,
@@ -261,12 +261,12 @@ describe("IAM policy", () => {
   });
 
   test("users, groups, roles and permissions can be added using methods", () => {
-    const p = new Policy(spec, "MyTestPolicy", {
+    const p = new Policy(stack, "MyTestPolicy", {
       policyName: "Foo",
     });
 
     p.attachToRole(
-      new Role(spec, "Role1", {
+      new Role(stack, "Role1", {
         assumedBy: new ServicePrincipal("test.service"),
       }),
     );
@@ -275,8 +275,8 @@ describe("IAM policy", () => {
     );
 
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     // NOTE: without prepareStack, the IamRolePolicy is missing!
     expect(synthesized).toHaveDataSourceWithProperties(
@@ -303,8 +303,8 @@ describe("IAM policy", () => {
   });
 
   test("policy can be attached to users, groups or role via methods on the principal", () => {
-    const policy = new Policy(spec, "MyPolicy");
-    const role = new Role(spec, "MyRole", {
+    const policy = new Policy(stack, "MyPolicy");
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
     });
 
@@ -315,8 +315,8 @@ describe("IAM policy", () => {
     );
 
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     // NOTE: without prepareStack, the IamRolePolicy is missing!
     expect(synthesized).toHaveDataSourceWithProperties(
@@ -343,13 +343,13 @@ describe("IAM policy", () => {
 
   test("fails if policy name is not unique within a user/group/role", () => {
     // create two policies named Foo and attach them both to the same user/group/role
-    const p1 = new Policy(spec, "P1", { policyName: "Foo" });
-    const p2 = new Policy(spec, "P2", { policyName: "Foo" });
-    const p3 = new Policy(spec, "P3"); // uses logicalID as name
+    const p1 = new Policy(stack, "P1", { policyName: "Foo" });
+    const p2 = new Policy(stack, "P2", { policyName: "Foo" });
+    const p3 = new Policy(stack, "P3"); // uses logicalID as name
 
-    // const user = new User(spec, "MyUser");
-    // const group = new Group(spec, "MyGroup");
-    const role = new Role(spec, "MyRole", {
+    // const user = new User(stack, "MyUser");
+    // const group = new Group(stack, "MyGroup");
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
     });
 
@@ -374,19 +374,23 @@ describe("IAM policy", () => {
   });
 
   test("idempotent if an imported principal (user/group/role) is attached twice", () => {
-    const p = new Policy(spec, "Policy");
+    const p = new Policy(stack, "Policy");
     p.addStatements(new PolicyStatement({ resources: ["*"], actions: ["*"] }));
 
-    const role = new Role(spec, "MyRole", {
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
     });
-    const importedRole = Role.fromRoleArn(spec, "MyImportedRole", role.roleArn);
+    const importedRole = Role.fromRoleArn(
+      stack,
+      "MyImportedRole",
+      role.roleArn,
+    );
     p.attachToRole(role);
     p.attachToRole(importedRole);
 
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     const iamRolePolicies = Object.values(
       JSON.parse(synthesized).resource.aws_iam_role_policy,
@@ -437,18 +441,18 @@ describe("IAM policy", () => {
 
   test("empty policy is OK if force=false", () => {
     // TODO: is an empty policy really ok?
-    new Policy(spec, "Pol", { force: false });
+    new Policy(stack, "Pol", { force: false });
 
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    Testing.synth(spec);
+    stack.prepareStack();
+    Testing.synth(stack);
     // If we got here, all OK
   });
 });
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

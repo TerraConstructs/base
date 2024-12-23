@@ -1,7 +1,7 @@
 import { Annotations } from "cdktf";
 import { Construct, IConstruct, Node } from "constructs";
 import * as notify from "..";
-import { AwsSpec } from "../..";
+import { AwsStack } from "../..";
 import { Duration } from "../../..";
 import { TokenComparison, tokenCompareStrings } from "../../../token";
 import * as compute from "../../compute";
@@ -98,13 +98,13 @@ export function addLambdaPermission(
 ): void {
   let scope: Construct | undefined;
   let node: Node = handler.permissionsNode;
-  let permissionId = `AllowEventRule${AwsSpec.uniqueId(rule.node)}`;
+  let permissionId = `AllowEventRule${AwsStack.uniqueId(rule.node)}`;
   if (rule instanceof Construct) {
     // Place the Permission resource in the same stack as Rule rather than the Function
     // This is to reduce circular dependency when the lambda handler and the rule are across stacks.
     scope = rule;
     node = rule.node;
-    permissionId = `AllowEventRule${AwsSpec.uniqueId(handler.node)}`;
+    permissionId = `AllowEventRule${AwsStack.uniqueId(handler.node)}`;
   }
   if (!node.tryFindChild(permissionId)) {
     handler.addPermission(permissionId, {
@@ -126,7 +126,7 @@ export function addToDeadLetterQueueResourcePolicy(
 ) {
   if (!sameEnvDimension(rule.env.region, queue.env.region)) {
     throw new Error(
-      `Cannot assign Dead Letter Queue in region ${queue.env.region} to the rule ${AwsSpec.uniqueId(rule.node)} in region ${rule.env.region}. Both the queue and the rule must be in the same region.`,
+      `Cannot assign Dead Letter Queue in region ${queue.env.region} to the rule ${AwsStack.uniqueId(rule.node)} in region ${rule.env.region}. Both the queue and the rule must be in the same region.`,
     );
   }
 
@@ -134,7 +134,7 @@ export function addToDeadLetterQueueResourcePolicy(
   // There is no way to add a target onto an imported rule, so we can assume we will run the following code only
   // in the account where the rule is created.
   if (sameEnvDimension(rule.env.account, queue.env.account)) {
-    const policyStatementId = `AllowEventRule${AwsSpec.uniqueId(rule.node)}`;
+    const policyStatementId = `AllowEventRule${AwsStack.uniqueId(rule.node)}`;
 
     queue.addToResourcePolicy(
       new iam.PolicyStatement({

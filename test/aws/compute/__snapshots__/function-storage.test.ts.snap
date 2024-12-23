@@ -75,12 +75,12 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
   "resource": {
     "aws_cloudwatch_log_group": {
       "HelloWorld_LogGroup_948040CF": {
-        "name": "/aws/lambda/123e4567-e89b-12d3-TestSpecHelloWorld",
+        "name": "/aws/lambda/123e4567-e89b-12d3-TestStackHelloWorld",
         "retention_in_days": 7,
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },
@@ -93,14 +93,14 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
         "name_prefix": "123e4567-e89b-12d3-lloWorldServiceRole",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },
     "aws_iam_role_policy": {
       "HelloWorld_ServiceRole_DefaultPolicy_ResourceRoles0_F82A2883": {
-        "name": "TestSpecHelloWorldServiceRoleDefaultPolicy6FFF26AA",
+        "name": "TestStackHelloWorldServiceRoleDefaultPolicy3B4BE62E",
         "policy": "\${data.aws_iam_policy_document.HelloWorld_ServiceRole_DefaultPolicy_80066894.json}",
         "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.name}"
       }
@@ -122,7 +122,7 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
           }
         },
         "filename": "assets/HelloWorld_NodejsAsset_04D667C4/9A3227D39E16A36D4510660AB9C595A1/archive.zip",
-        "function_name": "123e4567-e89b-12d3-TestSpecHelloWorld",
+        "function_name": "123e4567-e89b-12d3-TestStackHelloWorld",
         "handler": "hello-world.handler",
         "memory_size": 128,
         "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.arn}",
@@ -130,8 +130,8 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
         "source_code_hash": "9A3227D39E16A36D4510660AB9C595A1",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "timeout": 3,
         "tracing_config": {
@@ -141,11 +141,11 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
     },
     "aws_s3_bucket": {
       "HelloWorldBucket_D435D97F": {
-        "bucket_prefix": "hello-world-testspechelloworldbucket",
+        "bucket_prefix": "hello-world-teststackhelloworldbucket",
         "tags": {
           "Name": "Test-HelloWorldBucket",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     }
@@ -229,13 +229,13 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
   "resource": {
     "aws_cloudwatch_event_rule": {
       "HelloWorldRule_4DC52DAE": {
-        "name_prefix": "123e4567-e89b-12d3-tSpecHelloWorldRule",
+        "name_prefix": "123e4567-e89b-12d3-StackHelloWorldRule",
         "schedule_expression": "rate(1 day)",
         "state": "ENABLED",
         "tags": {
           "Name": "Test-HelloWorldRule",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },
@@ -248,12 +248,12 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
     },
     "aws_cloudwatch_log_group": {
       "HelloWorld_LogGroup_948040CF": {
-        "name": "/aws/lambda/123e4567-e89b-12d3-TestSpecHelloWorld",
+        "name": "/aws/lambda/123e4567-e89b-12d3-TestStackHelloWorld",
         "retention_in_days": 7,
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },
@@ -266,14 +266,14 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
         "name_prefix": "123e4567-e89b-12d3-lloWorldServiceRole",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },
     "aws_iam_role_policy": {
       "HelloWorld_ServiceRole_DefaultPolicy_ResourceRoles0_F82A2883": {
-        "name": "TestSpecHelloWorldServiceRoleDefaultPolicy6FFF26AA",
+        "name": "TestStackHelloWorldServiceRoleDefaultPolicy3B4BE62E",
         "policy": "\${data.aws_iam_policy_document.HelloWorld_ServiceRole_DefaultPolicy_80066894.json}",
         "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.name}"
       }
@@ -295,7 +295,7 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
           }
         },
         "filename": "assets/HelloWorld_NodejsAsset_04D667C4/9A3227D39E16A36D4510660AB9C595A1/archive.zip",
-        "function_name": "123e4567-e89b-12d3-TestSpecHelloWorld",
+        "function_name": "123e4567-e89b-12d3-TestStackHelloWorld",
         "handler": "hello-world.handler",
         "memory_size": 128,
         "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.arn}",
@@ -303,8 +303,8 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
         "source_code_hash": "9A3227D39E16A36D4510660AB9C595A1",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "timeout": 3,
         "tracing_config": {
@@ -313,7 +313,7 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
       }
     },
     "aws_lambda_permission": {
-      "HelloWorldRule_AllowEventRuleTestSpecHelloWorld767917F5_DAC75690": {
+      "HelloWorldRule_AllowEventRuleTestStackHelloWorld1E7F2DB1_F6E9C5A8": {
         "action": "lambda:InvokeFunction",
         "function_name": "\${aws_lambda_function.HelloWorld_7964D1E8.arn}",
         "principal": "events.amazonaws.com",

@@ -2,10 +2,10 @@ import { sfnStateMachine } from "@cdktf/provider-aws";
 import { Token, IResolvable } from "cdktf";
 import { Construct } from "constructs";
 import {
-  AwsBeaconBase,
-  IAwsBeacon,
-  AwsBeaconProps,
-  AwsSpec,
+  AwsConstructBase,
+  IAwsConstruct,
+  AwsConstructProps,
+  AwsStack,
   Arn,
   ArnFormat,
 } from "..";
@@ -17,7 +17,7 @@ import * as iam from "../iam";
 /**
  * Properties for defining a State Machine
  */
-export interface StateMachineProps extends AwsBeaconProps {
+export interface StateMachineProps extends AwsConstructProps {
   /**
    * The name of the state machine.
    *
@@ -99,7 +99,7 @@ export interface StateMachineOutputs {
 /**
  * A State Machine
  */
-export interface IStateMachine extends IAwsBeacon {
+export interface IStateMachine extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly stateMachineOutputs: StateMachineOutputs;
 
@@ -159,7 +159,10 @@ export interface IStateMachine extends IAwsBeacon {
 /**
  * A new or imported state machine.
  */
-abstract class StateMachineBase extends AwsBeaconBase implements IStateMachine {
+abstract class StateMachineBase
+  extends AwsConstructBase
+  implements IStateMachine
+{
   /**
    * Import a state machine
    */
@@ -197,7 +200,7 @@ abstract class StateMachineBase extends AwsBeaconBase implements IStateMachine {
     id: string,
     stateMachineName: string,
   ): IStateMachine {
-    const stateMachineArn = AwsSpec.ofAwsBeacon(scope).formatArn({
+    const stateMachineArn = AwsStack.ofAwsConstruct(scope).formatArn({
       service: "states",
       resource: "stateMachine",
       arnFormat: ArnFormat.COLON_RESOURCE_NAME,
@@ -589,7 +592,7 @@ export class ChainDefinitionBody extends DefinitionBody {
   ): DefinitionConfig {
     const graphJson = graph!.toGraphJson();
     return {
-      definition: AwsSpec.ofAwsBeacon(scope).toJsonString({
+      definition: AwsStack.ofAwsConstruct(scope).toJsonString({
         ...graphJson,
         Comment: sfnProps.comment,
       }),

@@ -8,18 +8,18 @@ import {
   IAspect,
 } from "cdktf";
 import { Construct, IConstruct } from "constructs";
-import { SpecBase } from "./spec-base";
+import { StackBase } from "./stack-base";
 
-export interface BeaconProps extends TerraformMetaArguments {
+export interface TerraConstructProps extends TerraformMetaArguments {
   /**
-   * The friendly name for beacon resources
+   * The friendly name for TerraConstruct resources
    *
    * @default - `environmentName-id`
    */
   readonly friendlyName?: string;
 
   /**
-   * Whether to register Terraform outputs for this beacon
+   * Whether to register Terraform outputs for this TerraConstruct
    *
    * @default false
    */
@@ -33,7 +33,7 @@ export interface BeaconProps extends TerraformMetaArguments {
   readonly outputName?: string;
 }
 
-export interface IBeacon extends IConstruct {
+export interface ITerraConstruct extends IConstruct {
   /**
    * Environment Name passed in from the CLI
    */
@@ -53,9 +53,9 @@ function isTaggableConstruct(x: IConstruct): x is TaggableConstruct {
   );
 }
 
-const GRID_TAG_PREFIX = "et:grid";
+const GRID_TAG_PREFIX = "grid";
 
-// Add Grid Tags to all Beacon resources
+// Add Grid Tags to all TerraConstruct resources
 export class GridTags implements IAspect {
   constructor(private tagsToAdd: Record<string, string>) {}
   visit(node: IConstruct) {
@@ -68,11 +68,14 @@ export class GridTags implements IAspect {
 }
 
 /**
- * Base class for all Beacons
+ * Base class for all TerraConstructs
  *
- * Allows a Beacon to lazily register its outputs with its parent Spec
+ * Allows a TerraConstruct to lazily register its outputs with its parent Stack
  */
-export abstract class BeaconBase extends TerraformElement implements IBeacon {
+export abstract class TerraConstructBase
+  extends TerraformElement
+  implements ITerraConstruct
+{
   /**
    * Returns true if the construct was created by CDKTF, and false otherwise
    */
@@ -88,22 +91,22 @@ export abstract class BeaconBase extends TerraformElement implements IBeacon {
   public readonly outputName: string;
 
   /**
-   * Beacon friendly name
+   * TerraConstruct friendly name
    */
   public readonly friendlyName: string;
 
   /**
-   * Beacon unique grid identifier
+   * TerraConstruct unique grid identifier
    */
   public get gridUUID(): string {
-    return SpecBase.ofBeacon(this).gridUUID;
+    return StackBase.ofTerraConstruct(this).gridUUID;
   }
 
   /**
    * Environment Name passed in from the CLI
    */
   public get environmentName(): string {
-    return SpecBase.ofBeacon(this).environmentName;
+    return StackBase.ofTerraConstruct(this).environmentName;
   }
 
   /**
@@ -114,7 +117,7 @@ export abstract class BeaconBase extends TerraformElement implements IBeacon {
   constructor(
     scope: Construct,
     private readonly constructId: string,
-    props: BeaconProps = {},
+    props: TerraConstructProps = {},
   ) {
     super(scope, constructId);
     this.outputName = props.outputName || `${constructId}Outputs`;
@@ -139,15 +142,15 @@ export abstract class BeaconBase extends TerraformElement implements IBeacon {
     }
   }
 
-  // force usage of node.addDependency instead of passing beacons via dependsOn
-  // Refering a beacon by fqn always triggers an error?
+  // force usage of node.addDependency instead of passing TerraConstructs via dependsOn
+  // Refering a TerraConstruct by fqn always triggers an error?
   public get fqn(): string {
     // try {
     //   return super.fqn;
     // } catch (e) {
     // ref: https://github.com/aws/constructs/blob/10.x/src/construct.ts#L345
     throw new Error(
-      `Use Construct node.addDependency instead of passing beacon fqn ${this.constructor.name} ${this.constructId}`,
+      `Use Construct node.addDependency instead of passing TerraConstruct fqn ${this.constructor.name} ${this.constructId}`,
     );
     // }
   }

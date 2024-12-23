@@ -4,16 +4,16 @@ import "cdktf/lib/testing/adapters/jest";
 import { FakeTask } from "./private/fake-task";
 import { renderGraph } from "./private/render-util";
 // import { Metric } from "../../aws-cloudwatch"; // TODO: Re-add metrics
-import { iam, compute, AwsSpec } from "../../../src/aws";
+import { iam, compute, AwsStack } from "../../../src/aws";
 import { Duration } from "../../../src/duration";
 
 describe("Task base", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   let task: compute.TaskStateBase;
 
   beforeEach(() => {
     // GIVEN
-    spec = new AwsSpec(Testing.app(), `TestSpec`, {
+    stack = new AwsStack(Testing.app(), `TestStack`, {
       environmentName: "Test",
       gridUUID: "123e4567-e89b-12d3",
       providerConfig: {
@@ -23,7 +23,7 @@ describe("Task base", () => {
         address: "http://localhost:3000",
       },
     });
-    task = new FakeTask(spec, "my-task", {
+    task = new FakeTask(stack, "my-task", {
       // metrics: {
       //   metricPrefixPlural: "",
       //   metricPrefixSingular: "",
@@ -32,7 +32,7 @@ describe("Task base", () => {
   });
   test("instantiate a concrete implementation with properties", () => {
     // WHEN
-    task = new FakeTask(spec, "my-exciting-task", {
+    task = new FakeTask(stack, "my-exciting-task", {
       comment: "my exciting task",
       heartbeatTimeout: compute.Timeout.duration(Duration.seconds(10)),
       taskTimeout: compute.Timeout.duration(Duration.minutes(10)),
@@ -58,11 +58,11 @@ describe("Task base", () => {
   test("instantiate a concrete implementation with credentials of a specified role", () => {
     // WHEN
     const role = iam.Role.fromRoleArn(
-      spec,
+      stack,
       "Role",
       "arn:aws:iam::123456789012:role/example-role",
     );
-    task = new FakeTask(spec, "my-exciting-task", {
+    task = new FakeTask(stack, "my-exciting-task", {
       comment: "my exciting task",
       heartbeatTimeout: compute.Timeout.duration(Duration.seconds(10)),
       taskTimeout: compute.Timeout.duration(Duration.minutes(10)),
@@ -93,7 +93,7 @@ describe("Task base", () => {
 
   test("instantiate a concrete implementation with credentials of json expression roleArn", () => {
     // WHEN
-    task = new FakeTask(spec, "my-exciting-task", {
+    task = new FakeTask(stack, "my-exciting-task", {
       comment: "my exciting task",
       heartbeatTimeout: compute.Timeout.duration(Duration.seconds(10)),
       taskTimeout: compute.Timeout.duration(Duration.minutes(10)),
@@ -122,7 +122,7 @@ describe("Task base", () => {
 
   test("instantiate a concrete implementation with resultSelector", () => {
     // WHEN
-    task = new FakeTask(spec, "my-exciting-task", {
+    task = new FakeTask(stack, "my-exciting-task", {
       resultSelector: {
         buz: "buz",
         baz: compute.JsonPath.stringAt("$.baz"),
@@ -149,7 +149,7 @@ describe("Task base", () => {
 
   test("add catch configuration", () => {
     // GIVEN
-    const failure = new compute.Fail(spec, "failed", {
+    const failure = new compute.Fail(stack, "failed", {
       error: "DidNotWork",
       cause: "We got stuck",
     });
@@ -184,9 +184,9 @@ describe("Task base", () => {
 
   test("States.ALL catch appears at end of list", () => {
     // GIVEN
-    const httpFailure = new compute.Fail(spec, "http", { error: "HTTP" });
-    const otherFailure = new compute.Fail(spec, "other", { error: "Other" });
-    const allFailure = new compute.Fail(spec, "all");
+    const httpFailure = new compute.Fail(stack, "http", { error: "HTTP" });
+    const otherFailure = new compute.Fail(stack, "other", { error: "Other" });
+    const allFailure = new compute.Fail(stack, "all");
 
     // WHEN
     task
@@ -235,7 +235,7 @@ describe("Task base", () => {
 
   test("addCatch throws when errors are combined with States.ALL", () => {
     // GIVEN
-    const failure = new compute.Fail(spec, "failed", {
+    const failure = new compute.Fail(stack, "failed", {
       error: "DidNotWork",
       cause: "We got stuck",
     });
@@ -325,7 +325,7 @@ describe("Task base", () => {
 
   test("add a next state to the task in the chain", () => {
     // WHEN
-    task.next(new compute.Pass(spec, "passState"));
+    task.next(new compute.Pass(stack, "passState"));
 
     // THEN
     expect(renderGraph(task)).toEqual({
@@ -344,7 +344,7 @@ describe("Task base", () => {
 
   test("taskTimeout and heartbeatTimeout specified with a path", () => {
     // WHEN
-    task = new FakeTask(spec, "my-exciting-task", {
+    task = new FakeTask(stack, "my-exciting-task", {
       heartbeatTimeout: compute.Timeout.at("$.heartbeat"),
       taskTimeout: compute.Timeout.at("$.timeout"),
     });
@@ -365,7 +365,7 @@ describe("Task base", () => {
   // TODO: Deprecate task heartbeat and timeout?
   test("deprecated props timeout and heartbeat still work", () => {
     // WHEN
-    task = new FakeTask(spec, "my-exciting-task", {
+    task = new FakeTask(stack, "my-exciting-task", {
       heartbeat: Duration.seconds(10),
       timeout: Duration.minutes(10),
     });
@@ -465,7 +465,7 @@ describe("Task base", () => {
 
   // test("metrics must be configured to use metric* APIs", () => {
   //   // GIVEN
-  //   task = new FakeTask(spec, "mytask", {});
+  //   task = new FakeTask(stack, "mytask", {});
 
   //   // THEN
   //   expect(() => {

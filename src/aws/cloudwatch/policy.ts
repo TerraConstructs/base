@@ -2,13 +2,13 @@
 
 import { cloudwatchLogResourcePolicy } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { PolicyDocument, PolicyStatement } from "../iam";
 
 /**
  * Properties to define Cloudwatch log group resource policy
  */
-export interface ResourcePolicyProps extends AwsBeaconProps {
+export interface ResourcePolicyProps extends AwsConstructProps {
   /**
    * Name of the log group resource policy
    * @default - Uses a unique id based on the construct path
@@ -37,7 +37,7 @@ export interface ResourcePolicyProps extends AwsBeaconProps {
  *
  * Prefer to use `addToResourcePolicy()` instead.
  */
-export class ResourcePolicy extends AwsBeaconBase {
+export class ResourcePolicy extends AwsConstructBase {
   public readonly resource: cloudwatchLogResourcePolicy.CloudwatchLogResourcePolicy;
   public get outputs(): Record<string, any> {
     return {

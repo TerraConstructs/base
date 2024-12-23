@@ -14,12 +14,12 @@ import {
 const nodeVersion = "20";
 
 const project = new cdk.JsiiProject({
-  name: "@envtio/base",
+  name: "terraconstructs",
   npmAccess: javascript.NpmAccess.PUBLIC,
   author: "Vincent De Smet",
   authorAddress: "vincent.drl@gmail.com",
-  repositoryUrl: "https://github.com/envtio/base",
-  keywords: ["environment-toolkit", "beacon", "beacon-bundle"],
+  repositoryUrl: "https://github.com/TerraConstructs/base",
+  keywords: ["terraconstructs"],
   defaultReleaseBranch: "main",
   typescriptVersion: "~5.4",
   jsiiVersion: "~5.4",
@@ -100,15 +100,6 @@ const project = new cdk.JsiiProject({
   // disable autoMerge for now
   autoMerge: false,
 });
-
-// override harcoded jest testMatch patterns :(
-// https://github.com/projen/projen/blob/8b225dcdacb3aacebf368b2e06abdbb39d62c0dc/src/javascript/jest.ts#L861
-project.tryFindObjectFile("package.json")?.addOverride("jest.testMatch", [
-  "<rootDir>/@(src|test)/**/*(*.)@(test).ts?(x)", // remove spec.ts from pattern
-  "<rootDir>/@(src|test)/**/__tests__/**/*.ts?(x)", // default
-  "<rootDir>/@(projenrc)/**/*(*.)@(test).ts?(x)", // remove spec.ts from pattern
-  "<rootDir>/@(projenrc)/**/__tests__/**/*.ts?(x)", // default
-]);
 
 project.gitignore.exclude(".env");
 

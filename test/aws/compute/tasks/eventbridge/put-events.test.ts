@@ -1,18 +1,18 @@
 import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
 import "cdktf/lib/testing/adapters/jest";
 import { Testing } from "cdktf";
+import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import { EventBridgePutEvents } from "../../../../../src/aws/compute/tasks/eventbridge/put-events";
 import * as notify from "../../../../../src/aws/notify";
-import { AwsSpec } from "../../../../../src/aws/spec";
 
 describe("Put Events", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    spec = new AwsSpec(app, "TestSpec", {
+    stack = new AwsStack(app, "TestStack", {
       environmentName: "Test",
       gridUUID: "123e4567-e89b-12d3",
       providerConfig: { region: "us-east-1" },
@@ -24,7 +24,7 @@ describe("Put Events", () => {
 
   test("provided all parameters", () => {
     // WHEN
-    const task = new EventBridgePutEvents(spec, "PutEvents", {
+    const task = new EventBridgePutEvents(stack, "PutEvents", {
       entries: [
         {
           detail: compute.TaskInput.fromText("MyDetail"),
@@ -35,7 +35,7 @@ describe("Put Events", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       Type: "Task",
       Resource:
         "arn:${data.aws_partition.Partitition.partition}:states:::events:putEvents",
@@ -66,7 +66,7 @@ describe("Put Events", () => {
 
   test("provided detail as object", () => {
     // WHEN
-    const task = new EventBridgePutEvents(spec, "PutEvents", {
+    const task = new EventBridgePutEvents(stack, "PutEvents", {
       entries: [
         {
           detail: compute.TaskInput.fromObject({
@@ -79,7 +79,7 @@ describe("Put Events", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       Type: "Task",
       Resource:
         "arn:${data.aws_partition.Partitition.partition}:states:::events:putEvents",
@@ -112,7 +112,7 @@ describe("Put Events", () => {
 
   test("wait for task token", () => {
     // WHEN
-    const task = new EventBridgePutEvents(spec, "PutEvents", {
+    const task = new EventBridgePutEvents(stack, "PutEvents", {
       integrationPattern: compute.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
       entries: [
         {
@@ -127,7 +127,7 @@ describe("Put Events", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       Type: "Task",
       Resource:
         "arn:${data.aws_partition.Partitition.partition}:states:::events:putEvents.waitForTaskToken",
@@ -162,7 +162,7 @@ describe("Put Events", () => {
   test("fails when WAIT_FOR_TASK_TOKEN integration pattern is used without supplying a task token in entries", () => {
     expect(() => {
       // WHEN
-      new EventBridgePutEvents(spec, "PutEvents", {
+      new EventBridgePutEvents(stack, "PutEvents", {
         integrationPattern: compute.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
         entries: [
           {
@@ -181,7 +181,7 @@ describe("Put Events", () => {
   test("fails when RUN_JOB integration pattern is used", () => {
     expect(() => {
       // WHEN
-      new EventBridgePutEvents(spec, "PutEvents", {
+      new EventBridgePutEvents(stack, "PutEvents", {
         integrationPattern: compute.IntegrationPattern.RUN_JOB,
         entries: [
           {
@@ -197,7 +197,7 @@ describe("Put Events", () => {
 
   test('event source cannot start with "aws."', () => {
     expect(() => {
-      new EventBridgePutEvents(spec, "PutEvents", {
+      new EventBridgePutEvents(stack, "PutEvents", {
         entries: [
           {
             detail: compute.TaskInput.fromText("MyDetail"),
@@ -211,7 +211,7 @@ describe("Put Events", () => {
 
   test('event source can start with "aws" without trailing dot', () => {
     expect(() => {
-      new EventBridgePutEvents(spec, "PutEvents", {
+      new EventBridgePutEvents(stack, "PutEvents", {
         entries: [
           {
             detail: compute.TaskInput.fromText("MyDetail"),
@@ -225,10 +225,10 @@ describe("Put Events", () => {
 
   test("provided EventBus", () => {
     // GIVEN
-    const eventBus = new notify.EventBus(spec, "EventBus");
+    const eventBus = new notify.EventBus(stack, "EventBus");
 
     // WHEN
-    const task = new EventBridgePutEvents(spec, "PutEvents", {
+    const task = new EventBridgePutEvents(stack, "PutEvents", {
       entries: [
         {
           eventBus,
@@ -240,7 +240,7 @@ describe("Put Events", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       Type: "Task",
       Resource:
         "arn:${data.aws_partition.Partitition.partition}:states:::events:putEvents",
@@ -277,7 +277,7 @@ describe("Put Events", () => {
   test("fails when provided an empty array for entries", () => {
     expect(() => {
       // WHEN
-      new EventBridgePutEvents(spec, "PutEvents", {
+      new EventBridgePutEvents(stack, "PutEvents", {
         entries: [],
       });
     })
@@ -287,10 +287,10 @@ describe("Put Events", () => {
 
   test("Validate task policy", () => {
     // GIVEN
-    const bus = new notify.EventBus(spec, "EventBus");
+    const bus = new notify.EventBus(stack, "EventBus");
 
     // WHEN
-    const task = new EventBridgePutEvents(spec, "PutEvents", {
+    const task = new EventBridgePutEvents(stack, "PutEvents", {
       entries: [
         {
           detail: compute.TaskInput.fromText("MyDetail"),
@@ -305,14 +305,14 @@ describe("Put Events", () => {
         },
       ],
     });
-    new compute.StateMachine(spec, "State Machine", {
+    new compute.StateMachine(stack, "State Machine", {
       definitionBody: compute.DefinitionBody.fromChainable(task),
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -329,7 +329,7 @@ describe("Put Events", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {

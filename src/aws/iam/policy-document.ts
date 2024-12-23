@@ -8,7 +8,7 @@ import { Lazy, IResolveContext } from "cdktf";
 import { Construct } from "constructs";
 import { PolicyDocumentConfig } from "./policy-document-config.generated";
 import { PolicyStatement } from "./policy-statement";
-import { AwsBeaconBase, IAwsBeacon } from "../beacon";
+import { AwsConstructBase, IAwsConstruct } from "../aws-construct";
 import { mergeStatements } from "./private/merge-statements";
 import { PostProcessPolicyDocument } from "./private/postprocess-policy-document";
 
@@ -19,7 +19,7 @@ export interface PolicyDocumentOutputs {
   readonly policy: any;
 }
 
-export interface IPolicyDocument extends IAwsBeacon {
+export interface IPolicyDocument extends IAwsConstruct {
   // strongly typed access to outputs
   readonly policyDocumentOutputs: PolicyDocumentOutputs;
   readonly isEmpty: boolean;
@@ -91,7 +91,10 @@ export interface PolicyDocumentProps extends PolicyDocumentConfig {
   readonly assignSids?: boolean;
 }
 
-export class PolicyDocument extends AwsBeaconBase implements IPolicyDocument {
+export class PolicyDocument
+  extends AwsConstructBase
+  implements IPolicyDocument
+{
   /**
    * Creates a new PolicyDocument based on the object provided.
    * This will accept an object created from the `.toDocumentJson()` call

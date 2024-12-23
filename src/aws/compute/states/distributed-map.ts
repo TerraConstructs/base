@@ -19,7 +19,7 @@ import {
 } from "../types";
 
 const DISTRIBUTED_MAP_SYMBOL = Symbol.for(
-  "@envtio/base/lib/aws/compute.DistributedMap",
+  "terraconstructs/lib/aws/compute.DistributedMap",
 );
 
 /**

@@ -8,8 +8,8 @@ const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
 const stackName = process.env.STACK_NAME ?? "log-group-dataprotection";
 
-class LogGroupIntegStack extends aws.AwsSpec {
-  constructor(scope: App, id: string, props: aws.AwsSpecProps) {
+class LogGroupIntegStack extends aws.AwsStack {
+  constructor(scope: App, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
 
     var audit = new aws.cloudwatch.LogGroup(this, "LogGroupLambdaAudit");

@@ -4,7 +4,7 @@ import {
 } from "@cdktf/provider-aws";
 import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
+import { AwsConstructBase, IAwsConstruct, AwsConstructProps } from "..";
 import { ArnPrincipal, IPrincipal, IGrantable } from "../iam";
 
 // TODO: migrate to OAC
@@ -12,7 +12,7 @@ import { ArnPrincipal, IPrincipal, IGrantable } from "../iam";
 // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html#migrate-from-oai-to-oac
 // https://registry.terraform.io/providers/hashicorp/aws/5.60.0/docs/resources/cloudfront_origin_access_control
 
-export interface OriginAccessIdentityProps extends AwsBeaconProps {
+export interface OriginAccessIdentityProps extends AwsConstructProps {
   /**
    * A comment to describe the origin access identity.
    */
@@ -22,7 +22,7 @@ export interface OriginAccessIdentityProps extends AwsBeaconProps {
 /**
  * Interface for CloudFront OriginAccessIdentity
  */
-export interface IOriginAccessIdentity extends IAwsBeacon, IGrantable {
+export interface IOriginAccessIdentity extends IAwsConstruct, IGrantable {
   /**
    * The Origin Access Identity Id (physical id)
    */
@@ -44,7 +44,7 @@ export interface IOriginAccessIdentity extends IAwsBeacon, IGrantable {
    */
 }
 
-abstract class OriginAccessIdentityBase extends AwsBeaconBase {
+abstract class OriginAccessIdentityBase extends AwsConstructBase {
   /**
    * Resource to depend on to make sure the OriginAccessIdentity is created before using it.
    */
@@ -70,7 +70,7 @@ abstract class OriginAccessIdentityBase extends AwsBeaconBase {
   //  * The ARN to include in S3 bucket policy to allow CloudFront access
   //  */
   // protected arn(): string {
-  //   return AwsSpec.ofAwsBeacon(this).formatArn(
+  //   return AwsStack.ofAwsConstruct(this).formatArn(
   //     {
   //       service: 'iam',
   //       region: '', // global

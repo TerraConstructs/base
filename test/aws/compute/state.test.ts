@@ -3,7 +3,7 @@ import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { FakeTask } from "./fake-task";
 import { innerJson } from "./private/render-util";
-import { AwsSpec } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws";
 import {
   DefinitionBody,
   JsonPath,
@@ -15,7 +15,7 @@ const gridUUID = "123e4567-e89b-12d3";
 test("JsonPath.DISCARD can be used to discard a state's output", () => {
   // GIVEN
   const app = Testing.app();
-  const spec = new AwsSpec(app, `TestSpec`, {
+  const stack = new AwsStack(app, `TestStack`, {
     environmentName: "Test",
     gridUUID,
     providerConfig: {
@@ -25,19 +25,19 @@ test("JsonPath.DISCARD can be used to discard a state's output", () => {
       address: "http://localhost:3000",
     },
   });
-  const task = new FakeTask(spec, "my-state", {
+  const task = new FakeTask(stack, "my-state", {
     inputPath: JsonPath.DISCARD,
     outputPath: JsonPath.DISCARD,
     resultPath: JsonPath.DISCARD,
   });
-  new StateMachine(spec, "state-machine", {
+  new StateMachine(stack, "state-machine", {
     definitionBody: DefinitionBody.fromChainable(task),
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(
     innerJson(synthesized, sfnStateMachine.SfnStateMachine, {

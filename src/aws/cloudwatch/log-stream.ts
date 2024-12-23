@@ -2,7 +2,11 @@
 
 import { cloudwatchLogStream } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import {
+  IAwsConstruct,
+  AwsConstructBase,
+  AwsConstructProps,
+} from "../aws-construct";
 import { ILogGroup } from "./log-group";
 
 /**
@@ -16,7 +20,7 @@ export interface LogStreamOutputs {
   readonly logStreamName: string;
 }
 
-export interface ILogStream extends IAwsBeacon {
+export interface ILogStream extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly logStreamOutputs: LogStreamOutputs;
 
@@ -30,7 +34,7 @@ export interface ILogStream extends IAwsBeacon {
 /**
  * Properties for a LogStream
  */
-export interface LogStreamProps extends AwsBeaconProps {
+export interface LogStreamProps extends AwsConstructProps {
   /**
    * The log group to create a log stream for.
    */
@@ -49,7 +53,7 @@ export interface LogStreamProps extends AwsBeaconProps {
 /**
  * Define a Log Stream in a Log Group
  */
-export class LogStream extends AwsBeaconBase implements ILogStream {
+export class LogStream extends AwsConstructBase implements ILogStream {
   /**
    * Import an existing LogGroup
    */
@@ -58,7 +62,7 @@ export class LogStream extends AwsBeaconBase implements ILogStream {
     id: string,
     logStreamName: string,
   ): ILogStream {
-    class Import extends AwsBeaconBase implements ILogStream {
+    class Import extends AwsConstructBase implements ILogStream {
       public get logStreamOutputs(): LogStreamOutputs {
         return {
           logStreamName: this.logStreamName,

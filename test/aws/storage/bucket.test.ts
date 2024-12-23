@@ -3,7 +3,7 @@ import { tmpdir } from "os";
 import path from "path";
 import { App, Testing, TerraformLocal } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { storage, AwsSpec, iam } from "../../../src/aws";
+import { storage, AwsStack, iam } from "../../../src/aws";
 import { Template } from "../../assertions";
 
 const environmentName = "Test";
@@ -15,27 +15,27 @@ const gridBackendConfig = {
 
 describe("Bucket", () => {
   let app: App;
-  let spec: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    spec = new AwsSpec(app, "TestSpec", {
+    stack = new AwsStack(app, "TestStack", {
       environmentName,
       gridUUID,
       providerConfig,
       gridBackendConfig,
-      // TODO: Should support passing account via Spec props?
+      // TODO: Should support passing account via Stack props?
       // account: "1234",
       // region: "us-east-1",
     });
   });
 
   // test("With KMS_MANAGED encryption", () => {
-  //   new storage.Bucket(spec, "MyBucket", {
+  //   new storage.Bucket(stack, "MyBucket", {
   //     encryption: storage.BucketEncryption.KMS_MANAGED,
   //   });
 
-  //   Template.fromStack(spec, {snapshot: true})..toMatchObject({});
+  //   Template.fromStack(stack, {snapshot: true})..toMatchObject({});
   //   // Template.fromStack(stack).templateMatches({
   //   //   Resources: {
   //   //     MyBucketF68F3FF0: {
@@ -59,9 +59,9 @@ describe("Bucket", () => {
   // });
 
   test("enforceSsl can be enabled", () => {
-    new storage.Bucket(spec, "MyBucket", { enforceSSL: true });
+    new storage.Bucket(stack, "MyBucket", { enforceSSL: true });
 
-    Template.fromStack(spec).toMatchObject({
+    Template.fromStack(stack).toMatchObject({
       data: {
         aws_iam_policy_document: {
           MyBucket_Policy_F89E7330: {
@@ -94,7 +94,7 @@ describe("Bucket", () => {
       resource: {
         aws_s3_bucket: {
           MyBucket_F68F3FF0: {
-            bucket_prefix: "123e4567-e89b-12d3-testspecmybucket",
+            bucket_prefix: "123e4567-e89b-12d3-teststackmybucket",
           },
         },
         aws_s3_bucket_policy: {
@@ -109,12 +109,12 @@ describe("Bucket", () => {
   });
 
   test("with minimumTLSVersion", () => {
-    new storage.Bucket(spec, "MyBucket", {
+    new storage.Bucket(stack, "MyBucket", {
       enforceSSL: true,
       minimumTLSVersion: 1.2,
     });
 
-    Template.fromStack(spec).toMatchObject({
+    Template.fromStack(stack).toMatchObject({
       data: {
         aws_iam_policy_document: {
           MyBucket_Policy_F89E7330: {
@@ -168,7 +168,7 @@ describe("Bucket", () => {
       resource: {
         aws_s3_bucket: {
           MyBucket_F68F3FF0: {
-            bucket_prefix: "123e4567-e89b-12d3-testspecmybucket",
+            bucket_prefix: "123e4567-e89b-12d3-teststackmybucket",
           },
         },
         aws_s3_bucket_policy: {
@@ -184,7 +184,7 @@ describe("Bucket", () => {
 
   test("enforceSSL must be enabled for minimumTLSVersion to work", () => {
     expect(() => {
-      new storage.Bucket(spec, "MyBucket1", {
+      new storage.Bucket(stack, "MyBucket1", {
         enforceSSL: false,
         minimumTLSVersion: 1.2,
       });
@@ -193,7 +193,7 @@ describe("Bucket", () => {
     );
 
     expect(() => {
-      new storage.Bucket(spec, "MyBucket2", {
+      new storage.Bucket(stack, "MyBucket2", {
         minimumTLSVersion: 1.2,
       });
     }).toThrow(
@@ -202,15 +202,15 @@ describe("Bucket", () => {
   });
 
   test("with versioning turned on", () => {
-    new storage.Bucket(spec, "MyBucket", {
+    new storage.Bucket(stack, "MyBucket", {
       versioned: true,
     });
 
-    Template.fromStack(spec).toMatchObject({
+    Template.fromStack(stack).toMatchObject({
       resource: {
         aws_s3_bucket: {
           MyBucket_F68F3FF0: {
-            bucket_prefix: "123e4567-e89b-12d3-testspecmybucket",
+            bucket_prefix: "123e4567-e89b-12d3-teststackmybucket",
           },
         },
         aws_s3_bucket_versioning: {
@@ -227,7 +227,7 @@ describe("Bucket", () => {
 
   test("Should synth and match SnapShot", () => {
     // WHEN
-    new storage.Bucket(spec, "HelloWorld", {
+    new storage.Bucket(stack, "HelloWorld", {
       namePrefix: "hello-world",
       sources: path.join(__dirname, "fixtures", "site"),
       websiteConfig: {
@@ -237,13 +237,13 @@ describe("Bucket", () => {
     });
     // THEN
     // Template synth calls prepareStack -> required to generate S3Objects
-    Template.synth(spec).toMatchSnapshot();
+    Template.synth(stack).toMatchSnapshot();
   });
 
   test("Should support multiple sources", () => {
     // WHEN
     const tempfile = new TempFile("sample.html", "sample");
-    new storage.Bucket(spec, "HelloWorld", {
+    new storage.Bucket(stack, "HelloWorld", {
       namePrefix: "hello-world",
       sources: [path.join(__dirname, "fixtures", "site"), tempfile.dir],
       websiteConfig: {
@@ -254,25 +254,25 @@ describe("Bucket", () => {
     });
     // THEN
     // Template synth calls prepareStack -> required to generate S3Objects
-    Template.synth(spec).toMatchSnapshot();
+    Template.synth(stack).toMatchSnapshot();
   });
 
   test("Should throw error if bucket source is a file", () => {
     // WHEN
     const tempfile = new TempFile("sample.html", "sample");
     // THEN
-    new storage.Bucket(spec, "HelloWorld", {
+    new storage.Bucket(stack, "HelloWorld", {
       namePrefix: "hello-world",
       sources: tempfile.path,
     });
     expect(() => {
-      spec.prepareStack();
+      stack.prepareStack();
     }).toThrow("expects path to point to a directory");
   });
 
   test("Should sleep on versioning if enabled", () => {
     // WHEN
-    new storage.Bucket(spec, "HelloWorld", {
+    new storage.Bucket(stack, "HelloWorld", {
       namePrefix: "hello-world",
       sources: path.join(__dirname, "fixtures", "site"),
       websiteConfig: {
@@ -282,7 +282,7 @@ describe("Bucket", () => {
     });
     // THEN
     // Template synth calls prepareStack -> required to generate S3Objects
-    const expected = Template.synth(spec);
+    const expected = Template.synth(stack);
     expected.toHaveResource({
       tfResourceType: "time_sleep",
     });
@@ -301,7 +301,7 @@ describe("Bucket", () => {
   describe("permissions", () => {
     // TODO: Deprecated? Buckets should always have encryption?
     test("addPermission creates a bucket policy for an UNENCRYPTED bucket", () => {
-      const bucket = new storage.Bucket(spec, "MyBucket", {
+      const bucket = new storage.Bucket(stack, "MyBucket", {
         // encryption: storage.BucketEncryption.UNENCRYPTED,
       });
 
@@ -313,7 +313,7 @@ describe("Bucket", () => {
         }),
       );
 
-      Template.fromStack(spec).toMatchObject({
+      Template.fromStack(stack).toMatchObject({
         data: {
           aws_iam_policy_document: {
             MyBucket_Policy_F89E7330: {
@@ -336,7 +336,7 @@ describe("Bucket", () => {
         resource: {
           aws_s3_bucket: {
             MyBucket_F68F3FF0: {
-              bucket_prefix: "123e4567-e89b-12d3-testspecmybucket",
+              bucket_prefix: "123e4567-e89b-12d3-teststackmybucket",
             },
           },
           aws_s3_bucket_policy: {
@@ -350,7 +350,7 @@ describe("Bucket", () => {
       });
     });
     test("arnForObjects returns a permission statement associated with objects in an S3_MANAGED bucket", () => {
-      const bucket = new storage.Bucket(spec, "MyBucket", {});
+      const bucket = new storage.Bucket(stack, "MyBucket", {});
 
       const p = new iam.PolicyStatement({
         resources: [bucket.arnForObjects("hello/world")],
@@ -358,7 +358,7 @@ describe("Bucket", () => {
         principals: [new iam.AnyPrincipal()],
       });
 
-      expect(spec.resolve(p.toStatementJson())).toEqual({
+      expect(stack.resolve(p.toStatementJson())).toEqual({
         Action: "s3:GetObject",
         Effect: "Allow",
         Principal: { AWS: "*" },
@@ -366,7 +366,7 @@ describe("Bucket", () => {
       });
     });
     test("forBucket returns a permission statement associated with an S3_MANAGED bucket's ARN", () => {
-      const bucket = new storage.Bucket(spec, "MyBucket", {
+      const bucket = new storage.Bucket(stack, "MyBucket", {
         // encryption: storage.BucketEncryption.S3_MANAGED,
       });
 
@@ -376,7 +376,7 @@ describe("Bucket", () => {
         principals: [new iam.AnyPrincipal()],
       });
 
-      expect(spec.resolve(x.toStatementJson())).toEqual({
+      expect(stack.resolve(x.toStatementJson())).toEqual({
         Action: "s3:ListBucket",
         Effect: "Allow",
         Principal: { AWS: "*" },
@@ -384,16 +384,16 @@ describe("Bucket", () => {
       });
     });
     test("arnForObjects accepts multiple arguments and FnConcats them an S3_MANAGED bucket", () => {
-      const bucket = new storage.Bucket(spec, "MyBucket", {
+      const bucket = new storage.Bucket(stack, "MyBucket", {
         // encryption: storage.BucketEncryption.S3_MANAGED
       });
 
-      // new iam.User(spec, "MyUser");
-      const user = new TerraformLocal(spec, "MyUser", {
+      // new iam.User(stack, "MyUser");
+      const user = new TerraformLocal(stack, "MyUser", {
         expression: "MyUser",
       });
-      // new iam.Group(spec, "MyTeam");
-      const team = new TerraformLocal(spec, "MyTeam", {
+      // new iam.Group(stack, "MyTeam");
+      const team = new TerraformLocal(stack, "MyTeam", {
         expression: "MyTeam",
       });
 
@@ -407,7 +407,7 @@ describe("Bucket", () => {
         principals: [new iam.AnyPrincipal()],
       });
 
-      expect(spec.resolve(p.toStatementJson())).toEqual({
+      expect(stack.resolve(p.toStatementJson())).toEqual({
         Action: "s3:GetObject",
         Effect: "Allow",
         Principal: { AWS: "*" },
@@ -420,16 +420,16 @@ describe("Bucket", () => {
   describe("grant method", () => {
     test("grantRead adds read permissions to principal policy", () => {
       // GIVEN
-      const role = new iam.Role(spec, "MyRole", {
+      const role = new iam.Role(stack, "MyRole", {
         assumedBy: new iam.ServicePrincipal("test.service"),
       });
-      const bucket = new storage.Bucket(spec, "MyBucket");
+      const bucket = new storage.Bucket(stack, "MyBucket");
 
       // WHEN
       bucket.grantRead(role);
 
       // THEN
-      Template.fromStack(spec).toMatchObject({
+      Template.fromStack(stack).toMatchObject({
         data: {
           aws_iam_policy_document: {
             MyRole_DefaultPolicy_6017B917: {
@@ -451,12 +451,12 @@ describe("Bucket", () => {
             MyRole_F48FFE04: {
               assume_role_policy:
                 "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-              name_prefix: "123e4567-e89b-12d3-TestSpecMyRole",
+              name_prefix: "123e4567-e89b-12d3-TestStackMyRole",
             },
           },
           aws_iam_role_policy: {
             MyRole_DefaultPolicy_ResourceRoles0_B7F96EAE: {
-              name: "TestSpecMyRoleDefaultPolicyA88C1E5F",
+              name: "TestStackMyRoleDefaultPolicy70AEE1C2",
               policy:
                 "${data.aws_iam_policy_document.MyRole_DefaultPolicy_6017B917.json}",
               role: "${aws_iam_role.MyRole_F48FFE04.name}",
@@ -464,7 +464,7 @@ describe("Bucket", () => {
           },
           aws_s3_bucket: {
             MyBucket_F68F3FF0: {
-              bucket_prefix: "123e4567-e89b-12d3-testspecmybucket",
+              bucket_prefix: "123e4567-e89b-12d3-teststackmybucket",
             },
           },
         },
@@ -474,8 +474,8 @@ describe("Bucket", () => {
     describe("grantReadWrite", () => {
       test("can be used to grant reciprocal permissions to an identity", () => {
         // GIVEN
-        const bucket = new storage.Bucket(spec, "MyBucket");
-        const role = new iam.Role(spec, "MyRole", {
+        const bucket = new storage.Bucket(stack, "MyBucket");
+        const role = new iam.Role(stack, "MyRole", {
           assumedBy: new iam.ServicePrincipal("test.service"),
         });
 
@@ -483,7 +483,7 @@ describe("Bucket", () => {
         bucket.grantReadWrite(role);
 
         // THEN
-        Template.fromStack(spec).toMatchObject({
+        Template.fromStack(stack).toMatchObject({
           data: {
             aws_iam_policy_document: {
               MyRole_DefaultPolicy_6017B917: {
@@ -516,12 +516,12 @@ describe("Bucket", () => {
               MyRole_F48FFE04: {
                 assume_role_policy:
                   "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-                name_prefix: "123e4567-e89b-12d3-TestSpecMyRole",
+                name_prefix: "123e4567-e89b-12d3-TestStackMyRole",
               },
             },
             aws_iam_role_policy: {
               MyRole_DefaultPolicy_ResourceRoles0_B7F96EAE: {
-                name: "TestSpecMyRoleDefaultPolicyA88C1E5F",
+                name: "TestStackMyRoleDefaultPolicy70AEE1C2",
                 policy:
                   "${data.aws_iam_policy_document.MyRole_DefaultPolicy_6017B917.json}",
                 role: "${aws_iam_role.MyRole_F48FFE04.name}",
@@ -529,7 +529,7 @@ describe("Bucket", () => {
             },
             aws_s3_bucket: {
               MyBucket_F68F3FF0: {
-                bucket_prefix: "123e4567-e89b-12d3-testspecmybucket",
+                bucket_prefix: "123e4567-e89b-12d3-teststackmybucket",
               },
             },
           },
@@ -538,7 +538,7 @@ describe("Bucket", () => {
 
       test("grant permissions to non-identity principal", () => {
         // GIVEN
-        const bucket = new storage.Bucket(spec, "MyBucket", {
+        const bucket = new storage.Bucket(stack, "MyBucket", {
           // encryption: storage.BucketEncryption.KMS,
         });
 
@@ -546,7 +546,7 @@ describe("Bucket", () => {
         bucket.grantRead(new iam.OrganizationPrincipal("o-1234"));
 
         // THEN
-        Template.fromStack(spec).toMatchObject({
+        Template.fromStack(stack).toMatchObject({
           data: {
             aws_iam_policy_document: {
               MyBucket_Policy_F89E7330: {
@@ -579,7 +579,7 @@ describe("Bucket", () => {
           resource: {
             aws_s3_bucket: {
               MyBucket_F68F3FF0: {
-                bucket_prefix: "123e4567-e89b-12d3-testspecmybucket",
+                bucket_prefix: "123e4567-e89b-12d3-teststackmybucket",
               },
             },
             aws_s3_bucket_policy: {
@@ -592,7 +592,7 @@ describe("Bucket", () => {
           },
         });
         // // TODO: Re-add KMS encryption support
-        // Template.fromStack(spec).hasResourceProperties("AWS::KMS::Key", {
+        // Template.fromStack(stack).hasResourceProperties("AWS::KMS::Key", {
         //   KeyPolicy: {
         //     Statement: Match.arrayWith([
         //       {
@@ -612,8 +612,8 @@ describe("Bucket", () => {
       // ref: https://github.com/aws/aws-cdk/pull/12391
       test("does not grant PutObjectAcl when the S3_GRANT_WRITE_WITHOUT_ACL feature is enabled", () => {
         // GIVEN
-        const bucket = new storage.Bucket(spec, "MyBucket");
-        const role = new iam.Role(spec, "MyRole", {
+        const bucket = new storage.Bucket(stack, "MyBucket");
+        const role = new iam.Role(stack, "MyRole", {
           assumedBy: new iam.ServicePrincipal("test.service"),
         });
 
@@ -622,7 +622,7 @@ describe("Bucket", () => {
 
         // THEN
 
-        Template.fromStack(spec).toMatchObject({
+        Template.fromStack(stack).toMatchObject({
           data: {
             aws_iam_policy_document: {
               MyRole_DefaultPolicy_6017B917: {
@@ -658,8 +658,8 @@ describe("Bucket", () => {
     describe("grantWrite", () => {
       test("grant only allowedActionPatterns when specified", () => {
         // GIVEN
-        const bucket = new storage.Bucket(spec, "MyBucket");
-        const role = new iam.Role(spec, "MyRole", {
+        const bucket = new storage.Bucket(stack, "MyBucket");
+        const role = new iam.Role(stack, "MyRole", {
           assumedBy: new iam.ServicePrincipal("test.service"),
         });
 
@@ -667,7 +667,7 @@ describe("Bucket", () => {
         bucket.grantWrite(role, "*", ["s3:PutObject", "s3:DeleteObject*"]);
 
         // THEN
-        Template.fromStack(spec).toMatchObject({
+        Template.fromStack(stack).toMatchObject({
           data: {
             aws_iam_policy_document: {
               MyRole_DefaultPolicy_6017B917: {
@@ -690,16 +690,16 @@ describe("Bucket", () => {
 
     test("more grants", () => {
       // GIVEN
-      const bucket = new storage.Bucket(spec, "MyBucket", {
+      const bucket = new storage.Bucket(stack, "MyBucket", {
         // encryption: storage.BucketEncryption.KMS,
       });
-      const putter = new iam.Role(spec, "Putter", {
+      const putter = new iam.Role(stack, "Putter", {
         assumedBy: new iam.ServicePrincipal("test.service"),
       });
-      const writer = new iam.Role(spec, "Writer", {
+      const writer = new iam.Role(stack, "Writer", {
         assumedBy: new iam.ServicePrincipal("test.service"),
       });
-      const deleter = new iam.Role(spec, "Deleter", {
+      const deleter = new iam.Role(stack, "Deleter", {
         assumedBy: new iam.ServicePrincipal("test.service"),
       });
 
@@ -710,8 +710,8 @@ describe("Bucket", () => {
 
       // THEN
       // Do prepare run to resolve/add all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // refer to full snapshot to debug
       // expect(synthesized).toMatchSnapshot();
       const policyDocs = JSON.parse(synthesized).data.aws_iam_policy_document;
@@ -741,10 +741,10 @@ describe("Bucket", () => {
   });
 
   test("Event Bridge notification can be enabled after the bucket is created", () => {
-    const bucket = new storage.Bucket(spec, "MyBucket");
+    const bucket = new storage.Bucket(stack, "MyBucket");
     bucket.enableEventBridgeNotification();
 
-    Template.fromStack(spec).toMatchObject({
+    Template.fromStack(stack).toMatchObject({
       resource: {
         aws_s3_bucket_notification: {
           MyBucket_Notifications_46AC0CD2: {

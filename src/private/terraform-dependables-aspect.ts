@@ -8,7 +8,7 @@ import {
 import { IConstruct } from "constructs";
 
 export const SKIP_DEPENDENCY_PROPAGATION = Symbol.for(
-  "@envtio/base/lib/skip_dependency_propagation",
+  "terraconstructs/lib/skip_dependency_propagation",
 );
 
 /**

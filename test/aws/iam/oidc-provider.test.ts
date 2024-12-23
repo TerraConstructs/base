@@ -1,8 +1,8 @@
 import { iamOpenidConnectProvider } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import { OpenIdConnectProvider } from "../../../src/aws/iam/oidc-provider";
-import { AwsSpec } from "../../../src/aws/spec";
 
 const arnOfProvider =
   "arn:aws:iam::1234567:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/someid";
@@ -16,17 +16,17 @@ const gridBackendConfig = {
 describe("OpenIdConnectProvider resource", () => {
   test("minimal configuration (no thumbprint)", () => {
     // GIVEN
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
     // WHEN
-    new OpenIdConnectProvider(spec, "MyProvider", {
+    new OpenIdConnectProvider(stack, "MyProvider", {
       url: "https://openid-endpoint",
       clientIds: ["266362248691-342342xasdasdasda-apps.googleusercontent.com"],
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     expect(synthesized).toHaveResourceWithProperties(
       iamOpenidConnectProvider.IamOpenidConnectProvider,
       {
@@ -40,43 +40,43 @@ describe("OpenIdConnectProvider resource", () => {
 
   test('"openIdConnectProviderArn" resolves to the ref', () => {
     // GIVEN
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
 
     // WHEN
-    const provider = new OpenIdConnectProvider(spec, "MyProvider", {
+    const provider = new OpenIdConnectProvider(stack, "MyProvider", {
       url: "https://openid-endpoint",
       clientIds: ["266362248691-342342xasdasdasda-apps.googleusercontent.com"],
     });
 
     // THEN
-    expect(spec.resolve(provider.openIdConnectProviderArn)).toStrictEqual(
+    expect(stack.resolve(provider.openIdConnectProviderArn)).toStrictEqual(
       "${aws_iam_openid_connect_provider.MyProvider_730BA1C8.arn}",
     );
   });
 
   test("static fromOpenIdConnectProviderArn can be used to import a provider", () => {
     // GIVEN
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
 
     // WHEN
     const provider = OpenIdConnectProvider.fromOpenIdConnectProviderArn(
-      spec,
+      stack,
       "MyProvider",
       arnOfProvider,
     );
 
     // THEN
-    expect(spec.resolve(provider.openIdConnectProviderArn)).toStrictEqual(
+    expect(stack.resolve(provider.openIdConnectProviderArn)).toStrictEqual(
       arnOfProvider,
     );
   });
 
   test("thumbprint list and client ids can be specified", () => {
     // GIVEN
-    const spec = getAwsSpec();
+    const stack = getAwsStack();
 
     // WHEN
-    new OpenIdConnectProvider(spec, "MyProvider", {
+    new OpenIdConnectProvider(stack, "MyProvider", {
       url: "https://my-url",
       clientIds: ["client1", "client2"],
       thumbprints: ["thumb1"],
@@ -84,8 +84,8 @@ describe("OpenIdConnectProvider resource", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     expect(synthesized).toHaveResourceWithProperties(
       iamOpenidConnectProvider.IamOpenidConnectProvider,
       {
@@ -97,9 +97,9 @@ describe("OpenIdConnectProvider resource", () => {
   });
 });
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

@@ -8,14 +8,18 @@ import {
   // Arn,
   ArnFormat,
 } from "../arn";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
+import {
+  AwsConstructBase,
+  IAwsConstruct,
+  AwsConstructProps,
+} from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import * as iam from "../iam";
-import { AwsSpec } from "../spec";
 
 /**
  * Properties for defining a new Step Functions Activity
  */
-export interface ActivityProps extends AwsBeaconProps {
+export interface ActivityProps extends AwsConstructProps {
   /**
    * The name for this activity.
    *
@@ -50,7 +54,7 @@ export interface ActivityOutputs {
  * Represents a Step Functions Activity
  * https://docs.aws.amazon.com/step-functions/latest/dg/concepts-activities.html
  */
-export interface IActivity extends IAwsBeacon {
+export interface IActivity extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly activityOutputs: ActivityOutputs;
 
@@ -79,7 +83,7 @@ export interface IActivity extends IAwsBeacon {
 /**
  * Define a new Step Functions Activity
  */
-export class Activity extends AwsBeaconBase implements IActivity {
+export class Activity extends AwsConstructBase implements IActivity {
   /**
    * Construct an Activity from an existing Activity ARN
    */
@@ -88,7 +92,7 @@ export class Activity extends AwsBeaconBase implements IActivity {
     id: string,
     activityArn: string,
   ): IActivity {
-    class Imported extends AwsBeaconBase implements IActivity {
+    class Imported extends AwsConstructBase implements IActivity {
       public get activityOutputs(): ActivityOutputs {
         return {
           arn: this.activityArn,
@@ -122,7 +126,7 @@ export class Activity extends AwsBeaconBase implements IActivity {
     return Activity.fromActivityArn(
       scope,
       id,
-      AwsSpec.ofAwsBeacon(scope).formatArn({
+      AwsStack.ofAwsConstruct(scope).formatArn({
         service: "states",
         resource: "activity",
         resourceName: activityName,
