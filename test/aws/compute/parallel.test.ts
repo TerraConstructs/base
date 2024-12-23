@@ -1,13 +1,13 @@
 import { Testing } from "cdktf";
 import { render } from "./private/render-util";
-import { compute, AwsSpec } from "../../../src/aws";
+import { compute, AwsStack } from "../../../src/aws";
 
 const gridUUID = "123e4567-e89b-12d3";
 describe("Parallel State", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
-    spec = new AwsSpec(Testing.app(), `TestSpec`, {
+    stack = new AwsStack(Testing.app(), `TestStack`, {
       environmentName: "Test",
       gridUUID,
       providerConfig: {
@@ -20,14 +20,14 @@ describe("Parallel State", () => {
   });
   test("State Machine With Parallel State", () => {
     // WHEN
-    const parallel = new compute.Parallel(spec, "Parallel State");
+    const parallel = new compute.Parallel(stack, "Parallel State");
     parallel.branch(
-      new compute.Pass(spec, "Branch 1", { stateName: "first-pass-state" }),
+      new compute.Pass(stack, "Branch 1", { stateName: "first-pass-state" }),
     );
-    parallel.branch(new compute.Pass(spec, "Branch 2"));
+    parallel.branch(new compute.Pass(stack, "Branch 2"));
 
     // THEN
-    expect(render(spec, parallel)).toStrictEqual({
+    expect(render(stack, parallel)).toStrictEqual({
       StartAt: "Parallel State",
       States: {
         "Parallel State": {
@@ -50,16 +50,16 @@ describe("Parallel State", () => {
 
   test("State Machine With Parallel State and ResultSelector", () => {
     // WHEN
-    const parallel = new compute.Parallel(spec, "Parallel State", {
+    const parallel = new compute.Parallel(stack, "Parallel State", {
       resultSelector: {
         buz: "buz",
         baz: compute.JsonPath.stringAt("$.baz"),
       },
     });
-    parallel.branch(new compute.Pass(spec, "Branch 1"));
+    parallel.branch(new compute.Pass(stack, "Branch 1"));
 
     // THEN
-    expect(render(spec, parallel)).toStrictEqual({
+    expect(render(stack, parallel)).toStrictEqual({
       StartAt: "Parallel State",
       States: {
         "Parallel State": {

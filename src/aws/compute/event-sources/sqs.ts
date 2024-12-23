@@ -1,6 +1,6 @@
 import { Token, Annotations } from "cdktf";
 import * as compute from "..";
-import { AwsSpec } from "../..";
+import { AwsStack } from "../..";
 import { Duration } from "../../..";
 import * as notify from "../../notify";
 // import { IKey } from "../../encryption";
@@ -122,7 +122,7 @@ export class SqsEventSource implements compute.IEventSource {
 
   public bind(target: compute.IFunction) {
     const eventSourceMapping = target.addEventSourceMapping(
-      `SqsEventSource:${AwsSpec.uniqueId(this.queue.node)}`,
+      `SqsEventSource:${AwsStack.uniqueId(this.queue.node)}`,
       {
         batchSize: this.props.batchSize,
         maxBatchingWindow: this.props.maxBatchingWindow,

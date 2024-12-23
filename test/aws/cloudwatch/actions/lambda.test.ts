@@ -4,7 +4,7 @@ import path from "node:path";
 import { cloudwatchMetricAlarm, lambdaPermission } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../../src/aws";
+import { AwsStack } from "../../../../src/aws";
 import * as cloudwatch from "../../../../src/aws/cloudwatch";
 import * as actions from "../../../../src/aws/cloudwatch/actions";
 import * as compute from "../../../../src/aws/compute";
@@ -18,13 +18,13 @@ const gridBackendConfig = {
 };
 
 let app: App;
-let stack: AwsSpec;
+let stack: AwsStack;
 
 let alarmLambda: compute.LambdaFunction;
 
 beforeEach(() => {
   app = Testing.app();
-  stack = new AwsSpec(app, "MyStack", {
+  stack = new AwsStack(app, "MyStack", {
     environmentName,
     gridUUID,
     providerConfig,

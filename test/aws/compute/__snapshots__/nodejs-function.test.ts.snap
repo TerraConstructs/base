@@ -46,6 +46,11 @@ exports[`Function Should synth and match SnapShot 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_lambda": {
+        "service_name": "lambda"
+      }
     }
   },
   "provider": {
@@ -58,12 +63,12 @@ exports[`Function Should synth and match SnapShot 1`] = `
   "resource": {
     "aws_cloudwatch_log_group": {
       "HelloWorld_LogGroup_948040CF": {
-        "name": "/aws/lambda/123e4567-e89b-12d3-TestSpecHelloWorld",
+        "name": "/aws/lambda/123e4567-e89b-12d3-TestStackHelloWorld",
         "retention_in_days": 7,
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },
@@ -76,9 +81,16 @@ exports[`Function Should synth and match SnapShot 1`] = `
         "name_prefix": "123e4567-e89b-12d3-lloWorldServiceRole",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
+      }
+    },
+    "aws_iam_role_policy": {
+      "HelloWorld_ServiceRole_DefaultPolicy_ResourceRoles0_F82A2883": {
+        "name": "TestStackHelloWorldServiceRoleDefaultPolicy3B4BE62E",
+        "policy": "\${data.aws_iam_policy_document.HelloWorld_ServiceRole_DefaultPolicy_80066894.json}",
+        "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.name}"
       }
     },
     "aws_lambda_function": {
@@ -90,14 +102,15 @@ exports[`Function Should synth and match SnapShot 1`] = `
           "aws_cloudwatch_log_group.HelloWorld_LogGroup_948040CF",
           "data.aws_iam_policy_document.HelloWorld_ServiceRole_AssumeRolePolicy_BA710C6B",
           "aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0",
-          "data.aws_iam_policy_document.HelloWorld_ServiceRole_DefaultPolicy_80066894"
+          "data.aws_iam_policy_document.HelloWorld_ServiceRole_DefaultPolicy_80066894",
+          "aws_iam_role_policy.HelloWorld_ServiceRole_DefaultPolicy_ResourceRoles0_F82A2883"
         ],
         "environment": {
           "variables": {
           }
         },
         "filename": "assets/HelloWorld_NodejsAsset_04D667C4/9A3227D39E16A36D4510660AB9C595A1/archive.zip",
-        "function_name": "123e4567-e89b-12d3-TestSpecHelloWorld",
+        "function_name": "123e4567-e89b-12d3-TestStackHelloWorld",
         "handler": "hello-world.handler",
         "memory_size": 128,
         "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.arn}",
@@ -105,8 +118,8 @@ exports[`Function Should synth and match SnapShot 1`] = `
         "source_code_hash": "9A3227D39E16A36D4510660AB9C595A1",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "timeout": 3,
         "tracing_config": {

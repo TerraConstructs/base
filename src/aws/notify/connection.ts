@@ -1,14 +1,18 @@
 import { cloudwatchEventConnection } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { IAwsBeacon, AwsBeaconProps, AwsBeaconBase } from "../beacon";
-import { AwsSpec } from "../spec";
+import {
+  IAwsConstruct,
+  AwsConstructProps,
+  AwsConstructBase,
+} from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 
 /**
  * An API Destination Connection
  *
  * A connection defines the authorization type and credentials to use for authorization with an API destination HTTP endpoint.
  */
-export interface ConnectionProps extends AwsBeaconProps {
+export interface ConnectionProps extends AwsConstructProps {
   /**
    * The name of the connection.
    *
@@ -281,7 +285,7 @@ export interface ConnectionOutputs {
 /**
  * Interface for EventBus Connections
  */
-export interface IConnection extends IAwsBeacon {
+export interface IConnection extends IAwsConstruct {
   /**
    * The Name for the connection.
    * @attribute
@@ -326,7 +330,7 @@ export interface ConnectionAttributes {
  *
  * @resource aws_cloudwatch_event_connection
  */
-export class Connection extends AwsBeaconBase implements IConnection {
+export class Connection extends AwsConstructBase implements IConnection {
   /**
    * Import an existing connection resource
    * @param scope Parent construct
@@ -339,7 +343,7 @@ export class Connection extends AwsBeaconBase implements IConnection {
     connectionArn: string,
     connectionSecretArn: string,
   ): IConnection {
-    const parts = AwsSpec.ofAwsBeacon(scope).parseArn(connectionArn);
+    const parts = AwsStack.ofAwsConstruct(scope).parseArn(connectionArn);
 
     return new ImportedConnection(scope, id, {
       connectionArn: connectionArn,
@@ -440,7 +444,7 @@ export class Connection extends AwsBeaconBase implements IConnection {
   }
 }
 
-class ImportedConnection extends AwsBeaconBase {
+class ImportedConnection extends AwsConstructBase {
   public readonly connectionArn: string;
   public readonly connectionName: string;
   public readonly connectionSecretArn: string;
@@ -455,7 +459,9 @@ class ImportedConnection extends AwsBeaconBase {
     return this.connectionOutputs;
   }
   constructor(scope: Construct, id: string, attrs: ConnectionAttributes) {
-    const arnParts = AwsSpec.ofAwsBeacon(scope).parseArn(attrs.connectionArn);
+    const arnParts = AwsStack.ofAwsConstruct(scope).parseArn(
+      attrs.connectionArn,
+    );
     super(scope, id, {
       account: arnParts.account,
       region: arnParts.region,

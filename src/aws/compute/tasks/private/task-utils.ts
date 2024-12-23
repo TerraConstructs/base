@@ -1,6 +1,6 @@
 import { Construct } from "constructs";
 import { IntegrationPattern } from "../../";
-import { AwsSpec } from "../../../spec";
+import { AwsStack } from "../../../aws-stack";
 
 /**
  * Verifies that a validation pattern is supported for a service integration
@@ -42,7 +42,7 @@ export function integrationResourceArn(
     );
   }
   return (
-    `arn:${AwsSpec.ofAwsBeacon(scope).partition}:states:::${service}:${api}` +
+    `arn:${AwsStack.ofAwsConstruct(scope).partition}:states:::${service}:${api}` +
     (integrationPattern ? resourceArnSuffix[integrationPattern] : "")
   );
 }

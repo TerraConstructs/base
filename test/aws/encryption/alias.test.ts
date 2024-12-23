@@ -4,8 +4,8 @@ import { kmsAlias, dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
 import { App, Testing, TerraformOutput } from "cdktf";
 import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec, Arn } from "../../../src/aws";
-// import { Grant, IAwsBeaconWithPolicy } from "../../../src/aws/iam/grant";
+import { AwsStack, Arn } from "../../../src/aws";
+// import { Grant, IAwsConstructWithPolicy } from "../../../src/aws/iam/grant";
 // import { ManagedPolicy } from "../../../src/aws/iam/managed-policy";
 // import { PolicyDocument } from "../../../src/aws/iam/policy-document";
 import { Alias } from "../../../src/aws/encryption/alias";
@@ -27,82 +27,82 @@ const gridBackendConfig = {
 
 describe("alias", () => {
   let app: App;
-  let spec: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    spec = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,
       gridBackendConfig,
-      // TODO: Should support passing account via Spec props to match AWS CDK cross account support
+      // TODO: Should support passing account via Stack props to match AWS CDK cross account support
       // account: "1234",
     });
   });
 
   test("default", () => {
-    const key = new Key(spec, "Key");
+    const key = new Key(stack, "Key");
 
-    new Alias(spec, "Alias", { targetKey: key, aliasName: "alias/foo" });
+    new Alias(stack, "Alias", { targetKey: key, aliasName: "alias/foo" });
 
-    Template.synth(spec).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
+    Template.synth(stack).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
       name: "alias/foo",
-      target_key_id: spec.resolve(key.keyArn),
+      target_key_id: stack.resolve(key.keyArn),
     });
-    // Template.fromStack(spec).hasResourceProperties("AWS::KMS::Alias", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::KMS::Alias", {
     //   AliasName: "alias/foo",
     //   TargetKeyId: { "Fn::GetAtt": ["Key961B73FD", "Arn"] },
     // });
   });
 
   test('add "alias/" prefix if not given.', () => {
-    const key = new Key(spec, "Key", {
+    const key = new Key(stack, "Key", {
       enableKeyRotation: true,
       enabled: false,
     });
 
-    new Alias(spec, "Alias", {
+    new Alias(stack, "Alias", {
       aliasName: "foo",
       targetKey: key,
     });
 
-    Template.synth(spec).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
+    Template.synth(stack).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
       name: "alias/foo",
-      target_key_id: spec.resolve(key.keyArn),
+      target_key_id: stack.resolve(key.keyArn),
     });
-    // Template.fromStack(spec).hasResourceProperties("AWS::KMS::Alias", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::KMS::Alias", {
     //   AliasName: "alias/foo",
     //   TargetKeyId: { "Fn::GetAtt": ["Key961B73FD", "Arn"] },
     // });
   });
 
   test("can create alias directly while creating the key", () => {
-    const key = new Key(spec, "Key", {
+    const key = new Key(stack, "Key", {
       enableKeyRotation: true,
       enabled: false,
       alias: "foo",
     });
 
-    Template.synth(spec).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
+    Template.synth(stack).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
       name: "alias/foo",
-      target_key_id: spec.resolve(key.keyArn),
+      target_key_id: stack.resolve(key.keyArn),
     });
-    // Template.fromStack(spec).hasResourceProperties("AWS::KMS::Alias", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::KMS::Alias", {
     //   AliasName: "alias/foo",
     //   TargetKeyId: { "Fn::GetAtt": ["Key961B73FD", "Arn"] },
     // });
   });
 
   test('fails if alias is "alias/" (and nothing more)', () => {
-    const key = new Key(spec, "MyKey", {
+    const key = new Key(stack, "MyKey", {
       enableKeyRotation: true,
       enabled: false,
     });
 
     expect(
       () =>
-        new Alias(spec, "Alias", {
+        new Alias(stack, "Alias", {
           aliasName: "alias/",
           targetKey: key,
         }),
@@ -110,14 +110,14 @@ describe("alias", () => {
   });
 
   test("fails if alias contains illegal characters", () => {
-    const key = new Key(spec, "MyKey", {
+    const key = new Key(stack, "MyKey", {
       enableKeyRotation: true,
       enabled: false,
     });
 
     expect(
       () =>
-        new Alias(spec, "Alias", {
+        new Alias(stack, "Alias", {
           aliasName: "alias/@Nope",
           targetKey: key,
         }),
@@ -125,14 +125,14 @@ describe("alias", () => {
   });
 
   test('fails if alias starts with "alias/aws/"', () => {
-    const key = new Key(spec, "MyKey", {
+    const key = new Key(stack, "MyKey", {
       enableKeyRotation: true,
       enabled: false,
     });
 
     expect(
       () =>
-        new Alias(spec, "Alias1", {
+        new Alias(stack, "Alias1", {
           aliasName: "alias/aws/",
           targetKey: key,
         }),
@@ -140,7 +140,7 @@ describe("alias", () => {
 
     expect(
       () =>
-        new Alias(spec, "Alias2", {
+        new Alias(stack, "Alias2", {
           aliasName: "alias/aws/Awesome",
           targetKey: key,
         }),
@@ -148,7 +148,7 @@ describe("alias", () => {
 
     expect(
       () =>
-        new Alias(spec, "Alias3", {
+        new Alias(stack, "Alias3", {
           aliasName: "alias/AWS/awesome",
           targetKey: key,
         }),
@@ -158,20 +158,20 @@ describe("alias", () => {
   // TODO: KMS_ALIAS_NAME_REF feature flag is always true?
   test("keyId includes reference to alias under feature flag", () => {
     // GIVEN
-    const myKey = new Key(spec, "MyKey", {
+    const myKey = new Key(stack, "MyKey", {
       enableKeyRotation: true,
       enabled: true,
     });
-    const myAlias = new Alias(spec, "MyAlias", {
+    const myAlias = new Alias(stack, "MyAlias", {
       targetKey: myKey,
       aliasName: "alias/myAlias",
     });
 
     // WHEN
-    new AliasOutputsConstruct(spec, "AliasOutputsConstruct", myAlias);
+    new AliasOutputsConstruct(stack, "AliasOutputsConstruct", myAlias);
 
     // THEN - keyId includes reference to the alias itself
-    Template.fromStack(spec).toMatchObject({
+    Template.fromStack(stack).toMatchObject({
       output: {
         OutArn: {
           value:
@@ -182,7 +182,7 @@ describe("alias", () => {
         },
       },
     });
-    // Template.fromStack(spec).hasOutput("OutId", {
+    // Template.fromStack(stack).hasOutput("OutId", {
     //   Value: {
     //     Ref: "MyAlias9A08CB8C",
     //   },
@@ -190,19 +190,19 @@ describe("alias", () => {
   });
 
   test("can be used wherever a key is expected", () => {
-    const myKey = new Key(spec, "MyKey", {
+    const myKey = new Key(stack, "MyKey", {
       enableKeyRotation: true,
       enabled: false,
     });
-    const myAlias = new Alias(spec, "MyAlias", {
+    const myAlias = new Alias(stack, "MyAlias", {
       targetKey: myKey,
       aliasName: "alias/myAlias",
     });
 
-    new AliasOutputsConstruct(spec, "AliasOutputsConstruct", myAlias);
+    new AliasOutputsConstruct(stack, "AliasOutputsConstruct", myAlias);
 
     // THEN
-    Template.fromStack(spec).toMatchObject({
+    Template.fromStack(stack).toMatchObject({
       // NOTE: AWS CDK doesn't use a token for the alias name
       output: {
         OutArn: {
@@ -214,10 +214,10 @@ describe("alias", () => {
         },
       },
     });
-    // Template.fromStack(spec).hasOutput("OutId", {
+    // Template.fromStack(stack).hasOutput("OutId", {
     //   Value: "alias/myAlias",
     // });
-    // Template.fromStack(spec).hasOutput("OutArn", {
+    // Template.fromStack(stack).hasOutput("OutArn", {
     //   Value: {
     //     "Fn::Join": [
     //       "",
@@ -236,13 +236,13 @@ describe("alias", () => {
   });
 
   test("imported alias by name - can be used where a key is expected", () => {
-    const myAlias = Alias.fromAliasName(spec, "MyAlias", "alias/myAlias");
+    const myAlias = Alias.fromAliasName(stack, "MyAlias", "alias/myAlias");
 
-    new AliasOutputsConstruct(spec, "AliasOutputsConstruct", myAlias);
+    new AliasOutputsConstruct(stack, "AliasOutputsConstruct", myAlias);
 
     // THEN
 
-    Template.fromStack(spec).toMatchObject({
+    Template.fromStack(stack).toMatchObject({
       output: {
         OutArn: {
           value:
@@ -253,10 +253,10 @@ describe("alias", () => {
         },
       },
     });
-    // Template.fromStack(spec).hasOutput("OutId", {
+    // Template.fromStack(stack).hasOutput("OutId", {
     //   Value: "alias/myAlias",
     // });
-    // Template.fromStack(spec).hasOutput("OutArn", {
+    // Template.fromStack(stack).hasOutput("OutArn", {
     //   Value: {
     //     "Fn::Join": [
     //       "",
@@ -275,7 +275,7 @@ describe("alias", () => {
   });
 
   test("imported alias by name - will throw an error when accessing the key", () => {
-    const myAlias = Alias.fromAliasName(spec, "MyAlias", "alias/myAlias");
+    const myAlias = Alias.fromAliasName(stack, "MyAlias", "alias/myAlias");
 
     expect(() => myAlias.aliasTargetKey).toThrow(
       "Cannot access aliasTargetKey on an Alias imported by Alias.fromAliasName().",
@@ -283,8 +283,8 @@ describe("alias", () => {
   });
 
   test("fails if alias policy is invalid", () => {
-    const key = new Key(spec, "MyKey");
-    const alias = new Alias(spec, "Alias", {
+    const key = new Key(stack, "MyKey");
+    const alias = new Alias(stack, "Alias", {
       targetKey: key,
       aliasName: "alias/foo",
     });
@@ -302,31 +302,31 @@ describe("alias", () => {
   });
 
   test("grants generate mac to the alias target key", () => {
-    const key = new Key(spec, "Key");
-    const alias = new Alias(spec, "Alias", {
+    const key = new Key(stack, "Key");
+    const alias = new Alias(stack, "Alias", {
       targetKey: key,
       aliasName: "alias/foo",
     });
-    const role = new Role(spec, "Role", {
+    const role = new Role(stack, "Role", {
       assumedBy: new ServicePrincipal("sns"),
     });
 
     alias.grantGenerateMac(role);
 
     // THEN
-    Template.synth(spec).toHaveDataSourceWithProperties(
+    Template.synth(stack).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: [
           {
             actions: ["kms:GenerateMac"],
             effect: "Allow",
-            resources: [spec.resolve(key.keyArn)],
+            resources: [stack.resolve(key.keyArn)],
           },
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -341,31 +341,31 @@ describe("alias", () => {
   });
 
   test("grants generate mac to the alias target key", () => {
-    const key = new Key(spec, "Key");
-    const alias = new Alias(spec, "Alias", {
+    const key = new Key(stack, "Key");
+    const alias = new Alias(stack, "Alias", {
       targetKey: key,
       aliasName: "alias/foo",
     });
-    const role = new Role(spec, "Role", {
+    const role = new Role(stack, "Role", {
       assumedBy: new ServicePrincipal("sns"),
     });
 
     alias.grantVerifyMac(role);
 
     // THEN
-    Template.synth(spec).toHaveDataSourceWithProperties(
+    Template.synth(stack).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: [
           {
             actions: ["kms:VerifyMac"],
             effect: "Allow",
-            resources: [spec.resolve(key.keyArn)],
+            resources: [stack.resolve(key.keyArn)],
           },
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -380,16 +380,16 @@ describe("alias", () => {
   });
 
   test("adds alias prefix if its token with valid string prefix", () => {
-    const key = new Key(spec, "Key", {
-      alias: `MyKey${spec.account}`,
+    const key = new Key(stack, "Key", {
+      alias: `MyKey${stack.account}`,
     });
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
+    Template.synth(stack).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
       name: "alias/MyKey${data.aws_caller_identity.CallerIdentity.account_id}",
-      target_key_id: spec.resolve(key.keyArn),
+      target_key_id: stack.resolve(key.keyArn),
     });
-    // Template.fromStack(spec).hasResourceProperties("AWS::KMS::Alias", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::KMS::Alias", {
     //   AliasName: {
     //     "Fn::Join": [
     //       "",
@@ -408,16 +408,16 @@ describe("alias", () => {
   });
 
   test("does not add alias again if already set", () => {
-    const key = new Key(spec, "Key", {
-      alias: `alias/MyKey${spec.account}`,
+    const key = new Key(stack, "Key", {
+      alias: `alias/MyKey${stack.account}`,
     });
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
+    Template.synth(stack).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
       name: "alias/MyKey${data.aws_caller_identity.CallerIdentity.account_id}",
-      target_key_id: spec.resolve(key.keyArn),
+      target_key_id: stack.resolve(key.keyArn),
     });
-    // Template.fromStack(spec).hasResourceProperties("AWS::KMS::Alias", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::KMS::Alias", {
     //   AliasName: {
     //     "Fn::Join": [
     //       "",
@@ -437,23 +437,23 @@ describe("alias", () => {
 
   test("throws error when alias contains illegal characters", () => {
     expect(() => {
-      new Key(spec, "Key", {
-        alias: `MyK*y${spec.account}`,
+      new Key(stack, "Key", {
+        alias: `MyK*y${stack.account}`,
       });
     }).toThrow();
   });
 
   test("does not add alias if starts with token", () => {
-    const key = new Key(spec, "Key", {
-      alias: `${spec.account}MyKey`,
+    const key = new Key(stack, "Key", {
+      alias: `${stack.account}MyKey`,
     });
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
+    Template.synth(stack).toHaveResourceWithProperties(kmsAlias.KmsAlias, {
       name: "${data.aws_caller_identity.CallerIdentity.account_id}MyKey",
-      target_key_id: spec.resolve(key.keyArn),
+      target_key_id: stack.resolve(key.keyArn),
     });
-    // Template.fromStack(spec).hasResourceProperties("AWS::KMS::Alias", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::KMS::Alias", {
     //   AliasName: {
     //     "Fn::Join": [
     //       "",
@@ -472,9 +472,9 @@ describe("alias", () => {
   });
 
   test("aliasArn and keyArn from alias should match", () => {
-    const key = new Key(spec, "Key");
+    const key = new Key(stack, "Key");
 
-    const alias = new Alias(spec, "Alias", {
+    const alias = new Alias(stack, "Alias", {
       targetKey: key,
       aliasName: "alias/foo",
     });
@@ -483,9 +483,9 @@ describe("alias", () => {
   });
 
   test("aliasArn should be a valid ARN", () => {
-    const key = new Key(spec, "Key");
+    const key = new Key(stack, "Key");
 
-    const alias = new Alias(spec, "Alias", {
+    const alias = new Alias(stack, "Alias", {
       targetKey: key,
       aliasName: "alias/foo",
     });
@@ -497,7 +497,7 @@ describe("alias", () => {
           // aliasName already contains the '/'
           resource: alias.aliasName,
         },
-        spec,
+        stack,
       ),
     );
   });

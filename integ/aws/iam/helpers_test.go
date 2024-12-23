@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	util "github.com/envtio/base/integ/aws"
 	"github.com/google/go-cmp/cmp"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/stretchr/testify/require"
+	util "github.com/terraconstructs/base/integ/aws"
 )
 
 var terratestLogger = loggers.Default

@@ -66,8 +66,8 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
         },
         "tags": {
           "Name": "Test-HelloWorldDistribution",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "viewer_certificate": {
           "cloudfront_default_certificate": true,
@@ -123,7 +123,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
         "records": [
           "123.123.123.0"
         ],
-        "set_identifier": "REGION_us-east-1_ID_TestSpecLatencyAC2C47149",
+        "set_identifier": "REGION_us-east-1_ID_TestStackLatencyAAED3339B",
         "ttl": 1800,
         "type": "A",
         "zone_id": "\${aws_route53_zone.Zone_A5DE4B68.id}"
@@ -136,7 +136,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
         "records": [
           "123.123.123.0"
         ],
-        "set_identifier": "REGION_ap-southeast-1_ID_TestSpecLatencyB1684E7FC",
+        "set_identifier": "REGION_ap-southeast-1_ID_TestStackLatencyBD09D9F11",
         "ttl": 1800,
         "type": "A",
         "zone_id": "\${aws_route53_zone.Zone_A5DE4B68.id}"
@@ -146,7 +146,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
         "records": [
           "123.123.123.0"
         ],
-        "set_identifier": "WEIGHT_80_ID_TestSpecWeightedA1919BFB1",
+        "set_identifier": "WEIGHT_80_ID_TestStackWeightedA44FE547B",
         "ttl": 1800,
         "type": "A",
         "weighted_routing_policy": {
@@ -159,7 +159,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
         "records": [
           "123.123.123.0"
         ],
-        "set_identifier": "WEIGHT_20_ID_TestSpecWeightedB556753EE",
+        "set_identifier": "WEIGHT_20_ID_TestStackWeightedB53B441C3",
         "ttl": 1800,
         "type": "A",
         "weighted_routing_policy": {
@@ -173,18 +173,18 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
         "name": "example.com.",
         "tags": {
           "Name": "Test-Zone",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "hello-world-testspechelloworld",
+        "bucket_prefix": "hello-world-teststackhelloworld",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },

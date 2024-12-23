@@ -9,11 +9,11 @@ const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
 const stackName = process.env.STACK_NAME ?? "log-destination-kinesis";
 
-class KinesisEnv extends aws.AwsSpec {
+class KinesisEnv extends aws.AwsStack {
   constructor(
     scope: constructs.Construct,
     id: string,
-    props: aws.AwsSpecProps,
+    props: aws.AwsStackProps,
   ) {
     super(scope, id, props);
 

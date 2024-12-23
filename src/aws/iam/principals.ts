@@ -1,6 +1,6 @@
 import { Token, IResolvable, IResolveContext } from "cdktf";
 import { IDependable } from "constructs";
-import { AwsSpec } from "../spec";
+import { AwsStack } from "../aws-stack";
 import { IOpenIdConnectProvider } from "./oidc-provider";
 import { IPolicyDocument } from "./policy-document";
 import {
@@ -427,8 +427,8 @@ export class AccountPrincipal extends ArnPrincipal {
    */
   constructor(public readonly accountId: any) {
     super(
-      new AwsSpecDependentToken(
-        (awsSpec) => `arn:${awsSpec.partition}:iam::${accountId}:root`,
+      new AwsStackDependentToken(
+        (awsStack) => `arn:${awsStack.partition}:iam::${accountId}:root`,
       ).toString(),
     );
     if (!Token.isUnresolved(accountId) && typeof accountId !== "string") {
@@ -774,7 +774,9 @@ export class SamlConsolePrincipal extends SamlPrincipal {
  */
 export class AccountRootPrincipal extends AccountPrincipal {
   constructor() {
-    super(new AwsSpecDependentToken((awsSpec) => awsSpec.account).toString());
+    super(
+      new AwsStackDependentToken((awsStack) => awsStack.account).toString(),
+    );
   }
 
   public toString() {
@@ -1230,9 +1232,9 @@ function isAssumeRolePrincipal(
 /**
  * A lazy token that requires an instance of Stack to evaluate
  */
-class AwsSpecDependentToken implements IResolvable {
+class AwsStackDependentToken implements IResolvable {
   public readonly creationStack: string[];
-  constructor(private readonly fn: (spec: AwsSpec) => any) {
+  constructor(private readonly fn: (spec: AwsStack) => any) {
     // TODO: Implement stack traces
     // ref: https://github.com/hashicorp/terraform-cdk/blob/v0.20.9/packages/cdktf/lib/tokens/private/stack-trace.ts#L9
     // ref: https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/core/lib/stack-trace.ts#L22
@@ -1240,7 +1242,7 @@ class AwsSpecDependentToken implements IResolvable {
   }
 
   public resolve(context: IResolveContext) {
-    return this.fn(AwsSpec.ofAwsBeacon(context.scope));
+    return this.fn(AwsStack.ofAwsConstruct(context.scope));
   }
 
   public toString() {
@@ -1270,10 +1272,10 @@ class ServicePrincipalToken implements IResolvable {
   }
 
   public resolve(ctx: IResolveContext) {
-    const awsSpec = AwsSpec.ofAwsBeacon(ctx.scope);
+    const awsStack = AwsStack.ofAwsConstruct(ctx.scope);
     // TODO: Does this work for Opt-In regions??
     // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-iam/lib/principals.ts#L506-L510
-    return awsSpec.servicePrincipalName(this.service, this.opts.region);
+    return awsStack.servicePrincipalName(this.service, this.opts.region);
   }
 
   public toString() {

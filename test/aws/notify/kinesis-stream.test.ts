@@ -8,7 +8,7 @@ import {
 } from "@cdktf/provider-aws";
 import { App, Testing, TerraformVariable, VariableType, Op } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws";
 import * as kms from "../../../src/aws/encryption";
 import * as iam from "../../../src/aws/iam";
 import {
@@ -33,11 +33,11 @@ const AwsCdkKinesisEncryptedStreamsUnsupportedRegions = `\${contains(["cn-north-
 
 describe("Kinesis data streams", () => {
   let app: App;
-  let stack: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,
@@ -1372,7 +1372,7 @@ describe("Kinesis data streams", () => {
     test("cross-stack permissions - no encryption", () => {
       const streamFromStackA = new Stream(stack, "MyStream");
 
-      const stackB = new AwsSpec(app, "stackB", {
+      const stackB = new AwsStack(app, "stackB", {
         environmentName,
         gridUUID: gridUUID2,
         providerConfig,
@@ -1475,7 +1475,7 @@ describe("Kinesis data streams", () => {
         encryption: StreamEncryption.KMS,
       });
 
-      const stackB = new AwsSpec(app, "stackB", {
+      const stackB = new AwsStack(app, "stackB", {
         environmentName,
         gridUUID: gridUUID2,
         providerConfig,

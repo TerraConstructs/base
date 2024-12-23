@@ -1,7 +1,7 @@
 import { TerraformResource } from "cdktf";
 import { Construct } from "constructs";
 import * as storage from "..";
-import { AwsSpec } from "../..";
+import { AwsStack } from "../..";
 import { IFunction } from "../../compute";
 import * as iam from "../../iam";
 
@@ -17,17 +17,17 @@ export class FunctionDestination
     _scope: Construct,
     bucket: storage.IBucket,
   ): storage.BucketNotificationDestinationConfig {
-    // const uniqueId = AwsSpec.uniqueId(this.fn);
-    const permissionId = `AllowBucketNotificationsTo${AwsSpec.uniqueId(this.fn.permissionsNode)}`;
+    // const uniqueId = AwsStack.uniqueId(this.fn);
+    const permissionId = `AllowBucketNotificationsTo${AwsStack.uniqueId(this.fn.permissionsNode)}`;
 
     if (!(bucket instanceof Construct)) {
-      throw new Error(`LambdaDestination for function ${AwsSpec.uniqueId(this.fn.permissionsNode)} can only be configured on a
+      throw new Error(`LambdaDestination for function ${AwsStack.uniqueId(this.fn.permissionsNode)} can only be configured on a
         bucket construct (Bucket ${bucket.bucketName})`);
     }
 
     if (bucket.node.tryFindChild(permissionId) === undefined) {
       this.fn.addPermission(permissionId, {
-        sourceAccount: AwsSpec.ofAwsBeacon(bucket).account,
+        sourceAccount: AwsStack.ofAwsConstruct(bucket).account,
         principal: new iam.ServicePrincipal("s3.amazonaws.com"),
         sourceArn: bucket.bucketArn,
         // Placing the permissions node in the same scope as the s3 bucket.

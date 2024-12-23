@@ -12,21 +12,21 @@ const app = new App({
   outdir,
 });
 
-const spec = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 
-const logGroup = new cloudwatchLogGroup.CloudwatchLogGroup(spec, "LogGroup");
+const logGroup = new cloudwatchLogGroup.CloudwatchLogGroup(stack, "LogGroup");
 // this is edge case with sfn and service names
 // https://github.com/aws/aws-cdk/pull/27623
-const task = new aws.compute.tasks.CallAwsService(spec, "SendTaskSuccess", {
+const task = new aws.compute.tasks.CallAwsService(stack, "SendTaskSuccess", {
   service: "cloudwatchlogs",
   action: "createLogStream",
   parameters: {
@@ -37,7 +37,7 @@ const task = new aws.compute.tasks.CallAwsService(spec, "SendTaskSuccess", {
   iamResources: [`${logGroup.arn}:*`],
 });
 
-new aws.compute.StateMachine(spec, "StateMachine", {
+new aws.compute.StateMachine(stack, "StateMachine", {
   definitionBody: aws.compute.DefinitionBody.fromChainable(task),
   registerOutputs: true,
   outputName: "state_machine",

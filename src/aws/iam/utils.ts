@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-iam/lib/utils.ts
 
 import { Construct, IConstruct } from "constructs";
-import { AwsBeaconBase } from "../beacon";
+import { AwsConstructBase } from "../aws-construct";
 import { IPrincipal } from "./principals";
 
 /**
@@ -21,7 +21,7 @@ export function principalIsOwnedResource(
     return false;
   }
 
-  return AwsBeaconBase.isOwnedResource(principal);
+  return AwsConstructBase.isOwnedResource(principal);
 }
 
 /**

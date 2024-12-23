@@ -2,7 +2,7 @@
 
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws";
 import {
   Metric,
   Alarm,
@@ -20,11 +20,11 @@ const gridBackendConfig = {
 
 describe("Alarm Status Widget", () => {
   let app: App;
-  let stack: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,

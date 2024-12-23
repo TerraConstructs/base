@@ -1,6 +1,6 @@
 import { lambdaFunctionEventInvokeConfig } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "..";
+import { AwsConstructBase, AwsConstructProps } from "..";
 import { IFunction } from "./function-base";
 import { DestinationType, IDestination } from "./function-destination";
 import { Duration } from "../..";
@@ -8,7 +8,7 @@ import { Duration } from "../..";
 /**
  * Options to add an EventInvokeConfig to a function.
  */
-export interface EventInvokeConfigOptions extends AwsBeaconProps {
+export interface EventInvokeConfigOptions extends AwsConstructProps {
   /**
    * The destination for failed invocations.
    *
@@ -74,7 +74,7 @@ export interface EventInvokeConfigProps extends EventInvokeConfigOptions {
  * event fails all processing attempts or stays in the asynchronous invocation
  * queue for too long, Lambda discards it.
  */
-export class EventInvokeConfig extends AwsBeaconBase {
+export class EventInvokeConfig extends AwsConstructBase {
   public readonly resource: lambdaFunctionEventInvokeConfig.LambdaFunctionEventInvokeConfig;
   // TODO: output undefined support...
   public get outputs(): Record<string, any> {

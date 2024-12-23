@@ -8,8 +8,8 @@ const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
 const stackName = process.env.STACK_NAME ?? "key-alias";
 
-class TestSpec extends aws.AwsSpec {
-  constructor(scope: App, props: aws.AwsSpecProps) {
+class TestStack extends aws.AwsStack {
+  constructor(scope: App, props: aws.AwsStackProps) {
     super(scope, stackName, props);
     const aliasedKey = new aws.encryption.Key(this, "MyKey", {
       alias: `MyKey${this.account}`,
@@ -31,7 +31,7 @@ const app = new App({
   outdir,
 });
 
-const spec = new TestSpec(app, {
+const stack = new TestStack(app, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
@@ -39,7 +39,7 @@ const spec = new TestSpec(app, {
   },
 });
 
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 app.synth();

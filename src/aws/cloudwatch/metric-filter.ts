@@ -4,12 +4,14 @@ import { cloudwatchLogMetricFilter } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import { ILogGroup, MetricFilterOptions } from "./log-group";
 import { Metric, MetricOptions } from "./metric";
-import { AwsBeaconBase, AwsBeaconProps } from "../";
+import { AwsConstructBase, AwsConstructProps } from "../";
 
 /**
  * Properties for a MetricFilter
  */
-export interface MetricFilterProps extends MetricFilterOptions, AwsBeaconProps {
+export interface MetricFilterProps
+  extends MetricFilterOptions,
+    AwsConstructProps {
   /**
    * The log group to create the filter on.
    */
@@ -19,7 +21,7 @@ export interface MetricFilterProps extends MetricFilterOptions, AwsBeaconProps {
 /**
  * A filter that extracts information from CloudWatch Logs and emits to CloudWatch Metrics
  */
-export class MetricFilter extends AwsBeaconBase {
+export class MetricFilter extends AwsConstructBase {
   public readonly resource: cloudwatchLogMetricFilter.CloudwatchLogMetricFilter;
 
   public get outputs(): Record<string, any> {

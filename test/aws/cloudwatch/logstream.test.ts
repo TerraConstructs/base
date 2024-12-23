@@ -3,7 +3,7 @@
 import { cloudwatchLogStream } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws";
 import { LogGroup, LogStream } from "../../../src/aws/cloudwatch";
 import { Template } from "../../assertions";
 
@@ -13,7 +13,7 @@ describe("log stream", () => {
   test("simple instantiation", () => {
     // GIVEN
     const app = Testing.app();
-    const spec = new AwsSpec(app, `TestSpec`, {
+    const stack = new AwsStack(app, `TestStack`, {
       environmentName: "Test",
       gridUUID,
       providerConfig: {
@@ -25,14 +25,14 @@ describe("log stream", () => {
     });
 
     // WHEN
-    const logGroup = new LogGroup(spec, "LogGroup");
+    const logGroup = new LogGroup(stack, "LogGroup");
 
-    new LogStream(spec, "Stream", {
+    new LogStream(stack, "Stream", {
       logGroup,
     });
 
     // THEN
-    Template.synth(spec).toHaveResource(
+    Template.synth(stack).toHaveResource(
       cloudwatchLogStream.CloudwatchLogStream,
     );
   });

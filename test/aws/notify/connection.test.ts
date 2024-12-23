@@ -1,8 +1,8 @@
 import { cloudwatchEventConnection } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import "cdktf/lib/testing/adapters/jest";
 import * as notify from "../../../src/aws/notify";
-import { AwsSpec } from "../../../src/aws/spec";
 // import { SecretValue, Stack } from "../../core";
 
 const environmentName = "Test";
@@ -14,10 +14,10 @@ const gridBackendConfig = {
 
 test("basic connection", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
-  new notify.Connection(spec, "Connection", {
+  new notify.Connection(stack, "Connection", {
     authorization: notify.Authorization.basic(
       "username",
       "password", // TODO: should be sensitive
@@ -28,8 +28,8 @@ test("basic connection", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     cloudwatchEventConnection.CloudwatchEventConnection,
@@ -45,7 +45,7 @@ test("basic connection", () => {
       },
     },
   );
-  // const template = Template.fromStack(spec);
+  // const template = Template.fromStack(stack);
   // template.hasResourceProperties("AWS::Events::Connection", {
   //   AuthorizationType: "BASIC",
   //   AuthParameters: {
@@ -61,10 +61,10 @@ test("basic connection", () => {
 
 test("API key connection", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
-  new notify.Connection(spec, "Connection", {
+  new notify.Connection(stack, "Connection", {
     authorization: notify.Authorization.apiKey(
       "keyname",
       "keyvalue", // TODO: should be sensitive
@@ -73,8 +73,8 @@ test("API key connection", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     cloudwatchEventConnection.CloudwatchEventConnection,
@@ -88,7 +88,7 @@ test("API key connection", () => {
       },
     },
   );
-  // const template = Template.fromStack(spec);
+  // const template = Template.fromStack(stack);
   // template.hasResourceProperties("AWS::Events::Connection", {
   //   AuthorizationType: "API_KEY",
   //   AuthParameters: {
@@ -102,10 +102,10 @@ test("API key connection", () => {
 
 test("oauth connection", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
-  new notify.Connection(spec, "Connection", {
+  new notify.Connection(stack, "Connection", {
     authorization: notify.Authorization.oauth({
       authorizationEndpoint: "authorizationEndpoint",
       clientId: "clientID",
@@ -126,8 +126,8 @@ test("oauth connection", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     cloudwatchEventConnection.CloudwatchEventConnection,
@@ -165,7 +165,7 @@ test("oauth connection", () => {
       name: "testConnection",
     },
   );
-  // const template = Template.fromStack(spec);
+  // const template = Template.fromStack(stack);
   // template.hasResourceProperties("AWS::Events::Connection", {
   //   AuthorizationType: "OAUTH_CLIENT_CREDENTIALS",
   //   AuthParameters: {
@@ -202,10 +202,10 @@ test("oauth connection", () => {
 
 test("Additional plaintext headers", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
-  new notify.Connection(spec, "Connection", {
+  new notify.Connection(stack, "Connection", {
     authorization: notify.Authorization.apiKey(
       "keyname",
       "keyvalue", // TODO: should be sensitive
@@ -217,8 +217,8 @@ test("Additional plaintext headers", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     cloudwatchEventConnection.CloudwatchEventConnection,
@@ -241,7 +241,7 @@ test("Additional plaintext headers", () => {
       },
     },
   );
-  // const template = Template.fromStack(spec);
+  // const template = Template.fromStack(stack);
   // template.hasResourceProperties("AWS::Events::Connection", {
   //   AuthParameters: {
   //     InvocationHttpParameters: {
@@ -259,10 +259,10 @@ test("Additional plaintext headers", () => {
 
 test("Additional secret headers", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
-  new notify.Connection(spec, "Connection", {
+  new notify.Connection(stack, "Connection", {
     authorization: notify.Authorization.apiKey(
       "keyname",
       "keyvalue", // TODO: should be sensitive
@@ -276,8 +276,8 @@ test("Additional secret headers", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveResourceWithProperties(
     cloudwatchEventConnection.CloudwatchEventConnection,
@@ -300,7 +300,7 @@ test("Additional secret headers", () => {
       },
     },
   );
-  // const template = Template.fromStack(spec);
+  // const template = Template.fromStack(stack);
   // template.hasResourceProperties("AWS::Events::Connection", {
   //   AuthParameters: {
   //     InvocationHttpParameters: {
@@ -316,9 +316,9 @@ test("Additional secret headers", () => {
   // });
 });
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

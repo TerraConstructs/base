@@ -11,26 +11,26 @@ const stackName = process.env.STACK_NAME ?? "lambda-invoke-function";
 const app = new App({
   outdir,
 });
-const spec = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 
-const submitJob = new aws.compute.tasks.LambdaInvoke(spec, "InvokeHandler", {
-  lambdaFunction: new aws.compute.NodejsFunction(spec, "Handler", {
+const submitJob = new aws.compute.tasks.LambdaInvoke(stack, "InvokeHandler", {
+  lambdaFunction: new aws.compute.NodejsFunction(stack, "Handler", {
     path: path.join(__dirname, "handlers", "hello-world", "index.ts"),
   }),
   resultPath: "$.response",
 });
 
 const callBackHandler = new aws.compute.NodejsFunction(
-  spec,
+  stack,
   "CallbackHandler",
   {
     path: path.join(__dirname, "handlers", "callback", "index.ts"),
@@ -43,7 +43,7 @@ callBackHandler.addToRolePolicy(
   }),
 );
 const taskTokenHandler = new aws.compute.tasks.LambdaInvoke(
-  spec,
+  stack,
   "InvokeHandlerWithTaskToken",
   {
     lambdaFunction: callBackHandler,
@@ -56,12 +56,12 @@ const taskTokenHandler = new aws.compute.tasks.LambdaInvoke(
   },
 );
 
-const isComplete = new aws.compute.Choice(spec, "Job Complete?");
-const jobFailed = new aws.compute.Fail(spec, "Job Failed", {
+const isComplete = new aws.compute.Choice(stack, "Job Complete?");
+const jobFailed = new aws.compute.Fail(stack, "Job Failed", {
   cause: "AWS Batch Job Failed",
   error: "DescribeJob returned FAILED",
 });
-const finalStatus = new aws.compute.Pass(spec, "Final step");
+const finalStatus = new aws.compute.Pass(stack, "Final step");
 
 const chain = aws.compute.Chain.start(submitJob)
   .next(taskTokenHandler)
@@ -77,7 +77,7 @@ const chain = aws.compute.Chain.start(submitJob)
       ),
   );
 
-new aws.compute.StateMachine(spec, "StateMachine", {
+new aws.compute.StateMachine(stack, "StateMachine", {
   definitionBody: aws.compute.DefinitionBody.fromChainable(chain),
   timeout: Duration.seconds(30),
   registerOutputs: true,

@@ -10,18 +10,18 @@ const stackName = process.env.STACK_NAME ?? "call-aws-service-sfn";
 const app = new App({
   outdir,
 });
-const spec = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 
-const task = new aws.compute.tasks.CallAwsService(spec, "SendTaskSuccess", {
+const task = new aws.compute.tasks.CallAwsService(stack, "SendTaskSuccess", {
   service: "sfn",
   action: "sendTaskSuccess",
   iamResources: ["*"],
@@ -32,17 +32,17 @@ const task = new aws.compute.tasks.CallAwsService(spec, "SendTaskSuccess", {
 });
 
 const childStateMachine = new aws.compute.StateMachine(
-  spec,
+  stack,
   "ChildStateMachine",
   {
     definitionBody: aws.compute.DefinitionBody.fromChainable(task),
   },
 );
 
-new aws.compute.StateMachine(spec, "ParentStateMachine", {
+new aws.compute.StateMachine(stack, "ParentStateMachine", {
   definitionBody: aws.compute.DefinitionBody.fromChainable(
     new aws.compute.tasks.StepFunctionsStartExecution(
-      spec,
+      stack,
       "StepFunctionsStartExecution",
       {
         stateMachine: childStateMachine,

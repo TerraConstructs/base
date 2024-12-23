@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/environment-toolkit/go-synth/executors"
-	"github.com/envtio/base/integ"
-	util "github.com/envtio/base/integ/aws"
 	"github.com/gruntwork-io/terratest/modules/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/terraconstructs/base/integ"
+	util "github.com/terraconstructs/base/integ/aws"
+	"github.com/terraconstructs/go-synth/executors"
 
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 )

@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/data-protection-policy.ts
 
 import { cloudwatchLogDataProtectionPolicy } from "@cdktf/provider-aws";
-import { AwsSpec } from "../spec";
+import { AwsStack } from "../aws-stack";
 import { ILogGroup } from "./log-group";
 import { IBucket } from "../storage";
 /**
@@ -65,7 +65,7 @@ export class DataProtectionPolicy {
         });
       } else {
         identifiers.push(
-          AwsSpec.ofAwsBeacon(_scope).formatArn({
+          AwsStack.ofAwsConstruct(_scope).formatArn({
             resource: "data-identifier",
             region: "",
             account: "aws",

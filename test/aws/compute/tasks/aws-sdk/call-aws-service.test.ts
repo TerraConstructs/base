@@ -2,16 +2,16 @@
 import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
 import "cdktf/lib/testing/adapters/jest";
 import { Testing, TerraformVariable, Lazy } from "cdktf";
+import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import * as iam from "../../../../../src/aws/iam";
-import { AwsSpec } from "../../../../../src/aws/spec";
 
-let spec: AwsSpec;
+let stack: AwsStack;
 
 beforeEach(() => {
   // GIVEN
   const app = Testing.app();
-  spec = new AwsSpec(app, "TestSpec", {
+  stack = new AwsStack(app, "TestStack", {
     environmentName: "Test",
     gridUUID: "123e4567-e89b-12d3",
     providerConfig: { region: "us-east-1" },
@@ -23,7 +23,7 @@ beforeEach(() => {
 
 test("CallAwsService task", () => {
   // WHEN
-  const task = new compute.tasks.CallAwsService(spec, "GetObject", {
+  const task = new compute.tasks.CallAwsService(stack, "GetObject", {
     service: "s3",
     action: "getObject",
     parameters: {
@@ -33,12 +33,12 @@ test("CallAwsService task", () => {
     iamResources: ["*"],
   });
 
-  new compute.StateMachine(spec, "StateMachine", {
+  new compute.StateMachine(stack, "StateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
   // THEN
-  expect(spec.resolve(task.toStateJson())).toEqual({
+  expect(stack.resolve(task.toStateJson())).toEqual({
     Type: "Task",
     Resource:
       "arn:${data.aws_partition.Partitition.partition}:states:::aws-sdk:s3:getObject",
@@ -63,8 +63,8 @@ test("CallAwsService task", () => {
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -78,7 +78,7 @@ test("CallAwsService task", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -94,19 +94,19 @@ test("CallAwsService task", () => {
 
 test("with custom IAM action", () => {
   // WHEN
-  const task = new compute.tasks.CallAwsService(spec, "ListBuckets", {
+  const task = new compute.tasks.CallAwsService(stack, "ListBuckets", {
     service: "s3",
     action: "listBuckets",
     iamResources: ["*"],
     iamAction: "s3:ListAllMyBuckets",
   });
 
-  new compute.StateMachine(spec, "StateMachine", {
+  new compute.StateMachine(stack, "StateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
   // THEN
-  expect(spec.resolve(task.toStateJson())).toEqual({
+  expect(stack.resolve(task.toStateJson())).toEqual({
     Type: "Task",
     Resource:
       "arn:${data.aws_partition.Partitition.partition}:states:::aws-sdk:s3:listBuckets",
@@ -127,8 +127,8 @@ test("with custom IAM action", () => {
   });
 
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -142,7 +142,7 @@ test("with custom IAM action", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -158,18 +158,18 @@ test("with custom IAM action", () => {
 
 test("with unresolved tokens", () => {
   // WHEN
-  const task = new compute.tasks.CallAwsService(spec, "ListBuckets", {
-    service: new TerraformVariable(spec, "Service", {}).stringValue,
-    action: new TerraformVariable(spec, "Action", {}).stringValue,
+  const task = new compute.tasks.CallAwsService(stack, "ListBuckets", {
+    service: new TerraformVariable(stack, "Service", {}).stringValue,
+    action: new TerraformVariable(stack, "Action", {}).stringValue,
     iamResources: ["*"],
   });
 
-  new compute.StateMachine(spec, "StateMachine", {
+  new compute.StateMachine(stack, "StateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
   // THEN
-  expect(spec.resolve(task.toStateJson())).toEqual({
+  expect(stack.resolve(task.toStateJson())).toEqual({
     Type: "Task",
     Resource:
       "arn:${data.aws_partition.Partitition.partition}:states:::aws-sdk:${var.Service}:${var.Action}",
@@ -200,7 +200,7 @@ test("with unresolved tokens", () => {
 test("throws with invalid integration pattern", () => {
   expect(
     () =>
-      new compute.tasks.CallAwsService(spec, "GetObject", {
+      new compute.tasks.CallAwsService(stack, "GetObject", {
         integrationPattern: compute.IntegrationPattern.RUN_JOB,
         service: "s3",
         action: "getObject",
@@ -218,7 +218,7 @@ test("throws with invalid integration pattern", () => {
 test("throws if action is not camelCase", () => {
   expect(
     () =>
-      new compute.tasks.CallAwsService(spec, "GetObject", {
+      new compute.tasks.CallAwsService(stack, "GetObject", {
         service: "s3",
         action: "GetObject",
         parameters: {
@@ -233,7 +233,7 @@ test("throws if action is not camelCase", () => {
 test("throws if parameters has keys as not PascalCase", () => {
   expect(
     () =>
-      new compute.tasks.CallAwsService(spec, "GetObject", {
+      new compute.tasks.CallAwsService(stack, "GetObject", {
         service: "s3",
         action: "getObject",
         parameters: {
@@ -247,7 +247,7 @@ test("throws if parameters has keys as not PascalCase", () => {
 
 test("can pass additional IAM statements", () => {
   // WHEN
-  const task = new compute.tasks.CallAwsService(spec, "DetectLabels", {
+  const task = new compute.tasks.CallAwsService(stack, "DetectLabels", {
     service: "rekognition",
     action: "detectLabels",
     iamResources: ["*"],
@@ -259,14 +259,14 @@ test("can pass additional IAM statements", () => {
     ],
   });
 
-  new compute.StateMachine(spec, "StateMachine", {
+  new compute.StateMachine(stack, "StateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -285,7 +285,7 @@ test("can pass additional IAM statements", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -306,7 +306,7 @@ test("can pass additional IAM statements", () => {
 
 test("IAM policy for sfn", () => {
   // WHEN
-  const task = new compute.tasks.CallAwsService(spec, "SendTaskSuccess", {
+  const task = new compute.tasks.CallAwsService(stack, "SendTaskSuccess", {
     service: "sfn",
     action: "sendTaskSuccess",
     iamResources: ["*"],
@@ -316,14 +316,14 @@ test("IAM policy for sfn", () => {
     },
   });
 
-  new compute.StateMachine(spec, "StateMachine", {
+  new compute.StateMachine(stack, "StateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -337,7 +337,7 @@ test("IAM policy for sfn", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -353,8 +353,8 @@ test("IAM policy for sfn", () => {
 
 test("IAM policy for cloudwatchlogs", () => {
   // WHEN
-  // const myLogGroup = new LogGroup(spec, "MyLogGroup");
-  const task = new compute.tasks.CallAwsService(spec, "SendTaskSuccess", {
+  // const myLogGroup = new LogGroup(stack, "MyLogGroup");
+  const task = new compute.tasks.CallAwsService(stack, "SendTaskSuccess", {
     service: "cloudwatchlogs",
     action: "createLogStream",
     parameters: {
@@ -372,14 +372,14 @@ test("IAM policy for cloudwatchlogs", () => {
     ], // myLogGroup.logGroupArn],
   });
 
-  new compute.StateMachine(spec, "StateMachine", {
+  new compute.StateMachine(stack, "StateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -395,7 +395,7 @@ test("IAM policy for cloudwatchlogs", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -414,7 +414,7 @@ test("IAM policy for cloudwatchlogs", () => {
 test("IAM policy for mediapackagevod", () => {
   // WHEN
   const task = new compute.tasks.CallAwsService(
-    spec,
+    stack,
     "ListMediaPackageVoDPackagingGroups",
     {
       service: "mediapackagevod",
@@ -424,14 +424,14 @@ test("IAM policy for mediapackagevod", () => {
     },
   );
 
-  new compute.StateMachine(spec, "StateMachine", {
+  new compute.StateMachine(stack, "StateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -445,7 +445,7 @@ test("IAM policy for mediapackagevod", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -461,21 +461,21 @@ test("IAM policy for mediapackagevod", () => {
 
 test("IAM policy for mwaa", () => {
   // WHEN
-  const task = new compute.tasks.CallAwsService(spec, "ListMWAAEnvironments", {
+  const task = new compute.tasks.CallAwsService(stack, "ListMWAAEnvironments", {
     service: "mwaa",
     action: "listEnvironments",
     resultPath: compute.JsonPath.DISCARD,
     iamResources: ["*"],
   });
 
-  new compute.StateMachine(spec, "StateMachine", {
+  new compute.StateMachine(stack, "StateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -489,7 +489,7 @@ test("IAM policy for mwaa", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -505,7 +505,7 @@ test("IAM policy for mwaa", () => {
 
 test("IAM policy for efs", () => {
   // WHEN
-  const task = new compute.tasks.CallAwsService(spec, "TagEfsAccessPoint", {
+  const task = new compute.tasks.CallAwsService(stack, "TagEfsAccessPoint", {
     service: "efs",
     action: "tagResource",
     iamResources: ["*"],
@@ -521,14 +521,14 @@ test("IAM policy for efs", () => {
     resultPath: compute.JsonPath.DISCARD,
   });
 
-  new compute.StateMachine(spec, "StateMachine", {
+  new compute.StateMachine(stack, "StateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -542,7 +542,7 @@ test("IAM policy for efs", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {

@@ -11,7 +11,7 @@ const stackName = process.env.STACK_NAME ?? "log-group-metrics";
 const app = new App({
   outdir,
 });
-const stack = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
@@ -40,7 +40,7 @@ const alarm2 = logGroup
     evaluationPeriods: 1,
   });
 
-// HACK: This is a workaround for createAlarmOptions missing AwsBeaconProps (registerOutputs)
+// HACK: This is a workaround for createAlarmOptions missing AwsConstructProps (registerOutputs)
 new TerraformOutput(stack, "alarm1", {
   value: alarm1.alarmOutputs,
   staticId: true,

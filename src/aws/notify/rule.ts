@@ -6,8 +6,12 @@ import {
 import { Lazy, Token } from "cdktf";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
-import { AwsSpec } from "../spec";
+import {
+  AwsConstructBase,
+  IAwsConstruct,
+  AwsConstructProps,
+} from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import {
   Schedule,
   EventPattern,
@@ -17,7 +21,7 @@ import {
 } from "./";
 import { mergeEventPattern, renderEventPattern } from "./util";
 
-export interface RuleProps extends AwsBeaconProps, EventCommonOptions {
+export interface RuleProps extends AwsConstructProps, EventCommonOptions {
   /**
    * Indicates whether the rule is enabled.
    *
@@ -96,7 +100,7 @@ export interface RuleOutputs {
   readonly arn: string;
 }
 
-export interface IRule extends IAwsBeacon {
+export interface IRule extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly ruleOutputs: RuleOutputs;
   /**
@@ -115,7 +119,7 @@ export interface IRule extends IAwsBeacon {
   readonly ruleName: string;
 }
 
-export class Rule extends AwsBeaconBase implements IRule {
+export class Rule extends AwsConstructBase implements IRule {
   /**
    * Import an existing EventBridge Rule provided an ARN
    *
@@ -128,12 +132,12 @@ export class Rule extends AwsBeaconBase implements IRule {
     id: string,
     eventRuleArn: string,
   ): IRule {
-    const parts = AwsSpec.ofAwsBeacon(scope).splitArn(
+    const parts = AwsStack.ofAwsConstruct(scope).splitArn(
       eventRuleArn,
       ArnFormat.SLASH_RESOURCE_NAME,
     );
 
-    class Import extends AwsBeaconBase implements IRule {
+    class Import extends AwsConstructBase implements IRule {
       public ruleArn = eventRuleArn;
       public ruleName = parts.resourceName || "";
       public ruleOutputs = {

@@ -1,19 +1,19 @@
 import "cdktf/lib/testing/adapters/jest";
 import { Testing } from "cdktf";
+import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import { SqsSendMessage } from "../../../../../src/aws/compute/tasks/sqs/send-message";
 import * as notify from "../../../../../src/aws/notify";
-import { AwsSpec } from "../../../../../src/aws/spec";
 import { Duration } from "../../../../../src/duration";
 
 describe("SqsSendMessage", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   let queue: notify.Queue;
 
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    spec = new AwsSpec(app, "TestSpec", {
+    stack = new AwsStack(app, "TestStack", {
       environmentName: "Test",
       gridUUID: "123e4567-e89b-12d3",
       providerConfig: { region: "us-east-1" },
@@ -21,18 +21,18 @@ describe("SqsSendMessage", () => {
         address: "http://localhost:3000",
       },
     });
-    queue = new notify.Queue(spec, "Queue");
+    queue = new notify.Queue(stack, "Queue");
   });
 
   test("default settings", () => {
     // WHEN
-    const task = new SqsSendMessage(spec, "SendMessage", {
+    const task = new SqsSendMessage(stack, "SendMessage", {
       queue,
       messageBody: compute.TaskInput.fromText("a simple message"),
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       Type: "Task",
       Resource:
         "arn:${data.aws_partition.Partitition.partition}:states:::sqs:sendMessage",
@@ -59,7 +59,7 @@ describe("SqsSendMessage", () => {
 
   test("send message with deduplication and delay", () => {
     // WHEN
-    const task = new SqsSendMessage(spec, "Send", {
+    const task = new SqsSendMessage(stack, "Send", {
       queue,
       messageBody: compute.TaskInput.fromText("Send this message"),
       messageDeduplicationId: compute.JsonPath.stringAt("$.deduping"),
@@ -68,7 +68,7 @@ describe("SqsSendMessage", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       Type: "Task",
       Resource:
         "arn:${data.aws_partition.Partitition.partition}:states:::sqs:sendMessage",
@@ -98,7 +98,7 @@ describe("SqsSendMessage", () => {
 
   test("send message to SQS and wait for task token", () => {
     // WHEN
-    const task = new SqsSendMessage(spec, "Send", {
+    const task = new SqsSendMessage(stack, "Send", {
       queue,
       integrationPattern: compute.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
       messageBody: compute.TaskInput.fromObject({
@@ -108,7 +108,7 @@ describe("SqsSendMessage", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       Type: "Task",
       Resource:
         "arn:${data.aws_partition.Partitition.partition}:states:::sqs:sendMessage.waitForTaskToken",
@@ -138,13 +138,13 @@ describe("SqsSendMessage", () => {
 
   test("Message body can come from state", () => {
     // WHEN
-    const task = new SqsSendMessage(spec, "Send", {
+    const task = new SqsSendMessage(stack, "Send", {
       queue,
       messageBody: compute.TaskInput.fromJsonPathAt("$.theMessage"),
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       Type: "Task",
       Resource:
         "arn:${data.aws_partition.Partitition.partition}:states:::sqs:sendMessage",
@@ -171,7 +171,7 @@ describe("SqsSendMessage", () => {
 
   test("send message with message body defined as an object", () => {
     // WHEN
-    const task = new SqsSendMessage(spec, "Send", {
+    const task = new SqsSendMessage(stack, "Send", {
       queue,
       messageBody: compute.TaskInput.fromObject({
         literal: "literal",
@@ -180,7 +180,7 @@ describe("SqsSendMessage", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       Type: "Task",
       Resource:
         "arn:${data.aws_partition.Partitition.partition}:states:::sqs:sendMessage",
@@ -210,7 +210,7 @@ describe("SqsSendMessage", () => {
 
   test("message body can use references", () => {
     // WHEN
-    const task = new SqsSendMessage(spec, "Send", {
+    const task = new SqsSendMessage(stack, "Send", {
       queue,
       messageBody: compute.TaskInput.fromObject({
         queueArn: queue.queueArn,
@@ -218,7 +218,7 @@ describe("SqsSendMessage", () => {
     });
 
     // THEN
-    expect(spec.resolve(task.toStateJson())).toEqual({
+    expect(stack.resolve(task.toStateJson())).toEqual({
       Type: "Task",
       Resource:
         "arn:${data.aws_partition.Partitition.partition}:states:::sqs:sendMessage",
@@ -248,7 +248,7 @@ describe("SqsSendMessage", () => {
 
   test("fails when WAIT_FOR_TASK_TOKEN integration pattern is used without supplying a task token in message body", () => {
     expect(() => {
-      new SqsSendMessage(spec, "Send", {
+      new SqsSendMessage(stack, "Send", {
         queue,
         integrationPattern: compute.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
         messageBody: compute.TaskInput.fromText("Send this message"),
@@ -260,7 +260,7 @@ describe("SqsSendMessage", () => {
 
   test("fails when RUN_JOB integration pattern is used", () => {
     expect(() => {
-      new SqsSendMessage(spec, "Send", {
+      new SqsSendMessage(stack, "Send", {
         queue,
         integrationPattern: compute.IntegrationPattern.RUN_JOB,
         messageBody: compute.TaskInput.fromText("Send this message"),

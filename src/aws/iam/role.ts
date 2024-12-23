@@ -2,8 +2,8 @@ import { iamRole } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
-import { AwsSpec } from "../spec";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { Grant } from "./grant";
 import { IIdentity } from "./identity-base";
 import { IManagedPolicy } from "./managed-policy";
@@ -33,12 +33,12 @@ import { TokenComparison, tokenCompareStrings } from "../../token";
 // TODO: re-implement iam role policy splitting
 // const MAX_INLINE_SIZE = 10000;
 // const MAX_MANAGEDPOL_SIZE = 6000;
-const IAM_ROLE_SYMBOL = Symbol.for("@envtio/base/lib/aws/iam.Role");
+const IAM_ROLE_SYMBOL = Symbol.for("terraconstructs/lib/aws/iam.Role");
 
 /**
  * Properties for defining an IAM Role
  */
-export interface RoleProps extends AwsBeaconProps {
+export interface RoleProps extends AwsConstructProps {
   /**
    * The IAM principal (i.e. `new ServicePrincipal('sns.amazonaws.com')`)
    * which can assume this role.
@@ -233,7 +233,7 @@ export interface FromRoleArnOptions {
 
 // TODO: support for pre-created roles?
 // ref: https://github.com/aws/aws-cdk/blob/v2.143.0/packages/aws-cdk-lib/aws-iam/lib/role.ts#L186
-// NOTE: in E.T. pre-created roles are passed in through the Grid, so this seems not needed.
+// NOTE: in TerraConstruct pre-created roles are passed in through the Grid, so this seems not needed.
 
 /**
  * Options allowing customizing the behavior of `Role.fromRoleName`.
@@ -246,7 +246,7 @@ export interface FromRoleNameOptions extends FromRoleArnOptions {}
  * Defines an IAM role. The role is created with an assume policy document associated with
  * the specified AWS service principal defined in `serviceAssumeRole`.
  */
-export class Role extends AwsBeaconBase implements IRole {
+export class Role extends AwsConstructBase implements IRole {
   /**
    * Import an external role by ARN.
    *
@@ -270,7 +270,7 @@ export class Role extends AwsBeaconBase implements IRole {
     roleArn: string,
     options: FromRoleArnOptions = {},
   ): IRole {
-    const scopeStack = AwsSpec.ofAwsBeacon(scope);
+    const scopeStack = AwsStack.ofAwsConstruct(scope);
     const parsedArn = scopeStack.splitArn(
       roleArn,
       ArnFormat.SLASH_RESOURCE_NAME,
@@ -364,7 +364,7 @@ export class Role extends AwsBeaconBase implements IRole {
     return Role.fromRoleArn(
       scope,
       id,
-      AwsSpec.ofAwsBeacon(scope).formatArn({
+      AwsStack.ofAwsConstruct(scope).formatArn({
         region: "",
         service: "iam",
         resource: "role",
@@ -489,7 +489,7 @@ export class Role extends AwsBeaconBase implements IRole {
     });
 
     this.resource = new iamRole.IamRole(this, "Resource", {
-      ...props, // copy over Terraform Meta Arguments from BeaconProps
+      ...props, // copy over Terraform Meta Arguments from ConstructProps
       assumeRolePolicy: this.assumeRolePolicy.json,
       managedPolicyArns: UniqueStringSet.from(() =>
         this.managedPolicies.map((p) => p.managedPolicyArn),

@@ -20,6 +20,7 @@ import "cdktf/lib/testing/adapters/jest";
 //   // PermissionsBoundary,
 // } from "../../core";
 import { Duration } from "../../../src/";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import { ManagedPolicy } from "../../../src/aws/iam/managed-policy";
 import { Policy } from "../../../src/aws/iam/policy";
 import { PolicyDocument } from "../../../src/aws/iam/policy-document";
@@ -33,7 +34,6 @@ import {
   ServicePrincipal,
 } from "../../../src/aws/iam/principals";
 import { Role } from "../../../src/aws/iam/role";
-import { AwsSpec } from "../../../src/aws/spec";
 import { Annotations, Template } from "../../assertions";
 
 const environmentName = "Test";
@@ -47,9 +47,9 @@ const gridBackendConfig = {
 describe("isRole() returns", () => {
   test("true if given Role instance", () => {
     // GIVEN
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
     // WHEN
-    const pureRole = new Role(spec, "Role", {
+    const pureRole = new Role(stack, "Role", {
       assumedBy: new ServicePrincipal("sns"),
     });
     // THEN
@@ -58,10 +58,10 @@ describe("isRole() returns", () => {
 
   test("false if given imported role instance", () => {
     // GIVEN
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
     // WHEN
     const importedRole = Role.fromRoleName(
-      spec,
+      stack,
       "ImportedRole",
       "ImportedRole",
     );
@@ -77,15 +77,15 @@ describe("isRole() returns", () => {
 
 describe("IAM role", () => {
   test("default role", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
-    new Role(spec, "MyRole", {
+    new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns"),
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -115,11 +115,11 @@ describe("IAM role", () => {
 
   test("a role can grant PassRole permissions", () => {
     // GIVEN
-    const spec = getAwsSpec("RoleStack", gridUUID1);
-    const role1 = new Role(spec, "Role1", {
+    const stack = getAwsStack("RoleStack", gridUUID1);
+    const role1 = new Role(stack, "Role1", {
       assumedBy: new ServicePrincipal("henk"),
     });
-    const role2 = new Role(spec, "Role2", {
+    const role2 = new Role(stack, "Role2", {
       assumedBy: new ServicePrincipal("sns"),
     });
 
@@ -128,8 +128,8 @@ describe("IAM role", () => {
 
     // THEN
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -147,11 +147,11 @@ describe("IAM role", () => {
 
   test("a role can grant AssumeRole permissions", () => {
     // GIVEN
-    const spec = getAwsSpec("RoleStack", gridUUID1);
-    const role1 = new Role(spec, "Role1", {
+    const stack = getAwsStack("RoleStack", gridUUID1);
+    const role1 = new Role(stack, "Role1", {
       assumedBy: new ServicePrincipal("henk"),
     });
-    const role2 = new Role(spec, "Role2", {
+    const role2 = new Role(stack, "Role2", {
       assumedBy: new ServicePrincipal("sns"),
     });
 
@@ -160,8 +160,8 @@ describe("IAM role", () => {
 
     // THEN
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     // confirm role2 default policy grants rights to assume role1
     expect(synthesized).toHaveDataSourceWithProperties(
@@ -180,10 +180,10 @@ describe("IAM role", () => {
 
   test("a role cannot grant AssumeRole permission to a Service Principal", () => {
     // GIVEN
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
     // WHEN
-    const role = new Role(spec, "MyRole", {
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("henk"),
     });
 
@@ -197,10 +197,10 @@ describe("IAM role", () => {
 
   test("a role cannot grant AssumeRole permission to an Account Principal", () => {
     // GIVEN
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
     // WHEN
-    const role = new Role(spec, "MyRole", {
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("henk"),
     });
 
@@ -214,18 +214,18 @@ describe("IAM role", () => {
 
   test("can supply single externalIds", () => {
     // GIVEN
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
     // WHEN
-    new Role(spec, "MyRole", {
+    new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns"),
       externalIds: ["SomeSecret"],
     });
 
     // THEN
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -257,18 +257,18 @@ describe("IAM role", () => {
 
   test("can supply multiple externalIds", () => {
     // GIVEN
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
     // WHEN
-    new Role(spec, "MyRole", {
+    new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       externalIds: ["SomeSecret", "AnotherSecret"],
     });
 
     // THEN
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -300,7 +300,7 @@ describe("IAM role", () => {
 
   test("policy is attached automatically when permissions are added", () => {
     // by default we don't expect a role policy
-    const before = getAwsSpec("BeforeStack", gridUUID1);
+    const before = getAwsStack("BeforeStack", gridUUID1);
     new Role(before, "MyRole", {
       assumedBy: new ServicePrincipal("sns"),
     });
@@ -312,7 +312,7 @@ describe("IAM role", () => {
     expect(resourceCount(template, iamRolePolicy.IamRolePolicy)).toBe(0);
 
     // add a policy to the role
-    const after = getAwsSpec("AfterStack", gridUUID2);
+    const after = getAwsStack("AfterStack", gridUUID2);
     const afterRole = new Role(after, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
     });
@@ -379,22 +379,22 @@ describe("IAM role", () => {
   });
 
   test("managed policy arns can be supplied upon initialization and also added later", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
-    const role = new Role(spec, "MyRole", {
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
       managedPolicies: [
-        ManagedPolicy.fromManagedPolicyName(spec, "fromProp1", "managed1"),
-        ManagedPolicy.fromManagedPolicyName(spec, "fromProp2", "managed2"),
+        ManagedPolicy.fromManagedPolicyName(stack, "fromProp1", "managed1"),
+        ManagedPolicy.fromManagedPolicyName(stack, "fromProp2", "managed2"),
       ],
     });
 
     role.addManagedPolicy(
-      ManagedPolicy.fromManagedPolicyName(spec, "fromMethod1", "managed3"),
+      ManagedPolicy.fromManagedPolicyName(stack, "fromMethod1", "managed3"),
     );
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
     expect(resourceCount(template, iamPolicy.IamPolicy)).toBe(0);
@@ -417,7 +417,7 @@ describe("IAM role", () => {
   });
 
   test("federated principal can change AssumeRoleAction", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
     const cognitoPrincipal = new FederatedPrincipal(
       "foo",
       [
@@ -430,11 +430,11 @@ describe("IAM role", () => {
       "sts:AssumeSomething",
     );
 
-    new Role(spec, "MyRole", { assumedBy: cognitoPrincipal });
+    new Role(stack, "MyRole", { assumedBy: cognitoPrincipal });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
     expect(template).toMatchObject({
@@ -467,15 +467,15 @@ describe("IAM role", () => {
   });
 
   test("role path can be used to specify the path", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
-    new Role(spec, "MyRole", {
+    new Role(stack, "MyRole", {
       path: "/",
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
     });
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
     expect(resourceCount(template, iamPolicy.IamPolicy)).toBe(0);
@@ -494,30 +494,30 @@ describe("IAM role", () => {
   });
 
   test("role path can be 1 character", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
     const assumedBy = new ServicePrincipal("bla");
 
     expect(
-      () => new Role(spec, "MyRole", { assumedBy, path: "/" }),
+      () => new Role(stack, "MyRole", { assumedBy, path: "/" }),
     ).not.toThrow();
   });
 
   test("role path cannot be empty", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
     const assumedBy = new ServicePrincipal("bla");
 
-    expect(() => new Role(spec, "MyRole", { assumedBy, path: "" })).toThrow(
+    expect(() => new Role(stack, "MyRole", { assumedBy, path: "" })).toThrow(
       "Role path must be between 1 and 512 characters. The provided role path is 0 characters.",
     );
   });
 
   test("role path must be less than or equal to 512", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
     const assumedBy = new ServicePrincipal("bla");
 
     expect(
       () =>
-        new Role(spec, "MyRole", {
+        new Role(stack, "MyRole", {
           assumedBy,
           path: "/" + Array(512).join("a") + "/",
         }),
@@ -527,50 +527,50 @@ describe("IAM role", () => {
   });
 
   test("role path must start with a forward slash", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
     const assumedBy = new ServicePrincipal("bla");
 
     const expected = (val: any) =>
       "Role path must be either a slash or valid characters (alphanumerics and symbols) surrounded by slashes. " +
       `Valid characters are unicode characters in [\\u0021-\\u007F]. However, ${val} is provided.`;
-    expect(() => new Role(spec, "MyRole", { assumedBy, path: "aaa" })).toThrow(
+    expect(() => new Role(stack, "MyRole", { assumedBy, path: "aaa" })).toThrow(
       expected("aaa"),
     );
   });
 
   test("role path must end with a forward slash", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
     const assumedBy = new ServicePrincipal("bla");
 
     const expected = (val: any) =>
       "Role path must be either a slash or valid characters (alphanumerics and symbols) surrounded by slashes. " +
       `Valid characters are unicode characters in [\\u0021-\\u007F]. However, ${val} is provided.`;
-    expect(() => new Role(spec, "MyRole", { assumedBy, path: "/a" })).toThrow(
+    expect(() => new Role(stack, "MyRole", { assumedBy, path: "/a" })).toThrow(
       expected("/a"),
     );
   });
 
   test("role path must contain unicode chars within [\\u0021-\\u007F]", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
     const assumedBy = new ServicePrincipal("bla");
 
     const expected = (val: any) =>
       "Role path must be either a slash or valid characters (alphanumerics and symbols) surrounded by slashes. " +
       `Valid characters are unicode characters in [\\u0021-\\u007F]. However, ${val} is provided.`;
     expect(
-      () => new Role(spec, "MyRole", { assumedBy, path: "/\u0020\u0080/" }),
+      () => new Role(stack, "MyRole", { assumedBy, path: "/\u0020\u0080/" }),
     ).toThrow(expected("/\u0020\u0080/"));
   });
 
   describe("maxSessionDuration", () => {
     test("is not specified by default", () => {
-      const spec = getAwsSpec("RoleStack", gridUUID1);
-      new Role(spec, "MyRole", {
+      const stack = getAwsStack("RoleStack", gridUUID1);
+      new Role(stack, "MyRole", {
         assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       });
       // Do prepare run to resolve/add all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       const template = JSON.parse(synthesized);
       expect(template).toMatchObject({
@@ -598,16 +598,16 @@ describe("IAM role", () => {
     });
 
     test("can be used to specify the maximum session duration for assuming the role", () => {
-      const spec = getAwsSpec("RoleStack", gridUUID1);
+      const stack = getAwsStack("RoleStack", gridUUID1);
 
-      new Role(spec, "MyRole", {
+      new Role(stack, "MyRole", {
         maxSessionDuration: Duration.seconds(3700),
         assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       });
 
       // Do prepare run to resolve/add all Terraform resources
-      spec.prepareStack();
-      const synthesized = Testing.synth(spec);
+      stack.prepareStack();
+      const synthesized = Testing.synth(stack);
       // expect(synthesized).toMatchSnapshot();
       const template = JSON.parse(synthesized);
       expect(template).toMatchObject({
@@ -622,15 +622,15 @@ describe("IAM role", () => {
     });
 
     test("must be between 3600 and 43200", () => {
-      const spec = getAwsSpec("RoleStack", gridUUID1);
+      const stack = getAwsStack("RoleStack", gridUUID1);
 
       const assumedBy = new ServicePrincipal("bla");
 
-      new Role(spec, "MyRole1", {
+      new Role(stack, "MyRole1", {
         assumedBy,
         maxSessionDuration: Duration.hours(1),
       });
-      new Role(spec, "MyRole2", {
+      new Role(stack, "MyRole2", {
         assumedBy,
         maxSessionDuration: Duration.hours(12),
       });
@@ -639,21 +639,21 @@ describe("IAM role", () => {
         `maxSessionDuration is set to ${val}, but must be >= 3600sec (1hr) and <= 43200sec (12hrs)`;
       expect(
         () =>
-          new Role(spec, "MyRole3", {
+          new Role(stack, "MyRole3", {
             assumedBy,
             maxSessionDuration: Duration.minutes(1),
           }),
       ).toThrow(expected(60));
       expect(
         () =>
-          new Role(spec, "MyRole4", {
+          new Role(stack, "MyRole4", {
             assumedBy,
             maxSessionDuration: Duration.seconds(3599),
           }),
       ).toThrow(expected(3599));
       expect(
         () =>
-          new Role(spec, "MyRole5", {
+          new Role(stack, "MyRole5", {
             assumedBy,
             maxSessionDuration: Duration.seconds(43201),
           }),
@@ -662,9 +662,9 @@ describe("IAM role", () => {
   });
 
   test("allow role with multiple principals", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
-    new Role(spec, "MyRole", {
+    new Role(stack, "MyRole", {
       assumedBy: new CompositePrincipal(
         new ServicePrincipal("boom"),
         new ArnPrincipal("1111111"),
@@ -672,8 +672,8 @@ describe("IAM role", () => {
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
     expect(template).toMatchObject({
@@ -717,22 +717,22 @@ describe("IAM role", () => {
 
   test("can supply permissions boundary managed policy", () => {
     // GIVEN
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
     const permissionsBoundary = ManagedPolicy.fromAwsManagedPolicyName(
-      spec,
+      stack,
       "ManagedPolicy",
       "managed-policy",
     );
 
-    new Role(spec, "MyRole", {
+    new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       permissionsBoundary,
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
     expect(template).toMatchObject({
@@ -754,14 +754,14 @@ describe("IAM role", () => {
     // An error occurred (MalformedPolicyDocument) when calling the CreateRole operation: AssumeRolepolicy contained an invalid principal: "STAR":"*".
 
     // Make sure that we handle this case specially.
-    const spec = getAwsSpec("RoleStack", gridUUID1);
-    new Role(spec, "Role", {
+    const stack = getAwsStack("RoleStack", gridUUID1);
+    new Role(stack, "Role", {
       assumedBy: new AnyPrincipal(),
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
     expect(template).toMatchObject({
@@ -787,16 +787,16 @@ describe("IAM role", () => {
   });
 
   test("can have a description", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
-    new Role(spec, "MyRole", {
+    new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       description: "This is a role description.",
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
     expect(template).toMatchObject({
@@ -811,16 +811,16 @@ describe("IAM role", () => {
   });
 
   test("should not have an empty description", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
-    new Role(spec, "MyRole", {
+    new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       description: "",
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
     expect(template).not.toMatchObject({
@@ -835,10 +835,10 @@ describe("IAM role", () => {
   });
 
   test("description can only be 1000 characters long", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
+    const stack = getAwsStack("RoleStack", gridUUID1);
 
     expect(() => {
-      new Role(spec, "MyRole", {
+      new Role(stack, "MyRole", {
         assumedBy: new ServicePrincipal("sns.amazonaws.com"),
         description:
           "1000+ character long description: Lorem ipsum dolor sit amet, consectetuer adipiscing elit. \
@@ -856,11 +856,11 @@ describe("IAM role", () => {
   });
 
   test("fails if managed policy is invalid", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
-    new Role(spec, "MyRole", {
+    const stack = getAwsStack("RoleStack", gridUUID1);
+    new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       managedPolicies: [
-        new ManagedPolicy(spec, "MyManagedPolicy", {
+        new ManagedPolicy(stack, "MyManagedPolicy", {
           statements: [
             new PolicyStatement({
               resources: ["*"],
@@ -871,18 +871,18 @@ describe("IAM role", () => {
         }),
       ],
     });
-    spec.prepareStack();
+    stack.prepareStack();
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    expect(() => Testing.synth(spec, true)).toThrow(
+    stack.prepareStack();
+    expect(() => Testing.synth(stack, true)).toThrow(
       /A PolicyStatement used in an identity-based policy cannot specify any IAM principals/,
     );
   });
 
   test("fails if default role policy is invalid", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
-    const role = new Role(spec, "MyRole", {
+    const stack = getAwsStack("RoleStack", gridUUID1);
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
     });
     role.addToPrincipalPolicy(
@@ -892,19 +892,19 @@ describe("IAM role", () => {
         principals: [new ServicePrincipal("sns.amazonaws.com")],
       }),
     );
-    spec.prepareStack();
+    stack.prepareStack();
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /A PolicyStatement used in an identity-based policy cannot specify any IAM principals/,
     );
   });
 
   test("fails if inline policy from props is invalid", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
-    new Role(spec, "MyRole", {
+    const stack = getAwsStack("RoleStack", gridUUID1);
+    new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       inlinePolicies: {
-        testPolicy: new PolicyDocument(spec, "Policy", {
+        testPolicy: new PolicyDocument(stack, "Policy", {
           statement: [
             new PolicyStatement({
               resources: ["*"],
@@ -915,20 +915,20 @@ describe("IAM role", () => {
         }),
       },
     });
-    spec.prepareStack();
+    stack.prepareStack();
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /A PolicyStatement used in an identity-based policy cannot specify any IAM principals/,
     );
   });
 
   test("fails if attached inline policy is invalid", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
-    const role = new Role(spec, "MyRole", {
+    const stack = getAwsStack("RoleStack", gridUUID1);
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
     });
     role.attachInlinePolicy(
-      new Policy(spec, "MyPolicy", {
+      new Policy(stack, "MyPolicy", {
         statements: [
           new PolicyStatement({
             resources: ["*"],
@@ -938,25 +938,25 @@ describe("IAM role", () => {
         ],
       }),
     );
-    spec.prepareStack();
+    stack.prepareStack();
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /A PolicyStatement used in an identity-based policy cannot specify any IAM principals/,
     );
   });
 
   test("fails if assumeRolePolicy is invalid", () => {
-    const spec = getAwsSpec("RoleStack", gridUUID1);
-    const role = new Role(spec, "MyRole", {
+    const stack = getAwsStack("RoleStack", gridUUID1);
+    const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
-      managedPolicies: [new ManagedPolicy(spec, "MyManagedPolicy")],
+      managedPolicies: [new ManagedPolicy(stack, "MyManagedPolicy")],
     });
     role.assumeRolePolicy?.addStatements(
       new PolicyStatement({ actions: ["*"] }),
     );
-    spec.prepareStack();
+    stack.prepareStack();
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /A PolicyStatement used in a resource-based policy must specify at least one IAM principal/,
     );
   });
@@ -1190,17 +1190,17 @@ describe("IAM role", () => {
 // });
 
 test("managed policy ARNs are deduplicated", () => {
-  const spec = getAwsSpec("RoleStack", gridUUID1);
-  const role = new Role(spec, "MyRole", {
+  const stack = getAwsStack("RoleStack", gridUUID1);
+  const role = new Role(stack, "MyRole", {
     assumedBy: new ServicePrincipal("sns.amazonaws.com"),
     managedPolicies: [
       ManagedPolicy.fromAwsManagedPolicyName(
-        spec,
+        stack,
         "propAttach1",
         "SuperDeveloper",
       ),
       ManagedPolicy.fromAwsManagedPolicyName(
-        spec,
+        stack,
         "propAttach2",
         "SuperDeveloper",
       ),
@@ -1216,7 +1216,7 @@ test("managed policy ARNs are deduplicated", () => {
   for (let i = 0; i < 20; i++) {
     role.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName(
-        spec,
+        stack,
         `addMethod${i}`,
         "SuperDeveloper",
       ),
@@ -1224,15 +1224,15 @@ test("managed policy ARNs are deduplicated", () => {
   }
 
   // Do prepare run to resolve/add all Terraform resources
-  spec.prepareStack();
+  stack.prepareStack();
   // CDKTF attaches warnings/errors to stack metadata
   // TODO: filter down by expected warning message?
-  const warnings = spec.node.metadata.filter(
+  const warnings = stack.node.metadata.filter(
     (e) => e.type === AnnotationMetadataEntryType.WARN,
   );
   expect(warnings.length).toBe(0);
 
-  const synthesized = Testing.synth(spec);
+  const synthesized = Testing.synth(stack);
   // refer to full snapshot for debug
   // expect(synthesized).toMatchSnapshot();
   const template = JSON.parse(synthesized);
@@ -1253,8 +1253,8 @@ test("managed policy ARNs are deduplicated", () => {
 // TODO: too many managed policies warning is set in splitLargePolicy
 // TODO: Implement splitLargePolicy
 test.skip("too many managed policies warning", () => {
-  const spec = getAwsSpec("RoleStack", gridUUID1);
-  const role = new Role(spec, "MyRole", {
+  const stack = getAwsStack("RoleStack", gridUUID1);
+  const role = new Role(stack, "MyRole", {
     assumedBy: new ServicePrincipal("sns.amazonaws.com"),
   });
   role.addToPrincipalPolicy(
@@ -1267,14 +1267,14 @@ test.skip("too many managed policies warning", () => {
   for (let i = 0; i < 20; i++) {
     role.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName(
-        spec,
+        stack,
         `SuperDeveloper${i}`,
         `SuperDeveloper${i}`,
       ),
     );
   }
 
-  Annotations.fromStack(spec).hasWarnings({
+  Annotations.fromStack(stack).hasWarnings({
     constructPath: "RoleStack/MyRole",
   });
   // Annotations.fromStack(stack).hasWarning(
@@ -1286,11 +1286,11 @@ test.skip("too many managed policies warning", () => {
 describe("role with too large inline policy", () => {
   const N = 100;
 
-  let spec: AwsSpec;
+  let stack: AwsStack;
   let role: Role;
   beforeEach(() => {
-    spec = getAwsSpec("RoleStack", gridUUID1);
-    role = new Role(spec, "MyRole", {
+    stack = getAwsStack("RoleStack", gridUUID1);
+    role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("service.amazonaws.com"),
     });
 
@@ -1310,10 +1310,10 @@ describe("role with too large inline policy", () => {
   test.skip("excess gets split off into ManagedPolicies", () => {
     // THEN
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     expect(synthesized).toMatchSnapshot();
-    // const template = Template.fromStack(spec);
+    // const template = Template.fromStack(stack);
     // template.hasResourceProperties("AWS::IAM::ManagedPolicy", {
     //   PolicyDocument: {
     //     Statement: Match.arrayWith([
@@ -1337,14 +1337,14 @@ describe("role with too large inline policy", () => {
       }),
     );
 
-    const res = new TerraformElement(spec, "Depender", "AWS::Some::Resource");
+    const res = new TerraformElement(stack, "Depender", "AWS::Some::Resource");
 
     expect(result.policyDependable).toBeTruthy();
     res.node.addDependency(result.policyDependable!);
 
-    Template.synth(spec).toMatchSnapshot();
+    Template.synth(stack).toMatchSnapshot();
     // THEN
-    // const template = Template.fromStack(spec);
+    // const template = Template.fromStack(stack);
     // template.hasResource("AWS::Some::Resource", {
     //   DependsOn: ["MyRoleOverflowPolicy13EF5596A"],
     // });
@@ -1354,8 +1354,8 @@ describe("role with too large inline policy", () => {
 test.skip("many copies of the same statement do not result in overflow policies", () => {
   const N = 100;
 
-  const spec = getAwsSpec("RoleStack", gridUUID1);
-  const role = new Role(spec, "MyRole", {
+  const stack = getAwsStack("RoleStack", gridUUID1);
+  const role = new Role(stack, "MyRole", {
     assumedBy: new ServicePrincipal("service.amazonaws.com"),
   });
 
@@ -1372,14 +1372,14 @@ test.skip("many copies of the same statement do not result in overflow policies"
 
   // THEN
   // Do prepare run to resolve/add all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   expect(synthesized).toMatchSnapshot();
   // const template = JSON.parse(synthesized);
   expect(
     getResources(synthesized, iamPolicy.IamPolicy.tfResourceType),
   ).toHaveLength(0);
-  // const template = Template.fromStack(spec);
+  // const template = Template.fromStack(stack);
   // template.resourceCountIs("AWS::IAM::ManagedPolicy", 0);
 });
 
@@ -1420,11 +1420,11 @@ test.skip("many copies of the same statement do not result in overflow policies"
 // });
 
 test("doesn't throw with roleName of 64 chars", () => {
-  const spec = getAwsSpec("RoleStack", gridUUID1);
+  const stack = getAwsStack("RoleStack", gridUUID1);
   const valdName = "a".repeat(64);
 
   expect(() => {
-    new Role(spec, "Test", {
+    new Role(stack, "Test", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       roleName: valdName,
     });
@@ -1432,11 +1432,11 @@ test("doesn't throw with roleName of 64 chars", () => {
 });
 
 test("throws with roleName over 64 chars", () => {
-  const spec = getAwsSpec("RoleStack", gridUUID1);
+  const stack = getAwsStack("RoleStack", gridUUID1);
   const longName = "a".repeat(65);
 
   expect(() => {
-    new Role(spec, "Test", {
+    new Role(stack, "Test", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       roleName: longName,
     });
@@ -1444,12 +1444,12 @@ test("throws with roleName over 64 chars", () => {
 });
 
 describe("roleName validation", () => {
-  const spec = getAwsSpec("RoleStack", gridUUID1);
+  const stack = getAwsStack("RoleStack", gridUUID1);
   const invalidChars = "!#$%^&*()";
 
   it("rejects names with spaces", () => {
     expect(() => {
-      new Role(spec, "test spaces", {
+      new Role(stack, "test spaces", {
         assumedBy: new ServicePrincipal("sns.amazonaws.com"),
         roleName: "invalid name",
       });
@@ -1459,7 +1459,7 @@ describe("roleName validation", () => {
   invalidChars.split("").forEach((char) => {
     it(`rejects name with ${char}`, () => {
       expect(() => {
-        new Role(spec, `test ${char}`, {
+        new Role(stack, `test ${char}`, {
           assumedBy: new ServicePrincipal("sns.amazonaws.com"),
           roleName: `invalid${char}`,
         });
@@ -1469,14 +1469,14 @@ describe("roleName validation", () => {
 });
 
 test("roleName validation with Tokens", () => {
-  const spec = getAwsSpec("RoleStack", gridUUID1);
+  const stack = getAwsStack("RoleStack", gridUUID1);
   const token = Lazy.stringValue({ produce: () => "token" });
 
   // Mock isUnresolved to return false
   jest.spyOn(Token, "isUnresolved").mockReturnValue(false);
 
   expect(() => {
-    new Role(spec, "Valid", {
+    new Role(stack, "Valid", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       roleName: token,
     });
@@ -1486,7 +1486,7 @@ test("roleName validation with Tokens", () => {
   jest.spyOn(Token, "isUnresolved").mockReturnValue(true);
 
   expect(() => {
-    new Role(spec, "Invalid", {
+    new Role(stack, "Invalid", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       roleName: token,
     });
@@ -1541,9 +1541,9 @@ function resourceCount(parsed: any, constructor: TerraformConstructor) {
   return Object.values(parsed.resource[constructor.tfResourceType]).length;
 }
 
-function getAwsSpec(id: string, gridUUID: string): AwsSpec {
+function getAwsStack(id: string, gridUUID: string): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, id, {
+  return new AwsStack(app, id, {
     environmentName,
     gridUUID,
     providerConfig,

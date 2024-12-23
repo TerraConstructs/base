@@ -1,9 +1,9 @@
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { render } from "./private/render-util";
-import { Duration } from "../../../src";
-import { AwsSpec } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws";
 import { Pass, Wait, WaitTime } from "../../../src/aws/compute";
+import { Duration } from "../../../src/duration";
 
 describe("Wait State", () => {
   test("wait time from ISO8601 timestamp", () => {
@@ -52,10 +52,10 @@ describe("Wait State", () => {
   });
 
   describe("supports adding", () => {
-    let spec: AwsSpec;
+    let stack: AwsStack;
     beforeEach(() => {
       // GIVEN
-      spec = new AwsSpec(Testing.app(), `TestSpec`, {
+      stack = new AwsStack(Testing.app(), `TestStack`, {
         environmentName: "Test",
         gridUUID: "123e4567-e89b-12d3",
         providerConfig: {
@@ -68,15 +68,15 @@ describe("Wait State", () => {
     });
     test("supports adding a next state", () => {
       // GIVEN
-      const chain = new Wait(spec, "myWaitState", {
+      const chain = new Wait(stack, "myWaitState", {
         time: WaitTime.duration(Duration.seconds(30)),
       });
 
       // WHEN
-      chain.next(new Pass(spec, "final pass", {}));
+      chain.next(new Pass(stack, "final pass", {}));
 
       // THEN
-      expect(render(spec, chain)).toEqual({
+      expect(render(stack, chain)).toEqual({
         StartAt: "myWaitState",
         States: {
           "final pass": {
@@ -94,13 +94,13 @@ describe("Wait State", () => {
 
     test("supports adding a custom state name", () => {
       // GIVEN
-      const waitTime = new Wait(spec, "myWaitState", {
+      const waitTime = new Wait(stack, "myWaitState", {
         stateName: "wait-state-custom-name",
         time: WaitTime.duration(Duration.seconds(30)),
       });
 
       // THEN
-      expect(render(spec, waitTime)).toEqual({
+      expect(render(stack, waitTime)).toEqual({
         StartAt: "wait-state-custom-name",
         States: {
           "wait-state-custom-name": {

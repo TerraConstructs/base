@@ -1,5 +1,5 @@
 import { IConstruct } from "constructs";
-import { AwsSpec, ArnFormat } from "..";
+import { AwsStack, ArnFormat } from "..";
 import { BucketOutputs } from "./bucket";
 
 export function parseBucketArn(
@@ -12,7 +12,7 @@ export function parseBucketArn(
   }
 
   if (outputs.name) {
-    return AwsSpec.ofAwsBeacon(construct).formatArn({
+    return AwsStack.ofAwsConstruct(construct).formatArn({
       // S3 Bucket names are globally unique in a partition,
       // and so their ARNs have empty region and account components
       region: "",
@@ -38,7 +38,7 @@ export function parseBucketName(
 
   // extract bucket name from bucket arn
   if (outputs.arn) {
-    return AwsSpec.ofAwsBeacon(construct).splitArn(
+    return AwsStack.ofAwsConstruct(construct).splitArn(
       outputs.arn,
       ArnFormat.SLASH_RESOURCE_NAME,
     ).resource;

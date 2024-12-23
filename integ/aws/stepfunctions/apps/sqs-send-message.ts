@@ -27,23 +27,23 @@ const app = new App({
   outdir,
 });
 
-const spec = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
-const queue = new aws.notify.Queue(spec, "show-me-the-messages", {
+const queue = new aws.notify.Queue(stack, "show-me-the-messages", {
   registerOutputs: true,
   outputName: "queue",
 });
 
 const sendMessageTask = new aws.compute.tasks.SqsSendMessage(
-  spec,
+  stack,
   "send message to sqs",
   {
     queue,
@@ -51,11 +51,11 @@ const sendMessageTask = new aws.compute.tasks.SqsSendMessage(
   },
 );
 
-const finalStatus = new aws.compute.Pass(spec, "Final step");
+const finalStatus = new aws.compute.Pass(stack, "Final step");
 
 const chain = aws.compute.Chain.start(sendMessageTask).next(finalStatus);
 
-const sm = new aws.compute.StateMachine(spec, "StateMachine", {
+const sm = new aws.compute.StateMachine(stack, "StateMachine", {
   definitionBody: aws.compute.DefinitionBody.fromChainable(chain),
   timeout: Duration.seconds(30),
   registerOutputs: true,

@@ -123,7 +123,7 @@ export class LogQueryWidget extends ConcreteWidget {
     const properties: any = {
       view: this.props.view ? this.props.view : LogQueryVisualizationType.TABLE,
       title: this.props.title,
-      region: this.props.region || this.spec.region,
+      region: this.props.region || this.stack.region,
       query: `${sources} | ${query}`,
     };
 

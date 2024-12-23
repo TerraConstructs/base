@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-stepfunctions/lib/states/item-reader.ts
 
 import { Construct } from "constructs";
-import { Arn, ArnFormat, AwsSpec } from "../../..";
+import { Arn, ArnFormat, AwsStack } from "../../..";
 import * as iam from "../../../iam";
 import { IBucket } from "../../../storage";
 import { FieldUtils } from "../../fields";
@@ -134,7 +134,7 @@ export class S3ObjectsItemReader implements IItemReader {
       return this.bucket.env.partition;
     }
     if (this.bucketNameScope) {
-      return AwsSpec.ofAwsBeacon(this.bucketNameScope).partition;
+      return AwsStack.ofAwsConstruct(this.bucketNameScope).partition;
     }
     throw new Error("Cannot determine partition");
   }
@@ -249,7 +249,7 @@ abstract class S3FileItemReader implements IItemReader {
       return this.bucket.env.partition;
     }
     if (this.bucketNameScope) {
-      return AwsSpec.ofAwsBeacon(this.bucketNameScope).partition;
+      return AwsStack.ofAwsConstruct(this.bucketNameScope).partition;
     }
     throw new Error("Cannot determine partition");
   }

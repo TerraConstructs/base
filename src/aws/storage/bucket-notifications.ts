@@ -1,14 +1,14 @@
 import { s3BucketNotification } from "@cdktf/provider-aws";
 import { Lazy } from "cdktf";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { IBucket, EventType, NotificationKeyFilter } from "./bucket";
 import {
   BucketNotificationDestinationType,
   IBucketNotificationDestination,
 } from "./bucket-destination";
 
-export interface NotificationsProps extends AwsBeaconProps {
+export interface NotificationsProps extends AwsConstructProps {
   /**
    * The bucket to manage notifications for.
    */
@@ -30,7 +30,7 @@ export interface NotificationsProps extends AwsBeaconProps {
  * @see
  * https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket-notificationconfig.html
  */
-export class BucketNotifications extends AwsBeaconBase {
+export class BucketNotifications extends AwsConstructBase {
   public resource?: s3BucketNotification.S3BucketNotification;
   public get outputs(): Record<string, any> {
     return {};

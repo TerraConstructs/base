@@ -26,10 +26,10 @@ export class Template {
    * Create Jest Matchers from the parsed synthesized spec
    */
   static fromStack(
-    spec: TerraformStack,
+    stack: TerraformStack,
     options: SynthOptions = {},
   ): jest.JestMatchers<any> {
-    const synthesized = Template.getSynthString(spec, options);
+    const synthesized = Template.getSynthString(stack, options);
     const parsed = JSON.parse(synthesized);
     return expect(parsed);
   }
@@ -41,10 +41,10 @@ export class Template {
    * generation.
    */
   static synth(
-    spec: TerraformStack,
+    stack: TerraformStack,
     options: SynthOptions = {},
   ): jest.JestMatchers<any> {
-    const synthesized = Template.getSynthString(spec, options);
+    const synthesized = Template.getSynthString(stack, options);
     return expect(synthesized);
   }
 
@@ -56,11 +56,11 @@ export class Template {
    * generation.
    */
   static resources(
-    spec: TerraformStack,
+    stack: TerraformStack,
     type: TerraformConstructor,
     options: SynthOptions = {},
   ) {
-    const synthesized = Template.getSynthString(spec, options);
+    const synthesized = Template.getSynthString(stack, options);
     const parsed = JSON.parse(synthesized);
     const resources = parsed.resource
       ? Object.values(parsed.resource[type.tfResourceType] ?? {})
@@ -76,11 +76,11 @@ export class Template {
    * generation.
    */
   static dataSources(
-    spec: TerraformStack,
+    stack: TerraformStack,
     type: TerraformConstructor,
     options: SynthOptions = {},
   ) {
-    const synthesized = Template.getSynthString(spec, options);
+    const synthesized = Template.getSynthString(stack, options);
     const parsed = JSON.parse(synthesized);
     const dataSources = parsed.data
       ? Object.values(parsed.data[type.tfResourceType] ?? {})
@@ -89,12 +89,12 @@ export class Template {
   }
 
   private static getSynthString(
-    spec: TerraformStack,
+    stack: TerraformStack,
     options: SynthOptions = {},
   ): string {
     const { snapshot = false, runValidations = false } = options;
-    spec.prepareStack(); // required to add pre-synth resources
-    const result = Testing.synth(spec, runValidations);
+    stack.prepareStack(); // required to add pre-synth resources
+    const result = Testing.synth(stack, runValidations);
     if (snapshot) {
       expect(result).toMatchSnapshot();
     }

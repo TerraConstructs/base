@@ -1,6 +1,6 @@
 import { Construct } from "constructs";
 import * as sfn from "../";
-import { AwsSpec } from "../../";
+import { AwsStack } from "../../";
 
 /**
  * Suffixes corresponding to different service integration patterns
@@ -29,7 +29,7 @@ export function getResourceArn(
     );
   }
   return (
-    `arn:${AwsSpec.ofAwsBeacon(scope).partition}:states:::${service}:${api}` +
+    `arn:${AwsStack.ofAwsConstruct(scope).partition}:states:::${service}:${api}` +
     (integrationPattern ? resourceArnSuffix.get(integrationPattern) : "")
   );
 }

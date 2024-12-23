@@ -11,14 +11,14 @@ import {
 import { Testing, Lazy } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { TestFunction } from "./test-function";
-import { iam, compute, notify, AwsSpec } from "../../../../src/aws";
+import { iam, compute, notify, AwsStack } from "../../../../src/aws";
 import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
 
 describe("SQSEventSource", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   beforeEach(() => {
-    spec = new AwsSpec(Testing.app(), `TestSpec`, {
+    stack = new AwsStack(Testing.app(), `TestStack`, {
       environmentName: "Test",
       gridUUID: "123e4567-e89b-12d3",
       providerConfig: {
@@ -31,14 +31,14 @@ describe("SQSEventSource", () => {
   });
   test("defaults", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN
     fn.addEventSource(new compute.sources.SqsEventSource(q));
 
     // THEN
-    const expected = Template.synth(spec);
+    const expected = Template.synth(stack);
     expected.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
@@ -64,7 +64,7 @@ describe("SQSEventSource", () => {
         function_name: "${aws_lambda_function.Fn_9270CBC0.function_name}",
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -85,7 +85,7 @@ describe("SQSEventSource", () => {
     //   },
     // });
 
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventSourceMapping",
     //   {
     //     EventSourceArn: {
@@ -100,8 +100,8 @@ describe("SQSEventSource", () => {
 
   test("specific batch size", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN
     fn.addEventSource(
@@ -111,7 +111,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(
+    Template.synth(stack).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         batch_size: 5,
@@ -119,7 +119,7 @@ describe("SQSEventSource", () => {
         function_name: "${aws_lambda_function.Fn_9270CBC0.function_name}",
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventSourceMapping",
     //   {
     //     EventSourceArn: {
@@ -135,8 +135,8 @@ describe("SQSEventSource", () => {
 
   test("unresolved batch size", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
     const batchSize: number = 500;
 
     // WHEN
@@ -151,13 +151,13 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(
+    Template.synth(stack).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         batch_size: 500,
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventSourceMapping",
     //   {
     //     BatchSize: 500,
@@ -167,8 +167,8 @@ describe("SQSEventSource", () => {
 
   test("fails if batch size is < 1", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN/THEN
     expect(() =>
@@ -184,8 +184,8 @@ describe("SQSEventSource", () => {
 
   test("fails if batch size is > 10", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN/THEN
     expect(() =>
@@ -201,8 +201,8 @@ describe("SQSEventSource", () => {
 
   test("batch size is > 10 and batch window is defined", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN
     fn.addEventSource(
@@ -213,14 +213,14 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(
+    Template.synth(stack).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         batch_size: 1000,
         maximum_batching_window_in_seconds: 300,
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventSourceMapping",
     //   {
     //     BatchSize: 1000,
@@ -231,8 +231,8 @@ describe("SQSEventSource", () => {
 
   test("fails if batch size is > 10000 and batch window is defined", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN/THEN
     expect(() =>
@@ -247,8 +247,8 @@ describe("SQSEventSource", () => {
 
   test("specific batch window", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN
     fn.addEventSource(
@@ -258,13 +258,13 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(
+    Template.synth(stack).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         maximum_batching_window_in_seconds: 300,
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventSourceMapping",
     //   {
     //     MaximumBatchingWindowInSeconds: 300,
@@ -274,8 +274,8 @@ describe("SQSEventSource", () => {
 
   test("fails if batch window defined for FIFO queue", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q", {
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q", {
       fifo: true,
     });
 
@@ -291,8 +291,8 @@ describe("SQSEventSource", () => {
 
   test("fails if batch window is > 5", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN/THEN
     expect(() =>
@@ -306,8 +306,8 @@ describe("SQSEventSource", () => {
 
   test("contains eventSourceMappingId after lambda binding", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
     const eventSource = new compute.sources.SqsEventSource(q);
 
     // WHEN
@@ -319,8 +319,8 @@ describe("SQSEventSource", () => {
 
   test("contains eventSourceMappingArn after lambda binding", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
     const eventSource = new compute.sources.SqsEventSource(q);
 
     // WHEN
@@ -332,7 +332,7 @@ describe("SQSEventSource", () => {
 
   test("eventSourceMappingId throws error before binding to lambda", () => {
     // GIVEN
-    const q = new notify.Queue(spec, "Q");
+    const q = new notify.Queue(stack, "Q");
     const eventSource = new compute.sources.SqsEventSource(q);
 
     // WHEN/THEN
@@ -343,7 +343,7 @@ describe("SQSEventSource", () => {
 
   test("eventSourceMappingArn throws error before binding to lambda", () => {
     // GIVEN
-    const q = new notify.Queue(spec, "Q");
+    const q = new notify.Queue(stack, "Q");
     const eventSource = new compute.sources.SqsEventSource(q);
 
     // WHEN/THEN
@@ -354,8 +354,8 @@ describe("SQSEventSource", () => {
 
   test("event source disabled", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN
     fn.addEventSource(
@@ -365,13 +365,13 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(
+    Template.synth(stack).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         enabled: false,
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventSourceMapping",
     //   {
     //     Enabled: false,
@@ -381,8 +381,8 @@ describe("SQSEventSource", () => {
 
   test("reportBatchItemFailures", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN
     fn.addEventSource(
@@ -392,13 +392,13 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(
+    Template.synth(stack).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         function_response_types: ["ReportBatchItemFailures"],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventSourceMapping",
     //   {
     //     FunctionResponseTypes: ["ReportBatchItemFailures"],
@@ -408,19 +408,19 @@ describe("SQSEventSource", () => {
 
   // test("warning added if lambda function imported without role", () => {
   //   const fn = compute.LambdaFunction.fromFunctionName(
-  //     spec,
+  //     stack,
   //     "Handler",
   //     "testFunction",
   //   );
-  //   const q = new notify.Queue(spec, "Q");
+  //   const q = new notify.Queue(stack, "Q");
 
   //   // WHEN
   //   fn.addEventSource(new compute.sources.SqsEventSource(q));
   //   // const assembly = app.synth();
 
-  //   Template.synth(spec).toMatchSnapshot();
+  //   Template.synth(stack).toMatchSnapshot();
 
-  //   const messages = assembly.getStackArtifact(spec.artifactId).messages;
+  //   const messages = assembly.getStackArtifact(stack.artifactId).messages;
 
   //   // THEN
   //   expect(messages.length).toEqual(1);
@@ -435,31 +435,31 @@ describe("SQSEventSource", () => {
   //   });
 
   //   // THEN
-  //   // Template.fromStack(spec).resourceCountIs(
+  //   // Template.fromStack(stack).resourceCountIs(
   //   //   "AWS::Lambda::EventSourceMapping",
   //   //   1,
   //   // );
-  //   // Template.fromStack(spec).resourceCountIs("AWS::IAM::Policy", 0);
+  //   // Template.fromStack(stack).resourceCountIs("AWS::IAM::Policy", 0);
   // });
 
   // TODO: addEventSource to imported IAM Role needs to be fixed
   test.skip("policy added to imported function role", () => {
     // GIVEN
-    const fn = compute.LambdaFunction.fromFunctionAttributes(spec, "Handler", {
-      functionArn: spec.formatArn({
+    const fn = compute.LambdaFunction.fromFunctionAttributes(stack, "Handler", {
+      functionArn: stack.formatArn({
         service: "lambda",
         resource: "function",
         resourceName: "testFunction",
       }),
-      role: iam.Role.fromRoleName(spec, "Role", "testFunctionRole"),
+      role: iam.Role.fromRoleName(stack, "Role", "testFunctionRole"),
     });
-    const q = new notify.Queue(spec, "Q");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN
     fn.addEventSource(new compute.sources.SqsEventSource(q));
 
     // THEN
-    const expected = Template.synth(spec);
+    const expected = Template.synth(stack);
     expected.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
@@ -480,7 +480,7 @@ describe("SQSEventSource", () => {
     );
     // TODO: Should this be policy attachment instead??
     expected.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
-      name: "TestSpecRolePolicyA8726EBF",
+      name: "TestStackRolePolicyA8726EBF",
       policy: "${data.aws_iam_policy_document.Role_Policy_A6D2CA68.json}",
       role: "testFunctionRole",
     });
@@ -493,7 +493,7 @@ describe("SQSEventSource", () => {
           '${element(split(":", "arn:${data.aws_partition.Partitition.partition}:lambda:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:function/testFunction"), 6)}',
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -515,7 +515,7 @@ describe("SQSEventSource", () => {
     //   Roles: ["testFunctionRole"],
     // });
 
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventSourceMapping",
     //   {
     //     EventSourceArn: {
@@ -557,8 +557,8 @@ describe("SQSEventSource", () => {
 
   test("adding filter criteria", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN
     fn.addEventSource(
@@ -574,7 +574,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(
+    Template.synth(stack).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         filter_criteria: {
@@ -586,7 +586,7 @@ describe("SQSEventSource", () => {
         },
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventSourceMapping",
     //   {
     //     FilterCriteria: {
@@ -602,10 +602,10 @@ describe("SQSEventSource", () => {
 
   // test("adding filter criteria encryption", () => {
   //   // GIVEN
-  //   const fn = new TestFunction(spec, "Fn");
-  //   const q = new notify.Queue(spec, "Q");
+  //   const fn = new TestFunction(stack, "Fn");
+  //   const q = new notify.Queue(stack, "Q");
   //   const myKey = encryption.Key.fromKeyArn(
-  //     spec,
+  //     stack,
   //     "SourceBucketEncryptionKey",
   //     "arn:aws:kms:us-east-1:123456789012:key/<key-id>",
   //   );
@@ -625,7 +625,7 @@ describe("SQSEventSource", () => {
   //   );
 
   //   // THEN
-  //   Template.fromStack(spec).hasResourceProperties(
+  //   Template.fromStack(stack).hasResourceProperties(
   //     "AWS::Lambda::EventSourceMapping",
   //     {
   //       FilterCriteria: {
@@ -643,9 +643,9 @@ describe("SQSEventSource", () => {
   // test("adding filter criteria encryption with stack key", () => {
   //   // GIVEN
 
-  //   const fn = new TestFunction(spec, "Fn");
-  //   const q = new notify.Queue(spec, "Q");
-  //   const myKey = new encryption.Key(spec, "fc-test-key-name", {
+  //   const fn = new TestFunction(stack, "Fn");
+  //   const q = new notify.Queue(stack, "Q");
+  //   const myKey = new encryption.Key(stack, "fc-test-key-name", {
   //     removalPolicy: cdk.RemovalPolicy.DESTROY,
   //     pendingWindow: Duration.days(7),
   //     description: "KMS key for test fc encryption",
@@ -666,7 +666,7 @@ describe("SQSEventSource", () => {
   //   );
 
   //   // THEN
-  //   Template.fromStack(spec).hasResourceProperties("AWS::KMS::Key", {
+  //   Template.fromStack(stack).hasResourceProperties("AWS::KMS::Key", {
   //     KeyPolicy: {
   //       Statement: [
   //         {
@@ -703,8 +703,8 @@ describe("SQSEventSource", () => {
 
   test("fails if maxConcurrency < 2", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN/THEN
     expect(() =>
@@ -718,8 +718,8 @@ describe("SQSEventSource", () => {
 
   test("adding maxConcurrency of 5", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN
     fn.addEventSource(
@@ -729,7 +729,7 @@ describe("SQSEventSource", () => {
     );
 
     // THEN
-    Template.synth(spec).toHaveResourceWithProperties(
+    Template.synth(stack).toHaveResourceWithProperties(
       lambdaEventSourceMapping.LambdaEventSourceMapping,
       {
         scaling_config: {
@@ -737,7 +737,7 @@ describe("SQSEventSource", () => {
         },
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Lambda::EventSourceMapping",
     //   {
     //     ScalingConfig: { MaximumConcurrency: 5 },
@@ -747,8 +747,8 @@ describe("SQSEventSource", () => {
 
   test("fails if maxConcurrency > 1001", () => {
     // GIVEN
-    const fn = new TestFunction(spec, "Fn");
-    const q = new notify.Queue(spec, "Q");
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
 
     // WHEN/THEN
     expect(() =>

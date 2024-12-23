@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/environment-toolkit/go-synth/executors"
-	util "github.com/envtio/base/integ/aws"
 	"github.com/gruntwork-io/terratest/modules/aws"
+	util "github.com/terraconstructs/base/integ/aws"
+	"github.com/terraconstructs/go-synth/executors"
 
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 )

@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-cloudwatch/lib/private/env-tokens.ts
 
 import { Token, IResolvable, IResolveContext } from "cdktf";
-import { AwsSpec } from "../../";
+import { AwsStack } from "../../";
 
 /**
  * Make a Token that renders to given region if used in a different stack, otherwise undefined
@@ -28,7 +28,7 @@ class StackDependentToken implements IResolvable {
   public readonly creationStack: string[];
   constructor(
     private readonly originalValue: string,
-    private readonly fn: (stack: AwsSpec) => string,
+    private readonly fn: (stack: AwsStack) => string,
   ) {
     // TODO: Implement stack traces
     // ref: https://github.com/aws/aws-cdk/blob/v2.143.0/packages/aws-cdk-lib/core/lib/stack-trace.ts#L22
@@ -36,7 +36,7 @@ class StackDependentToken implements IResolvable {
   }
 
   public resolve(context: IResolveContext) {
-    const stackValue = this.fn(AwsSpec.ofAwsBeacon(context.scope));
+    const stackValue = this.fn(AwsStack.ofAwsConstruct(context.scope));
 
     // Don't render if the values are definitely the same. If the stack
     // is unresolved we don't know, better output the value.

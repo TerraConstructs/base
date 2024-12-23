@@ -7,7 +7,7 @@ import {
 } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../../src/aws";
+import { AwsStack } from "../../../../src/aws";
 import * as logs from "../../../../src/aws/cloudwatch";
 import * as dests from "../../../../src/aws/cloudwatch/log-destinations/";
 import * as compute from "../../../../src/aws/compute";
@@ -21,14 +21,14 @@ const gridBackendConfig = {
 };
 
 let app: App;
-let stack: AwsSpec;
+let stack: AwsStack;
 
 let fn: compute.LambdaFunction;
 let logGroup: logs.LogGroup;
 
 beforeEach(() => {
   app = Testing.app();
-  stack = new AwsSpec(app, "MyStack", {
+  stack = new AwsStack(app, "MyStack", {
     environmentName,
     gridUUID,
     providerConfig,

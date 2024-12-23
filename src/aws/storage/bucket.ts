@@ -21,7 +21,12 @@ import {
   BucketNotifications,
   IBucketNotificationDestination,
 } from ".";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps, AwsSpec } from "..";
+import {
+  AwsConstructBase,
+  IAwsConstruct,
+  AwsConstructProps,
+  AwsStack,
+} from "..";
 import * as iam from "../iam";
 import * as perms from "./bucket-perms";
 
@@ -38,9 +43,9 @@ export interface CloudfrontAccessConfig {
   readonly keyPatterns?: string[];
 }
 
-export interface BucketProps extends AwsBeaconProps {
+export interface BucketProps extends AwsConstructProps {
   /**
-   * The path(s) to static directories or files to upload, relative to the Spec file.
+   * The path(s) to static directories or files to upload, relative to the Stack file.
    *
    * @example "./dist"
    * @default - No files are uploaded.
@@ -241,7 +246,7 @@ export interface BucketOutputs {
 /**
  * Imported or created Bucket attributes
  */
-export interface IBucket extends IAwsBeacon {
+export interface IBucket extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly bucketOutputs: BucketOutputs;
 
@@ -530,7 +535,7 @@ export interface IBucket extends IAwsBeacon {
  * The `Bucket` beacon provides an [AWS S3 Bucket](https://aws.amazon.com/s3/).
  *
  * ```ts
- * new storage.Bucket(spec, "MyWebsite", {
+ * new storage.Bucket(stack, "MyWebsite", {
  *   path: path.join(__dirname, "dist"),
  * });
  * ```
@@ -549,10 +554,10 @@ export interface IBucket extends IAwsBeacon {
  * ```
  *
  * @resource aws_s3_bucket
- * @beacon-class storage.IBucket
+ * @terraconstruct storage.IBucket
  */
 
-export class Bucket extends AwsBeaconBase implements IBucket {
+export class Bucket extends AwsConstructBase implements IBucket {
   // TODO: Add static fromLookup?
   protected readonly resource: s3Bucket.S3Bucket;
   protected readonly websiteConfig?: s3BucketWebsiteConfiguration.S3BucketWebsiteConfiguration;
@@ -1183,7 +1188,7 @@ export class Bucket extends AwsBeaconBase implements IBucket {
    * @returns an ObjectS3Url token
    */
   public urlForObject(key?: string): string {
-    const stack = AwsSpec.ofAwsBeacon(this);
+    const stack = AwsStack.ofAwsConstruct(this);
     const prefix = `https://s3.${this.env.region}.${stack.urlSuffix}/`;
     if (typeof key !== "string") {
       return this.urlJoin(prefix, this.bucketName);

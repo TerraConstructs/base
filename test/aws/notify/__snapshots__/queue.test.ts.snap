@@ -24,11 +24,11 @@ exports[`Queue Should synth and match SnapShot 1`] = `
   "resource": {
     "aws_sqs_queue": {
       "HelloWorld_7964D1E8": {
-        "name_prefix": "123e4567-e89b-12d3-TestSpecHelloWorld",
+        "name_prefix": "123e4567-e89b-12d3-TestStackHelloWorld",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     }
@@ -74,11 +74,11 @@ exports[`Queue Should synth and match SnapShot with prefix 1`] = `
     "aws_sqs_queue": {
       "HelloWorld_7964D1E8": {
         "message_retention_seconds": 1209600,
-        "name_prefix": "hello-worldTestSpecHelloWorld",
+        "name_prefix": "hello-worldTestStackHelloWorld",
         "tags": {
           "Name": "Test-HelloWorld",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "visibility_timeout_seconds": 900
       }
@@ -125,22 +125,22 @@ exports[`Queue Should synth with DLQ and match SnapShot 1`] = `
     "aws_sqs_queue": {
       "DLQ_581697C4": {
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3-TestSpecDLQ",
+        "name_prefix": "123e4567-e89b-12d3-TestStackDLQ",
         "tags": {
           "Name": "Test-DLQ",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "visibility_timeout_seconds": 900
       },
       "Queue_4A7E3555": {
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3-TestSpecQueue",
+        "name_prefix": "123e4567-e89b-12d3-TestStackQueue",
         "redrive_policy": "{\\"deadLetterTargetArn\\":\\"\${aws_sqs_queue.DLQ_581697C4.arn}\\",\\"maxReceiveCount\\":5}",
         "tags": {
           "Name": "Test-Queue",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "visibility_timeout_seconds": 900
       }
@@ -189,11 +189,11 @@ exports[`Queue Should synth with contentBasedDeduplication and match SnapShot 1`
         "content_based_deduplication": true,
         "fifo_queue": true,
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3-TestSpecQueue",
+        "name_prefix": "123e4567-e89b-12d3-TestStackQueue",
         "tags": {
           "Name": "Test-Queue",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "visibility_timeout_seconds": 900
       }
@@ -241,11 +241,11 @@ exports[`Queue Should synth with fifo suffix and match SnapShot 1`] = `
       "Queue_4A7E3555": {
         "fifo_queue": true,
         "message_retention_seconds": 1209600,
-        "name_prefix": "queueTestSpecQueue",
+        "name_prefix": "queueTestStackQueue",
         "tags": {
           "Name": "Test-Queue",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "visibility_timeout_seconds": 900
       }

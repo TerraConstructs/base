@@ -3,9 +3,9 @@
 import { lambdaPermission } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import * as cloudwatch from "..";
+import { AwsStack } from "../../aws-stack";
 import * as lambda from "../../compute";
 import * as iam from "../../iam";
-import { AwsSpec } from "../../spec";
 
 /**
  * Use a Lambda action as an Alarm action
@@ -42,7 +42,7 @@ export class LambdaAction implements cloudwatch.IAlarmAction {
     // see https://github.com/aws/aws-cdk/issues/29514
     if (permissionNode?.sourceArnInput !== alarm.alarmArn) {
       this.lambdaFunction.addPermission(permissionId, {
-        sourceAccount: AwsSpec.ofAwsBeacon(scope).account,
+        sourceAccount: AwsStack.ofAwsConstruct(scope).account,
         action: "lambda:InvokeFunction",
         sourceArn: alarm.alarmArn,
         principal: new iam.ServicePrincipal(

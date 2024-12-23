@@ -1,6 +1,6 @@
 import { cloudwatchEventArchive } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps } from "../beacon";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { IEventBus } from "./event-bus";
 import { EventPattern } from "./event-pattern";
 import { renderEventPattern } from "./util";
@@ -23,7 +23,7 @@ export interface ArchiveOutputs {
 /**
  * The event archive base properties
  */
-export interface BaseArchiveProps extends AwsBeaconProps {
+export interface BaseArchiveProps extends AwsConstructProps {
   /**
    * The name of the archive.
    *
@@ -64,7 +64,7 @@ export interface ArchiveProps extends BaseArchiveProps {
  *
  * @resource aws_cloudwatch_event_archive
  */
-export class Archive extends AwsBeaconBase {
+export class Archive extends AwsConstructBase {
   public resource: cloudwatchEventArchive.CloudwatchEventArchive;
   /**
    * The archive name.

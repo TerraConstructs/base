@@ -1,8 +1,8 @@
-module github.com/envtio/base
+module github.com/terraconstructs/base
 
 go 1.22.2
 
-// replace github.com/environment-toolkit/go-synth => /path/to/envtio/toolkit/go-synth
+// replace github.com/terraconstructs/go-synth => /path/to/terraconstructs/go-synth
 
 // terratest ported to aws-sdk-v2
 replace github.com/gruntwork-io/terratest => github.com/wakeful/terratest v0.47.2-0.20241015095311-22a3870b391e
@@ -27,7 +27,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.0
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.33.2
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.36.0
-	github.com/environment-toolkit/go-synth v0.0.0-20240818140029-ab69fd009e14
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/go-cmp v0.6.0
 	github.com/gruntwork-io/terratest v0.47.0
@@ -36,6 +35,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/spf13/afero v1.11.0
 	github.com/stretchr/testify v1.8.4
+	github.com/terraconstructs/go-synth v0.0.0-20241223031117-f10d006646ea
 	go.uber.org/zap v1.27.0
 )
 

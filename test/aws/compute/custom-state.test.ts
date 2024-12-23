@@ -5,18 +5,18 @@ import {
 import { render } from "./private/render-util";
 import "cdktf/lib/testing/adapters/jest";
 import { Duration } from "../../../src";
-import { compute, AwsSpec } from "../../../src/aws";
+import { compute, AwsStack } from "../../../src/aws";
 import { Errors } from "../../../src/aws/compute/types";
 import { Annotations } from "../../assertions";
 
 const gridUUID = "123e4567-e89b-12d3";
 describe("Custom State", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   let stateJson: any;
 
   beforeEach(() => {
     // GIVEN
-    spec = new AwsSpec(Testing.app(), `TestSpec`, {
+    stack = new AwsStack(Testing.app(), `TestStack`, {
       environmentName: "Test",
       gridUUID,
       providerConfig: {
@@ -43,7 +43,7 @@ describe("Custom State", () => {
 
   test("maintains the state Json provided during construction", () => {
     // WHEN
-    const customState = new compute.CustomState(spec, "Custom", {
+    const customState = new compute.CustomState(stack, "Custom", {
       stateJson,
     });
 
@@ -57,16 +57,16 @@ describe("Custom State", () => {
 
   test("can add a next state to the chain", () => {
     // WHEN
-    const definition = new compute.CustomState(spec, "Custom", {
+    const definition = new compute.CustomState(stack, "Custom", {
       stateJson,
     }).next(
-      new compute.Pass(spec, "MyPass", {
+      new compute.Pass(stack, "MyPass", {
         stateName: "my-pass-state",
       }),
     );
 
     // THEN
-    expect(render(spec, definition)).toStrictEqual({
+    expect(render(stack, definition)).toStrictEqual({
       StartAt: "Custom",
       States: {
         Custom: {
@@ -93,11 +93,11 @@ describe("Custom State", () => {
 
   test("can add a catch state", () => {
     // GIVEN
-    const failure = new compute.Fail(spec, "failed", {
+    const failure = new compute.Fail(stack, "failed", {
       error: "DidNotWork",
       cause: "We got stuck",
     });
-    const custom = new compute.CustomState(spec, "Custom", {
+    const custom = new compute.CustomState(stack, "Custom", {
       stateJson,
     });
     const chain = compute.Chain.start(custom);
@@ -106,7 +106,7 @@ describe("Custom State", () => {
     custom.addCatch(failure);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Custom",
       States: {
         Custom: {
@@ -140,7 +140,7 @@ describe("Custom State", () => {
 
   test("can add a retry state", () => {
     // GIVEN
-    const custom = new compute.CustomState(spec, "Custom", {
+    const custom = new compute.CustomState(stack, "Custom", {
       stateJson,
     });
     const chain = compute.Chain.start(custom);
@@ -153,7 +153,7 @@ describe("Custom State", () => {
     });
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Custom",
       States: {
         Custom: {
@@ -183,7 +183,7 @@ describe("Custom State", () => {
 
   test("respect the Retry field in the stateJson", () => {
     // GIVEN
-    const custom = new compute.CustomState(spec, "Custom", {
+    const custom = new compute.CustomState(stack, "Custom", {
       stateJson: {
         Type: "Task",
         Resource: "arn:aws:states:::dynamodb:putItem",
@@ -220,7 +220,7 @@ describe("Custom State", () => {
     });
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Custom",
       States: {
         Custom: {
@@ -260,7 +260,7 @@ describe("Custom State", () => {
 
   test("expect retry to not fail when specifying strategy inline", () => {
     // GIVEN
-    const custom = new compute.CustomState(spec, "Custom", {
+    const custom = new compute.CustomState(stack, "Custom", {
       stateJson: {
         Type: "Task",
         Resource: "arn:aws:states:::dynamodb:putItem",
@@ -290,7 +290,7 @@ describe("Custom State", () => {
     const chain = compute.Chain.start(custom);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Custom",
       States: {
         Custom: {
@@ -325,7 +325,7 @@ describe("Custom State", () => {
 
   test("expect retry to merge when specifying strategy inline and through construct", () => {
     // GIVEN
-    const custom = new compute.CustomState(spec, "Custom", {
+    const custom = new compute.CustomState(stack, "Custom", {
       stateJson: {
         ...stateJson,
         Retry: [
@@ -338,7 +338,7 @@ describe("Custom State", () => {
     const chain = compute.Chain.start(custom);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Custom",
       States: {
         Custom: {
@@ -369,7 +369,7 @@ describe("Custom State", () => {
 
   test("expect catch to not fail when specifying strategy inline", () => {
     // GIVEN
-    const custom = new compute.CustomState(spec, "Custom", {
+    const custom = new compute.CustomState(stack, "Custom", {
       stateJson: {
         ...stateJson,
         Catch: [
@@ -383,7 +383,7 @@ describe("Custom State", () => {
     const chain = compute.Chain.start(custom);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Custom",
       States: {
         Custom: {
@@ -412,12 +412,12 @@ describe("Custom State", () => {
 
   test("expect catch to merge when specifying strategy inline and through construct", () => {
     // GIVEN
-    const failure = new compute.Fail(spec, "Failed", {
+    const failure = new compute.Fail(stack, "Failed", {
       error: "DidNotWork",
       cause: "We got stuck",
     });
 
-    const custom = new compute.CustomState(spec, "Custom", {
+    const custom = new compute.CustomState(stack, "Custom", {
       stateJson: {
         ...stateJson,
         Catch: [
@@ -431,7 +431,7 @@ describe("Custom State", () => {
     const chain = compute.Chain.start(custom);
 
     // THEN
-    expect(render(spec, chain)).toStrictEqual({
+    expect(render(stack, chain)).toStrictEqual({
       StartAt: "Custom",
       States: {
         Custom: {
@@ -468,7 +468,7 @@ describe("Custom State", () => {
   });
 
   test("expect warning message to be emitted when retries specified both in stateJson and through addRetry()", () => {
-    const customState = new compute.CustomState(spec, "my custom task", {
+    const customState = new compute.CustomState(stack, "my custom task", {
       stateJson: {
         Type: "Task",
         Resource: "arn:aws:states:::dynamodb:putItem",
@@ -494,20 +494,20 @@ describe("Custom State", () => {
       maxAttempts: 5,
     });
 
-    new compute.StateMachine(spec, "StateMachine", {
+    new compute.StateMachine(stack, "StateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(
         compute.Chain.start(customState),
       ),
       timeout: Duration.seconds(30),
     });
 
-    // expect(Annotations.fromStack(spec).warnings).toMatchSnapshot();
-    Annotations.fromStack(spec).hasWarnings({
-      constructPath: "TestSpec/my custom task",
+    // expect(Annotations.fromStack(stack).warnings).toMatchSnapshot();
+    Annotations.fromStack(stack).hasWarnings({
+      constructPath: "TestStack/my custom task",
       message: /CustomState constructs can configure state retries/,
     });
 
-    // Annotations.of(spec).hasWarning(
+    // Annotations.of(stack).hasWarning(
     //   "/Default/my custom task",
     //   Match.stringLikeRegexp(
     //     "CustomState constructs can configure state retries",
@@ -516,7 +516,7 @@ describe("Custom State", () => {
   });
 
   test("expect warning message to be emitted when catchers specified both in stateJson and through addCatch()", () => {
-    const customState = new compute.CustomState(spec, "my custom task", {
+    const customState = new compute.CustomState(stack, "my custom task", {
       stateJson: {
         Type: "Task",
         Resource: "arn:aws:states:::dynamodb:putItem",
@@ -537,26 +537,26 @@ describe("Custom State", () => {
       },
     });
 
-    const failure = new compute.Fail(spec, "Failed", {
+    const failure = new compute.Fail(stack, "Failed", {
       error: "DidNotWork",
       cause: "We got stuck",
     });
 
     customState.addCatch(failure, { errors: [Errors.TIMEOUT] });
 
-    new compute.StateMachine(spec, "StateMachine", {
+    new compute.StateMachine(stack, "StateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(
         compute.Chain.start(customState),
       ),
       timeout: Duration.seconds(30),
     });
 
-    // expect(Annotations.fromStack(spec).warnings).toMatchSnapshot();
-    Annotations.fromStack(spec).hasWarnings({
-      constructPath: "TestSpec/my custom task",
+    // expect(Annotations.fromStack(stack).warnings).toMatchSnapshot();
+    Annotations.fromStack(stack).hasWarnings({
+      constructPath: "TestStack/my custom task",
       message: /CustomState constructs can configure state catchers/,
     });
-    // Annotations.of(spec).hasWarning(
+    // Annotations.of(stack).hasWarning(
     //   "/Default/my custom task",
     //   Match.stringLikeRegexp(
     //     "CustomState constructs can configure state catchers",

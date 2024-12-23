@@ -1,6 +1,6 @@
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { storage, AwsSpec, iam } from "../../../src/aws";
+import { storage, AwsStack, iam } from "../../../src/aws";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -11,16 +11,16 @@ const gridBackendConfig = {
 
 describe("notification", () => {
   let app: App;
-  let spec: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    spec = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,
       gridBackendConfig,
-      // TODO: Should support passing account via Spec props?
+      // TODO: Should support passing account via Stack props?
       // account: "1234",
       // region: "us-east-1",
     });
@@ -28,7 +28,7 @@ describe("notification", () => {
 
   test("when notification is added a custom s3 bucket notification resource is provisioned", () => {
     // GIVEN
-    const bucket = new storage.Bucket(spec, "MyBucket");
+    const bucket = new storage.Bucket(stack, "MyBucket");
 
     // WHEN
     bucket.addEventNotification(storage.EventType.OBJECT_CREATED, {
@@ -41,12 +41,12 @@ describe("notification", () => {
     // THEN
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     expect(synthesized).toMatchSnapshot();
-    // Template.fromStack(spec).resourceCountIs("AWS::S3::Bucket", 1);
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).resourceCountIs("AWS::S3::Bucket", 1);
+    // Template.fromStack(stack).hasResourceProperties(
     //   "Custom::S3BucketNotifications",
     //   {
     //     NotificationConfiguration: {
@@ -63,12 +63,12 @@ describe("notification", () => {
 
   // test("can specify a custom role for the notifications handler of imported buckets", () => {
   //   const importedRole = iam.Role.fromRoleArn(
-  //     spec,
+  //     stack,
   //     "role",
   //     "arn:aws:iam::111111111111:role/DevsNotAllowedToTouch",
   //   );
 
-  //   const bucket = storage.Bucket.fromBucketAttributes(spec, "MyBucket", {
+  //   const bucket = storage.Bucket.fromBucketAttributes(stack, "MyBucket", {
   //     bucketName: "foo-bar",
   //     notificationsHandlerRole: importedRole,
   //   });
@@ -81,11 +81,11 @@ describe("notification", () => {
   //   });
 
   //   // Do prepare run to resolve/add all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
+  //   stack.prepareStack();
+  //   const synthesized = Testing.synth(stack);
   //   // refer to full snapshot for debug
   //   expect(synthesized).toMatchSnapshot();
-  //   // Template.fromStack(spec).hasResourceProperties("AWS::Lambda::Function", {
+  //   // Template.fromStack(stack).hasResourceProperties("AWS::Lambda::Function", {
   //   //   Description:
   //   //     'AWS CloudFormation handler for "Custom::S3BucketNotifications" resources (@aws-cdk/aws-s3)',
   //   //   Role: "arn:aws:iam::111111111111:role/DevsNotAllowedToTouch",
@@ -94,7 +94,7 @@ describe("notification", () => {
 
   test("can specify prefix and suffix filter rules", () => {
     // GIVEN
-    const bucket = new storage.Bucket(spec, "MyBucket");
+    const bucket = new storage.Bucket(stack, "MyBucket");
 
     // WHEN
     bucket.addEventNotification(
@@ -110,11 +110,11 @@ describe("notification", () => {
 
     // THEN
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     expect(synthesized).toMatchSnapshot();
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "Custom::S3BucketNotifications",
     //   {
     //     NotificationConfiguration: {
@@ -146,7 +146,7 @@ describe("notification", () => {
   // TODO: We do not use custom handler to manage bucket notifications
   test.skip("the notification lambda handler must depend on the role to prevent executing too early", () => {
     // GIVEN
-    const bucket = new storage.Bucket(spec, "MyBucket");
+    const bucket = new storage.Bucket(stack, "MyBucket");
 
     // WHEN
     bucket.addEventNotification(storage.EventType.OBJECT_CREATED, {
@@ -158,11 +158,11 @@ describe("notification", () => {
 
     // THEN
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     expect(synthesized).toMatchSnapshot();
-    // Template.fromStack(spec).hasResource("AWS::Lambda::Function", {
+    // Template.fromStack(stack).hasResource("AWS::Lambda::Function", {
     //   Type: "AWS::Lambda::Function",
     //   Properties: {
     //     Role: {
@@ -180,7 +180,7 @@ describe("notification", () => {
   });
 
   test("must not depend on bucket policy if bucket policy does not exists", () => {
-    const bucket = new storage.Bucket(spec, "MyBucket");
+    const bucket = new storage.Bucket(stack, "MyBucket");
 
     bucket.addEventNotification(storage.EventType.OBJECT_CREATED, {
       bind: () => ({
@@ -190,22 +190,22 @@ describe("notification", () => {
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     // expect(synthesized).toMatchSnapshot();
     expect(
       JSON.parse(synthesized).resource.aws_s3_bucket_notification
         .MyBucket_Notifications_46AC0CD2,
     ).not.toHaveProperty("depends_on");
-    // Template.fromStack(spec).hasResource("Custom::S3BucketNotifications", {
+    // Template.fromStack(stack).hasResource("Custom::S3BucketNotifications", {
     //   Type: "Custom::S3BucketNotifications",
     //   DependsOn: Match.absent(),
     // });
   });
 
   test("must depend on bucket policy to prevent executing too early", () => {
-    const bucket = new storage.Bucket(spec, "MyBucket", {
+    const bucket = new storage.Bucket(stack, "MyBucket", {
       enforceSSL: true, // adds bucket policy for test
     });
 
@@ -217,8 +217,8 @@ describe("notification", () => {
     });
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -234,14 +234,14 @@ describe("notification", () => {
         },
       },
     });
-    // Template.fromStack(spec).hasResource("Custom::S3BucketNotifications", {
+    // Template.fromStack(stack).hasResource("Custom::S3BucketNotifications", {
     //   Type: "Custom::S3BucketNotifications",
     //   DependsOn: ["MyBucketPolicyE7FBAC7B"],
     // });
   });
 
   test("must depend on bucket policy even if bucket policy is added after notification", () => {
-    const bucket = new storage.Bucket(spec, "MyBucket");
+    const bucket = new storage.Bucket(stack, "MyBucket");
 
     bucket.addEventNotification(storage.EventType.OBJECT_CREATED, {
       bind: () => ({
@@ -259,8 +259,8 @@ describe("notification", () => {
     );
 
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -280,7 +280,7 @@ describe("notification", () => {
 
   // TODO: Terraform doesn't have this limitation?
   test("does not throw if both prefix or suffix set for a filter", () => {
-    const bucket = new storage.Bucket(spec, "MyBucket");
+    const bucket = new storage.Bucket(stack, "MyBucket");
 
     bucket.addEventNotification(
       storage.EventType.OBJECT_CREATED,
@@ -293,8 +293,8 @@ describe("notification", () => {
       { prefix: "foo/", suffix: "bar/" },
     );
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -332,7 +332,7 @@ describe("notification", () => {
 
   // TODO: Terraform doesn't have this limitation?
   test("does not throw  with multiple prefix rules in a filter", () => {
-    const bucket = new storage.Bucket(spec, "MyBucket");
+    const bucket = new storage.Bucket(stack, "MyBucket");
     bucket.addEventNotification(
       storage.EventType.OBJECT_CREATED,
       {
@@ -345,8 +345,8 @@ describe("notification", () => {
       { prefix: "archive/" },
     );
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -389,7 +389,7 @@ describe("notification", () => {
 
   // TODO: Terraform doesn't have this limitation?
   test("does not throw with multiple suffix rules in a filter", () => {
-    const bucket = new storage.Bucket(spec, "MyBucket");
+    const bucket = new storage.Bucket(stack, "MyBucket");
 
     bucket.addEventNotification(
       storage.EventType.OBJECT_CREATED,
@@ -403,8 +403,8 @@ describe("notification", () => {
       { suffix: ".zip" },
     );
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -447,14 +447,14 @@ describe("notification", () => {
 
   test("EventBridge notification resource", () => {
     // WHEN
-    new storage.Bucket(spec, "MyBucket", {
+    new storage.Bucket(stack, "MyBucket", {
       eventBridgeEnabled: true,
     });
 
     // THEN
     // Do prepare run to resolve/add all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     // expect(synthesized).toMatchSnapshot();
     const template = JSON.parse(synthesized);
@@ -468,8 +468,8 @@ describe("notification", () => {
         },
       },
     });
-    // Template.fromStack(spec).resourceCountIs("AWS::S3::Bucket", 1);
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).resourceCountIs("AWS::S3::Bucket", 1);
+    // Template.fromStack(stack).hasResourceProperties(
     //   "Custom::S3BucketNotifications",
     //   {
     //     NotificationConfiguration: {

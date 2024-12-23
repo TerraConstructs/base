@@ -11,6 +11,7 @@ import {
   Statistic,
   Unit,
 } from "./metric-types";
+import { AwsStack } from "../aws-stack";
 import { dispatchMetric, metricKey } from "./private/metric-util";
 import {
   normalizeStatistic,
@@ -21,7 +22,6 @@ import {
 import { Stats } from "./stats";
 import { Duration } from "../../duration";
 import * as iam from "../iam";
-import { AwsSpec } from "../spec";
 
 export type DimensionsMap = { [dim: string]: string };
 
@@ -421,7 +421,7 @@ export class Metric implements IMetric {
    * nothing is done and the same Metric object is returned.
    */
   public attachTo(scope: IConstruct): Metric {
-    const stack = AwsSpec.ofAwsBeacon(scope);
+    const stack = AwsStack.ofAwsConstruct(scope);
 
     return this.with({
       region: Token.isUnresolved(stack.region) ? undefined : stack.region,

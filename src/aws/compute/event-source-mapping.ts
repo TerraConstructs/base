@@ -2,10 +2,10 @@ import { lambdaEventSourceMapping } from "@cdktf/provider-aws";
 import * as cdktf from "cdktf";
 import { Construct } from "constructs";
 import {
-  AwsSpec,
-  IAwsBeacon,
-  AwsBeaconBase,
-  AwsBeaconProps,
+  AwsStack,
+  IAwsConstruct,
+  AwsConstructBase,
+  AwsConstructProps,
   ArnFormat,
 } from "..";
 import { IEventSourceDlq } from "./function";
@@ -16,7 +16,7 @@ import { withResolved } from "../../token";
 // import * as iam from "../iam"; // required to grant KMS permissions
 // import { IKey } from "../encryption";
 
-export interface EventSourceMappingOptions extends AwsBeaconProps {
+export interface EventSourceMappingOptions extends AwsConstructProps {
   /**
    * The Amazon Resource Name (ARN) of the event source. Any record added to
    * this stream can invoke the Lambda function.
@@ -233,7 +233,7 @@ export interface EventSourceMappingOutputs {
  * Represents an event source mapping for a lambda function.
  * @see https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventsourcemapping.html
  */
-export interface IEventSourceMapping extends IAwsBeacon {
+export interface IEventSourceMapping extends IAwsConstruct {
   /**
    * strongly typed outputs
    */
@@ -258,7 +258,7 @@ export interface IEventSourceMapping extends IAwsBeacon {
  * event sources. For example, to add an SQS event source to a function:
  *
  * ```ts
- * import { notify, compute } from '@envtio/base';
+ * import { notify, compute } from 'terraconstructs';
  *
  * declare const handler: compute.Function;
  * declare const queue: notify.Queue;
@@ -270,7 +270,7 @@ export interface IEventSourceMapping extends IAwsBeacon {
  * modify the Lambda's execution role so it can consume messages from the queue.
  */
 export class EventSourceMapping
-  extends AwsBeaconBase
+  extends AwsConstructBase
   implements IEventSourceMapping
 {
   /**
@@ -286,7 +286,7 @@ export class EventSourceMapping
       eventSourceMappingId,
     );
 
-    class Import extends AwsBeaconBase implements IEventSourceMapping {
+    class Import extends AwsConstructBase implements IEventSourceMapping {
       public readonly eventSourceMappingId = eventSourceMappingId;
       public readonly eventSourceMappingArn = eventSourceMappingArn;
       public readonly eventSourceMappingOutputs = {
@@ -303,7 +303,7 @@ export class EventSourceMapping
     scope: Construct,
     eventSourceMappingId: string,
   ): string {
-    return AwsSpec.ofAwsBeacon(scope).formatArn({
+    return AwsStack.ofAwsConstruct(scope).formatArn({
       service: "lambda",
       resource: "event-source-mapping",
       resourceName: eventSourceMappingId,

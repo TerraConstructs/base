@@ -2,15 +2,15 @@ import { cloudwatchCompositeAlarm } from "@cdktf/provider-aws";
 import { Lazy } from "cdktf";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
-import { AwsBeaconProps } from "../beacon";
-import { AwsSpec } from "../spec";
+import { AwsConstructProps } from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { AlarmBase, IAlarm, IAlarmRule } from "./alarm-base";
 import { Duration } from "../../duration";
 
 /**
  * Properties for creating a Composite Alarm
  */
-export interface CompositeAlarmProps extends AwsBeaconProps {
+export interface CompositeAlarmProps extends AwsConstructProps {
   /**
    * Whether the actions for this alarm are enabled
    *
@@ -77,7 +77,7 @@ export class CompositeAlarm extends AlarmBase {
     id: string,
     compositeAlarmName: string,
   ): IAlarm {
-    const stack = AwsSpec.ofAwsBeacon(scope);
+    const stack = AwsStack.ofAwsConstruct(scope);
 
     return this.fromCompositeAlarmArn(
       scope,
@@ -105,7 +105,7 @@ export class CompositeAlarm extends AlarmBase {
   ): IAlarm {
     class Import extends AlarmBase implements IAlarm {
       public readonly alarmArn = compositeAlarmArn;
-      public readonly alarmName = AwsSpec.ofAwsBeacon(scope).splitArn(
+      public readonly alarmName = AwsStack.ofAwsConstruct(scope).splitArn(
         compositeAlarmArn,
         ArnFormat.COLON_RESOURCE_NAME,
       ).resourceName!;

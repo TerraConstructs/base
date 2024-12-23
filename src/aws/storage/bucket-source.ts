@@ -5,9 +5,13 @@ import { TerraformAsset, AssetType, Fn, ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import * as mime from "mime-types";
 import { normalPath, IBucket, AddSourceOptions } from ".";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
+import {
+  AwsConstructBase,
+  IAwsConstruct,
+  AwsConstructProps,
+} from "../aws-construct";
 
-export interface BucketSourceProps extends AddSourceOptions, AwsBeaconProps {
+export interface BucketSourceProps extends AddSourceOptions, AwsConstructProps {
   /**
    * Target bucket to upload to
    */
@@ -28,14 +32,14 @@ export interface BucketSourceOutputs {
   readonly objects: Record<string, BucketObjectOutput>;
 }
 
-export interface IBucketSource extends IAwsBeacon {
+export interface IBucketSource extends IAwsConstruct {
   readonly bucketSourceOutputs: BucketSourceOutputs;
 }
 
 /**
  * A Bucket Source which reads files from disk and creates uploads to s3.
  */
-export class BucketSource extends AwsBeaconBase implements IBucketSource {
+export class BucketSource extends AwsConstructBase implements IBucketSource {
   public readonly objects: s3Object.S3Object[] = [];
 
   private readonly _bucketSourceOutputs: BucketSourceOutputs;

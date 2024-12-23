@@ -113,7 +113,7 @@ export class AlarmWidget extends ConcreteWidget {
         properties: {
           view: "timeSeries",
           title: this.props.title,
-          region: this.props.region || this.spec.region,
+          region: this.props.region || this.stack.region,
           annotations: {
             alarms: [this.props.alarm.alarmArn],
           },
@@ -280,7 +280,7 @@ export class GaugeWidget extends ConcreteWidget {
         properties: {
           view: "gauge",
           title: this.props.title,
-          region: this.props.region || this.spec.region,
+          region: this.props.region || this.stack.region,
           metrics: metrics.length > 0 ? metrics : undefined,
           annotations:
             (this.props.annotations ?? []).length > 0
@@ -524,7 +524,7 @@ export class GraphWidget extends ConcreteWidget {
         properties: {
           view: this.props.view ?? GraphWidgetView.TIME_SERIES,
           title: this.props.title,
-          region: this.props.region || this.spec.region,
+          region: this.props.region || this.stack.region,
           stacked: this.props.stacked,
           metrics: metrics.length > 0 ? metrics : undefined,
           annotations,
@@ -845,7 +845,7 @@ export class TableWidget extends ConcreteWidget {
             stickySummary: this.props.summary?.sticky ?? false,
             summaryColumns: this.props.summary?.columns ?? [],
           },
-          region: this.props.region || this.spec.region,
+          region: this.props.region || this.stack.region,
           metrics: metrics.length > 0 ? metrics : undefined,
           annotations,
           yAxis: {
@@ -963,7 +963,7 @@ export class SingleValueWidget extends ConcreteWidget {
         properties: {
           view: "singleValue",
           title: this.props.title,
-          region: this.props.region || this.spec.region,
+          region: this.props.region || this.stack.region,
           sparkline: this.props.sparkline,
           metrics: allMetricsGraphJson(this.props.metrics, []),
           setPeriodToTimeRange: this.props.setPeriodToTimeRange,

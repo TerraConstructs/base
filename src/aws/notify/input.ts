@@ -9,7 +9,7 @@ import {
   Tokenization,
 } from "cdktf";
 import { IRule } from "./rule";
-import { AwsSpec } from "../spec";
+import { AwsStack } from "../aws-stack";
 
 /**
  * The input to send to the event target
@@ -188,7 +188,7 @@ class FieldAwareEventInput extends RuleTargetInput {
       }
     }
 
-    const spec = AwsSpec.ofAwsBeacon(rule);
+    const stack = AwsStack.ofAwsConstruct(rule);
     let resolved: string;
     if (this.inputType === InputType.Multiline) {
       // JSONify individual lines
@@ -196,9 +196,9 @@ class FieldAwareEventInput extends RuleTargetInput {
         scope: rule,
         resolver: new EventFieldReplacer(),
       });
-      resolved = resolved.split("\n").map(spec.toJsonString).join("\n");
+      resolved = resolved.split("\n").map(stack.toJsonString).join("\n");
     } else {
-      resolved = spec.toJsonString(
+      resolved = stack.toJsonString(
         Tokenization.resolve(this.input, {
           scope: rule,
           resolver: new EventFieldReplacer(),
@@ -363,4 +363,6 @@ function isEventField(x: any): x is EventField {
   return EVENT_FIELD_SYMBOL in x;
 }
 
-const EVENT_FIELD_SYMBOL = Symbol.for("@envtio/base/lib/aws/notify.EventField");
+const EVENT_FIELD_SYMBOL = Symbol.for(
+  "terraconstructs/lib/aws/notify.EventField",
+);

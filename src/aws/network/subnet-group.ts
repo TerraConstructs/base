@@ -4,7 +4,11 @@ import {
   // docdbSubnetGroup, // not needed, rds and docdb share subnet groups
 } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsBeaconBase, AwsBeaconProps, IAwsBeacon } from "../beacon";
+import {
+  AwsConstructBase,
+  AwsConstructProps,
+  IAwsConstruct,
+} from "../aws-construct";
 import { ISubnet } from "./subnet";
 
 export enum SubnetGroupType {
@@ -18,19 +22,19 @@ export enum SubnetGroupType {
   ELASTICACHE = "ELASTICACHE",
 }
 
-export interface SubnetGroupProps extends AwsBeaconProps {
+export interface SubnetGroupProps extends AwsConstructProps {
   readonly subnets: ISubnet[];
   readonly tags?: Record<string, string>;
 }
 
-export interface ISubnetGroup extends IAwsBeacon {
+export interface ISubnetGroup extends IAwsConstruct {
   readonly type: SubnetGroupType;
   readonly arn: string;
   readonly subnets: ISubnet[];
 }
 
 export abstract class BaseSubnetGroup
-  extends AwsBeaconBase
+  extends AwsConstructBase
   implements ISubnetGroup
 {
   public readonly type: SubnetGroupType;

@@ -1,5 +1,5 @@
 import { Dependable, IConstruct, IDependable } from "constructs";
-import { IAwsBeacon } from "../beacon";
+import { IAwsConstruct } from "../aws-construct";
 import { PolicyStatement, Conditions } from "./policy-statement";
 import { IGrantable, IPrincipal } from "./principals";
 import { TokenComparison, tokenCompareStrings } from "../../token";
@@ -45,7 +45,7 @@ export interface GrantWithResourceOptions extends CommonGrantOptions {
    * The statement will be added to the resource policy if it couldn't be
    * added to the principal policy.
    */
-  readonly resource: IAwsBeaconWithPolicy;
+  readonly resource: IAwsConstructWithPolicy;
 
   /**
    * When referring to the resource in a resource policy, use this as ARN.
@@ -80,7 +80,7 @@ export interface GrantOnPrincipalAndResourceOptions extends CommonGrantOptions {
    *
    * The statement will always be added to the resource policy.
    */
-  readonly resource: IAwsBeaconWithPolicy;
+  readonly resource: IAwsConstructWithPolicy;
 
   /**
    * When referring to the resource in a resource policy, use this as ARN.
@@ -397,7 +397,7 @@ interface GrantProps {
 /**
  * A resource with a resource policy that can be added to
  */
-export interface IAwsBeaconWithPolicy extends IAwsBeacon {
+export interface IAwsConstructWithPolicy extends IAwsConstruct {
   /**
    * Add a statement to the resource's resource policy
    */

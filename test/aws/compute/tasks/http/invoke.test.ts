@@ -1,15 +1,15 @@
 import "cdktf/lib/testing/adapters/jest";
 import { Testing } from "cdktf";
+import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import * as tasks from "../../../../../src/aws/compute/tasks";
 import * as notify from "../../../../../src/aws/notify";
-import { AwsSpec } from "../../../../../src/aws/spec";
 
-let spec: AwsSpec;
+let stack: AwsStack;
 let connection: notify.IConnection;
 
 const expectTaskWithParameters = (task: tasks.HttpInvoke, parameters: any) => {
-  expect(spec.resolve(task.toStateJson())).toEqual({
+  expect(stack.resolve(task.toStateJson())).toEqual({
     Type: "Task",
     Resource:
       "arn:${data.aws_partition.Partitition.partition}:states:::http:invoke",
@@ -33,7 +33,7 @@ const expectTaskWithParameters = (task: tasks.HttpInvoke, parameters: any) => {
 describe("AWS::StepFunctions::Tasks::HttpInvoke", () => {
   beforeEach(() => {
     const app = Testing.app();
-    spec = new AwsSpec(app, "TestSpec", {
+    stack = new AwsStack(app, "TestSpec", {
       environmentName: "Test",
       gridUUID: "123e4567-e89b-12d3",
       providerConfig: { region: "us-east-1" },
@@ -41,14 +41,14 @@ describe("AWS::StepFunctions::Tasks::HttpInvoke", () => {
         address: "http://localhost:3000",
       },
     });
-    connection = new notify.Connection(spec, "Connection", {
+    connection = new notify.Connection(stack, "Connection", {
       authorization: notify.Authorization.basic("username", "password"), // TODO: should be sensitive
       connectionName: "testConnection",
     });
   });
 
   test("invoke with default props", () => {
-    const task = new tasks.HttpInvoke(spec, "Task", {
+    const task = new tasks.HttpInvoke(stack, "Task", {
       apiRoot: "https://api.example.com",
       apiEndpoint: compute.TaskInput.fromText("path/to/resource"),
       connection,
@@ -58,14 +58,14 @@ describe("AWS::StepFunctions::Tasks::HttpInvoke", () => {
     expectTaskWithParameters(task, {
       ApiEndpoint: "https://api.example.com/path/to/resource",
       Authentication: {
-        ConnectionArn: spec.resolve(connection.connectionArn),
+        ConnectionArn: stack.resolve(connection.connectionArn),
       },
       Method: "POST",
     });
   });
 
   test("invoke with all props", () => {
-    const task = new tasks.HttpInvoke(spec, "Task", {
+    const task = new tasks.HttpInvoke(stack, "Task", {
       apiRoot: "https://api.example.com",
       apiEndpoint: compute.TaskInput.fromText("path/to/resource"),
       connection,
@@ -82,7 +82,7 @@ describe("AWS::StepFunctions::Tasks::HttpInvoke", () => {
     expectTaskWithParameters(task, {
       ApiEndpoint: "https://api.example.com/path/to/resource",
       Authentication: {
-        ConnectionArn: spec.resolve(connection.connectionArn),
+        ConnectionArn: stack.resolve(connection.connectionArn),
       },
       Method: "POST",
       Headers: {
@@ -102,7 +102,7 @@ describe("AWS::StepFunctions::Tasks::HttpInvoke", () => {
   });
 
   test("invoke with default urlEncodingFormat", () => {
-    const task = new tasks.HttpInvoke(spec, "Task", {
+    const task = new tasks.HttpInvoke(stack, "Task", {
       apiRoot: "https://api.example.com",
       apiEndpoint: compute.TaskInput.fromText("path/to/resource"),
       method: compute.TaskInput.fromText("POST"),
@@ -113,7 +113,7 @@ describe("AWS::StepFunctions::Tasks::HttpInvoke", () => {
     expectTaskWithParameters(task, {
       ApiEndpoint: "https://api.example.com/path/to/resource",
       Authentication: {
-        ConnectionArn: spec.resolve(connection.connectionArn),
+        ConnectionArn: stack.resolve(connection.connectionArn),
       },
       Method: "POST",
       Headers: {
@@ -126,7 +126,7 @@ describe("AWS::StepFunctions::Tasks::HttpInvoke", () => {
   });
 
   test("invoke with no urlEncodingFormat", () => {
-    const task = new tasks.HttpInvoke(spec, "Task", {
+    const task = new tasks.HttpInvoke(stack, "Task", {
       apiRoot: "https://api.example.com",
       apiEndpoint: compute.TaskInput.fromText("path/to/resource"),
       method: compute.TaskInput.fromText("POST"),
@@ -137,7 +137,7 @@ describe("AWS::StepFunctions::Tasks::HttpInvoke", () => {
     expectTaskWithParameters(task, {
       ApiEndpoint: "https://api.example.com/path/to/resource",
       Authentication: {
-        ConnectionArn: spec.resolve(connection.connectionArn),
+        ConnectionArn: stack.resolve(connection.connectionArn),
       },
       Method: "POST",
     });

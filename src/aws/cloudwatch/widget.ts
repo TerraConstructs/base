@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-cloudwatch/lib/widget.ts
 import { Construct } from "constructs";
-import { AwsSpec } from "../";
+import { AwsStack } from "../";
 import { IMetric } from "./metric-types";
 
 /**
@@ -54,7 +54,7 @@ export abstract class ConcreteWidget implements IWidget {
   public readonly height: number;
   protected x?: number;
   protected y?: number;
-  protected spec: AwsSpec;
+  protected stack: AwsStack;
 
   public readonly warnings: string[] | undefined = [];
   public readonly warningsV2: { [id: string]: string } | undefined = {};
@@ -62,7 +62,7 @@ export abstract class ConcreteWidget implements IWidget {
   constructor(scope: Construct, width: number, height: number) {
     this.width = width;
     this.height = height;
-    this.spec = AwsSpec.ofAwsBeacon(scope);
+    this.stack = AwsStack.ofAwsConstruct(scope);
 
     if (this.width > GRID_WIDTH) {
       throw new Error(`Widget is too wide, max ${GRID_WIDTH} units allowed`);

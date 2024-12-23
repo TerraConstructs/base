@@ -2,7 +2,11 @@ import * as fs from "fs";
 import { cloudfrontFunction } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import { IKeyValueStore } from ".";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "../beacon";
+import {
+  AwsConstructBase,
+  IAwsConstruct,
+  AwsConstructProps,
+} from "../aws-construct";
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-cloudfront/lib/function.ts
 
@@ -77,7 +81,7 @@ class FileCode extends FunctionCode {
  *
  * @resource aws_cloudfront_function
  */
-export interface IFunction extends IAwsBeacon {
+export interface IFunction extends IAwsConstruct {
   /** Strongly typed outputs
    *
    * @attribute
@@ -121,7 +125,7 @@ export interface FunctionOutputs {
 /**
  * Properties for creating a CloudFront Function
  */
-export interface FunctionProps extends AwsBeaconProps {
+export interface FunctionProps extends AwsConstructProps {
   /**
    * A name to identify the function.
    */
@@ -169,7 +173,7 @@ export interface FunctionProps extends AwsBeaconProps {
  *
  * @resource aws_cloudfront_function
  */
-export class Function extends AwsBeaconBase implements IFunction {
+export class Function extends AwsConstructBase implements IFunction {
   // TODO: Add static fromLookup?
   public readonly resource: cloudfrontFunction.CloudfrontFunction;
 

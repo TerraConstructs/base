@@ -1,9 +1,9 @@
 import { Construct } from "constructs";
 import * as compute from "../../";
 import { ArnFormat } from "../../../arn";
+import { AwsStack } from "../../../aws-stack";
 import * as iam from "../../../iam";
 import * as notify from "../../../notify";
-import { AwsSpec } from "../../../spec";
 import {
   integrationResourceArn,
   validatePatternSupported,
@@ -128,7 +128,7 @@ export class EventBridgePutEvents extends compute.TaskStateBase {
       } else {
         // If neither an eventBus nor eventBusName is provided,
         // format the ARN for the default event bus in the account.
-        return AwsSpec.ofAwsBeacon(this).formatArn({
+        return AwsStack.ofAwsConstruct(this).formatArn({
           resource: "event-bus",
           resourceName: "default",
           arnFormat: ArnFormat.SLASH_RESOURCE_NAME,

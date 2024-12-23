@@ -5,8 +5,8 @@ import { lambdaPermission } from "@cdktf/provider-aws";
 import { IResolvable, Annotations, Token } from "cdktf";
 import { Node } from "constructs";
 import { ArnFormat } from "../arn";
-import { AwsBeaconBase, IAwsBeacon } from "../beacon";
-import { AwsSpec } from "../spec";
+import { AwsConstructBase, IAwsConstruct } from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { Architecture } from "./architecture";
 import {
   EventInvokeConfig,
@@ -66,13 +66,13 @@ export interface FunctionAttributes {
   readonly sameEnvironment?: boolean;
 
   /**
-   * Setting this property informs the E.T. that the imported function ALREADY HAS the necessary permissions
+   * Setting this property informs the TerraConstruct that the imported function ALREADY HAS the necessary permissions
    * for what you are trying to do. When not configured, E.T, attempts to auto-determine whether or not
-   * additional permissions are necessary on the function when grant APIs are used. If E.T. tried to add
+   * additional permissions are necessary on the function when grant APIs are used. If TerraConstruct tried to add
    * permissions on an imported lambda, it will fail.
    *
    * Set this property *ONLY IF* you are committing to manage the imported function's permissions outside of
-   * this E.T. spec. You are acknowledging that your E.T. code alone will have insufficient permissions to access the
+   * this TerraConstruct stack. You are acknowledging that your TerraConstruct code alone will have insufficient permissions to access the
    * imported function.
    *
    * @default false
@@ -89,7 +89,7 @@ export interface FunctionAttributes {
 /**
  * A Lambda function.
  */
-export interface IFunction extends IAwsBeacon, iam.IGrantable {
+export interface IFunction extends IAwsConstruct, iam.IGrantable {
   /**
    * The name of the function.
    *
@@ -134,7 +134,7 @@ export interface IFunction extends IAwsBeacon, iam.IGrantable {
    *
    * The following example adds an SQS Queue as an event source:
    * ```
-   * import { compute } from '@envtio/base';
+   * import { compute } from 'terraconstructs';
    * myFunction.addEventSource(new compute.SqsEventSource(myQueue));
    * ```
    */
@@ -192,7 +192,7 @@ export interface IFunction extends IAwsBeacon, iam.IGrantable {
 }
 
 export abstract class LambdaFunctionBase
-  extends AwsBeaconBase
+  extends AwsConstructBase
   implements IFunction
 {
   /**
@@ -261,7 +261,7 @@ export abstract class LambdaFunctionBase
    * Whether the user decides to skip adding permissions.
    * The only use case is for cross-account, imported lambdas
    * where the user commits to modifying the permisssions
-   * on the imported lambda outside this E.T. Spec.
+   * on the imported lambda outside this TerraConstruct Spec.
    * @internal
    */
   protected readonly _skipPermissions?: boolean;
@@ -291,7 +291,7 @@ export abstract class LambdaFunctionBase
         Annotations.of(this).addWarning(
           [
             `addPermission() has no effect on a Lambda Function with region=${this.env.region}, account=${this.env.account},`,
-            `in a Stack with region=${AwsSpec.ofAwsBeacon(this).region}, account=${AwsSpec.ofAwsBeacon(this).account}.`,
+            `in a Stack with region=${AwsStack.ofAwsConstruct(this).region}, account=${AwsStack.ofAwsConstruct(this).account}.`,
             `Suppress this warning if this is is intentional, or pass sameEnvironment=true to fromFunctionAttributes()`,
             `if you would like to add the permissions.`,
           ].join(" "),

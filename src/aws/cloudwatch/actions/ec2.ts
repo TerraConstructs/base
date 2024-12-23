@@ -1,5 +1,5 @@
 import { Construct } from "constructs";
-import { AwsSpec } from "../../spec";
+import { AwsStack } from "../../aws-stack";
 import { IAlarmAction, AlarmActionConfig } from "../alarm-action";
 import { IAlarm } from "../alarm-base";
 
@@ -40,7 +40,7 @@ export class Ec2Action implements IAlarmAction {
    */
   bind(_scope: Construct, _alarm: IAlarm): AlarmActionConfig {
     return {
-      alarmActionArn: `arn:${AwsSpec.ofAwsBeacon(_scope).partition}:automate:${AwsSpec.ofAwsBeacon(_scope).region}:ec2:${this.ec2Action}`,
+      alarmActionArn: `arn:${AwsStack.ofAwsConstruct(_scope).partition}:automate:${AwsStack.ofAwsConstruct(_scope).region}:ec2:${this.ec2Action}`,
     };
   }
 }

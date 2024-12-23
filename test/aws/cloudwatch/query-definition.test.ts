@@ -3,7 +3,7 @@
 import { cloudwatchQueryDefinition } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws";
 import {
   LogGroup,
   QueryDefinition,
@@ -21,16 +21,16 @@ const gridBackendConfig = {
 
 describe("query definition", () => {
   let app: App;
-  let stack: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,
       gridBackendConfig,
-      // TODO: Should support passing account via Spec props to match AWS CDK cross account support
+      // TODO: Should support passing account via Stack props to match AWS CDK cross account support
       // account: "1234",
     });
   });

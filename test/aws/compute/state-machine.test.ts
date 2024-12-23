@@ -2,7 +2,7 @@ import { dataAwsIamPolicyDocument, sfnStateMachine } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { FakeTask } from "./private/fake-task";
-import { storage, iam, compute, AwsSpec } from "../../../src/aws";
+import { storage, iam, compute, AwsStack } from "../../../src/aws";
 // import * as task from "../../../src/aws/compute/tasks";
 // import * as kms from "../../aws-kms";
 // import * as logs from "../../aws-logs";
@@ -10,11 +10,11 @@ import { storage, iam, compute, AwsSpec } from "../../../src/aws";
 const gridUUID = "123e4567-e89b-12d3";
 
 describe("State Machine", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    spec = new AwsSpec(app, `TestSpec`, {
+    stack = new AwsStack(app, `TestStack`, {
       environmentName: "Test",
       gridUUID,
       providerConfig: {
@@ -27,17 +27,17 @@ describe("State Machine", () => {
   });
   test("Instantiate Default State Machine with deprecated definition", () => {
     // WHEN
-    new compute.StateMachine(spec, "MyStateMachine", {
+    new compute.StateMachine(stack, "MyStateMachine", {
       stateMachineName: "MyStateMachine",
       definitionBody: compute.DefinitionBody.fromChainable(
-        compute.Chain.start(new compute.Pass(spec, "Pass")),
+        compute.Chain.start(new compute.Pass(stack, "Pass")),
       ),
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       sfnStateMachine.SfnStateMachine,
@@ -46,7 +46,7 @@ describe("State Machine", () => {
           '{"StartAt":"Pass","States":{"Pass":{"Type":"Pass","End":true}}}',
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::StepFunctions::StateMachine",
     //   {
     //     StateMachineName: "MyStateMachine",
@@ -58,7 +58,7 @@ describe("State Machine", () => {
 
   test("Instantiate Default State Machine with string definition", () => {
     // WHEN
-    new compute.StateMachine(spec, "MyStateMachine", {
+    new compute.StateMachine(stack, "MyStateMachine", {
       stateMachineName: "MyStateMachine",
       definitionBody: compute.DefinitionBody.fromString(
         '{"StartAt":"Pass","States":{"Pass":{"Type":"Pass","End":true}}}',
@@ -67,8 +67,8 @@ describe("State Machine", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       sfnStateMachine.SfnStateMachine,
@@ -77,7 +77,7 @@ describe("State Machine", () => {
           '{"StartAt":"Pass","States":{"Pass":{"Type":"Pass","End":true}}}',
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::StepFunctions::StateMachine",
     //   {
     //     StateMachineName: "MyStateMachine",
@@ -87,14 +87,14 @@ describe("State Machine", () => {
     // );
   });
 
-  // TODO: `definition` field was never ported to @envtio/base
+  // TODO: `definition` field was never ported to terraconstructs
   // test("Instantiate fails with old and new definition specified", () => {
   //   // FAIL
   //   expect(() => {
-  //     new compute.StateMachine(spec, "MyStateMachine", {
+  //     new compute.StateMachine(stack, "MyStateMachine", {
   //       stateMachineName: "MyStateMachine",
   //       definitionBody: compute.DefinitionBody.fromChainable(
-  //         compute.Chain.start(new compute.Pass(spec, "Pass2")),
+  //         compute.Chain.start(new compute.Pass(stack, "Pass2")),
   //       ),
   //     });
   //   }).toThrow(
@@ -104,24 +104,24 @@ describe("State Machine", () => {
   // test("Instantiate fails with no definition specified", () => {
   //   // FAIL
   //   expect(() => {
-  //     new compute.StateMachine(spec, "MyStateMachine", {
+  //     new compute.StateMachine(stack, "MyStateMachine", {
   //       stateMachineName: "MyStateMachine",
   //     });
   //   }).toThrow("You need to specify either definition or definitionBody");
   // }),
   test("Instantiate Default State Machine", () => {
     // WHEN
-    new compute.StateMachine(spec, "MyStateMachine", {
+    new compute.StateMachine(stack, "MyStateMachine", {
       stateMachineName: "MyStateMachine",
       definitionBody: compute.DefinitionBody.fromChainable(
-        compute.Chain.start(new compute.Pass(spec, "Pass")),
+        compute.Chain.start(new compute.Pass(stack, "Pass")),
       ),
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       sfnStateMachine.SfnStateMachine,
@@ -131,7 +131,7 @@ describe("State Machine", () => {
           '{"StartAt":"Pass","States":{"Pass":{"Type":"Pass","End":true}}}',
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::StepFunctions::StateMachine",
     //   {
     //     StateMachineName: "MyStateMachine",
@@ -143,18 +143,18 @@ describe("State Machine", () => {
 
   test("Instantiate Standard State Machine", () => {
     // WHEN
-    new compute.StateMachine(spec, "MyStateMachine", {
+    new compute.StateMachine(stack, "MyStateMachine", {
       stateMachineName: "MyStateMachine",
       definitionBody: compute.DefinitionBody.fromChainable(
-        compute.Chain.start(new compute.Pass(spec, "Pass")),
+        compute.Chain.start(new compute.Pass(stack, "Pass")),
       ),
       stateMachineType: compute.StateMachineType.STANDARD,
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       sfnStateMachine.SfnStateMachine,
@@ -165,7 +165,7 @@ describe("State Machine", () => {
           '{"StartAt":"Pass","States":{"Pass":{"Type":"Pass","End":true}}}',
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::StepFunctions::StateMachine",
     //   {
     //     StateMachineName: "MyStateMachine",
@@ -178,10 +178,10 @@ describe("State Machine", () => {
 
   test("Instantiate Standard State Machine With Comment", () => {
     // WHEN
-    new compute.StateMachine(spec, "MyStateMachine", {
+    new compute.StateMachine(stack, "MyStateMachine", {
       stateMachineName: "MyStateMachine",
       definitionBody: compute.DefinitionBody.fromChainable(
-        compute.Chain.start(new compute.Pass(spec, "Pass")),
+        compute.Chain.start(new compute.Pass(stack, "Pass")),
       ),
       stateMachineType: compute.StateMachineType.STANDARD,
       comment: "zorp",
@@ -189,8 +189,8 @@ describe("State Machine", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       sfnStateMachine.SfnStateMachine,
@@ -201,7 +201,7 @@ describe("State Machine", () => {
           '{"StartAt":"Pass","States":{"Pass":{"Type":"Pass","End":true}},"Comment":"zorp"}',
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::StepFunctions::StateMachine",
     //   {
     //     StateMachineName: "MyStateMachine",
@@ -214,18 +214,18 @@ describe("State Machine", () => {
 
   test("Instantiate Express State Machine", () => {
     // WHEN
-    new compute.StateMachine(spec, "MyStateMachine", {
+    new compute.StateMachine(stack, "MyStateMachine", {
       stateMachineName: "MyStateMachine",
       definitionBody: compute.DefinitionBody.fromChainable(
-        compute.Chain.start(new compute.Pass(spec, "Pass")),
+        compute.Chain.start(new compute.Pass(stack, "Pass")),
       ),
       stateMachineType: compute.StateMachineType.EXPRESS,
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       sfnStateMachine.SfnStateMachine,
@@ -236,7 +236,7 @@ describe("State Machine", () => {
           '{"StartAt":"Pass","States":{"Pass":{"Type":"Pass","End":true}}}',
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::StepFunctions::StateMachine",
     //   {
     //     StateMachineName: "MyStateMachine",
@@ -249,17 +249,17 @@ describe("State Machine", () => {
 
   test("Instantiate State Machine With Distributed Map State", () => {
     // WHEN
-    const map = new compute.DistributedMap(spec, "Map State");
-    map.itemProcessor(new compute.Pass(spec, "Pass"));
-    new compute.StateMachine(spec, "MyStateMachine", {
+    const map = new compute.DistributedMap(stack, "Map State");
+    map.itemProcessor(new compute.Pass(stack, "Pass"));
+    new compute.StateMachine(stack, "MyStateMachine", {
       stateMachineName: "MyStateMachine",
       definitionBody: compute.DefinitionBody.fromChainable(map),
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -280,7 +280,7 @@ describe("State Machine", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -310,10 +310,10 @@ describe("State Machine", () => {
   test("State Machine with invalid name", () => {
     // WHEN
     const createStateMachine = (name: string) => {
-      new compute.StateMachine(spec, name + "StateMachine", {
+      new compute.StateMachine(stack, name + "StateMachine", {
         stateMachineName: name,
         definitionBody: compute.DefinitionBody.fromChainable(
-          compute.Chain.start(new compute.Pass(spec, name + "Pass")),
+          compute.Chain.start(new compute.Pass(stack, name + "Pass")),
         ),
         stateMachineType: compute.StateMachineType.EXPRESS,
       });
@@ -347,12 +347,12 @@ describe("State Machine", () => {
 
   test("State Machine with valid name", () => {
     const newStateMachine = new compute.StateMachine(
-      spec,
+      stack,
       "dummyStateMachineToken",
       {
         definitionBody: compute.DefinitionBody.fromChainable(
           compute.Chain.start(
-            new compute.Pass(spec, "dummyStateMachineTokenPass"),
+            new compute.Pass(stack, "dummyStateMachineTokenPass"),
           ),
         ),
       },
@@ -364,11 +364,11 @@ describe("State Machine", () => {
 
     // THEN
     expect(() => {
-      new compute.StateMachine(spec, "TokenTest-StateMachine", {
+      new compute.StateMachine(stack, "TokenTest-StateMachine", {
         stateMachineName: nameContainingToken,
         definitionBody: compute.DefinitionBody.fromChainable(
           compute.Chain.start(
-            new compute.Pass(spec, "TokenTest-StateMachinePass"),
+            new compute.Pass(stack, "TokenTest-StateMachinePass"),
           ),
         ),
         stateMachineType: compute.StateMachineType.EXPRESS,
@@ -376,11 +376,11 @@ describe("State Machine", () => {
     }).not.toThrow();
 
     expect(() => {
-      new compute.StateMachine(spec, "ValidNameTest-StateMachine", {
+      new compute.StateMachine(stack, "ValidNameTest-StateMachine", {
         stateMachineName: validName,
         definitionBody: compute.DefinitionBody.fromChainable(
           compute.Chain.start(
-            new compute.Pass(spec, "ValidNameTest-StateMachinePass"),
+            new compute.Pass(stack, "ValidNameTest-StateMachinePass"),
           ),
         ),
         stateMachineType: compute.StateMachineType.EXPRESS,
@@ -391,11 +391,11 @@ describe("State Machine", () => {
   // TODO: Add logging support
   // test("log configuration", () => {
   //   // WHEN
-  //   const logGroup = new logs.LogGroup(spec, "MyLogGroup");
+  //   const logGroup = new logs.LogGroup(stack, "MyLogGroup");
 
-  //   new compute.StateMachine(spec, "MyStateMachine", {
+  //   new compute.StateMachine(stack, "MyStateMachine", {
   //     definitionBody: compute.DefinitionBody.fromChainable(
-  //       compute.Chain.start(new compute.Pass(spec, "Pass")),
+  //       compute.Chain.start(new compute.Pass(stack, "Pass")),
   //     ),
   //     logs: {
   //       destination: logGroup,
@@ -405,7 +405,7 @@ describe("State Machine", () => {
   //   });
 
   //   // THEN
-  //   Template.fromStack(spec).hasResourceProperties(
+  //   Template.fromStack(stack).hasResourceProperties(
   //     "AWS::StepFunctions::StateMachine",
   //     {
   //       DefinitionString:
@@ -426,7 +426,7 @@ describe("State Machine", () => {
   //     },
   //   );
 
-  //   Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  //   Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //     PolicyDocument: {
   //       Statement: [
   //         {
@@ -457,17 +457,17 @@ describe("State Machine", () => {
 
   test("tracing configuration", () => {
     // WHEN
-    new compute.StateMachine(spec, "MyStateMachine", {
+    new compute.StateMachine(stack, "MyStateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(
-        compute.Chain.start(new compute.Pass(spec, "Pass")),
+        compute.Chain.start(new compute.Pass(stack, "Pass")),
       ),
       tracingEnabled: true,
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       sfnStateMachine.SfnStateMachine,
@@ -479,7 +479,7 @@ describe("State Machine", () => {
         },
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::StepFunctions::StateMachine",
     //   {
     //     DefinitionString:
@@ -490,7 +490,7 @@ describe("State Machine", () => {
     //   },
     // );
 
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -517,17 +517,17 @@ describe("State Machine", () => {
 
   test("disable tracing configuration", () => {
     // WHEN
-    new compute.StateMachine(spec, "MyStateMachine", {
+    new compute.StateMachine(stack, "MyStateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(
-        compute.Chain.start(new compute.Pass(spec, "Pass")),
+        compute.Chain.start(new compute.Pass(stack, "Pass")),
       ),
       tracingEnabled: false,
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
 
     expect(synthesized).toHaveResourceWithProperties(
@@ -540,7 +540,7 @@ describe("State Machine", () => {
         },
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::StepFunctions::StateMachine",
     //   {
     //     DefinitionString:
@@ -554,18 +554,18 @@ describe("State Machine", () => {
 
   test("grant access", () => {
     // WHEN
-    const sm = new compute.StateMachine(spec, "MyStateMachine", {
+    const sm = new compute.StateMachine(stack, "MyStateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(
-        compute.Chain.start(new compute.Pass(spec, "Pass")),
+        compute.Chain.start(new compute.Pass(stack, "Pass")),
       ),
     });
-    const bucket = new storage.Bucket(spec, "MyBucket");
+    const bucket = new storage.Bucket(stack, "MyBucket");
     bucket.grantRead(sm);
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -582,7 +582,7 @@ describe("State Machine", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -692,10 +692,10 @@ describe("State Machine", () => {
 
   test("Instantiate a State Machine with a task assuming a literal roleArn (same-account)", () => {
     // WHEN
-    const role = iam.Role.fromRoleName(spec, "Role", "example-role");
-    new compute.StateMachine(spec, "MyStateMachine", {
+    const role = iam.Role.fromRoleName(stack, "Role", "example-role");
+    new compute.StateMachine(stack, "MyStateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(
-        new FakeTask(spec, "fakeTask", {
+        new FakeTask(stack, "fakeTask", {
           credentials: { role: compute.TaskRole.fromRole(role) },
         }),
       ),
@@ -703,8 +703,8 @@ describe("State Machine", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       sfnStateMachine.SfnStateMachine,
@@ -713,7 +713,7 @@ describe("State Machine", () => {
           '{"StartAt":"fakeTask","States":{"fakeTask":{"End":true,"Type":"Task","Credentials":{"RoleArn":"arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:role/example-role"},"Resource":"my-resource","Parameters":{"MyParameter":"myParameter"}}}}',
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::StepFunctions::StateMachine",
     //   {
     //     DefinitionString: {
@@ -735,7 +735,7 @@ describe("State Machine", () => {
     //   },
     // );
 
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -772,9 +772,9 @@ describe("State Machine", () => {
 
   test("Instantiate a State Machine with a task assuming a JSONPath roleArn", () => {
     // WHEN
-    new compute.StateMachine(spec, "MyStateMachine", {
+    new compute.StateMachine(stack, "MyStateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(
-        new FakeTask(spec, "fakeTask", {
+        new FakeTask(stack, "fakeTask", {
           credentials: {
             role: compute.TaskRole.fromRoleArnJsonPath("$.RoleArn"),
           },
@@ -784,8 +784,8 @@ describe("State Machine", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       sfnStateMachine.SfnStateMachine,
@@ -794,7 +794,7 @@ describe("State Machine", () => {
           '{"StartAt":"fakeTask","States":{"fakeTask":{"End":true,"Type":"Task","Credentials":{"RoleArn.$":"$.RoleArn"},"Resource":"my-resource","Parameters":{"MyParameter":"myParameter"}}}}',
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::StepFunctions::StateMachine",
     //   {
     //     DefinitionString:
@@ -814,7 +814,7 @@ describe("State Machine", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -840,7 +840,7 @@ describe("State Machine", () => {
 
       beforeEach(() => {
         mach = compute.StateMachine.fromStateMachineArn(
-          spec,
+          stack,
           "iMach",
           "arn:aws:states:machine-region:222222222222:stateMachine:machine-name",
         );
@@ -859,7 +859,7 @@ describe("State Machine", () => {
   describe("StateMachine.fromStateMachineName()", () => {
     // beforeEach(() => {
     //   const app = new cdk.App();
-    //   spec = new cdk.Stack(app, "Base", {
+    //   stack = new AwsStack(app, "Base", {
     //     env: { account: "111111111111", region: "stack-region" },
     //   });
     // });
@@ -869,7 +869,7 @@ describe("State Machine", () => {
 
       beforeEach(() => {
         mach = compute.StateMachine.fromStateMachineName(
-          spec,
+          stack,
           "iMach",
           "machine-name",
         );
@@ -880,14 +880,14 @@ describe("State Machine", () => {
       });
 
       test("the state machine's account is taken from the current stack", () => {
-        expect(spec.resolve(mach.env.account)).toBe(
+        expect(stack.resolve(mach.env.account)).toBe(
           "${data.aws_caller_identity.CallerIdentity.account_id}",
         );
       });
 
       test("the state machine's account is taken from the current stack", () => {
         expect(
-          spec
+          stack
             .resolve(mach.stateMachineArn)
             .endsWith(
               ":states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:stateMachine:machine-name",
@@ -900,20 +900,20 @@ describe("State Machine", () => {
   // // TODO: Aws provider does not have `StateMachineVersion` resource
   // test("stateMachineRevisionId property uses attribute reference", () => {
   //   // WHEN
-  //   const stateMachine = new compute.StateMachine(spec, "MyStateMachine", {
+  //   const stateMachine = new compute.StateMachine(stack, "MyStateMachine", {
   //     stateMachineName: "MyStateMachine",
   //     definitionBody: compute.DefinitionBody.fromChainable(
-  //       new compute.Pass(spec, "Pass"),
+  //       new compute.Pass(stack, "Pass"),
   //     ),
   //   });
 
-  //   new compute.CfnStateMachineVersion(spec, "MyStateMachineVersion", {
+  //   new compute.CfnStateMachineVersion(stack, "MyStateMachineVersion", {
   //     stateMachineRevisionId: stateMachine.stateMachineRevisionId,
   //     stateMachineArn: stateMachine.stateMachineArn,
   //   });
 
   //   // THEN
-  //   Template.fromStack(spec).hasResourceProperties(
+  //   Template.fromStack(stack).hasResourceProperties(
   //     "AWS::StepFunctions::StateMachineVersion",
   //     {
   //       StateMachineArn: { Ref: "MyStateMachine6C968CA5" },
@@ -926,28 +926,28 @@ describe("State Machine", () => {
 
   // // TODO: Aws provider does not have `StateMachineVersion` resource
   // test("comments rendered properly", () => {
-  //   const choice = new compute.Choice(spec, "choice", {
+  //   const choice = new compute.Choice(stack, "choice", {
   //     comment: "nebraska",
   //   });
-  //   const success = new compute.Succeed(spec, "success");
+  //   const success = new compute.Succeed(stack, "success");
   //   choice.when(compute.Condition.isPresent("$.success"), success, {
   //     comment: "london",
   //   });
   //   choice.otherwise(success);
 
   //   // WHEN
-  //   const stateMachine = new compute.StateMachine(spec, "MyStateMachine", {
+  //   const stateMachine = new compute.StateMachine(stack, "MyStateMachine", {
   //     stateMachineName: "MyStateMachine",
   //     definitionBody: compute.DefinitionBody.fromChainable(choice),
   //   });
 
-  //   new compute.CfnStateMachineVersion(spec, "MyStateMachineVersion", {
+  //   new compute.CfnStateMachineVersion(stack, "MyStateMachineVersion", {
   //     stateMachineRevisionId: stateMachine.stateMachineRevisionId,
   //     stateMachineArn: stateMachine.stateMachineArn,
   //   });
 
   //   // THEN
-  //   Template.fromStack(spec).hasResourceProperties(
+  //   Template.fromStack(stack).hasResourceProperties(
   //     "AWS::StepFunctions::StateMachine",
   //     {
   //       DefinitionString:
@@ -959,13 +959,13 @@ describe("State Machine", () => {
   // // TODO: Re-add KMS Support
   // test("Instantiate StateMachine with EncryptionConfiguration using Customer Managed Key", () => {
   //   // GIVEN
-  //   const kmsKey = new kms.Key(spec, "Key");
+  //   const kmsKey = new kms.Key(stack, "Key");
 
   //   // WHEN
-  //   new compute.StateMachine(spec, "MyStateMachine", {
+  //   new compute.StateMachine(stack, "MyStateMachine", {
   //     stateMachineName: "MyStateMachine",
   //     definitionBody: compute.DefinitionBody.fromChainable(
-  //       compute.Chain.start(new compute.Pass(spec, "Pass")),
+  //       compute.Chain.start(new compute.Pass(stack, "Pass")),
   //     ),
   //     stateMachineType: compute.StateMachineType.STANDARD,
   //     encryptionConfiguration:
@@ -976,7 +976,7 @@ describe("State Machine", () => {
   //   });
 
   //   // THEN
-  //   Template.fromStack(spec).hasResourceProperties(
+  //   Template.fromStack(stack).hasResourceProperties(
   //     "AWS::StepFunctions::StateMachine",
   //     {
   //       StateMachineName: "MyStateMachine",
@@ -992,7 +992,7 @@ describe("State Machine", () => {
   //   );
 
   //   // StateMachine execution IAM policy allows only executions of MyStateMachine to use key
-  //   Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  //   Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //     PolicyDocument: {
   //       Statement: [
   //         {
@@ -1032,16 +1032,16 @@ describe("State Machine", () => {
   // // TODO: Re-add Logging support
   // test("StateMachine with CWL Encryption generates the correct iam and key policies", () => {
   //   // GIVEN
-  //   const kmsKey = new kms.Key(spec, "Key");
-  //   const logGroup = new logs.LogGroup(spec, "MyLogGroup", {
+  //   const kmsKey = new kms.Key(stack, "Key");
+  //   const logGroup = new logs.LogGroup(stack, "MyLogGroup", {
   //     logGroupName: "/aws/vendedlogs/states/MyLogGroup",
   //   });
 
   //   // WHEN
-  //   new compute.StateMachine(spec, "MyStateMachine", {
+  //   new compute.StateMachine(stack, "MyStateMachine", {
   //     stateMachineName: "MyStateMachine",
   //     definitionBody: compute.DefinitionBody.fromChainable(
-  //       compute.Chain.start(new compute.Pass(spec, "Pass")),
+  //       compute.Chain.start(new compute.Pass(stack, "Pass")),
   //     ),
   //     stateMachineType: compute.StateMachineType.STANDARD,
   //     encryptionConfiguration:
@@ -1054,7 +1054,7 @@ describe("State Machine", () => {
   //   });
 
   //   // Ensure execution role has policy that includes kms actions and encryption context for logging
-  //   Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  //   Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //     PolicyDocument: {
   //       Statement: [
   //         {
@@ -1132,7 +1132,7 @@ describe("State Machine", () => {
   //     },
   //   });
   //   // Ensure log service delivery policy statement is set for kms key
-  //   Template.fromStack(spec).hasResourceProperties("AWS::KMS::Key", {
+  //   Template.fromStack(stack).hasResourceProperties("AWS::KMS::Key", {
   //     KeyPolicy: {
   //       Statement: [
   //         {
@@ -1175,21 +1175,21 @@ describe("State Machine", () => {
   // // TODO: Re-add KMS support
   // test("StateMachine execution role is granted permissions when activity uses KMS key", () => {
   //   // GIVEN
-  //   const stateMachineKey = new kms.Key(spec, "Key used for encryption");
-  //   const activityKey = new kms.Key(spec, "Activity Key");
+  //   const stateMachineKey = new kms.Key(stack, "Key used for encryption");
+  //   const activityKey = new kms.Key(stack, "Activity Key");
 
   //   // WHEN
-  //   const activity = new compute.Activity(spec, "TestActivity", {
+  //   const activity = new compute.Activity(stack, "TestActivity", {
   //     activityName: "TestActivity",
   //     encryptionConfiguration:
   //       new compute.CustomerManagedEncryptionConfiguration(activityKey),
   //   });
 
-  //   const stateMachine = new compute.StateMachine(spec, "MyStateMachine", {
+  //   const stateMachine = new compute.StateMachine(stack, "MyStateMachine", {
   //     stateMachineName: "MyStateMachine",
   //     definitionBody: compute.DefinitionBody.fromChainable(
   //       compute.Chain.start(
-  //         new task.StepFunctionsInvokeActivity(spec, "Activity", {
+  //         new task.StepFunctionsInvokeActivity(stack, "Activity", {
   //           activity: activity,
   //         }),
   //       ),
@@ -1203,7 +1203,7 @@ describe("State Machine", () => {
   //   });
 
   //   // THEN
-  //   Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  //   Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //     PolicyDocument: {
   //       Statement: [
   //         {
@@ -1256,13 +1256,13 @@ describe("State Machine", () => {
   // // TODO: Re-add KMS support
   // test("Instantiate StateMachine with EncryptionConfiguration using Customer Managed Key - defaults to 300 secs for KmsDataKeyReusePeriodSeconds", () => {
   //   // GIVEN
-  //   const kmsKey = new kms.Key(spec, "Key");
+  //   const kmsKey = new kms.Key(stack, "Key");
 
   //   // WHEN
-  //   new compute.StateMachine(spec, "MyStateMachine", {
+  //   new compute.StateMachine(stack, "MyStateMachine", {
   //     stateMachineName: "MyStateMachine",
   //     definitionBody: compute.DefinitionBody.fromChainable(
-  //       compute.Chain.start(new compute.Pass(spec, "Pass")),
+  //       compute.Chain.start(new compute.Pass(stack, "Pass")),
   //     ),
   //     stateMachineType: compute.StateMachineType.STANDARD,
   //     encryptionConfiguration:
@@ -1270,7 +1270,7 @@ describe("State Machine", () => {
   //   });
 
   //   // THEN
-  //   Template.fromStack(spec).hasResourceProperties(
+  //   Template.fromStack(stack).hasResourceProperties(
   //     "AWS::StepFunctions::StateMachine",
   //     {
   //       StateMachineName: "MyStateMachine",
@@ -1289,15 +1289,15 @@ describe("State Machine", () => {
   // // TODO: Re-add KMS support
   // test("Instantiate StateMachine with invalid KmsDataKeyReusePeriodSeconds throws error", () => {
   //   // GIVEN
-  //   const kmsKey = new kms.Key(spec, "Key");
+  //   const kmsKey = new kms.Key(stack, "Key");
 
   //   // FAIL
   //   expect(() => {
   //     // WHEN
-  //     new compute.StateMachine(spec, "MyStateMachine", {
+  //     new compute.StateMachine(stack, "MyStateMachine", {
   //       stateMachineName: "MyStateMachine",
   //       definitionBody: compute.DefinitionBody.fromChainable(
-  //         compute.Chain.start(new compute.Pass(spec, "Pass")),
+  //         compute.Chain.start(new compute.Pass(stack, "Pass")),
   //       ),
   //       stateMachineType: compute.StateMachineType.STANDARD,
   //       encryptionConfiguration:
@@ -1314,17 +1314,17 @@ describe("State Machine", () => {
   // // TODO: Re-add KMS support
   // test("Instantiate StateMachine with EncryptionConfiguration using AwsOwnedEncryptionConfiguration", () => {
   //   // WHEN
-  //   new compute.StateMachine(spec, "MyStateMachine", {
+  //   new compute.StateMachine(stack, "MyStateMachine", {
   //     stateMachineName: "MyStateMachine",
   //     definitionBody: compute.DefinitionBody.fromChainable(
-  //       compute.Chain.start(new compute.Pass(spec, "Pass")),
+  //       compute.Chain.start(new compute.Pass(stack, "Pass")),
   //     ),
   //     stateMachineType: compute.StateMachineType.STANDARD,
   //     encryptionConfiguration: new compute.AwsOwnedEncryptionConfiguration(),
   //   });
 
   //   // THEN
-  //   Template.fromStack(spec).hasResourceProperties(
+  //   Template.fromStack(stack).hasResourceProperties(
   //     "AWS::StepFunctions::StateMachine",
   //     {
   //       StateMachineName: "MyStateMachine",

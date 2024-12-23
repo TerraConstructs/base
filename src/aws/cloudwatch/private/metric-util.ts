@@ -9,7 +9,7 @@ import {
   MetricStatConfig,
 } from "../metric-types";
 
-const METRICKEY_SYMBOL = Symbol("@envtio/base/lib/aws/cloudwatch.MetricKey");
+const METRICKEY_SYMBOL = Symbol("terraconstructs/lib/aws/cloudwatch.MetricKey");
 
 /**
  * Return a unique string representation for this metric.

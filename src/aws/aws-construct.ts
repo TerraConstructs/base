@@ -1,15 +1,19 @@
 import { Construct } from "constructs";
 import { ArnFormat } from "./arn";
-import { AwsSpec } from "./spec";
-import { BeaconBase, BeaconProps, IBeacon } from "../beacon-base";
+import { AwsStack } from "./aws-stack";
+import {
+  TerraConstructBase,
+  TerraConstructProps,
+  ITerraConstruct,
+} from "../construct-base";
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/resource.ts#L15
-const RESOURCE_SYMBOL = Symbol.for("@envtio/base/lib/aws.AwsBeacon");
+const RESOURCE_SYMBOL = Symbol.for("terraconstructs/lib/aws.AwsConstruct");
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/resource.ts#L21
 
 /**
- * Represents the environment a given AwsBeacon lives in.
+ * Represents the environment a given AwsConstruct lives in.
  * Used as the return value for the `IResource.env` property.
  */
 export interface AwsEnvironment {
@@ -34,11 +38,11 @@ export interface AwsEnvironment {
 /**
  * Represents an AWS resource similar to the AWS CDK `Resource` class but backed by CDKTF.
  */
-export interface IAwsBeacon extends IBeacon {
+export interface IAwsConstruct extends ITerraConstruct {
   /**
-   * The stack into which this resource is contructed by the environment toolkit.
+   * The stack into which this resource is contructed by the TerraConstruct.
    */
-  readonly stack: AwsSpec;
+  readonly stack: AwsStack;
 
   /**
    * The environment this resource belongs to.
@@ -57,7 +61,7 @@ export interface IAwsBeacon extends IBeacon {
 /**
  * Construction properties for `Resource`.
  */
-export interface AwsBeaconProps extends BeaconProps {
+export interface AwsConstructProps extends TerraConstructProps {
   /**
    * The AWS account ID this resource belongs to.
    *
@@ -90,11 +94,14 @@ export interface AwsBeaconProps extends BeaconProps {
 /**
  * Represents an AWS resource similar to the AWS CDK `Resource` class but backed by CDKTF.
  */
-export abstract class AwsBeaconBase extends BeaconBase implements IAwsBeacon {
-  public readonly stack: AwsSpec;
+export abstract class AwsConstructBase
+  extends TerraConstructBase
+  implements IAwsConstruct
+{
+  public readonly stack: AwsStack;
   public readonly env: AwsEnvironment;
 
-  constructor(scope: Construct, id: string, props: AwsBeaconProps = {}) {
+  constructor(scope: Construct, id: string, props: AwsConstructProps = {}) {
     super(scope, id, props);
 
     if (
@@ -108,7 +115,7 @@ export abstract class AwsBeaconBase extends BeaconBase implements IAwsBeacon {
 
     Object.defineProperty(this, RESOURCE_SYMBOL, { value: true });
 
-    this.stack = AwsSpec.ofAwsBeacon(this);
+    this.stack = AwsStack.ofAwsConstruct(this);
 
     const parsedArn = props.environmentFromArn
       ? // Since we only want the region and account, NO_RESOURCE_NAME is good enough

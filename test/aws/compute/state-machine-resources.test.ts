@@ -3,16 +3,16 @@ import { dataAwsIamPolicyDocument, sfnStateMachine } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { FakeTask } from "./private/fake-task";
-import { iam, compute, AwsSpec } from "../../../src/aws";
+import { iam, compute, AwsStack } from "../../../src/aws";
 
 const gridUUID = "123e4567-e89b-12d3";
 
 describe("State Machine Resources", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    spec = new AwsSpec(app, `TestSpec`, {
+    stack = new AwsStack(app, `TestStack`, {
       environmentName: "Test",
       gridUUID,
       providerConfig: {
@@ -27,7 +27,7 @@ describe("State Machine Resources", () => {
   // TODO: CDK Deprecated sfn.Task in favour of strongly typed Task classes
   test("Tasks can add permissions to the execution role", () => {
     // GIVEN
-    const task = new compute.Task(spec, "Task", {
+    const task = new compute.Task(stack, "Task", {
       task: {
         bind: () => ({
           resourceArn: "resource",
@@ -42,14 +42,14 @@ describe("State Machine Resources", () => {
     });
 
     // WHEN
-    new compute.StateMachine(spec, "SM", {
+    new compute.StateMachine(stack, "SM", {
       definitionBody: compute.DefinitionBody.fromChainable(task),
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -63,7 +63,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Version: "2012-10-17",
     //     Statement: [
@@ -79,7 +79,7 @@ describe("State Machine Resources", () => {
 
   test("Tasks hidden inside a Parallel state are also included", () => {
     // GIVEN
-    const task = new FakeTask(spec, "Task", {
+    const task = new FakeTask(stack, "Task", {
       policies: [
         new iam.PolicyStatement({
           actions: ["resource:Everything"],
@@ -88,18 +88,18 @@ describe("State Machine Resources", () => {
       ],
     });
 
-    const para = new compute.Parallel(spec, "Para");
+    const para = new compute.Parallel(stack, "Para");
     para.branch(task);
 
     // WHEN
-    new compute.StateMachine(spec, "SM", {
+    new compute.StateMachine(stack, "SM", {
       definitionBody: compute.DefinitionBody.fromChainable(para),
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -113,7 +113,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Version: "2012-10-17",
     //     Statement: [
@@ -129,13 +129,13 @@ describe("State Machine Resources", () => {
 
   test("Fail should render ErrorPath / CausePath correctly", () => {
     // GIVEN
-    const fail = new compute.Fail(spec, "Fail", {
+    const fail = new compute.Fail(stack, "Fail", {
       errorPath: compute.JsonPath.stringAt("$.error"),
       causePath: compute.JsonPath.stringAt("$.cause"),
     });
 
     // WHEN
-    const failState = spec.resolve(fail.toStateJson());
+    const failState = stack.resolve(fail.toStateJson());
 
     // THEN
     expect(failState).toStrictEqual({
@@ -164,13 +164,13 @@ describe("State Machine Resources", () => {
     "Fail should render ErrorPath / CausePath correctly when specifying ErrorPath / CausePath using intrinsics",
     (errorPath, causePath) => {
       // GIVEN
-      const fail = new compute.Fail(spec, "Fail", {
+      const fail = new compute.Fail(stack, "Fail", {
         errorPath,
         causePath,
       });
 
       // WHEN
-      const failState = spec.resolve(fail.toStateJson());
+      const failState = stack.resolve(fail.toStateJson());
 
       // THEN
       expect(failState).toStrictEqual({
@@ -178,30 +178,30 @@ describe("State Machine Resources", () => {
         ErrorPath: "States.Format('error: {}.', $.error)",
         Type: "Fail",
       });
-      expect(() => Testing.synth(spec, true)).not.toThrow();
+      expect(() => Testing.synth(stack, true)).not.toThrow();
     },
   );
 
   test("fails in synthesis if error and errorPath are defined in Fail state", () => {
     // WHEN
-    new compute.Fail(spec, "Fail", {
+    new compute.Fail(stack, "Fail", {
       error: "error",
       errorPath: "$.error",
     });
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /Fail state cannot have both error and errorPath/,
     );
   });
 
   test("fails in synthesis if cause and causePath are defined in Fail state", () => {
     // WHEN
-    new compute.Fail(spec, "Fail", {
+    new compute.Fail(stack, "Fail", {
       cause: "cause",
       causePath: "$.cause",
     });
 
-    expect(() => Testing.synth(spec, true)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /Fail state cannot have both cause and causePath/,
     );
   });
@@ -219,15 +219,15 @@ describe("State Machine Resources", () => {
     "fails in synthesis if specifying invalid intrinsic functions in the causePath and errorPath (%s)",
     (intrinsic) => {
       // WHEN
-      new compute.Fail(spec, "Fail", {
+      new compute.Fail(stack, "Fail", {
         causePath: intrinsic,
         errorPath: intrinsic,
       });
 
-      expect(() => Testing.synth(spec, true)).toThrow(
+      expect(() => Testing.synth(stack, true)).toThrow(
         /You must specify a valid intrinsic function in causePath. Must be one of States.Format, States.JsonToString, States.ArrayGetItem, States.Base64Encode, States.Base64Decode, States.Hash, States.UUID/,
       );
-      expect(() => Testing.synth(spec, true)).toThrow(
+      expect(() => Testing.synth(stack, true)).toThrow(
         /You must specify a valid intrinsic function in errorPath. Must be one of States.Format, States.JsonToString, States.ArrayGetItem, States.Base64Encode, States.Base64Decode, States.Hash, States.UUID/,
       );
     },
@@ -236,7 +236,7 @@ describe("State Machine Resources", () => {
   // TODO: CDK Deprecated sfn.Task in favour of strongly typed Task classes
   test("Task should render InputPath / Parameters / OutputPath correctly", () => {
     // GIVEN
-    const task = new compute.Task(spec, "Task", {
+    const task = new compute.Task(stack, "Task", {
       inputPath: "$",
       outputPath: "$.state",
       task: {
@@ -282,7 +282,7 @@ describe("State Machine Resources", () => {
   // TODO: CDK Deprecated sfn.Task in favour of strongly typed Task classes
   test("Task combines taskobject parameters with direct parameters", () => {
     // GIVEN
-    const task = new compute.Task(spec, "Task", {
+    const task = new compute.Task(stack, "Task", {
       inputPath: "$",
       outputPath: "$.state",
       task: {
@@ -323,11 +323,11 @@ describe("State Machine Resources", () => {
 
   test("Created state machine can grant start execution to a role", () => {
     // GIVEN
-    const task = new FakeTask(spec, "Task");
-    const stateMachine = new compute.StateMachine(spec, "StateMachine", {
+    const task = new FakeTask(stack, "Task");
+    const stateMachine = new compute.StateMachine(stack, "StateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(task),
     });
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
@@ -336,8 +336,8 @@ describe("State Machine Resources", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -351,7 +351,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: Match.arrayWith([
     //       Match.objectLike({
@@ -368,12 +368,12 @@ describe("State Machine Resources", () => {
 
   test("Created state machine can grant start sync execution to a role", () => {
     // GIVEN
-    const task = new FakeTask(spec, "Task");
-    const stateMachine = new compute.StateMachine(spec, "StateMachine", {
+    const task = new FakeTask(stack, "Task");
+    const stateMachine = new compute.StateMachine(stack, "StateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(task),
       stateMachineType: compute.StateMachineType.EXPRESS,
     });
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
@@ -382,8 +382,8 @@ describe("State Machine Resources", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -397,7 +397,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: Match.arrayWith([
     //       Match.objectLike({
@@ -414,11 +414,11 @@ describe("State Machine Resources", () => {
 
   test("Created state machine can grant read access to a role", () => {
     // GIVEN
-    const task = new FakeTask(spec, "Task");
-    const stateMachine = new compute.StateMachine(spec, "StateMachine", {
+    const task = new FakeTask(stack, "Task");
+    const stateMachine = new compute.StateMachine(stack, "StateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(task),
     });
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
@@ -427,8 +427,8 @@ describe("State Machine Resources", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -462,7 +462,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -530,11 +530,11 @@ describe("State Machine Resources", () => {
 
   test("Created state machine can grant task response actions to the state machine", () => {
     // GIVEN
-    const task = new FakeTask(spec, "Task");
-    const stateMachine = new compute.StateMachine(spec, "StateMachine", {
+    const task = new FakeTask(stack, "Task");
+    const stateMachine = new compute.StateMachine(stack, "StateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(task),
     });
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
@@ -543,8 +543,8 @@ describe("State Machine Resources", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -562,7 +562,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -583,11 +583,11 @@ describe("State Machine Resources", () => {
 
   test("Created state machine can grant actions to the executions", () => {
     // GIVEN
-    const task = new FakeTask(spec, "Task");
-    const stateMachine = new compute.StateMachine(spec, "StateMachine", {
+    const task = new FakeTask(stack, "Task");
+    const stateMachine = new compute.StateMachine(stack, "StateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(task),
     });
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
@@ -596,8 +596,8 @@ describe("State Machine Resources", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -613,7 +613,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -661,11 +661,11 @@ describe("State Machine Resources", () => {
 
   test("Created state machine can grant actions to a role", () => {
     // GIVEN
-    const task = new FakeTask(spec, "Task");
-    const stateMachine = new compute.StateMachine(spec, "StateMachine", {
+    const task = new FakeTask(stack, "Task");
+    const stateMachine = new compute.StateMachine(stack, "StateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(task),
     });
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
@@ -674,8 +674,8 @@ describe("State Machine Resources", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -689,7 +689,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -708,11 +708,11 @@ describe("State Machine Resources", () => {
     // GIVEN
     const stateMachineArn = "arn:aws:states:::my-state-machine";
     const stateMachine = compute.StateMachine.fromStateMachineArn(
-      spec,
+      stack,
       "StateMachine",
       stateMachineArn,
     );
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
@@ -721,8 +721,8 @@ describe("State Machine Resources", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -736,7 +736,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -760,11 +760,11 @@ describe("State Machine Resources", () => {
     // GIVEN
     const stateMachineArn = "arn:aws:states:::my-state-machine";
     const stateMachine = compute.StateMachine.fromStateMachineArn(
-      spec,
+      stack,
       "StateMachine",
       stateMachineArn,
     );
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
@@ -773,8 +773,8 @@ describe("State Machine Resources", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -808,7 +808,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -862,11 +862,11 @@ describe("State Machine Resources", () => {
     // GIVEN
     const stateMachineArn = "arn:aws:states:::my-state-machine";
     const stateMachine = compute.StateMachine.fromStateMachineArn(
-      spec,
+      stack,
       "StateMachine",
       stateMachineArn,
     );
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
@@ -875,8 +875,8 @@ describe("State Machine Resources", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -894,7 +894,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -915,11 +915,11 @@ describe("State Machine Resources", () => {
     // GIVEN
     const stateMachineArn = "arn:aws:states:::my-state-machine";
     const stateMachine = compute.StateMachine.fromStateMachineArn(
-      spec,
+      stack,
       "StateMachine",
       stateMachineArn,
     );
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
@@ -928,8 +928,8 @@ describe("State Machine Resources", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -943,7 +943,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: [
     //       {
@@ -961,7 +961,7 @@ describe("State Machine Resources", () => {
   //   const stateMachineArn =
   //     "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine";
   //   const stateMachine = compute.StateMachine.fromStateMachineArn(
-  //     spec,
+  //     stack,
   //     "StateMachine",
   //     stateMachineArn,
   //   );
@@ -987,7 +987,7 @@ describe("State Machine Resources", () => {
 
   test("Pass should render InputPath / Parameters / OutputPath correctly", () => {
     // GIVEN
-    const task = new compute.Pass(spec, "Pass", {
+    const task = new compute.Pass(stack, "Pass", {
       stateName: "my-pass-state",
       inputPath: "$",
       outputPath: "$.state",
@@ -1024,7 +1024,7 @@ describe("State Machine Resources", () => {
 
   test("parameters can be selected from the input with a path", () => {
     // GIVEN
-    const task = new compute.Pass(spec, "Pass", {
+    const task = new compute.Pass(stack, "Pass", {
       parameters: {
         input: compute.JsonPath.stringAt("$.myField"),
       },
@@ -1043,7 +1043,7 @@ describe("State Machine Resources", () => {
 
   test("State machines must depend on their roles", () => {
     // GIVEN
-    const task = new FakeTask(spec, "Task", {
+    const task = new FakeTask(stack, "Task", {
       policies: [
         new iam.PolicyStatement({
           resources: ["resource"],
@@ -1051,14 +1051,14 @@ describe("State Machine Resources", () => {
         }),
       ],
     });
-    new compute.StateMachine(spec, "StateMachine", {
+    new compute.StateMachine(stack, "StateMachine", {
       definitionBody: compute.DefinitionBody.fromChainable(task),
     });
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(
       sfnStateMachine.SfnStateMachine,
@@ -1071,7 +1071,7 @@ describe("State Machine Resources", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResource("AWS::StepFunctions::StateMachine", {
+    // Template.fromStack(stack).hasResource("AWS::StepFunctions::StateMachine", {
     //   DependsOn: [
     //     "StateMachineRoleDefaultPolicyDF1E6607",
     //     "StateMachineRoleB840431D",

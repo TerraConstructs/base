@@ -11,20 +11,20 @@ const app = new App({
   outdir,
 });
 
-const spec = new aws.AwsSpec(app, stackName, {
+const stack = new aws.AwsStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 // this is edge case with sfn and service names
 // https://github.com/aws/aws-cdk/pull/28775
 const task = new aws.compute.tasks.CallAwsService(
-  spec,
+  stack,
   "ListMediaPackageVoDPackagingGroups",
   {
     service: "mediapackagevod",
@@ -34,7 +34,7 @@ const task = new aws.compute.tasks.CallAwsService(
   },
 );
 
-new aws.compute.StateMachine(spec, "StateMachine", {
+new aws.compute.StateMachine(stack, "StateMachine", {
   definitionBody: aws.compute.DefinitionBody.fromChainable(task),
   registerOutputs: true,
   outputName: "state_machine",

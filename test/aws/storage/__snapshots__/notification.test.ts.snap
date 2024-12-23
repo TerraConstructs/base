@@ -27,8 +27,8 @@ exports[`notification can specify prefix and suffix filter rules 1`] = `
         "bucket_prefix": "123e4567-e89b-12d3-mystackmybucket",
         "tags": {
           "Name": "Test-MyBucket",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },
@@ -92,8 +92,8 @@ exports[`notification when notification is added a custom s3 bucket notification
         "bucket_prefix": "123e4567-e89b-12d3-mystackmybucket",
         "tags": {
           "Name": "Test-MyBucket",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     },

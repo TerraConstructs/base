@@ -15,8 +15,8 @@ const stackName = process.env.STACK_NAME ?? "call-aws-service";
  * * aws stepfunctions describe-execution --execution-arn <execution-arn generated before> --query 'status': should return status as SUCCEEDED
  * * aws stepfunctions describe-execution --execution-arn <execution-arn generated before> --query 'output': should return "hello world!"
  */
-class TestSpec extends aws.AwsSpec {
-  constructor(scope: App, id: string, props: aws.AwsSpecProps) {
+class TestStack extends aws.AwsStack {
+  constructor(scope: App, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
 
     const bucket = new aws.storage.Bucket(this, "Bucket");
@@ -70,14 +70,14 @@ class TestSpec extends aws.AwsSpec {
 const app = new App({
   outdir,
 });
-const spec = new TestSpec(app, stackName, {
+const stack = new TestStack(app, stackName, {
   gridUUID: "12345678-1234",
   environmentName,
   providerConfig: {
     region,
   },
 });
-new LocalBackend(spec, {
+new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 app.synth();

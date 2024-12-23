@@ -1,15 +1,15 @@
 import { sfnActivity, dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { iam, compute, AwsSpec } from "../../../src/aws";
+import { iam, compute, AwsStack } from "../../../src/aws";
 // import { Duration } from "../../../src/duration";
 
 const gridUUID = "123e4567-e89b-12d3";
 describe("Activity", () => {
-  let spec: AwsSpec;
+  let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
-    spec = new AwsSpec(Testing.app(), `TestSpec`, {
+    stack = new AwsStack(Testing.app(), `TestStack`, {
       environmentName: "Test",
       gridUUID,
       providerConfig: {
@@ -22,21 +22,21 @@ describe("Activity", () => {
   });
   test("instantiate Activity", () => {
     // WHEN
-    new compute.Activity(spec, "Activity");
+    new compute.Activity(stack, "Activity");
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(sfnActivity.SfnActivity, {
-      name: "123e4567-e89b-12d3-TestSpecActivity514B7B5C",
+      name: "123e4567-e89b-12d3-TestStackActivityFBB08750",
     });
   });
 
   // test("Activity exposes metrics", () => {
   //   // WHEN
-  //   const activity = new compute.Activity(spec, "Activity");
+  //   const activity = new compute.Activity(stack, "Activity");
 
   //   // THEN
   //   const sharedMetric = {
@@ -44,13 +44,13 @@ describe("Activity", () => {
   //     namespace: "AWS/States",
   //     dimensions: { ActivityArn: { Ref: "Activity04690B0A" } },
   //   };
-  //   expect(spec.resolve(activity.metricRunTime())).toEqual({
+  //   expect(stack.resolve(activity.metricRunTime())).toEqual({
   //     ...sharedMetric,
   //     metricName: "ActivityRunTime",
   //     statistic: "Average",
   //   });
 
-  //   expect(spec.resolve(activity.metricFailed())).toEqual({
+  //   expect(stack.resolve(activity.metricFailed())).toEqual({
   //     ...sharedMetric,
   //     metricName: "ActivitiesFailed",
   //     statistic: "Sum",
@@ -59,19 +59,19 @@ describe("Activity", () => {
 
   test("Activity can grant permissions to a role", () => {
     // GIVEN
-    const role = new iam.Role(spec, "Role", {
+    const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
     });
 
-    const activity = new compute.Activity(spec, "Activity");
+    const activity = new compute.Activity(stack, "Activity");
 
     // WHEN
     activity.grant(role, "states:SendTaskSuccess");
 
     // THEN
     // Do prepare run to resolve all Terraform resources
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -85,7 +85,7 @@ describe("Activity", () => {
         ],
       },
     );
-    // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
     //   PolicyDocument: {
     //     Statement: Match.arrayWith([
     //       Match.objectLike({
@@ -102,10 +102,10 @@ describe("Activity", () => {
 
   // test("Instantiate Activity with EncryptionConfiguration using Customer Managed Key", () => {
   //   // GIVEN
-  //   const kmsKey = new encryption.Key(spec, "Key");
+  //   const kmsKey = new encryption.Key(stack, "Key");
 
   //   // WHEN
-  //   new compute.Activity(spec, "Activity", {
+  //   new compute.Activity(stack, "Activity", {
   //     encryptionConfiguration:
   //       new compute.CustomerManagedEncryptionConfiguration(
   //         kmsKey,
@@ -115,10 +115,10 @@ describe("Activity", () => {
 
   //   // THEN
   //   // Do prepare run to resolve all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
+  //   stack.prepareStack();
+  //   const synthesized = Testing.synth(stack);
   //   expect(synthesized).toMatchSnapshot();
-  //   // Template.fromStack(spec).hasResourceProperties(
+  //   // Template.fromStack(stack).hasResourceProperties(
   //   //   "AWS::StepFunctions::Activity",
   //   //   {
   //   //     Name: "Activity",
@@ -130,7 +130,7 @@ describe("Activity", () => {
   //   //   },
   //   // );
 
-  //   // Template.fromStack(spec).hasResourceProperties("AWS::KMS::Key", {
+  //   // Template.fromStack(stack).hasResourceProperties("AWS::KMS::Key", {
   //   //   KeyPolicy: {
   //   //     Statement: [
   //   //       {
@@ -196,20 +196,20 @@ describe("Activity", () => {
 
   // test("Instantiate Activity with EncryptionConfiguration using Customer Managed Key - defaults to 300 secs for KmsDataKeyReusePeriodSeconds", () => {
   //   // GIVEN
-  //   const kmsKey = new encryption.Key(spec, "Key");
+  //   const kmsKey = new encryption.Key(stack, "Key");
 
   //   // WHEN
-  //   new compute.Activity(spec, "Activity", {
+  //   new compute.Activity(stack, "Activity", {
   //     encryptionConfiguration:
   //       new compute.CustomerManagedEncryptionConfiguration(kmsKey),
   //   });
 
   //   // THEN
   //   // Do prepare run to resolve all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
+  //   stack.prepareStack();
+  //   const synthesized = Testing.synth(stack);
   //   expect(synthesized).toMatchSnapshot();
-  //   // Template.fromStack(spec).hasResourceProperties(
+  //   // Template.fromStack(stack).hasResourceProperties(
   //   //   "AWS::StepFunctions::Activity",
   //   //   {
   //   //     Name: "Activity",
@@ -224,12 +224,12 @@ describe("Activity", () => {
 
   // test("Instantiate Activity with invalid KmsDataKeyReusePeriodSeconds throws error", () => {
   //   // GIVEN
-  //   const kmsKey = new encryption.Key(spec, "Key");
+  //   const kmsKey = new encryption.Key(stack, "Key");
 
   //   // FAIL
   //   expect(() => {
   //     // WHEN
-  //     new compute.Activity(spec, "Activity", {
+  //     new compute.Activity(stack, "Activity", {
   //       encryptionConfiguration:
   //         new compute.CustomerManagedEncryptionConfiguration(
   //           kmsKey,
@@ -243,16 +243,16 @@ describe("Activity", () => {
 
   // test("Instantiate Activity with EncryptionConfiguration using AWS Owned Key", () => {
   //   // WHEN
-  //   new compute.Activity(spec, "Activity", {
+  //   new compute.Activity(stack, "Activity", {
   //     encryptionConfiguration: new compute.AwsOwnedEncryptionConfiguration(),
   //   });
 
   //   // THEN
   //   // Do prepare run to resolve all Terraform resources
-  //   spec.prepareStack();
-  //   const synthesized = Testing.synth(spec);
+  //   stack.prepareStack();
+  //   const synthesized = Testing.synth(stack);
   //   expect(synthesized).toMatchSnapshot();
-  //   // Template.fromStack(spec).hasResourceProperties(
+  //   // Template.fromStack(stack).hasResourceProperties(
   //   //   "AWS::StepFunctions::Activity",
   //   //   {
   //   //     Name: "Activity",

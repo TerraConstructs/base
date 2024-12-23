@@ -9,13 +9,13 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
-	"github.com/environment-toolkit/go-synth/executors"
-	"github.com/envtio/base/integ"
-	util "github.com/envtio/base/integ/aws"
 	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	"github.com/stretchr/testify/require"
+	"github.com/terraconstructs/base/integ"
+	util "github.com/terraconstructs/base/integ/aws"
+	"github.com/terraconstructs/go-synth/executors"
 )
 
 var terratestLogger = loggers.Default

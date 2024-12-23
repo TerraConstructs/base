@@ -5,6 +5,7 @@ import {
 } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import { OpenIdConnectProvider } from "../../../src/aws/iam/oidc-provider";
 import { PolicyDocument } from "../../../src/aws/iam/policy-document";
 import { PolicyStatement } from "../../../src/aws/iam/policy-statement";
@@ -21,7 +22,6 @@ import {
   AccountPrincipal,
 } from "../../../src/aws/iam/principals";
 import { Role } from "../../../src/aws/iam/role";
-import { AwsSpec } from "../../../src/aws/spec";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -30,8 +30,8 @@ const gridBackendConfig = {
   address: "http://localhost:3000",
 };
 test("cannot have multiple principals with different conditions in the same statement", () => {
-  const spec = getAwsSpec();
-  const role = new Role(spec, "Role", {
+  const stack = getAwsStack();
+  const role = new Role(stack, "Role", {
     assumedBy: new ServicePrincipal("sns"),
   });
 
@@ -66,8 +66,8 @@ test("cannot have multiple principals with different conditions in the same stat
 });
 
 test("can have multiple principals with the same conditions in the same statement", () => {
-  const spec = getAwsSpec();
-  const role = new Role(spec, "Role", {
+  const stack = getAwsStack();
+  const role = new Role(stack, "Role", {
     assumedBy: new ServicePrincipal("sns"),
   });
 
@@ -108,39 +108,39 @@ test("can have multiple principals with the same conditions in the same statemen
 
 test("use federated principal", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
   const principal = new FederatedPrincipal("federated");
 
   // THEN
-  expect(spec.resolve(principal.federated)).toStrictEqual("federated");
-  expect(spec.resolve(principal.assumeRoleAction)).toStrictEqual(
+  expect(stack.resolve(principal.federated)).toStrictEqual("federated");
+  expect(stack.resolve(principal.assumeRoleAction)).toStrictEqual(
     "sts:AssumeRole",
   );
-  expect(spec.resolve(principal.conditions)).toStrictEqual([]);
+  expect(stack.resolve(principal.conditions)).toStrictEqual([]);
 });
 
 test("use Web Identity principal", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
   const principal = new WebIdentityPrincipal("cognito-identity.amazonaws.com");
 
   // THEN
-  expect(spec.resolve(principal.federated)).toStrictEqual(
+  expect(stack.resolve(principal.federated)).toStrictEqual(
     "cognito-identity.amazonaws.com",
   );
-  expect(spec.resolve(principal.assumeRoleAction)).toStrictEqual(
+  expect(stack.resolve(principal.assumeRoleAction)).toStrictEqual(
     "sts:AssumeRoleWithWebIdentity",
   );
 });
 
 test("use OpenID Connect principal from provider", () => {
   // GIVEN
-  const spec = getAwsSpec();
-  const provider = new OpenIdConnectProvider(spec, "MyProvider", {
+  const stack = getAwsStack();
+  const provider = new OpenIdConnectProvider(stack, "MyProvider", {
     url: "https://openid-endpoint",
     clientIds: ["266362248691-342342xasdasdasda-apps.googleusercontent.com"],
   });
@@ -149,17 +149,17 @@ test("use OpenID Connect principal from provider", () => {
   const principal = new OpenIdConnectPrincipal(provider);
 
   // THEN
-  expect(spec.resolve(principal.federated)).toStrictEqual(
+  expect(stack.resolve(principal.federated)).toStrictEqual(
     "${aws_iam_openid_connect_provider.MyProvider_730BA1C8.arn}",
   );
 });
 
 test("StarPrincipal", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
-  const pol = new PolicyDocument(spec, "doc", {
+  const pol = new PolicyDocument(stack, "doc", {
     statement: [
       new PolicyStatement({
         actions: ["service:action"],
@@ -185,7 +185,7 @@ test("StarPrincipal", () => {
 
 test("PrincipalWithConditions.addCondition should work", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
   const basePrincipal = new ServicePrincipal("service.amazonaws.com");
   const principalWithConditions = new PrincipalWithConditions(basePrincipal, [
     {
@@ -199,12 +199,12 @@ test("PrincipalWithConditions.addCondition should work", () => {
   principalWithConditions.addConditionObject("StringEquals", {
     "aws:PrincipalTag/critical": "true",
   });
-  new Role(spec, "Role", {
+  new Role(stack, "Role", {
     assumedBy: principalWithConditions,
   });
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   // THEN
   expect(synthesized).toHaveDataSource(
@@ -250,7 +250,7 @@ test("PrincipalWithConditions.addCondition should work", () => {
 
 test("PrincipalWithConditions.addCondition with a new condition operator should work", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
   const basePrincipal = new ServicePrincipal("service.amazonaws.com");
   const principalWithConditions = new PrincipalWithConditions(
     basePrincipal,
@@ -265,14 +265,14 @@ test("PrincipalWithConditions.addCondition with a new condition operator should 
     "aws:SourceIp": "0.0.0.0/0",
   });
 
-  new Role(spec, "Role", {
+  new Role(stack, "Role", {
     assumedBy: principalWithConditions,
   });
 
   // THEN
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
     {
@@ -329,10 +329,10 @@ test("PrincipalWithConditions inherits principalAccount from AccountPrincipal ",
 
 test("AccountPrincipal can specify an organization", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
-  const pol = new PolicyDocument(spec, "doc", {
+  const pol = new PolicyDocument(stack, "doc", {
     statement: [
       new PolicyStatement({
         actions: ["service:action"],
@@ -345,7 +345,7 @@ test("AccountPrincipal can specify an organization", () => {
   });
 
   // THEN
-  const synthesized = Testing.synth(spec);
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -375,7 +375,7 @@ test("AccountPrincipal can specify an organization", () => {
     },
   );
   // get resolved Policy Document JSON
-  expect(spec.resolve(pol.toDocumentJson())).toEqual({
+  expect(stack.resolve(pol.toDocumentJson())).toEqual({
     Statement: [
       {
         Action: "service:action",
@@ -397,10 +397,10 @@ test("AccountPrincipal can specify an organization", () => {
 
 test("Can enable session tags", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
-  new Role(spec, "Role", {
+  new Role(stack, "Role", {
     assumedBy: new WebIdentityPrincipal("cognito-identity.amazonaws.com", [
       {
         test: "StringEquals",
@@ -416,7 +416,7 @@ test("Can enable session tags", () => {
   });
 
   // THEN
-  const synthesized = Testing.synth(spec);
+  const synthesized = Testing.synth(stack);
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
     {
@@ -450,10 +450,10 @@ test("Can enable session tags", () => {
 
 test("Can enable session tags with conditions (order of calls is irrelevant)", () => {
   // GIVEN
-  const spec = getAwsSpec();
+  const stack = getAwsStack();
 
   // WHEN
-  new Role(spec, "Role", {
+  new Role(stack, "Role", {
     assumedBy: new ServicePrincipal("s3")
       .withConditions({
         test: "StringEquals",
@@ -463,7 +463,7 @@ test("Can enable session tags with conditions (order of calls is irrelevant)", (
       .withSessionTags(),
   });
 
-  new Role(spec, "Role2", {
+  new Role(stack, "Role2", {
     assumedBy: new ServicePrincipal("s3").withSessionTags().withConditions({
       test: "StringEquals",
       variable: "hairColor",
@@ -472,8 +472,8 @@ test("Can enable session tags with conditions (order of calls is irrelevant)", (
   });
 
   // THEN
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   const assumeRolePolicies = Object.values(
     JSON.parse(synthesized).data.aws_iam_policy_document,
@@ -591,9 +591,9 @@ describe("fromPrincipalJson", () => {
   });
 });
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

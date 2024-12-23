@@ -1,7 +1,7 @@
 # Integration Tests
 
 > [!WARNING]
-> Make sure to build (`pnpm build`) before running e2e.
+> Make sure to build (`pnpm compile`) before running e2e.
 > terratest only uses the compiled `lib` folder.
 
 [terratest.gruntwork.io](https://terratest.gruntwork.io/) is a golang library of modules for IaC testing.

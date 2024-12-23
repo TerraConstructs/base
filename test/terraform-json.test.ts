@@ -16,7 +16,7 @@ import {
 } from "cdktf/lib/functions/helpers";
 import { Intrinsic } from "cdktf/lib/tokens/private/intrinsic";
 import "cdktf/lib/testing/adapters/jest";
-import { SpecBase } from "../src";
+import { StackBase } from "../src";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -25,11 +25,11 @@ const gridBackendConfig = {
 };
 
 let app: App;
-let spec: MySpec;
+let stack: MyStack;
 
 beforeEach(() => {
   app = new App();
-  spec = new MySpec(app, "TestSpec", {
+  stack = new MyStack(app, "TestStack", {
     environmentName,
     gridUUID,
     gridBackendConfig,
@@ -47,16 +47,16 @@ test("JSONification of literals looks like JSON.stringify", () => {
     },
   };
 
-  expect(spec.resolve(spec.toJsonString(structure))).toEqual(
+  expect(stack.resolve(stack.toJsonString(structure))).toEqual(
     JSON.stringify(structure),
   );
-  expect(spec.resolve(spec.toJsonString(structure, 2))).toEqual(
+  expect(stack.resolve(stack.toJsonString(structure, 2))).toEqual(
     JSON.stringify(structure, undefined, 2),
   );
 });
 
 test("JSONification of undefined leads to undefined", () => {
-  expect(spec.resolve(spec.toJsonString(undefined))).toEqual(undefined);
+  expect(stack.resolve(stack.toJsonString(undefined))).toEqual(undefined);
 });
 
 describe("tokens that return literals", () => {
@@ -66,7 +66,7 @@ describe("tokens that return literals", () => {
       const fido = { name: "Fido", speaks: token };
 
       // WHEN
-      const resolved = spec.resolve(spec.toJsonString(fido));
+      const resolved = stack.resolve(stack.toJsonString(fido));
       // expect(resolved).toMatchSnapshot();
 
       // THEN
@@ -80,7 +80,7 @@ describe("tokens that return literals", () => {
       const fido = { name: "Fido", speaks: `deep ${token}` };
 
       // WHEN
-      const resolved = spec.resolve(spec.toJsonString(fido));
+      const resolved = stack.resolve(stack.toJsonString(fido));
 
       // THEN
       expect(resolved).toEqual('{"name":"Fido","speaks":"deep woof woof"}');
@@ -91,7 +91,7 @@ describe("tokens that return literals", () => {
     const inputString = 'Hello, "world"';
 
     // WHEN
-    const resolved = spec.resolve(spec.toJsonString(inputString));
+    const resolved = stack.resolve(stack.toJsonString(inputString));
 
     // THEN
     expect(resolved).toEqual(JSON.stringify(inputString));
@@ -103,11 +103,11 @@ describe("tokens that return literals", () => {
     const embedded = `the number is ${num}`;
 
     // WHEN
-    expect(spec.resolve(embedded)).toEqual("the number is 1");
-    expect(spec.resolve(spec.toJsonString({ embedded }))).toEqual(
+    expect(stack.resolve(embedded)).toEqual("the number is 1");
+    expect(stack.resolve(stack.toJsonString({ embedded }))).toEqual(
       '{"embedded":"the number is 1"}',
     );
-    expect(spec.resolve(spec.toJsonString({ num }))).toEqual('{"num":1}');
+    expect(stack.resolve(stack.toJsonString({ num }))).toEqual('{"num":1}');
   });
 
   test("String-encoded lazies do not have quotes applied if they return objects", () => {
@@ -120,7 +120,7 @@ describe("tokens that return literals", () => {
     const someList = Lazy.stringValue({ produce: () => [1, 2, 3] as any });
 
     // WHEN
-    expect(spec.resolve(spec.toJsonString({ someList }))).toEqual(
+    expect(stack.resolve(stack.toJsonString({ someList }))).toEqual(
       '{"someList":[1,2,3]}',
     );
   });
@@ -130,7 +130,7 @@ describe("tokens that return literals", () => {
     const someList = Token.asList([1, 2, 3]);
 
     // WHEN
-    expect(spec.resolve(spec.toJsonString({ someList }))).toEqual(
+    expect(stack.resolve(stack.toJsonString({ someList }))).toEqual(
       '{"someList":[1,2,3]}',
     );
   });
@@ -139,10 +139,10 @@ describe("tokens that return literals", () => {
     // GIVEN
     for (const token of tokensThatResolveTo("pong!")) {
       // WHEN
-      const stringified = spec.toJsonString(`ping? ${token}`);
+      const stringified = stack.toJsonString(`ping? ${token}`);
 
       // THEN
-      expect(spec.resolve(stringified)).toEqual('"ping? pong!"');
+      expect(stack.resolve(stringified)).toEqual('"ping? pong!"');
     }
   });
 
@@ -151,8 +151,8 @@ describe("tokens that return literals", () => {
     const fidoSays = Lazy.stringValue({ produce: () => "woof" });
 
     // WHEN
-    const resolved = spec.resolve(
-      spec.toJsonString({
+    const resolved = stack.resolve(
+      stack.toJsonString({
         information: `Did you know that Fido says: ${fidoSays}`,
       }),
     );
@@ -168,8 +168,8 @@ describe("tokens that return literals", () => {
     const fidoSays = Lazy.stringValue({ produce: () => '"woof"' });
 
     // WHEN
-    const resolved = spec.resolve(
-      spec.toJsonString({
+    const resolved = stack.resolve(
+      stack.toJsonString({
         information: `Did you know that Fido says: ${fidoSays}`,
       }),
     );
@@ -187,7 +187,9 @@ describe("tokens returning TF intrinsics", () => {
     const bucketName = ref("MyBucket");
 
     // WHEN
-    const resolved = spec.resolve(spec.toJsonString({ theBucket: bucketName }));
+    const resolved = stack.resolve(
+      stack.toJsonString({ theBucket: bucketName }),
+    );
 
     // THEN
     // TODO: Doesn't work because we don't have a "Ref" Intrinsic
@@ -206,8 +208,8 @@ describe("tokens returning TF intrinsics", () => {
     ]);
 
     // WHEN
-    const resolved = spec.resolve(
-      spec.toJsonString({
+    const resolved = stack.resolve(
+      stack.toJsonString({
         literal: 'I can also "contain" quotes',
         token,
       }),
@@ -225,7 +227,7 @@ describe("tokens returning TF intrinsics", () => {
   //   const token = Fn.sub('I am in account "${AWS::AccountId}"');
 
   //   // WHEN
-  //   const resolved = spec.resolve(spec.toJsonString({ token }));
+  //   const resolved = stack.resolve(stack.toJsonString({ token }));
 
   //   // THEN
   //   const context = { "AWS::AccountId": "1234" };
@@ -244,7 +246,7 @@ describe("tokens returning TF intrinsics", () => {
     );
 
     // WHEN
-    const resolved = spec.resolve(spec.toJsonString({ token }));
+    const resolved = stack.resolve(stack.toJsonString({ token }));
 
     // THEN
     // const context = { "AWS::AccountId": "1234" };
@@ -262,8 +264,8 @@ describe("tokens returning TF intrinsics", () => {
     ]);
 
     // WHEN
-    const resolved = spec.resolve(
-      spec.toJsonString({ theBucket: combinedName }),
+    const resolved = stack.resolve(
+      stack.toJsonString({ theBucket: combinedName }),
     );
     // expect(resolved).toMatchSnapshot();
 
@@ -280,8 +282,8 @@ describe("tokens returning TF intrinsics", () => {
     const combinedName = new DummyPostProcessor(["this", "is", bucketName]);
 
     // WHEN
-    const resolved = spec.resolve(
-      spec.toJsonString({ theBucket: combinedName }),
+    const resolved = stack.resolve(
+      stack.toJsonString({ theBucket: combinedName }),
     );
     // expect(resolved).toMatchSnapshot();
 
@@ -294,8 +296,8 @@ describe("tokens returning TF intrinsics", () => {
     const fidoSays = Lazy.stringValue({ produce: () => "woof" });
 
     // WHEN
-    const resolved = spec.resolve(
-      spec.toJsonString({
+    const resolved = stack.resolve(
+      stack.toJsonString({
         information: `Did you know that Fido says: ${fidoSays}`,
       }),
     );
@@ -312,8 +314,8 @@ describe("tokens returning TF intrinsics", () => {
     const fidoSays = Lazy.anyValue({ produce: () => ref("Something") });
 
     // WHEN
-    const resolved = spec.resolve(
-      spec.toJsonString({
+    const resolved = stack.resolve(
+      stack.toJsonString({
         information: `Did you know that Fido says: ${fidoSays}`,
       }),
     );
@@ -330,8 +332,8 @@ describe("tokens returning TF intrinsics", () => {
     const fidoSays = Lazy.stringValue({ produce: () => '"woof"' });
 
     // WHEN
-    const resolved = spec.resolve(
-      spec.toJsonString({
+    const resolved = stack.resolve(
+      stack.toJsonString({
         information: `Did you know that Fido says: ${fidoSays}`,
       }),
     );
@@ -348,8 +350,8 @@ describe("tokens returning TF intrinsics", () => {
     const bucketName = Token.asString(ref("MyBucket"));
 
     // WHEN
-    const resolved = spec.resolve(
-      spec.toJsonString({
+    const resolved = stack.resolve(
+      stack.toJsonString({
         [bucketName]: "Is Cool",
         [`${bucketName} Is`]: "Cool",
       }),
@@ -367,20 +369,20 @@ describe("tokens returning TF intrinsics", () => {
     const bucketName = Token.asString(ref("MyBucket"));
 
     // WHEN
-    const embeddedJson = spec.toJsonString({
+    const embeddedJson = stack.toJsonString({
       message: `the bucket name is ${bucketName}`,
     });
-    const outerJson = spec.toJsonString({ embeddedJson });
+    const outerJson = stack.toJsonString({ embeddedJson });
 
     // THEN
-    // const evaluatedJson = evaluateTF(spec.resolve(outerJson), {
+    // const evaluatedJson = evaluateTF(stack.resolve(outerJson), {
     //   MyBucket: "Bucky",
     // });
     // expect(evaluatedJson).toEqual(
     //   '{"embeddedJson":"{\\"message\\":\\"the bucket name is Bucky\\"}"}',
     // );
     expect(
-      JSON.parse(JSON.parse(spec.resolve(outerJson)).embeddedJson).message,
+      JSON.parse(JSON.parse(stack.resolve(outerJson)).embeddedJson).message,
     ).toEqual("the bucket name is ${MyBucket}");
   });
 
@@ -395,22 +397,22 @@ describe("tokens returning TF intrinsics", () => {
     // WHEN
     let counter = 0;
     const counterString = Token.asString({ resolve: () => `${++counter}` });
-    const jsonString = spec.toJsonString({ counterString });
+    const jsonString = stack.toJsonString({ counterString });
 
     // THEN
-    expect(spec.resolve(jsonString)).toEqual('{"counterString":"1"}');
-    expect(spec.resolve(jsonString)).toEqual('{"counterString":"2"}');
+    expect(stack.resolve(jsonString)).toEqual('{"counterString":"1"}');
+    expect(stack.resolve(jsonString)).toEqual('{"counterString":"2"}');
   });
 });
 
 // test("JSON strings nested inside JSON strings have correct quoting", () => {
 //   // GIVEN
-//   const payload = spec.toJsonString({
+//   const payload = stack.toJsonString({
 //     message: Fn.sub('I am in account "${AWS::AccountId}"'),
 //   });
 
 //   // WHEN
-//   const resolved = spec.resolve(spec.toJsonString({ payload }));
+//   const resolved = stack.resolve(stack.toJsonString({ payload }));
 
 //   // THEN
 //   const context = { "AWS::AccountId": "1234" };
@@ -449,7 +451,7 @@ class DummyPostProcessor implements IResolvable, IPostProcessor {
   }
 }
 
-class MySpec extends SpecBase {}
+class MyStack extends StackBase {}
 
 // HACK: missing function introduced in Terraform but not in CDKTF
 /**

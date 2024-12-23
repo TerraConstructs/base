@@ -14,8 +14,12 @@ import {
 } from "./principals";
 import { IRole } from "./role";
 import { Arn } from "../arn";
-import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../beacon";
-import { AwsSpec } from "../spec";
+import {
+  IAwsConstruct,
+  AwsConstructBase,
+  AwsConstructProps,
+} from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 
 /**
  * Outputs which may be registered for output via the Grid.
@@ -27,7 +31,7 @@ export interface ManagedPolicyOutputs {
 /**
  * A managed policy
  */
-export interface IManagedPolicy extends IAwsBeacon {
+export interface IManagedPolicy extends IAwsConstruct {
   /**
    * Strongly typed managed policy outputs
    *
@@ -54,7 +58,7 @@ export interface IManagedPolicy extends IAwsBeacon {
 /**
  * Properties for defining an IAM managed policy
  */
-export interface ManagedPolicyProps extends AwsBeaconProps {
+export interface ManagedPolicyProps extends AwsConstructProps {
   /**
    * The name of the managed policy. If you specify multiple policies for an entity,
    * specify unique names. For example, if you specify a list of policies for
@@ -141,7 +145,7 @@ export interface ManagedPolicyAttributes
  * Managed policy base
  */
 abstract class ManagedPolicyBase
-  extends AwsBeaconBase
+  extends AwsConstructBase
   implements IManagedPolicy
 {
   /**
@@ -207,7 +211,9 @@ export class ManagedPolicy
     managedPolicyName: string,
   ): IManagedPolicy {
     class Import extends ManagedPolicyBase {
-      public readonly managedPolicyArn = AwsSpec.ofAwsBeacon(scope).formatArn({
+      public readonly managedPolicyArn = AwsStack.ofAwsConstruct(
+        scope,
+      ).formatArn({
         service: "iam",
         region: "", // no region for managed policy
         account: this.env.account,
@@ -352,7 +358,7 @@ export class ManagedPolicy
   public resource: iamPolicy.IamPolicy;
 
   // TODO: Add support for pre-created policies?
-  // NOTE: in E.T. pre-created policies are passed in through the Grid, so this seems not needed.
+  // NOTE: in TerraConstruct pre-created policies are passed in through the Grid, so this seems not needed.
   // private readonly _precreatedPolicy?: IManagedPolicy;
 
   constructor(scope: Construct, id: string, props: ManagedPolicyProps = {}) {
@@ -376,7 +382,7 @@ export class ManagedPolicy
     });
 
     this.resource = new iamPolicy.IamPolicy(this, "Resource", {
-      ...props, // copy over Terraform Meta Arguments from BeaconProps
+      ...props, // copy over Terraform Meta Arguments from ConstructProps
       name: props.managedPolicyName,
       namePrefix: !props.managedPolicyName
         ? managedPolicyNamePrefix

@@ -3,8 +3,8 @@
 import { kmsAlias } from "@cdktf/provider-aws";
 import { Token, Tokenization } from "cdktf";
 import { Construct } from "constructs";
-import { AwsBeaconProps, AwsBeaconBase } from "../beacon";
-import { AwsSpec } from "../spec";
+import { AwsConstructProps, AwsConstructBase } from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { IKey, KeyOutputs } from "./key";
 import * as iam from "../iam";
 
@@ -56,7 +56,7 @@ export interface IAlias extends IKey {
 /**
  * Construction properties for a KMS Key Alias object.
  */
-export interface AliasProps extends AwsBeaconProps {
+export interface AliasProps extends AwsConstructProps {
   /**
    * The name of the alias. The name must start with alias followed by a
    * forward slash, such as alias/. You can't specify aliases that begin with
@@ -72,7 +72,7 @@ export interface AliasProps extends AwsBeaconProps {
   readonly targetKey: IKey;
 }
 
-abstract class AliasBase extends AwsBeaconBase implements IAlias {
+abstract class AliasBase extends AwsConstructBase implements IAlias {
   public abstract readonly aliasName: string;
 
   public abstract readonly aliasTargetKey: IKey;
@@ -97,7 +97,7 @@ abstract class AliasBase extends AwsBeaconBase implements IAlias {
    * @deprecated use `aliasArn` instead
    */
   public get keyArn(): string {
-    return AwsSpec.ofAwsBeacon(this).formatArn({
+    return AwsStack.ofAwsConstruct(this).formatArn({
       service: "kms",
       // aliasName already contains the '/'
       resource: this.aliasName,
@@ -110,7 +110,7 @@ abstract class AliasBase extends AwsBeaconBase implements IAlias {
    * @attribute
    */
   public get aliasArn(): string {
-    return AwsSpec.ofAwsBeacon(this).formatArn({
+    return AwsStack.ofAwsConstruct(this).formatArn({
       service: "kms",
       // aliasName already contains the '/'
       resource: this.aliasName,
@@ -221,8 +221,8 @@ export class Alias extends AliasBase {
     id: string,
     aliasName: string,
   ): IAlias {
-    class Import extends AwsBeaconBase implements IAlias {
-      public readonly keyArn = AwsSpec.ofAwsBeacon(this).formatArn({
+    class Import extends AwsConstructBase implements IAlias {
+      public readonly keyArn = AwsStack.ofAwsConstruct(this).formatArn({
         service: "kms",
         resource: aliasName,
       });

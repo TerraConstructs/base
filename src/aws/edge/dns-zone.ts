@@ -1,7 +1,12 @@
 import { route53Zone, dataAwsRoute53Zone } from "@cdktf/provider-aws";
 import { Lazy, IResolvable } from "cdktf";
 import { Construct } from "constructs";
-import { AwsSpec, IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../";
+import {
+  AwsStack,
+  IAwsConstruct,
+  AwsConstructBase,
+  AwsConstructProps,
+} from "../";
 import { INetwork } from "../network";
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-route53/lib/hosted-zone.ts
@@ -9,7 +14,7 @@ import { INetwork } from "../network";
 /**
  * Common properties to create a Route 53 hosted zone
  */
-export interface CommonDnsZoneProps extends AwsBeaconProps {
+export interface CommonDnsZoneProps extends AwsConstructProps {
   /**
    * The name of the domain. For resource record types that include a domain
    * name, specify a fully qualified domain name.
@@ -96,7 +101,7 @@ export interface DnsZoneOutputs {
 /**
  * Imported or created DNS zone attributes
  */
-export interface IDnsZone extends IAwsBeacon {
+export interface IDnsZone extends IAwsConstruct {
   /** Strongly typed outputs */
   readonly dnsZoneOutputs: DnsZoneOutputs;
 
@@ -141,10 +146,10 @@ export interface IDnsZone extends IAwsBeacon {
  * Container for records, and records contain information about how to route traffic for a
  * specific domain, such as example.com and its subdomains (acme.example.com, zenith.example.com)
  */
-export class DnsZone extends AwsBeaconBase implements IDnsZone {
+export class DnsZone extends AwsConstructBase implements IDnsZone {
   // TODO: Add "from Grid Lookup" static methods?
   /**
-   * Import a Route 53 hosted zone defined either outside of E.T., or from Grid Lookup
+   * Import a Route 53 hosted zone defined either outside of TerraConstruct, or from Grid Lookup
    *
    * Use when hosted zone ID is known.
    *
@@ -157,7 +162,7 @@ export class DnsZone extends AwsBeaconBase implements IDnsZone {
     id: string,
     zoneId: string,
   ): IDnsZone {
-    class Import extends AwsBeaconBase implements IDnsZone {
+    class Import extends AwsConstructBase implements IDnsZone {
       private readonly _outputs: DnsZoneOutputs;
       public get dnsZoneOutputs(): DnsZoneOutputs {
         return this._outputs;
@@ -273,7 +278,7 @@ export class DnsZone extends AwsBeaconBase implements IDnsZone {
   public addNetwork(network: INetwork) {
     this.networks.push({
       vpcId: network.vpcId,
-      vpcRegion: network.env.region ?? AwsSpec.ofAwsBeacon(network).region,
+      vpcRegion: network.env.region ?? AwsStack.ofAwsConstruct(network).region,
     });
   }
 }
@@ -282,7 +287,7 @@ export function makeHostedZoneArn(
   construct: Construct,
   hostedZoneId: string,
 ): string {
-  return AwsSpec.ofAwsBeacon(construct).formatArn({
+  return AwsStack.ofAwsConstruct(construct).formatArn({
     account: "",
     region: "",
     service: "route53",

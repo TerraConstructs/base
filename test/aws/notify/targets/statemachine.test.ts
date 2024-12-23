@@ -6,12 +6,13 @@ import {
 } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as compute from "../../../../src/aws/compute";
 import * as iam from "../../../../src/aws/iam";
 import * as notify from "../../../../src/aws/notify";
 import * as targets from "../../../../src/aws/notify/targets";
-import { AwsSpec } from "../../../../src/aws/spec";
 import { Duration } from "../../../../src/duration";
+import { Template } from "../../../assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -22,13 +23,13 @@ const gridBackendConfig = {
 
 test("State machine can be used as Event Rule target", () => {
   // GIVEN
-  const spec = getAwsSpec();
-  const rule = new notify.Rule(spec, "Rule", {
+  const stack = getAwsStack();
+  const rule = new notify.Rule(stack, "Rule", {
     schedule: notify.Schedule.rate(Duration.minutes(1)),
   });
-  const stateMachine = new compute.StateMachine(spec, "SM", {
+  const stateMachine = new compute.StateMachine(stack, "SM", {
     definitionBody: compute.DefinitionBody.fromChainable(
-      new compute.Wait(spec, "Hello", {
+      new compute.Wait(stack, "Hello", {
         time: compute.WaitTime.duration(Duration.seconds(10)),
       }),
     ),
@@ -42,11 +43,8 @@ test("State machine can be used as Event Rule target", () => {
   );
 
   // THEN
-  // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
-  // expect(synthesized).toMatchSnapshot();
-  expect(synthesized).toHaveResourceWithProperties(
+  const template = Template.synth(stack);
+  template.toHaveResourceWithProperties(
     cloudwatchEventTarget.CloudwatchEventTarget,
     {
       input: '{"SomeParam":"SomeValue"}',
@@ -54,14 +52,14 @@ test("State machine can be used as Event Rule target", () => {
       role_arn: "${aws_iam_role.SM_EventsRole_B320A902.arn}",
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::Events::Rule", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
   //   Targets: [
   //     {
   //       Input: '{"SomeParam":"SomeValue"}',
   //     },
   //   ],
   // });
-  expect(synthesized).toHaveDataSourceWithProperties(
+  template.toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
     {
       statement: [
@@ -80,7 +78,7 @@ test("State machine can be used as Event Rule target", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Role", {
+  // hasResourceProperties("AWS::IAM::Role", {
   //   AssumeRolePolicyDocument: {
   //     Statement: [
   //       {
@@ -93,7 +91,7 @@ test("State machine can be used as Event Rule target", () => {
   //     ],
   //   },
   // });
-  expect(synthesized).toHaveDataSourceWithProperties(
+  template.toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
     {
       statement: [
@@ -105,7 +103,7 @@ test("State machine can be used as Event Rule target", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -122,16 +120,16 @@ test("State machine can be used as Event Rule target", () => {
 
 test("Existing role can be used for State machine Rule target", () => {
   // GIVEN
-  const spec = getAwsSpec();
-  const rule = new notify.Rule(spec, "Rule", {
+  const stack = getAwsStack();
+  const rule = new notify.Rule(stack, "Rule", {
     schedule: notify.Schedule.rate(Duration.minutes(1)),
   });
-  const role = new iam.Role(spec, "Role", {
+  const role = new iam.Role(stack, "Role", {
     assumedBy: new iam.ServicePrincipal("events.amazonaws.com"),
   });
-  const stateMachine = new compute.StateMachine(spec, "SM", {
+  const stateMachine = new compute.StateMachine(stack, "SM", {
     definitionBody: compute.DefinitionBody.fromChainable(
-      new compute.Wait(spec, "Hello", {
+      new compute.Wait(stack, "Hello", {
         time: compute.WaitTime.duration(Duration.seconds(10)),
       }),
     ),
@@ -146,11 +144,8 @@ test("Existing role can be used for State machine Rule target", () => {
   );
 
   // THEN
-  // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
-  // expect(synthesized).toMatchSnapshot();
-  expect(synthesized).toHaveResourceWithProperties(
+  const template = Template.synth(stack);
+  template.toHaveResourceWithProperties(
     cloudwatchEventTarget.CloudwatchEventTarget,
     {
       input: '{"SomeParam":"SomeValue"}',
@@ -158,14 +153,14 @@ test("Existing role can be used for State machine Rule target", () => {
       role_arn: "${aws_iam_role.Role_1ABCC5F0.arn}",
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
+  // .hasResourceProperties("AWS::Events::Rule", {
   //   Targets: [
   //     {
   //       Input: '{"SomeParam":"SomeValue"}',
   //     },
   //   ],
   // });
-  expect(synthesized).toHaveDataSourceWithProperties(
+  template.toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
     {
       statement: [
@@ -184,7 +179,7 @@ test("Existing role can be used for State machine Rule target", () => {
       ],
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Role", {
+  // .hasResourceProperties("AWS::IAM::Role", {
   //   AssumeRolePolicyDocument: {
   //     Statement: [
   //       {
@@ -197,7 +192,7 @@ test("Existing role can be used for State machine Rule target", () => {
   //     ],
   //   },
   // });
-  expect(synthesized).toHaveDataSourceWithProperties(
+  template.toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
     {
       statement: [
@@ -209,7 +204,7 @@ test("Existing role can be used for State machine Rule target", () => {
       ],
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
+  // .hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -226,18 +221,18 @@ test("Existing role can be used for State machine Rule target", () => {
 
 test("specifying retry policy", () => {
   // GIVEN
-  const spec = getAwsSpec();
-  const rule = new notify.Rule(spec, "Rule", {
+  const stack = getAwsStack();
+  const rule = new notify.Rule(stack, "Rule", {
     schedule: notify.Schedule.expression("rate(1 hour)"),
   });
 
   // WHEN
-  const role = new iam.Role(spec, "Role", {
+  const role = new iam.Role(stack, "Role", {
     assumedBy: new iam.ServicePrincipal("events.amazonaws.com"),
   });
-  const stateMachine = new compute.StateMachine(spec, "SM", {
+  const stateMachine = new compute.StateMachine(stack, "SM", {
     definitionBody: compute.DefinitionBody.fromChainable(
-      new compute.Wait(spec, "Hello", {
+      new compute.Wait(stack, "Hello", {
         time: compute.WaitTime.duration(Duration.seconds(10)),
       }),
     ),
@@ -253,18 +248,15 @@ test("specifying retry policy", () => {
   );
 
   // THEN
-  // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
-  // expect(synthesized).toMatchSnapshot();
-  expect(synthesized).toHaveResourceWithProperties(
+  const template = Template.synth(stack);
+  template.toHaveResourceWithProperties(
     cloudwatchEventRule.CloudwatchEventRule,
     {
       schedule_expression: "rate(1 hour)",
       state: "ENABLED",
     },
   );
-  expect(synthesized).toHaveResourceWithProperties(
+  template.toHaveResourceWithProperties(
     cloudwatchEventTarget.CloudwatchEventTarget,
     {
       input: '{"SomeParam":"SomeValue"}',
@@ -276,7 +268,7 @@ test("specifying retry policy", () => {
       role_arn: "${aws_iam_role.Role_1ABCC5F0.arn}",
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
+  // .hasResourceProperties("AWS::Events::Rule", {
   //   ScheduleExpression: "rate(1 hour)",
   //   State: "ENABLED",
   //   Targets: [
@@ -300,18 +292,18 @@ test("specifying retry policy", () => {
 
 test("specifying retry policy with 0 retryAttempts", () => {
   // GIVEN
-  const spec = getAwsSpec();
-  const rule = new notify.Rule(spec, "Rule", {
+  const stack = getAwsStack();
+  const rule = new notify.Rule(stack, "Rule", {
     schedule: notify.Schedule.expression("rate(1 hour)"),
   });
 
   // WHEN
-  const role = new iam.Role(spec, "Role", {
+  const role = new iam.Role(stack, "Role", {
     assumedBy: new iam.ServicePrincipal("events.amazonaws.com"),
   });
-  const stateMachine = new compute.StateMachine(spec, "SM", {
+  const stateMachine = new compute.StateMachine(stack, "SM", {
     definitionBody: compute.DefinitionBody.fromChainable(
-      new compute.Wait(spec, "Hello", {
+      new compute.Wait(stack, "Hello", {
         time: compute.WaitTime.duration(Duration.seconds(10)),
       }),
     ),
@@ -326,18 +318,15 @@ test("specifying retry policy with 0 retryAttempts", () => {
   );
 
   // THEN
-  // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
-  // expect(synthesized).toMatchSnapshot();
-  expect(synthesized).toHaveResourceWithProperties(
+  const template = Template.synth(stack);
+  template.toHaveResourceWithProperties(
     cloudwatchEventRule.CloudwatchEventRule,
     {
       schedule_expression: "rate(1 hour)",
       state: "ENABLED",
     },
   );
-  expect(synthesized).toHaveResourceWithProperties(
+  template.toHaveResourceWithProperties(
     cloudwatchEventTarget.CloudwatchEventTarget,
     {
       input: '{"SomeParam":"SomeValue"}',
@@ -348,7 +337,7 @@ test("specifying retry policy with 0 retryAttempts", () => {
       role_arn: "${aws_iam_role.Role_1ABCC5F0.arn}",
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
+  // .hasResourceProperties("AWS::Events::Rule", {
   //   ScheduleExpression: "rate(1 hour)",
   //   State: "ENABLED",
   //   Targets: [
@@ -371,19 +360,19 @@ test("specifying retry policy with 0 retryAttempts", () => {
 
 test("use a Dead Letter Queue for the rule target", () => {
   // GIVEN
-  const spec = getAwsSpec();
-  const rule = new notify.Rule(spec, "Rule", {
+  const stack = getAwsStack();
+  const rule = new notify.Rule(stack, "Rule", {
     schedule: notify.Schedule.rate(Duration.minutes(1)),
   });
 
-  const dlq = new notify.Queue(spec, "DeadLetterQueue");
+  const dlq = new notify.Queue(stack, "DeadLetterQueue");
 
-  const role = new iam.Role(spec, "Role", {
+  const role = new iam.Role(stack, "Role", {
     assumedBy: new iam.ServicePrincipal("events.amazonaws.com"),
   });
-  const stateMachine = new compute.StateMachine(spec, "SM", {
+  const stateMachine = new compute.StateMachine(stack, "SM", {
     definitionBody: compute.DefinitionBody.fromChainable(
-      new compute.Wait(spec, "Hello", {
+      new compute.Wait(stack, "Hello", {
         time: compute.WaitTime.duration(Duration.seconds(10)),
       }),
     ),
@@ -399,29 +388,26 @@ test("use a Dead Letter Queue for the rule target", () => {
   );
 
   // the Permission resource should be in the event stack
-  // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
-  // expect(synthesized).toMatchSnapshot();
-  expect(synthesized).toHaveResourceWithProperties(
+  const template = Template.synth(stack);
+  template.toHaveResourceWithProperties(
     cloudwatchEventRule.CloudwatchEventRule,
     {
       schedule_expression: "rate(1 minute)",
       state: "ENABLED",
     },
   );
-  expect(synthesized).toHaveResourceWithProperties(
+  template.toHaveResourceWithProperties(
     cloudwatchEventTarget.CloudwatchEventTarget,
     {
       input: '{"SomeParam":"SomeValue"}',
-      arn: "${aws_sfn_state_machine.SM_934E715A.arn}",
+      arn: stack.resolve(stateMachine.stateMachineArn),
       dead_letter_config: {
-        arn: "${aws_sqs_queue.DeadLetterQueue_9F481546.arn}",
+        arn: stack.resolve(dlq.queueArn),
       },
-      role_arn: "${aws_iam_role.Role_1ABCC5F0.arn}",
+      role_arn: stack.resolve(role.roleArn),
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
+  // .hasResourceProperties("AWS::Events::Rule", {
   //   ScheduleExpression: "rate(1 minute)",
   //   State: "ENABLED",
   //   Targets: [
@@ -442,15 +428,12 @@ test("use a Dead Letter Queue for the rule target", () => {
   //     },
   //   ],
   // });
-  expect(synthesized).toHaveResourceWithProperties(
-    sqsQueuePolicy.SqsQueuePolicy,
-    {
-      policy:
-        "${data.aws_iam_policy_document.DeadLetterQueue_Policy_D01590FE.json}",
-      queue_url: "${aws_sqs_queue.DeadLetterQueue_9F481546.url}",
-    },
-  );
-  expect(synthesized).toHaveDataSourceWithProperties(
+  template.toHaveResourceWithProperties(sqsQueuePolicy.SqsQueuePolicy, {
+    policy:
+      "${data.aws_iam_policy_document.DeadLetterQueue_Policy_D01590FE.json}",
+    queue_url: stack.resolve(dlq.queueUrl),
+  });
+  template.toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
     {
       statement: [
@@ -472,13 +455,13 @@ test("use a Dead Letter Queue for the rule target", () => {
               type: "Service",
             },
           ],
-          resources: ["${aws_sqs_queue.DeadLetterQueue_9F481546.arn}"],
-          sid: "AllowEventRuleTestSpecRule5C250C1D",
+          resources: [stack.resolve(dlq.queueArn)],
+          sid: "AllowEventRuleTestStackRule3795E55D",
         },
       ],
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::SQS::QueuePolicy", {
+  // .hasResourceProperties("AWS::SQS::QueuePolicy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -510,9 +493,9 @@ test("use a Dead Letter Queue for the rule target", () => {
   // });
 });
 
-function getAwsSpec(): AwsSpec {
+function getAwsStack(): AwsStack {
   const app = Testing.app();
-  return new AwsSpec(app, "TestSpec", {
+  return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
     providerConfig,

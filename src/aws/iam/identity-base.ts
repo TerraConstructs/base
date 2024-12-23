@@ -1,12 +1,12 @@
 import { IManagedPolicy } from "./managed-policy";
 import { Policy } from "./policy";
 import { IPrincipal } from "./principals";
-import { IAwsBeacon } from "../";
+import { IAwsConstruct } from "../";
 
 /**
  * A construct that represents an IAM principal, such as a user, group or role.
  */
-export interface IIdentity extends IPrincipal, IAwsBeacon {
+export interface IIdentity extends IPrincipal, IAwsConstruct {
   /**
    * Attaches an inline policy to this principal.
    * This is the same as calling `policy.addToXxx(principal)`.

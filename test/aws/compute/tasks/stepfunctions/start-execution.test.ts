@@ -1,15 +1,15 @@
 import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
 import "cdktf/lib/testing/adapters/jest";
 import { Testing } from "cdktf";
+import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import { StepFunctionsStartExecution } from "../../../../../src/aws/compute/tasks/stepfunctions/start-execution";
-import { AwsSpec } from "../../../../../src/aws/spec";
 
-let spec: AwsSpec;
+let stack: AwsStack;
 let child: compute.StateMachine;
 beforeEach(() => {
   const app = Testing.app();
-  spec = new AwsSpec(app, "TestSpec", {
+  stack = new AwsStack(app, "TestStack", {
     environmentName: "Test",
     gridUUID: "123e4567-e89b-12d3",
     providerConfig: { region: "us-east-1" },
@@ -17,15 +17,15 @@ beforeEach(() => {
       address: "http://localhost:3000",
     },
   });
-  child = new compute.StateMachine(spec, "ChildStateMachine", {
+  child = new compute.StateMachine(stack, "ChildStateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(
-      compute.Chain.start(new compute.Pass(spec, "PassState")),
+      compute.Chain.start(new compute.Pass(stack, "PassState")),
     ),
   });
 });
 
 test("Execute State Machine - Default - Request Response", () => {
-  const task = new StepFunctionsStartExecution(spec, "ChildTask", {
+  const task = new StepFunctionsStartExecution(stack, "ChildTask", {
     stateMachine: child,
     input: compute.TaskInput.fromObject({
       foo: "bar",
@@ -33,11 +33,11 @@ test("Execute State Machine - Default - Request Response", () => {
     name: "myExecutionName",
   });
 
-  new compute.StateMachine(spec, "ParentStateMachine", {
+  new compute.StateMachine(stack, "ParentStateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
-  expect(spec.resolve(task.toStateJson())).toEqual({
+  expect(stack.resolve(task.toStateJson())).toEqual({
     Type: "Task",
     Resource:
       "arn:${data.aws_partition.Partitition.partition}:states:::states:startExecution",
@@ -69,16 +69,16 @@ test("Execute State Machine - Default - Request Response", () => {
 });
 
 test("Execute State Machine - Run Job", () => {
-  const task = new StepFunctionsStartExecution(spec, "ChildTask", {
+  const task = new StepFunctionsStartExecution(stack, "ChildTask", {
     stateMachine: child,
     integrationPattern: compute.IntegrationPattern.RUN_JOB,
   });
 
-  new compute.StateMachine(spec, "ParentStateMachine", {
+  new compute.StateMachine(stack, "ParentStateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
-  expect(spec.resolve(task.toStateJson())).toEqual({
+  expect(stack.resolve(task.toStateJson())).toEqual({
     Type: "Task",
     Resource:
       "arn:${data.aws_partition.Partitition.partition}:states:::states:startExecution.sync:2",
@@ -106,8 +106,8 @@ test("Execute State Machine - Run Job", () => {
   });
 
   // Do prepare run to resolve all Terraform resources
-  spec.prepareStack();
-  const synthesized = Testing.synth(spec);
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -141,7 +141,7 @@ test("Execute State Machine - Run Job", () => {
       ],
     },
   );
-  // Template.fromStack(spec).hasResourceProperties("AWS::IAM::Policy", {
+  // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
   //   PolicyDocument: {
   //     Statement: [
   //       {
@@ -229,7 +229,7 @@ test("Execute State Machine - Run Job", () => {
 });
 
 test("Execute State Machine - Wait For Task Token", () => {
-  const task = new StepFunctionsStartExecution(spec, "ChildTask", {
+  const task = new StepFunctionsStartExecution(stack, "ChildTask", {
     stateMachine: child,
     integrationPattern: compute.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
     input: compute.TaskInput.fromObject({
@@ -237,11 +237,11 @@ test("Execute State Machine - Wait For Task Token", () => {
     }),
   });
 
-  new compute.StateMachine(spec, "ParentStateMachine", {
+  new compute.StateMachine(stack, "ParentStateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
-  expect(spec.resolve(task.toStateJson())).toEqual({
+  expect(stack.resolve(task.toStateJson())).toEqual({
     Type: "Task",
     Resource:
       "arn:${data.aws_partition.Partitition.partition}:states:::states:startExecution.waitForTaskToken",
@@ -273,7 +273,7 @@ test("Execute State Machine - Wait For Task Token", () => {
 
 test("Execute State Machine - Wait For Task Token - Missing Task Token", () => {
   expect(() => {
-    new StepFunctionsStartExecution(spec, "ChildTask", {
+    new StepFunctionsStartExecution(stack, "ChildTask", {
       stateMachine: child,
       integrationPattern: compute.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
     });
@@ -283,7 +283,7 @@ test("Execute State Machine - Wait For Task Token - Missing Task Token", () => {
 });
 
 test("Execute State Machine - Associate With Parent - Input Provided", () => {
-  const task = new StepFunctionsStartExecution(spec, "ChildTask", {
+  const task = new StepFunctionsStartExecution(stack, "ChildTask", {
     stateMachine: child,
     input: compute.TaskInput.fromObject({
       token: compute.JsonPath.taskToken,
@@ -291,11 +291,11 @@ test("Execute State Machine - Associate With Parent - Input Provided", () => {
     associateWithParent: true,
   });
 
-  new compute.StateMachine(spec, "ParentStateMachine", {
+  new compute.StateMachine(stack, "ParentStateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
-  expect(spec.resolve(task.toStateJson())).toMatchObject({
+  expect(stack.resolve(task.toStateJson())).toMatchObject({
     Parameters: {
       Input: {
         "token.$": "$$.Task.Token",
@@ -306,16 +306,16 @@ test("Execute State Machine - Associate With Parent - Input Provided", () => {
 });
 
 test("Execute State Machine - Associate With Parent - Input Not Provided", () => {
-  const task = new StepFunctionsStartExecution(spec, "ChildTask", {
+  const task = new StepFunctionsStartExecution(stack, "ChildTask", {
     stateMachine: child,
     associateWithParent: true,
   });
 
-  new compute.StateMachine(spec, "ParentStateMachine", {
+  new compute.StateMachine(stack, "ParentStateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(task),
   });
 
-  expect(spec.resolve(task.toStateJson())).toMatchObject({
+  expect(stack.resolve(task.toStateJson())).toMatchObject({
     Parameters: {
       Input: {
         "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
@@ -326,7 +326,7 @@ test("Execute State Machine - Associate With Parent - Input Not Provided", () =>
 
 test("Execute State Machine - Associate With Parent - Incorrect Input Type", () => {
   expect(() => {
-    new StepFunctionsStartExecution(spec, "ChildTask", {
+    new StepFunctionsStartExecution(stack, "ChildTask", {
       stateMachine: child,
       associateWithParent: true,
       input: compute.TaskInput.fromText('{ "token.$": "$$.Task.Token" }'),

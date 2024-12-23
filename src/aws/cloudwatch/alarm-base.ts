@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-cloudwatch/lib/alarm-base.ts
 
-import { IAwsBeacon, AwsBeaconBase } from "../beacon";
+import { IAwsConstruct, AwsConstructBase } from "../aws-construct";
 import { IAlarmAction } from "./alarm-action";
 
 /**
@@ -35,7 +35,7 @@ export interface AlarmOutputs {
 /**
  * Represents a CloudWatch Alarm
  */
-export interface IAlarm extends IAlarmRule, IAwsBeacon {
+export interface IAlarm extends IAlarmRule, IAwsConstruct {
   /** Strongly typed outputs */
   readonly alarmOutputs: AlarmOutputs;
 
@@ -57,7 +57,7 @@ export interface IAlarm extends IAlarmRule, IAwsBeacon {
 /**
  * The base class for Alarm and CompositeAlarm resources.
  */
-export abstract class AlarmBase extends AwsBeaconBase implements IAlarm {
+export abstract class AlarmBase extends AwsConstructBase implements IAlarm {
   /**
    * @attribute
    */

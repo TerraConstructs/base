@@ -6,7 +6,7 @@ import {
 } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsSpec } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws";
 import * as iam from "../../../src/aws/iam";
 import { Stream } from "../../../src/aws/notify/kinesis-stream";
 import { ResourcePolicy } from "../../../src/aws/notify/resource-policy";
@@ -20,11 +20,11 @@ const gridBackendConfig = {
 
 describe("Kinesis resource policy", () => {
   let app: App;
-  let spec: AwsSpec;
+  let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    spec = new AwsSpec(app, "MyStack", {
+    stack = new AwsStack(app, "MyStack", {
       environmentName,
       gridUUID,
       providerConfig,
@@ -34,10 +34,10 @@ describe("Kinesis resource policy", () => {
 
   test("create resource policy", () => {
     // GIVEN
-    const stream = new Stream(spec, "Stream", {});
+    const stream = new Stream(stack, "Stream", {});
 
     // WHEN
-    const policyDocument = new iam.PolicyDocument(spec, "PolicyDocument", {
+    const policyDocument = new iam.PolicyDocument(stack, "PolicyDocument", {
       assignSids: true,
       statement: [
         new iam.PolicyStatement({
@@ -48,14 +48,14 @@ describe("Kinesis resource policy", () => {
       ],
     });
 
-    new ResourcePolicy(spec, "ResourcePolicy", {
+    new ResourcePolicy(stack, "ResourcePolicy", {
       stream,
       policyDocument,
     });
 
     // THEN
-    spec.prepareStack();
-    const synthesized = Testing.synth(spec);
+    stack.prepareStack();
+    const synthesized = Testing.synth(stack);
     // refer to full snapshot for debug
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveDataSourceWithProperties(
@@ -84,7 +84,7 @@ describe("Kinesis resource policy", () => {
         resource_arn: "${aws_kinesis_stream.Stream_790BDEE4.arn}",
       },
     );
-    // Template.fromStack(spec).hasResourceProperties(
+    // Template.fromStack(stack).hasResourceProperties(
     //   "AWS::Kinesis::ResourcePolicy",
     //   {
     //     ResourcePolicy: {
@@ -95,7 +95,7 @@ describe("Kinesis resource policy", () => {
     //           Action: "kinesis:GetRecords",
     //           Effect: "Allow",
     //           Principal: { AWS: "*" },
-    //           Resource: spec.resolve(stream.streamArn),
+    //           Resource: stack.resolve(stream.streamArn),
     //         },
     //       ],
     //     },

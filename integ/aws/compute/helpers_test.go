@@ -6,9 +6,9 @@ import (
 	// loggers "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/stretchr/testify/require"
 
-	util "github.com/envtio/base/integ/aws"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
+	util "github.com/terraconstructs/base/integ/aws"
 )
 
 func replanUsingTerraform(t *testing.T, workingDir string) {

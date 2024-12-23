@@ -5,8 +5,8 @@ import { cloudwatchMetricAlarm } from "@cdktf/provider-aws";
 import { Lazy, Token, Annotations } from "cdktf";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
-import { AwsBeaconProps } from "../beacon";
-import { AwsSpec } from "../spec";
+import { AwsConstructProps } from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { IAlarmAction } from "./alarm-action";
 import { AlarmBase, IAlarm } from "./alarm-base";
 import { HorizontalAnnotation } from "./graph";
@@ -24,7 +24,7 @@ import { normalizeStatistic, parseStatistic } from "./private/statistic";
 /**
  * Properties for Alarms
  */
-export interface AlarmProps extends CreateAlarmOptions, AwsBeaconProps {
+export interface AlarmProps extends CreateAlarmOptions, AwsConstructProps {
   /**
    * The metric to add the alarm on
    *
@@ -125,7 +125,7 @@ export class Alarm extends AlarmBase {
     id: string,
     alarmName: string,
   ): IAlarm {
-    const stack = AwsSpec.ofAwsBeacon(scope);
+    const stack = AwsStack.ofAwsConstruct(scope);
 
     return this.fromAlarmArn(
       scope,
@@ -153,7 +153,7 @@ export class Alarm extends AlarmBase {
   ): IAlarm {
     class Import extends AlarmBase implements IAlarm {
       public readonly alarmArn = alarmArn;
-      public readonly alarmName = AwsSpec.ofAwsBeacon(scope).splitArn(
+      public readonly alarmName = AwsStack.ofAwsConstruct(scope).splitArn(
         alarmArn,
         ArnFormat.COLON_RESOURCE_NAME,
       ).resourceName!;
@@ -438,7 +438,7 @@ export class Alarm extends AlarmBase {
    * Validate that if a region is in the given stat config, they match the Alarm
    */
   private validateMetricStat(stat: MetricStatConfig, metric: IMetric) {
-    const stack = AwsSpec.ofAwsBeacon(this);
+    const stack = AwsStack.ofAwsConstruct(this);
 
     if (definitelyDifferent(stat.region, stack.region)) {
       throw new Error(
@@ -463,7 +463,7 @@ export class Alarm extends AlarmBase {
    * Determine if the accountId property should be included in the metric.
    */
   private requiresAccountId(stat: MetricStatConfig): boolean {
-    const stackAccount = AwsSpec.ofAwsBeacon(this).account;
+    const stackAccount = AwsStack.ofAwsConstruct(this).account;
 
     // if stat.account is undefined, it's by definition in the same account
     if (stat.account === undefined) {

@@ -35,8 +35,8 @@ exports[`PublicCertificate Create multi-zone should synth and match SnapShot 1`]
         ],
         "tags": {
           "Name": "Test-Certificate",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "validation_method": "DNS",
         "validation_option": [
@@ -87,16 +87,16 @@ exports[`PublicCertificate Create multi-zone should synth and match SnapShot 1`]
         "name": "example.com.",
         "tags": {
           "Name": "Test-ExampleComZone",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       },
       "ExampleNetZone_99DA6AF7": {
         "name": "example.net.",
         "tags": {
           "Name": "Test-ExampleNetZone",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     }
@@ -150,8 +150,8 @@ exports[`PublicCertificate Create should synth and match SnapShot 1`] = `
         ],
         "tags": {
           "Name": "Test-Certificate",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "validation_method": "DNS",
         "validation_option": [
@@ -187,8 +187,8 @@ exports[`PublicCertificate Create should synth and match SnapShot 1`] = `
         "name": "example.com.",
         "tags": {
           "Name": "Test-Zone",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         }
       }
     }
@@ -244,8 +244,8 @@ exports[`PublicCertificate Imported DnsZone should synth and match SnapShot 1`] 
         ],
         "tags": {
           "Name": "Test-Certificate",
-          "et:grid:EnvironmentName": "Test",
-          "et:grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
         },
         "validation_method": "DNS",
         "validation_option": [

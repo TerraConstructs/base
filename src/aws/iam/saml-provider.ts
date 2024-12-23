@@ -2,7 +2,7 @@ import * as fs from "fs";
 import { iamSamlProvider } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
-import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../";
+import { IAwsConstruct, AwsConstructBase, AwsConstructProps } from "../";
 
 export interface SamlProviderOutputs {
   /**
@@ -15,7 +15,7 @@ export interface SamlProviderOutputs {
 /**
  * A SAML provider
  */
-export interface ISamlProvider extends IAwsBeacon {
+export interface ISamlProvider extends IAwsConstruct {
   // strongly typed outputs
   readonly samlProviderOutputs: SamlProviderOutputs;
 
@@ -30,7 +30,7 @@ export interface ISamlProvider extends IAwsBeacon {
 /**
  * Properties for a SAML provider
  */
-export interface SamlProviderProps extends AwsBeaconProps {
+export interface SamlProviderProps extends AwsConstructProps {
   /**
    * The name of the provider to create.
    *
@@ -40,7 +40,7 @@ export interface SamlProviderProps extends AwsBeaconProps {
    *
    * Length must be between 1 and 128 characters.
    *
-   * @default - a unique name based on path within spec
+   * @default - a unique name based on path within stack
    */
   readonly name?: string;
 
@@ -82,7 +82,7 @@ export abstract class SamlMetadataDocument {
 /**
  * A SAML provider
  */
-export class SamlProvider extends AwsBeaconBase implements ISamlProvider {
+export class SamlProvider extends AwsConstructBase implements ISamlProvider {
   /**
    * Import an existing provider
    */
@@ -91,7 +91,7 @@ export class SamlProvider extends AwsBeaconBase implements ISamlProvider {
     id: string,
     samlProviderArn: string,
   ): ISamlProvider {
-    class Import extends AwsBeaconBase implements ISamlProvider {
+    class Import extends AwsConstructBase implements ISamlProvider {
       public readonly samlProviderArn = samlProviderArn;
       public readonly samlProviderOutputs = {
         arn: samlProviderArn,

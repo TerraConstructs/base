@@ -1,6 +1,6 @@
 import { Construct } from "constructs";
 import * as compute from "../";
-import { AwsSpec } from "../..";
+import { AwsStack } from "../..";
 import * as notify from "../../notify";
 
 /**
@@ -36,7 +36,7 @@ export class EventBridgeDestination implements compute.IDestination {
       notify.EventBus.fromEventBusArn(
         _scope,
         "DefaultEventBus",
-        AwsSpec.ofAwsBeacon(fn).formatArn({
+        AwsStack.ofAwsConstruct(fn).formatArn({
           service: "events",
           resource: "event-bus",
           resourceName: "default",
