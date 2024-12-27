@@ -41,9 +41,7 @@ func GetIamRoleE(t testing.TestingT, awsRegion string, roleName string) (*Role, 
 		return nil, err
 	}
 	tags := make([]types.Tag, len(result.Role.Tags))
-	for i, tag := range result.Role.Tags {
-		tags[i] = tag
-	}
+	copy(tags, result.Role.Tags)
 	// Policies returned by this operation are URL-encoded compliant with RFC 3986 (https://tools.ietf.org/html/rfc3986).
 	// You can use a URL decoding method to convert the policy back to plain JSON text.
 	assumeRolePolicyDocument, err := URLDecode(*result.Role.AssumeRolePolicyDocument)
@@ -86,6 +84,9 @@ func GetIamManagedPolicy(t testing.TestingT, awsRegion string, policyArn string)
 	return result
 }
 
+// TODO: terratest added new function that implements part of this code.
+// https://github.com/gruntwork-io/terratest/pull/1490
+
 // Get IAM Managed Policy, return result or error
 func GetIamManagedPolicyE(t testing.TestingT, awsRegion string, policyArn string) (*ManagedPolicy, error) {
 	svc := terratestaws.NewIamClient(t, awsRegion)
@@ -100,9 +101,7 @@ func GetIamManagedPolicyE(t testing.TestingT, awsRegion string, policyArn string
 		return nil, fmt.Errorf("IAM Managed Policy %s missing from GetPolicy response", policyArn)
 	}
 	tags := make([]types.Tag, len(p.Policy.Tags))
-	for i, tag := range p.Policy.Tags {
-		tags[i] = tag
-	}
+	copy(tags, p.Policy.Tags)
 	description := ""
 	if p.Policy.Description != nil {
 		description = *p.Policy.Description

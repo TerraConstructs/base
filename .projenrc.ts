@@ -10,8 +10,9 @@ import {
   PolicyDocumentConfigStructBuilder,
 } from "./projenrc";
 
-// set strict node version
-const nodeVersion = "20";
+// set strict node version compatible with webcontainers.io
+const nodeVersion = ">=18.18.0";
+const workflowNodeVersion = "18.20.5";
 
 const project = new cdk.JsiiProject({
   name: "terraconstructs",
@@ -53,7 +54,7 @@ const project = new cdk.JsiiProject({
   ],
   bundledDeps: ["esbuild-wasm@^0.23.1", "mime-types", "change-case@^4.1.1"],
 
-  workflowNodeVersion: nodeVersion,
+  workflowNodeVersion,
   workflowBootstrapSteps: [
     // // use individual setup actions for tool specific caching
     // {
@@ -116,7 +117,7 @@ project.testTask.updateStep(0, {
 project.package.addField("packageManager", "pnpm@9.9.0"); // silence COREPACK_ENABLE_AUTO_PIN warning
 project.package.addEngine("node", nodeVersion);
 new TextFile(project, ".nvmrc", {
-  lines: [nodeVersion],
+  lines: [workflowNodeVersion],
 });
 
 // required to support bundled dependencies

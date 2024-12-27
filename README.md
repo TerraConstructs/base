@@ -17,9 +17,9 @@ With TerraConstructs, you can write infrastructure as code that is intuitive, mo
 For detailed documentation, examples, and to learn more about the project, visit our website:
 👉 **[terraconstructs.dev](https://terraconstructs.dev)**
 
-### Getting Started for Developers
+### Contributing
 
-To get started with TerraConstructs as a developer:
+To get started contributing to TerraConstructs:
 
 1. **Clone the Repository**
    ```bash
@@ -28,12 +28,24 @@ To get started with TerraConstructs as a developer:
    ```
 
 2. **Install Dependencies**
-   Ensure you have **Node.js** installed along with the **pnpm** package manager. Then run:
+   Ensure you have **Node.js** (`>=18.18.0`) installed along with the **pnpm** (`9.9.0`) package manager. Then run:
    ```bash
    pnpm install
    ```
 
    This will set up the workspace and install all required dependencies.
+
+### Tool versions
+
+Correct tool versions can be controlled using [mise](https://mise.jdx.dev/getting-started.html#quickstart).
+
+```console
+# view requested config
+mise ls
+
+# install tool versions required
+mise install
+```
 
 ### Integration testing
 
