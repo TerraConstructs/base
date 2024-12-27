@@ -83,7 +83,7 @@
     "terraconstructs"
   ],
   "engines": {
-    "node": "20"
+    "node": ">=18.18.0"
   },
   "main": "lib/index.js",
   "license": "GPL-3.0-or-later",

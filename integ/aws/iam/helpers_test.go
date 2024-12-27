@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
@@ -80,6 +81,9 @@ func runChecks(t *testing.T, snapshotDir string, entity any, checks []check, tmp
 					}
 					expected = expectedStrings
 				}
+				// Sort both slices before comparing
+				sort.Strings(actual.([]string))
+				sort.Strings(expected.([]string))
 			}
 			result := cmp.Diff(expected, actual, cmp.Comparer(regexStringComparer))
 			require.Empty(t, result, "(-want +got)")
