@@ -55,7 +55,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
                 "TLSv1.2"
               ]
             },
-            "domain_name": "\${aws_s3_bucket_website_configuration.HelloWorld_WebsiteConfig_72ADC681.website_domain}",
+            "domain_name": "\${aws_s3_bucket_website_configuration.HelloWorld_WebsiteConfig_72ADC681.website_endpoint}",
             "origin_id": "origin-0"
           }
         ],

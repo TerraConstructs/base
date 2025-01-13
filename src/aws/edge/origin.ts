@@ -281,7 +281,7 @@ export class S3Origin implements IOrigin {
 
   constructor(bucket: IBucket, props: OriginProps = {}) {
     this.origin = bucket.isWebsite()
-      ? new HttpOrigin(bucket.bucketOutputs.websiteDomainName, {
+      ? new HttpOrigin(bucket.bucketOutputs.websiteUrl, {
           protocolPolicy: OriginProtocolPolicy.HTTP_ONLY, // S3 only supports HTTP for website buckets
           ...props,
         })
