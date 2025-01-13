@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/gruntwork-io/terratest/modules/logger"
+	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/testing"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
@@ -135,6 +137,73 @@ func TestCloudFrontFunctionE(t testing.TestingT, name string, stage types.Functi
 	}
 
 	return parseTestResult(r.TestResult)
+}
+
+// WaitForDistributionDeployed waits for a CloudFront distribution to be deployed.
+func WaitForDistributionDeployed(t testing.TestingT, region string, distributionId string, maxRetries int, sleepBetweenRetries time.Duration) {
+	WaitForDistributionStatus(t, region, distributionId, "Deployed", maxRetries, sleepBetweenRetries)
+}
+
+// WaitForDistributionStatus waits for a CloudFront distribution to have the specified status.
+func WaitForDistributionStatus(
+	t testing.TestingT,
+	region string,
+	distributionId string,
+	status string,
+	maxRetries int,
+	sleepBetweenRetries time.Duration,
+) {
+	err := WaitForDistributionStatusE(t, region, distributionId, status, maxRetries, sleepBetweenRetries)
+	require.NoError(t, err)
+}
+
+// WaitForDistributionStatusE waits for a CloudFront distribution to have the specified status.
+func WaitForDistributionStatusE(
+	t testing.TestingT,
+	region string,
+	distributionId string,
+	status string,
+	maxRetries int,
+	sleepBetweenRetries time.Duration,
+) error {
+	description := fmt.Sprintf("Waiting for CloudFront Distribution %s status: %q", distributionId, status)
+
+	msg, err := retry.DoWithRetryE(
+		t,
+		description,
+		maxRetries,
+		sleepBetweenRetries,
+		func() (string, error) {
+			distribution, err := GetDistributionE(t, region, distributionId)
+			if err != nil {
+				return "", err
+			}
+
+			if *distribution.Status != status {
+				return "", fmt.Errorf("stream status is %s, not %s", *distribution.Status, status)
+			}
+			return "Distribution is now at desired status", nil
+		},
+	)
+	logger.Log(t, msg)
+	return err
+}
+
+// GetDistributionE returns the configuration of a CloudFront Distribution
+func GetDistributionE(t testing.TestingT, region string, distributionId string) (*types.Distribution, error) {
+	client, err := NewCloudFrontclientE(t)
+	if err != nil {
+		return nil, err
+	}
+	result, err := client.GetDistribution(context.Background(), &cloudfront.GetDistributionInput{
+		Id: aws.String(distributionId),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Distribution, nil
 }
 
 // NewCloudFrontclient returns a client for CloudFront. This will fail the test and

@@ -1,6 +1,11 @@
-import { Testing } from "cdktf";
+import {
+  s3BucketWebsiteConfiguration,
+  dataAwsIamPolicyDocument,
+} from "@cdktf/provider-aws";
+import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { edge, storage, AwsStack } from "../../../src/aws";
+import { Template } from "../../assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -9,9 +14,23 @@ const gridBackendConfig = {
 };
 const providerConfig = { region: "us-east-1" };
 describe("Distribution", () => {
+  let app: App;
+  let stack: AwsStack;
+
+  beforeEach(() => {
+    app = Testing.app();
+    stack = new AwsStack(app, "MyStack", {
+      environmentName,
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+      // TODO: Should support passing account via Stack props to match AWS CDK cross account support
+      // account: "1234",
+    });
+  });
+
   test("Should synth with OAI and match SnapShot", () => {
     // GIVEN
-    const stack = getAwsStack();
     const bucket = new storage.Bucket(stack, "HelloWorld", {
       namePrefix: "hello-world",
       cloudfrontAccess: {
@@ -25,13 +44,8 @@ describe("Distribution", () => {
       },
     });
     // THEN
-    stack.prepareStack(); // may generate additional resources
-    const result = Testing.synth(stack);
-    expect(result).toMatchSnapshot();
-    expect(result).toHaveDataSourceWithProperties(
-      {
-        tfResourceType: "aws_iam_policy_document",
-      },
+    Template.synth(stack, { snapshot: true }).toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: [
           {
@@ -45,7 +59,7 @@ describe("Distribution", () => {
                 type: "AWS",
               },
             ],
-            resources: ["${aws_s3_bucket.HelloWorld_7964D1E8.arn}/*"],
+            resources: [`${stack.resolve(bucket.bucketArn)}/*`],
           },
         ],
       },
@@ -53,7 +67,6 @@ describe("Distribution", () => {
   });
   test("Should synth with websiteConfig and match SnapShot", () => {
     // GIVEN
-    const stack = getAwsStack();
     const bucket = new storage.Bucket(stack, "HelloWorld", {
       namePrefix: "hello-world",
       websiteConfig: {
@@ -67,12 +80,14 @@ describe("Distribution", () => {
       },
     });
     // THEN
-    stack.prepareStack(); // may generate additional resources
-    expect(Testing.synth(stack)).toMatchSnapshot();
+    Template.synth(stack, { snapshot: true }).toHaveResourceWithProperties(
+      s3BucketWebsiteConfiguration.S3BucketWebsiteConfiguration,
+      {
+        bucket: stack.resolve(bucket.bucketName),
+      },
+    );
   });
   test("Should throw error if bucket has no OAI or website config", () => {
-    // GIVEN
-    const stack = getAwsStack();
     // WHEN
     const bucket = new storage.Bucket(stack, "HelloWorld", {
       namePrefix: "hello-world",
@@ -88,7 +103,6 @@ describe("Distribution", () => {
   });
   test("Should support multiple origins and cache behaviors", () => {
     // GIVEN
-    const stack = getAwsStack();
     const bucket0 = new storage.Bucket(stack, "Bucket0", {
       namePrefix: "bucket-0",
       websiteConfig: {
@@ -113,17 +127,76 @@ describe("Distribution", () => {
       },
     });
     // THEN
-    stack.prepareStack(); // may generate additional resources
-    expect(Testing.synth(stack)).toMatchSnapshot();
+    Template.fromStack(stack, { snapshot: true }).toMatchObject({
+      resource: {
+        aws_s3_bucket_website_configuration: {
+          Bucket0_WebsiteConfig_F3339C3F: {
+            bucket: stack.resolve(bucket0.bucketName),
+            index_document: {
+              suffix: "index.html",
+            },
+          },
+          Bucket1_WebsiteConfig_0DE2B7DD: {
+            bucket: stack.resolve(bucket1.bucketName),
+            index_document: {
+              suffix: "index.html",
+            },
+          },
+        },
+      },
+    });
+  });
+  test("Should support custom Response Header Policy", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    // With COOP/COEP headers
+    const responseHeadersPolicy = new edge.ResponseHeadersPolicy(
+      stack,
+      "ResponseHeadersPolicy",
+      {
+        responseHeadersPolicyName: "CrossOriginIsolation",
+        // ref: https://webcontainers.io/guides/configuring-headers
+        customHeadersBehavior: {
+          customHeaders: [
+            {
+              header: "Cross-Origin-Embedder-Policy",
+              value: "require-corp",
+              override: true,
+            },
+            {
+              header: "Cross-Origin-Opener-Policy",
+              value: "same-origin",
+              override: true,
+            },
+          ],
+        },
+      },
+    );
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        responseHeadersPolicy,
+      },
+    });
+    // THEN
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_cloudfront_distribution: {
+          HelloWorldDistribution_E7735130: {
+            default_cache_behavior: {
+              response_headers_policy_id: stack.resolve(
+                responseHeadersPolicy.responseHeadersPolicyId,
+              ),
+            },
+          },
+        },
+      },
+    });
   });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}

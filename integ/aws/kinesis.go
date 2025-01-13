@@ -110,7 +110,7 @@ func WaitForStreamStatusE(
 	maxRetries int,
 	sleepBetweenRetries time.Duration,
 ) error {
-	description := fmt.Sprintf("Waiting for log events in log group %s", streamName)
+	description := fmt.Sprintf("Waiting for Kinesis Stream %s status: %q", streamName, status)
 
 	msg, err := retry.DoWithRetryE(
 		t,

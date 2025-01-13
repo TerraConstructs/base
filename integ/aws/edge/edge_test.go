@@ -44,6 +44,18 @@ func TestKvsJwtVerify(t *testing.T) {
 	runEdgeIntegrationTest(t, "kvs-jwt-verify", "us-east-1", envVars, validateJwtVerifyFunction)
 }
 
+// Run the apps/distribution-policies.ts integration test
+func TestDistributionPolicies(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	runEdgeIntegrationTest(t, "distribution-policies", "us-east-1", envVars,
+		func(t *testing.T, tfWorkingDir string, awsRegion string) {
+			// Load the Terraform Options saved by the earlier deploy_terraform stage
+			terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+			distributionId := util.LoadOutputAttribute(t, terraformOptions, "distribution", "id")
+			util.WaitForDistributionDeployed(t, awsRegion, distributionId, 10, 10*time.Second)
+		})
+}
+
 func validateMultiZoneAcmPubCert(t *testing.T, workingDir string, awsRegion string) {
 	// Load the Terraform Options saved by the earlier deploy_terraform stage
 	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)

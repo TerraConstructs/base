@@ -1,3 +1,4 @@
+// https://github.com/aws/aws-cdk/blob/64a0e2cf5bb07f6debfc4b169bb3e1852ce668aa/packages/aws-cdk-lib/aws-cloudfront/lib/distribution.ts
 import {
   cloudfrontDistribution,
   dataAwsCloudfrontCachePolicy,
@@ -15,13 +16,17 @@ import {
   AwsConstructProps,
 } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
+import {
+  IResponseHeadersPolicy,
+  ManagedResponseHeadersPolicy,
+} from "./response-headers-policy";
 
 // TODO: Re-add invalidation support
 // TODO: Re-add origin group (failover) support
 // TODO: Re-add key group support
 // TODO: Re-add WAF support
 // TODO: Re-add logging support
-// TODO: Re-add custom cache, originRequest, ResponseHeader policy support?
+// TODO: Re-add custom cache, originRequest policy support?
 
 /**
  * Outputs which may be registered for output via the Grid.
@@ -88,6 +93,9 @@ export interface IDistribution extends IAwsConstruct {
   readonly hostedZoneId: string;
 }
 
+/**
+ * Properties for a Distribution
+ */
 export interface DistributionProps extends AwsConstructProps {
   /**
    * Extra CNAMEs (alternate domain names), if any, for this distribution.
@@ -446,11 +454,19 @@ export class Distribution extends AwsConstructBase implements IDistribution {
       dataAwsCloudfrontOriginRequestPolicy.DataAwsCloudfrontOriginRequestPolicy,
       { name: props.originRequestPolicy },
     );
-    const responseHeadersPolicy = this.dataLookup(
-      props.responseHeadersPolicy,
-      dataAwsCloudfrontResponseHeadersPolicy.DataAwsCloudfrontResponseHeadersPolicy,
-      { name: props.responseHeadersPolicy },
-    );
+    let responseHeadersPolicyId: string | undefined;
+    if (typeof props.responseHeadersPolicy == "string") {
+      const managedPolicy = this.dataLookup(
+        props.responseHeadersPolicy,
+        dataAwsCloudfrontResponseHeadersPolicy.DataAwsCloudfrontResponseHeadersPolicy,
+        { name: props.responseHeadersPolicy },
+      );
+      responseHeadersPolicyId = managedPolicy?.id;
+    } else {
+      responseHeadersPolicyId =
+        props.responseHeadersPolicy?.responseHeadersPolicyId;
+    }
+
     return {
       targetOriginId: props.targetOriginId,
       allowedMethods:
@@ -460,7 +476,7 @@ export class Distribution extends AwsConstructBase implements IDistribution {
       cachePolicyId: cachePolicy?.id,
       compress: props.compress ?? true,
       originRequestPolicyId: originRequestPolicy?.id,
-      responseHeadersPolicyId: responseHeadersPolicy?.id,
+      responseHeadersPolicyId,
       smoothStreaming: props.smoothStreaming,
       viewerProtocolPolicy:
         props.viewerProtocolPolicy ?? ViewerProtocolPolicy.ALLOW_ALL,
@@ -732,7 +748,9 @@ export interface AddBehaviorOptions {
    *
    * @default - none
    */
-  readonly responseHeadersPolicy?: ManagedResponseHeadersPolicy;
+  readonly responseHeadersPolicy?:
+    | ManagedResponseHeadersPolicy
+    | IResponseHeadersPolicy;
 
   /**
    * Set this to true to indicate you want to distribute media files in the Microsoft Smooth Streaming format using this behavior.
@@ -878,23 +896,4 @@ export enum ManagedOriginRequestPolicy {
   ALL_VIEWER_AND_CLOUDFRONT_2022 = "Managed-AllViewerAndCloudFrontHeaders-2022-06",
   /** This policy includes all values (query strings, and cookies) except the header in the viewer request. */
   ALL_VIEWER_EXCEPT_HOST_HEADER = "Managed-AllViewerExceptHostHeader",
-}
-
-/**
- * A Response Headers Policy configuration
- *
- * @link https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-response-headers-policies.html
- * @link https://registry.terraform.io/providers/hashicorp/aws/5.60.0/docs/data-sources/cloudfront_response_headers_policy#aws-managed-policies
- */
-export enum ManagedResponseHeadersPolicy {
-  /** Use this managed policy to allow simple CORS requests from any origin. */
-  CORS_ALLOW_ALL_ORIGINS = "Managed-SimpleCORS", //60669652-455b-4ae9-85a4-c4c02393f86c
-  /** Use this managed policy to allow CORS requests from any origin, including preflight requests. */
-  CORS_ALLOW_ALL_ORIGINS_WITH_PREFLIGHT = "Managed-CORS-With-Preflight", //5cc3b908-e619-4b99-88e5-2cf7f45965bd
-  /** Use this managed policy to add a set of security headers to all responses that CloudFront sends to viewers. */
-  SECURITY_HEADERS = "Managed-SecurityHeadersPolicy", //67f7725c-6f97-4210-82d7-5512b31e9d03
-  /** Use this managed policy to allow simple CORS requests from any origin and add a set of security headers to all responses that CloudFront sends to viewers. */
-  CORS_ALLOW_ALL_ORIGINS_AND_SECURITY_HEADERS = "Managed-CORS-and-SecurityHeadersPolicy", //e61eb60c-9c35-4d20-a928-2b84e02af89c
-  /** Use this managed policy to allow CORS requests from any origin, including preflight requests, and add a set of security headers to all responses that CloudFront sends to viewers. */
-  CORS_ALLOW_ALL_ORIGINS_WITH_PREFLIGHT_AND_SECURITY_HEADERS = "Managed-CORS-with-preflight-and-SecurityHeadersPolicy", //eaab4381-ed33-4a86-88ca-d9558dc6cd63
 }
