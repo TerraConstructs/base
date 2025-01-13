@@ -6,3 +6,4 @@ export * from "./dns-zone";
 export * from "./function";
 export * from "./key-value-store";
 export * from "./origin";
+export * from "./response-headers-policy";

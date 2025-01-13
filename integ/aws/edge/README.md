@@ -14,6 +14,7 @@ Test Targets:
   url-rewrite-spa            Test Edge function for URL rewrite SPA
   kvs-jwt-verify             Test Edge function for KVS JWT verify
   multi-zone-acm-pub-cert    Test Multi Zone ACM Public Certificate
+  distribution-policies      Test Distribution Policies
 
 Other Targets:
   help                       Print out every target with a description

@@ -3,7 +3,8 @@
   "type": "module",
   "scripts": {
     "kvs-jwt-verify": "bun run ./kvs-jwt-verify.ts",
-    "url-rewrite-spa": "bun run ./url-rewrite-spa.ts"
+    "url-rewrite-spa": "bun run ./url-rewrite-spa.ts",
+    "distribution-policies": "bun run ./distribution-policies.ts"
   },
   "dependencies": {
     "cdktf": "^0.20.8",
