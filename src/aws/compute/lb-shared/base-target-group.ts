@@ -373,22 +373,22 @@ export abstract class TargetGroupBase
       // Reverse CFN TargetGroupAttributes to Terraform Resource properties
       // https://github.com/hashicorp/terraform-provider-aws/blob/v5.88.0/internal/service/elbv2/target_group.go#L800
       // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-elasticloadbalancingv2-targetgroup-targetgroupattribute.html
-      deregistrationDelay: this.lazyStringLookup(
+      deregistrationDelay: this.lazyStringAttr(
         Attribute.deregistrationDelayTimeoutSeconds,
       ),
-      connectionTermination: this.lazyBoolLookup(
+      connectionTermination: this.lazyBoolAttr(
         Attribute.deregistrationDelayConnectionTerminationEnabled,
       ),
-      loadBalancingCrossZoneEnabled: this.lazyStringLookup(
+      loadBalancingCrossZoneEnabled: this.lazyStringAttr(
         Attribute.loadBalancingCrossZoneEnabled,
       ),
-      loadBalancingAlgorithmType: this.lazyStringLookup(
+      loadBalancingAlgorithmType: this.lazyStringAttr(
         Attribute.loadBalancingAlgorithmType,
       ),
-      loadBalancingAnomalyMitigation: this.lazyStringLookup(
+      loadBalancingAnomalyMitigation: this.lazyStringAttr(
         Attribute.loadBalancingAlgorithmAnomalyMitigation,
       ),
-      slowStart: this.lazyNumberLookup(Attribute.slowStartDurationSeconds),
+      slowStart: this.lazyNumberAttr(Attribute.slowStartDurationSeconds),
       stickiness: Lazy.anyValue({
         produce: (): tfTargetGroup.LbTargetGroupStickiness | undefined => {
           // possible values for ALB are `lb_cookie` or `app_cookie`
@@ -472,11 +472,9 @@ export abstract class TargetGroupBase
             : undefined;
         },
       }) as any,
-      preserveClientIp: this.lazyStringLookup(
-        Attribute.preserveClientIPEnabled,
-      ),
-      proxyProtocolV2: this.lazyBoolLookup(Attribute.proxyProtocolV2Enabled),
-      lambdaMultiValueHeadersEnabled: this.lazyBoolLookup(
+      preserveClientIp: this.lazyStringAttr(Attribute.preserveClientIPEnabled),
+      proxyProtocolV2: this.lazyBoolAttr(Attribute.proxyProtocolV2Enabled),
+      lambdaMultiValueHeadersEnabled: this.lazyBoolAttr(
         Attribute.lambdaMultiValueHeadersEnabled,
       ),
       targetHealthState: Lazy.anyValue({
@@ -675,19 +673,19 @@ export abstract class TargetGroupBase
     return ret;
   }
 
-  private lazyStringLookup(attribute: string) {
+  private lazyStringAttr(key: string) {
     return Lazy.stringValue({
-      produce: () => lookupStringAttribute(this.attributes, attribute),
+      produce: () => this.attributes[key],
     });
   }
-  private lazyBoolLookup(attribute: string) {
+  private lazyBoolAttr(key: string) {
     return Lazy.anyValue({
-      produce: () => lookupBoolAttribute(this.attributes, attribute),
+      produce: () => lookupBoolAttribute(this.attributes, key),
     });
   }
-  private lazyNumberLookup(attribute: string) {
+  private lazyNumberAttr(key: string) {
     return Lazy.numberValue({
-      produce: () => lookupNumberAttribute(this.attributes, attribute),
+      produce: () => lookupNumberAttribute(this.attributes, key),
     });
   }
 

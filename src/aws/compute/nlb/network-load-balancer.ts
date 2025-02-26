@@ -95,14 +95,16 @@ export interface NetworkLoadBalancerProps extends BaseLoadBalancerProps {
    */
   readonly zonalShift?: boolean;
 
-  /**
-   * Indicates whether to use an IPv6 prefix from each subnet for source NAT.
-   *
-   * The IP address type must be IpAddressType.DUALSTACK.
-   *
-   * @default undefined - NLB default behavior is false
-   */
-  readonly enablePrefixForIpv6SourceNat?: boolean;
+  // TODO: Missing in provider-aws
+  // https://github.com/hashicorp/terraform-provider-aws/issues/40379
+  // /**
+  //  * Indicates whether to use an IPv6 prefix from each subnet for source NAT.
+  //  *
+  //  * The IP address type must be IpAddressType.DUALSTACK.
+  //  *
+  //  * @default undefined - NLB default behavior is false
+  //  */
+  // readonly enablePrefixForIpv6SourceNat?: boolean;
 }
 
 /**
@@ -326,7 +328,9 @@ export class NetworkLoadBalancer
   public readonly connections: Connections;
   private readonly isSecurityGroupsPropertyDefined: boolean;
   private readonly _enforceSecurityGroupInboundRulesOnPrivateLinkTraffic?: boolean;
-  private enablePrefixForIpv6SourceNat?: boolean;
+  // TODO: Missing in provider-aws
+  // https://github.com/hashicorp/terraform-provider-aws/issues/40379
+  // private enablePrefixForIpv6SourceNat?: boolean;
 
   /**
    * After the implementation of `IConnectable` (see https://github.com/aws/aws-cdk/pull/28494), the default
@@ -343,22 +347,24 @@ export class NetworkLoadBalancer
 
   constructor(scope: Construct, id: string, props: NetworkLoadBalancerProps) {
     super(scope, id, props, {
-      type: "network",
+      loadBalancerType: "network",
       securityGroups: Lazy.listValue({ produce: () => this.securityGroups }),
       ipAddressType: props.ipAddressType,
       enforceSecurityGroupInboundRulesOnPrivateLinkTraffic: Lazy.stringValue({
         produce: () =>
           this.enforceSecurityGroupInboundRulesOnPrivateLinkTraffic,
       }),
-      enablePrefixForIpv6SourceNat:
-        props.enablePrefixForIpv6SourceNat === true
-          ? "on"
-          : props.enablePrefixForIpv6SourceNat === false
-            ? "off"
-            : undefined,
+      // TODO: Missing in provider-aws
+      // https://github.com/hashicorp/terraform-provider-aws/issues/40379
+      // enablePrefixForIpv6SourceNat:
+      //   props.enablePrefixForIpv6SourceNat === true
+      //     ? "on"
+      //     : props.enablePrefixForIpv6SourceNat === false
+      //       ? "off"
+      //       : undefined,
     });
 
-    this.enablePrefixForIpv6SourceNat = props.enablePrefixForIpv6SourceNat;
+    // this.enablePrefixForIpv6SourceNat = props.enablePrefixForIpv6SourceNat;
     this.metrics = new NetworkLoadBalancerMetrics(
       this,
       this.loadBalancerFullName,
@@ -410,12 +416,15 @@ export class NetworkLoadBalancer
       (props.protocol === LbProtocol.UDP ||
         props.protocol === LbProtocol.TCP_UDP) &&
       (this.ipAddressType === IpAddressType.DUAL_STACK ||
-        this.ipAddressType === IpAddressType.DUAL_STACK_WITHOUT_PUBLIC_IPV4) &&
-      this.enablePrefixForIpv6SourceNat !== true
+        this.ipAddressType === IpAddressType.DUAL_STACK_WITHOUT_PUBLIC_IPV4) // &&
+      // this.enablePrefixForIpv6SourceNat !== true
     ) {
       throw new Error(
-        "To add a listener with UDP protocol to a dual stack NLB, 'enablePrefixForIpv6SourceNat' must be set to true.",
+        "To add a listener with UDP protocol to a dual stack NLB, missing in terraform see: https://github.com/hashicorp/terraform-provider-aws/issues/40379.",
       );
+      // throw new Error(
+      //   "To add a listener with UDP protocol to a dual stack NLB, 'enablePrefixForIpv6SourceNat' must be set to true.",
+      // );
     }
     return new NetworkListener(this, id, {
       loadBalancer: this,

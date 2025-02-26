@@ -20,6 +20,13 @@ export function renderAttributes(attributes: Attributes) {
   return ret;
 }
 
+export function lookupStringAttribute(
+  attributes: Attributes,
+  key: string,
+): string | undefined {
+  return attributes[key];
+}
+
 export function lookupBoolAttribute(
   attributes: Attributes,
   key: string,
@@ -32,13 +39,6 @@ export function lookupNumberAttribute(
   key: string,
 ): number | undefined {
   return lookupAttribute(attributes, key, parseNumber);
-}
-
-export function lookupStringAttribute(
-  attributes: Attributes,
-  key: string,
-): string | undefined {
-  return lookupAttribute(attributes, key, (x) => x);
 }
 
 function lookupAttribute<T = string>(
@@ -184,7 +184,7 @@ export function parseTargetGroupFullName(arn: string): string {
 
 function parseBool(val: string | undefined): boolean | undefined {
   if (val === undefined) return undefined;
-  // TODO: error on invalid values
+  // TODO: error on invalid values?
   return val === "true";
 }
 
@@ -196,6 +196,7 @@ function parseNumber(val: string | undefined): number | undefined {
   }
   return num;
 }
+
 // See https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_TargetGroupAttribute.html#API_TargetGroupAttribute_Contents.
 // https://github.com/hashicorp/terraform-provider-aws/v5.88.0/main/internal/service/elbv2/const.go#L118
 export class TargetGroupAttribute {
@@ -246,7 +247,7 @@ export class TargetGroupAttribute {
 }
 
 // See https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html#API_LoadBalancerAttribute_Contents.
-//https://github.com/hashicorp/terraform-provider-aws/blob/main/internal/service/elbv2/const.go#L32
+// https://github.com/hashicorp/terraform-provider-aws/blob/main/internal/service/elbv2/const.go#L32
 export class LoadBalancerAttribute {
   // The following attributes are supported by all load balancers:
   static deletionProtectionEnabled = "deletion_protection.enabled";
@@ -282,4 +283,55 @@ export class LoadBalancerAttribute {
 
   // The following attributes are supported by only Network Load Balancers:
   static dNSRecordClientRoutingPolicy = "dns_record.client_routing_policy";
+}
+
+// https://github.com/hashicorp/terraform-provider-aws/blob/v5.88.0/internal/service/elbv2/listener.go#L880
+// see: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-elasticloadbalancingv2-listener-listenerattribute.html
+export class ListenerAttribute {
+  // Attribute only supported on TCP and GENEVE listeners.
+  static tcpIdleTimeoutSeconds = "tcp.idle_timeout.seconds";
+
+  // Attributes only supported on HTTPS listeners.
+  static routingHTTPRequestXAmznMtlsClientcertHeaderName =
+    "routing.http.request.x_amzn_mtls_clientcert.header_name";
+  static routingHTTPRequestXAmznMtlsClientcertIssuerHeaderName =
+    "routing.http.request.x_amzn_mtls_clientcert_issuer.header_name";
+  static routingHTTPRequestXAmznMtlsClientcertLeafHeaderName =
+    "routing.http.request.x_amzn_mtls_clientcert_leaf.header_name";
+  static routingHTTPRequestXAmznMtlsClientcertSerialNumberHeaderName =
+    "routing.http.request.x_amzn_mtls_clientcert_serial_number.header_name";
+  static routingHTTPRequestXAmznMtlsClientcertSubjectHeaderName =
+    "routing.http.request.x_amzn_mtls_clientcert_subject.header_name";
+  static routingHTTPRequestXAmznMtlsClientcertValidityHeaderName =
+    "routing.http.request.x_amzn_mtls_clientcert_validity.header_name";
+  static routingHTTPRequestXAmznTlsCipherSuiteHeaderName =
+    "routing.http.request.x_amzn_tls_cipher_suite.header_name";
+  static routingHTTPRequestXAmznTlsVersionHeaderName =
+    "routing.http.request.x_amzn_tls_version.header_name";
+
+  // Attributes only supported on HTTPS and HTTPS listeners.
+  static routingHTTPResponseAccessControlAllowCredentialsHeaderValue =
+    "routing.http.response.access_control_allow_credentials.header_value";
+  static routingHTTPResponseAccessControlAllowHeadersHeaderValue =
+    "routing.http.response.access_control_allow_headers.header_value";
+  static routingHTTPResponseAccessControlAllowMethodsHeaderValue =
+    "routing.http.response.access_control_allow_methods.header_value";
+  static routingHTTPResponseAccessControlAllowOriginHeaderValue =
+    "routing.http.response.access_control_allow_origin.header_value";
+
+  // Attributes only supported on HTTPS listeners.
+  static routingHTTPResponseAccessControlExposeHeadersHeaderValue =
+    "routing.http.response.access_control_expose_headers.header_value";
+  static routingHTTPResponseAccessControlMaxAgeHeaderValue =
+    "routing.http.response.access_control_max_age.header_value";
+  static routingHTTPResponseContentSecurityPolicyHeaderValue =
+    "routing.http.response.content_security_policy.header_value";
+  static routingHTTPResponseServerEnabled =
+    "routing.http.response.server.enabled";
+  static routingHTTPResponseStrictTransportSecurityHeaderValue =
+    "routing.http.response.strict_transport_security.header_value";
+  static routingHTTPResponseXContentTypeOptionsHeaderValue =
+    "routing.http.response.x_content_type_options.header_value";
+  static routingHTTPResponseXFrameOptionsHeaderValue =
+    "routing.http.response.x_frame_options.header_value";
 }

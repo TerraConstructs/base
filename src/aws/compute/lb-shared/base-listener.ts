@@ -12,11 +12,15 @@ import {
   LoadBalancerType,
   LoadBalancerListenerProtocol,
 } from "./grid-lookup-types";
+import { LbListenerConfig } from "./lb-listener-config.generated";
 import { IListenerAction } from "./listener-action";
 import {
   Attributes,
   // mapTagMapToCxschema,
-  renderAttributes,
+  // renderAttributes,
+  ListenerAttribute as Attribute,
+  lookupBoolAttribute,
+  lookupNumberAttribute,
 } from "./util";
 import { IAwsConstruct, AwsConstructBase } from "../../aws-construct";
 /**
@@ -172,18 +176,92 @@ export abstract class BaseListener
 
   private defaultAction?: IListenerAction;
 
-  constructor(scope: Construct, id: string, additionalProps: any) {
+  constructor(scope: Construct, id: string, additionalProps: LbListenerConfig) {
     super(scope, id);
 
     const resource = new tfListener.LbListener(this, "Resource", {
+      // Reverse CFN LoadBalancerAttributes to Terraform Resource properties
+      // https://github.com/hashicorp/terraform-provider-aws/blob/v5.88.0/internal/service/elbv2/listener.go#L880
+      // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-elasticloadbalancingv2-listener-listenerattribute.html
+      // notice: https://github.com/hashicorp/terraform-provider-aws/issues/40986
+      routingHttpRequestXAmznMtlsClientcertHeaderName: this.lazyStringAttr(
+        Attribute.routingHTTPRequestXAmznMtlsClientcertHeaderName,
+      ),
+      routingHttpRequestXAmznMtlsClientcertIssuerHeaderName:
+        this.lazyStringAttr(
+          Attribute.routingHTTPRequestXAmznMtlsClientcertIssuerHeaderName,
+        ),
+      routingHttpRequestXAmznMtlsClientcertLeafHeaderName: this.lazyStringAttr(
+        Attribute.routingHTTPRequestXAmznMtlsClientcertLeafHeaderName,
+      ),
+      routingHttpRequestXAmznMtlsClientcertSerialNumberHeaderName:
+        this.lazyStringAttr(
+          Attribute.routingHTTPRequestXAmznMtlsClientcertSerialNumberHeaderName,
+        ),
+      routingHttpRequestXAmznMtlsClientcertSubjectHeaderName:
+        this.lazyStringAttr(
+          Attribute.routingHTTPRequestXAmznMtlsClientcertSubjectHeaderName,
+        ),
+      routingHttpRequestXAmznMtlsClientcertValidityHeaderName:
+        this.lazyStringAttr(
+          Attribute.routingHTTPRequestXAmznMtlsClientcertValidityHeaderName,
+        ),
+      routingHttpRequestXAmznTlsCipherSuiteHeaderName: this.lazyStringAttr(
+        Attribute.routingHTTPRequestXAmznTlsCipherSuiteHeaderName,
+      ),
+      routingHttpRequestXAmznTlsVersionHeaderName: this.lazyStringAttr(
+        Attribute.routingHTTPRequestXAmznTlsVersionHeaderName,
+      ),
+      routingHttpResponseAccessControlAllowCredentialsHeaderValue:
+        this.lazyStringAttr(
+          Attribute.routingHTTPResponseAccessControlAllowCredentialsHeaderValue,
+        ),
+      routingHttpResponseAccessControlAllowHeadersHeaderValue:
+        this.lazyStringAttr(
+          Attribute.routingHTTPResponseAccessControlAllowHeadersHeaderValue,
+        ),
+      routingHttpResponseAccessControlAllowMethodsHeaderValue:
+        this.lazyStringAttr(
+          Attribute.routingHTTPResponseAccessControlAllowMethodsHeaderValue,
+        ),
+      routingHttpResponseAccessControlAllowOriginHeaderValue:
+        this.lazyStringAttr(
+          Attribute.routingHTTPResponseAccessControlAllowOriginHeaderValue,
+        ),
+      routingHttpResponseAccessControlExposeHeadersHeaderValue:
+        this.lazyStringAttr(
+          Attribute.routingHTTPResponseAccessControlExposeHeadersHeaderValue,
+        ),
+      routingHttpResponseAccessControlMaxAgeHeaderValue: this.lazyStringAttr(
+        Attribute.routingHTTPResponseAccessControlMaxAgeHeaderValue,
+      ),
+      routingHttpResponseContentSecurityPolicyHeaderValue: this.lazyStringAttr(
+        Attribute.routingHTTPResponseContentSecurityPolicyHeaderValue,
+      ),
+      routingHttpResponseServerEnabled: this.lazyBoolAttr(
+        Attribute.routingHTTPResponseServerEnabled,
+      ),
+      routingHttpResponseStrictTransportSecurityHeaderValue:
+        this.lazyStringAttr(
+          Attribute.routingHTTPResponseStrictTransportSecurityHeaderValue,
+        ),
+      routingHttpResponseXContentTypeOptionsHeaderValue: this.lazyStringAttr(
+        Attribute.routingHTTPResponseXContentTypeOptionsHeaderValue,
+      ),
+      routingHttpResponseXFrameOptionsHeaderValue: this.lazyStringAttr(
+        Attribute.routingHTTPResponseXFrameOptionsHeaderValue,
+      ),
+      tcpIdleTimeoutSeconds: this.lazyNumberAttr(
+        Attribute.tcpIdleTimeoutSeconds,
+      ),
       ...additionalProps,
-      defaultActions: Lazy.anyValue({
+      defaultAction: Lazy.anyValue({
         produce: () => this.defaultAction?.renderActions() ?? [],
       }),
-      listenerAttributes: Lazy.anyValue(
-        { produce: () => renderAttributes(this.attributes) },
-        { omitEmptyArray: true },
-      ),
+      // listenerAttributes: Lazy.anyValue(
+      //   { produce: () => renderAttributes(this.attributes) },
+      //   { omitEmptyArray: true },
+      // ),
     });
 
     this.listenerArn = resource.arn;
@@ -204,6 +282,22 @@ export abstract class BaseListener
    */
   public removeAttribute(key: string) {
     this.setAttribute(key, undefined);
+  }
+
+  private lazyStringAttr(key: string) {
+    return Lazy.stringValue({
+      produce: () => this.attributes[key],
+    });
+  }
+  private lazyBoolAttr(key: string) {
+    return Lazy.anyValue({
+      produce: () => lookupBoolAttribute(this.attributes, key),
+    });
+  }
+  private lazyNumberAttr(key: string) {
+    return Lazy.numberValue({
+      produce: () => lookupNumberAttribute(this.attributes, key),
+    });
   }
 
   /**

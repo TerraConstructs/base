@@ -359,7 +359,7 @@ export class ApplicationListenerRule extends Construct {
 
     this.configureAction(
       ListenerAction.fixedResponse(Token.asNumber(fixedResponse.statusCode), {
-        contentType: fixedResponse.contentType,
+        contentType: fixedResponse.contentType ?? ContentType.TEXT_PLAIN,
         messageBody: fixedResponse.messageBody,
       }),
     );

@@ -23,6 +23,7 @@
 /package.json linguist-generated
 /pnpm-lock.yaml linguist-generated
 /src/aws/compute/function-vpc-config.generated.ts linguist-generated
+/src/aws/compute/lb-shared/lb-listener-config.generated.ts linguist-generated
 /src/aws/iam/policy-document-config.generated.ts linguist-generated
 /src/aws/iam/policy-statement-props.generated.ts linguist-generated
 /src/aws/notify/queue-config.generated.ts linguist-generated

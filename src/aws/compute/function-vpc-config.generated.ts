@@ -11,17 +11,17 @@ import type { securityGroup } from '@cdktf/provider-aws';
  */
 export interface VpcConfig {
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/lambda_function#ipv6_allowed_for_dual_stack LambdaFunction#ipv6_allowed_for_dual_stack}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/resources/lambda_function#ipv6_allowed_for_dual_stack LambdaFunction#ipv6_allowed_for_dual_stack}.
    * @stability stable
    */
   readonly ipv6AllowedForDualStack?: boolean | IResolvable;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/lambda_function#subnet_ids LambdaFunction#subnet_ids}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/resources/lambda_function#subnet_ids LambdaFunction#subnet_ids}.
    * @stability stable
    */
   readonly subnetIds: Array<string>;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/lambda_function#security_group_ids LambdaFunction#security_group_ids}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/resources/lambda_function#security_group_ids LambdaFunction#security_group_ids}.
    * @default created
    * @stability stable
    */

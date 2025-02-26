@@ -57,24 +57,33 @@ export enum RevocationType {
   /**
    * A signed list of revoked certificates
    */
-  CRL = "CRL",
+  CRL = "CRL", // Only supported value
 }
 
 /**
  * A new Trust Store Revocation
  */
 export class TrustStoreRevocation extends AwsConstructBase {
+  public get outputs(): Record<string, any> {
+    return {
+      revocationIds: this.revocations.map((r) => r.revocationId),
+    };
+  }
+  private readonly revocations =
+    new Array<tfTrustStoreRevocation.LbTrustStoreRevocation>();
   constructor(scope: Construct, id: string, props: TrustStoreRevocationProps) {
     super(scope, id);
-
-    new tfTrustStoreRevocation.LbTrustStoreRevocation(this, "Resource", {
-      trustStoreArn: props.trustStore.trustStoreArn,
-      revocationContents: props.revocationContents?.map((content) => ({
-        revocationType: content.revocationType,
-        s3Bucket: content.bucket.bucketName,
-        s3Key: content.key,
-        s3ObjectVersion: content.version,
-      })),
+    props.revocationContents?.map((content) => {
+      this.revocations.push(
+        new tfTrustStoreRevocation.LbTrustStoreRevocation(this, "Resource", {
+          trustStoreArn: props.trustStore.trustStoreArn,
+          // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-elasticloadbalancingv2-truststorerevocation-revocationcontent.html
+          // revocationType: content.revocationType,
+          revocationsS3Bucket: content.bucket.bucketName,
+          revocationsS3Key: content.key,
+          revocationsS3ObjectVersion: content.version,
+        }),
+      );
     });
   }
 }

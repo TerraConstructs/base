@@ -25,6 +25,7 @@ import {
   BaseLoadBalancerLookupOptions,
   BaseLoadBalancerProps,
   ILoadBalancerV2,
+  LoadBalancerV2Outputs,
 } from "../lb-shared/base-load-balancer";
 import {
   IpAddressType,
@@ -218,7 +219,7 @@ export class ApplicationLoadBalancer
     props: ApplicationLoadBalancerProps,
   ) {
     super(scope, id, props, {
-      type: "application",
+      loadBalancerType: "application",
       securityGroups: Lazy.listValue({
         produce: () =>
           this.connections.securityGroups.map((sg) => sg.securityGroupId),
@@ -1371,6 +1372,15 @@ class ImportedApplicationLoadBalancer
   extends AwsConstructBase
   implements IApplicationLoadBalancer
 {
+  public get loadBalancerV2Outputs(): LoadBalancerV2Outputs {
+    return {
+      loadBalancerCanonicalHostedZoneId: this.loadBalancerCanonicalHostedZoneId,
+      loadBalancerDnsName: this.loadBalancerDnsName,
+    };
+  }
+  public get outputs(): Record<string, any> {
+    return this.loadBalancerV2Outputs;
+  }
   /**
    * Manage connections for this load balancer
    */
