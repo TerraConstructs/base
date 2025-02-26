@@ -1,6 +1,7 @@
 import { Construct } from "constructs";
 import { ArnFormat } from "./arn";
 import { AwsStack } from "./aws-stack";
+// import { TagManager, AwsTag } from "./tag-manager";
 import {
   TerraConstructBase,
   TerraConstructProps,
@@ -40,7 +41,7 @@ export interface AwsEnvironment {
  */
 export interface IAwsConstruct extends ITerraConstruct {
   /**
-   * The stack into which this resource is contructed by the TerraConstruct.
+   * The stack into which this resource is constructed by the TerraConstruct.
    */
   readonly stack: AwsStack;
 
@@ -54,6 +55,11 @@ export interface IAwsConstruct extends ITerraConstruct {
    * that might be different than the stack they were imported into.
    */
   readonly env: AwsEnvironment;
+
+  // /**
+  //  * Tag Manager which manages the tags for this resource
+  //  */
+  // readonly cdkTagManager: TagManager;
 }
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/resource.ts#L78
@@ -89,6 +95,26 @@ export interface AwsConstructProps extends TerraConstructProps {
   readonly environmentFromArn?: string;
 }
 
+// export enum TagType {
+//   /**
+//    * Standard tags are a list of { key, value } objects
+//    */
+//   STANDARD = "StandardTag",
+//   /**
+//    * ASG tags are a list of { key, value, propagateAtLaunch } objects
+//    */
+//   AUTOSCALING_GROUP = "AutoScalingGroupTag",
+//   /**
+//    * Some constructs use a { key: value } map for tags
+//    */
+//   MAP = "StringToStringMap",
+//   /**
+//    * StackTags are of the format { key: value }
+//    */
+//   KEY_VALUE = "KeyValue",
+//   NOT_TAGGABLE = "NotTaggable",
+// }
+
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/resource.ts#L122
 
 /**
@@ -100,6 +126,7 @@ export abstract class AwsConstructBase
 {
   public readonly stack: AwsStack;
   public readonly env: AwsEnvironment;
+  // public readonly cdkTagManager: TagManager;
 
   constructor(scope: Construct, id: string, props: AwsConstructProps = {}) {
     super(scope, id, props);
@@ -117,6 +144,11 @@ export abstract class AwsConstructBase
 
     this.stack = AwsStack.ofAwsConstruct(this);
 
+    // this.cdkTagManager = new TagManager(
+    //   TagType.STANDARD,
+    //   "AwsConstruct",
+    //   props.tags,
+    // );
     const parsedArn = props.environmentFromArn
       ? // Since we only want the region and account, NO_RESOURCE_NAME is good enough
         this.stack.splitArn(

@@ -262,7 +262,7 @@
           "exec": "pnpm i --no-frozen-lockfile"
         },
         {
-          "exec": "pnpm update @cdktf/provider-aws @cdktf/provider-time @jsii/spec @mrgrain/jsii-struct-builder @types/jest @types/mime-types @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser cdktf commit-and-tag-version constructs eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint-plugin-prettier eslint jest jest-junit jsii-diff jsii-pacmak jsii-rosetta jsii prettier projen ts-jest ts-node typescript change-case esbuild-wasm mime-types"
+          "exec": "pnpm update @cdktf/provider-aws @cdktf/provider-time @cdktf/provider-tls @jsii/spec @mrgrain/jsii-struct-builder @types/jest @types/mime-types @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser cdktf commit-and-tag-version constructs eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint-plugin-prettier eslint jest jest-junit jsii-diff jsii-pacmak jsii-rosetta jsii prettier projen ts-jest ts-node typescript change-case esbuild-wasm mime-types"
         },
         {
           "exec": "npx projen"

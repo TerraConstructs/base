@@ -193,7 +193,7 @@ export abstract class StackBase extends TerraformStack implements IStack {
    * @param options Options for defining the unique resource name
    * @returns a unique resource name based on the construct path
    */
-  private static uniqueResourceName(
+  public static uniqueResourceName(
     construct: IConstruct | Node,
     options: UniqueResourceNameOptions,
   ) {
