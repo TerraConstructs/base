@@ -6,6 +6,7 @@ import { ListenerAction } from "./application-listener-action";
 import { ApplicationListenerCertificate } from "./application-listener-certificate";
 import {
   ApplicationListenerRule,
+  ContentType,
   FixedResponse,
   RedirectResponse,
 } from "./application-listener-rule";
@@ -24,6 +25,7 @@ import {
   BaseListener,
   BaseListenerLookupOptions,
   IListener,
+  ListenerOutputs,
 } from "../lb-shared/base-listener";
 import { HealthCheck } from "../lb-shared/base-target-group";
 import {
@@ -33,10 +35,10 @@ import {
   IpAddressType,
   SslPolicy,
 } from "../lb-shared/enums";
-import {
-  LoadBalancerType,
-  LoadBalancerListenerProtocol,
-} from "../lb-shared/grid-lookup-types";
+// import {
+//   LoadBalancerType,
+//   LoadBalancerListenerProtocol,
+// } from "../lb-shared/grid-lookup-types";
 import {
   IListenerCertificate,
   ListenerCertificate,
@@ -44,6 +46,7 @@ import {
 import { determineProtocolAndPort } from "../lb-shared/util";
 import { Peer } from "../peer";
 import { Port } from "../port";
+import { ISecurityGroup } from "../security-group";
 
 /**
  * Basic properties for an ApplicationListener
@@ -133,6 +136,7 @@ export interface BaseApplicationListenerProps {
    * @default - No mutual authentication configuration
    *
    * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/mutual-authentication.html
+   * @see https://registry.terraform.io/providers/hashicorp/aws/5.87.0/docs/resources/lb_listener#mutual_authentication
    */
   readonly mutualAuthentication?: MutualAuthentication;
 }
@@ -225,39 +229,40 @@ export class ApplicationListener
   extends BaseListener
   implements IApplicationListener
 {
-  /**
-   * Look up an ApplicationListener.
-   */
-  public static fromLookup(
-    scope: Construct,
-    id: string,
-    options: ApplicationListenerLookupOptions,
-  ): IApplicationListener {
-    if (Token.isUnresolved(options.listenerArn)) {
-      throw new Error(
-        "All arguments to look up a load balancer listener must be concrete (no Tokens)",
-      );
-    }
+  // TODO: Add Grid Lookup support
+  // /**
+  //  * Look up an ApplicationListener.
+  //  */
+  // public static fromLookup(
+  //   scope: Construct,
+  //   id: string,
+  //   options: ApplicationListenerLookupOptions,
+  // ): IApplicationListener {
+  //   if (Token.isUnresolved(options.listenerArn)) {
+  //     throw new Error(
+  //       "All arguments to look up a load balancer listener must be concrete (no Tokens)",
+  //     );
+  //   }
 
-    let listenerProtocol: LoadBalancerListenerProtocol | undefined;
-    switch (options.listenerProtocol) {
-      case ApplicationProtocol.HTTP:
-        listenerProtocol = LoadBalancerListenerProtocol.HTTP;
-        break;
-      case ApplicationProtocol.HTTPS:
-        listenerProtocol = LoadBalancerListenerProtocol.HTTPS;
-        break;
-    }
+  //   let listenerProtocol: LoadBalancerListenerProtocol | undefined;
+  //   switch (options.listenerProtocol) {
+  //     case ApplicationProtocol.HTTP:
+  //       listenerProtocol = LoadBalancerListenerProtocol.HTTP;
+  //       break;
+  //     case ApplicationProtocol.HTTPS:
+  //       listenerProtocol = LoadBalancerListenerProtocol.HTTPS;
+  //       break;
+  //   }
 
-    const props = BaseListener._queryContextProvider(scope, {
-      userOptions: options,
-      loadBalancerType: LoadBalancerType.APPLICATION,
-      listenerArn: options.listenerArn,
-      listenerProtocol,
-    });
+  //   const props = BaseListener._queryContextProvider(scope, {
+  //     userOptions: options,
+  //     loadBalancerType: LoadBalancerType.APPLICATION,
+  //     listenerArn: options.listenerArn,
+  //     listenerProtocol,
+  //   });
 
-    return new LookedUpApplicationListener(scope, id, props);
-  }
+  //   return new LookedUpApplicationListener(scope, id, props);
+  // }
 
   /**
    * Import an existing listener
@@ -308,21 +313,23 @@ export class ApplicationListener
 
     super(scope, id, {
       loadBalancerArn: props.loadBalancer.loadBalancerArn,
-      certificates: Lazy.anyValue(
-        {
-          produce: () =>
-            this.certificateArns.map((certificateArn) => ({ certificateArn })),
-        },
-        { omitEmptyArray: true },
-      ),
+      certificateArn: Lazy.stringValue({
+        produce: () =>
+          this.certificateArns.length > 0 ? this.certificateArns[0] : undefined,
+      }),
       protocol,
       port,
       sslPolicy: props.sslPolicy,
+      // https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_listener#mutual_authentication
       mutualAuthentication: props.mutualAuthentication
         ? {
             ignoreClientCertificateExpiry:
               props.mutualAuthentication?.ignoreClientCertificateExpiry,
-            mode: props.mutualAuthentication?.mutualAuthenticationMode,
+            // CFN Default is off
+            // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-elasticloadbalancingv2-listener-mutualauthentication.html#cfn-elasticloadbalancingv2-listener-mutualauthentication-mode
+            mode:
+              props.mutualAuthentication?.mutualAuthenticationMode ??
+              MutualAuthenticationMode.OFF,
             trustStoreArn:
               props.mutualAuthentication?.trustStore?.trustStoreArn,
           }
@@ -368,13 +375,15 @@ export class ApplicationListener
         Peer.anyIpv4(),
         `Allow from anyone on port ${port}`,
       );
+      // When enabled, the default security group ingress rules will allow IPv6 ingress from anywhere
+      // recommendedValue: true
+      // FeatureFlags.of(this).isEnabled(
+      //   cxapi.ALB_DUALSTACK_WITHOUT_PUBLIC_IPV4_SECURITY_GROUP_RULES_DEFAULT,
+      // )
       if (
         this.loadBalancer.ipAddressType === IpAddressType.DUAL_STACK ||
-        (this.loadBalancer.ipAddressType ===
-          IpAddressType.DUAL_STACK_WITHOUT_PUBLIC_IPV4 &&
-          FeatureFlags.of(this).isEnabled(
-            cxapi.ALB_DUALSTACK_WITHOUT_PUBLIC_IPV4_SECURITY_GROUP_RULES_DEFAULT,
-          ))
+        this.loadBalancer.ipAddressType ===
+          IpAddressType.DUAL_STACK_WITHOUT_PUBLIC_IPV4
       ) {
         this.connections.allowDefaultPortFrom(
           Peer.anyIpv6(),
@@ -533,7 +542,7 @@ export class ApplicationListener
 
     const fixedResponse: FixedResponse = {
       statusCode: props.statusCode,
-      contentType: props.contentType,
+      contentType: props.contentType ?? ContentType.TEXT_PLAIN,
       messageBody: props.messageBody,
     };
 
@@ -563,7 +572,7 @@ export class ApplicationListener
     } else {
       this.setDefaultAction(
         ListenerAction.fixedResponse(Token.asNumber(props.statusCode), {
-          contentType: props.contentType,
+          contentType: props.contentType ?? ContentType.TEXT_PLAIN,
           messageBody: props.messageBody,
         }),
       );
@@ -771,6 +780,14 @@ abstract class ExternalApplicationListener
    * ARN of the listener
    */
   public abstract readonly listenerArn: string;
+  public get listenerOutputs(): ListenerOutputs {
+    return {
+      listenerArn: this.listenerArn,
+    };
+  }
+  public get outputs(): Record<string, any> {
+    return this.listenerOutputs;
+  }
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -917,32 +934,33 @@ class ImportedApplicationListener extends ExternalApplicationListener {
   }
 }
 
-class LookedUpApplicationListener extends ExternalApplicationListener {
-  public readonly listenerArn: string;
-  public readonly connections: Connections;
+// TODO: Add Grid Lookup support
+// class LookedUpApplicationListener extends ExternalApplicationListener {
+//   public readonly listenerArn: string;
+//   public readonly connections: Connections;
 
-  constructor(
-    scope: Construct,
-    id: string,
-    props: cxapi.LoadBalancerListenerContextResponse,
-  ) {
-    super(scope, id);
+//   constructor(
+//     scope: Construct,
+//     id: string,
+//     props: cxapi.LoadBalancerListenerContextResponse,
+//   ) {
+//     super(scope, id);
 
-    this.listenerArn = props.listenerArn;
-    this.connections = new Connections({
-      defaultPort: Port.tcp(props.listenerPort),
-    });
+//     this.listenerArn = props.listenerArn;
+//     this.connections = new Connections({
+//       defaultPort: Port.tcp(props.listenerPort),
+//     });
 
-    for (const securityGroupId of props.securityGroupIds) {
-      const securityGroup = SecurityGroup.fromLookupById(
-        this,
-        `SecurityGroup-${securityGroupId}`,
-        securityGroupId,
-      );
-      this.connections.addSecurityGroup(securityGroup);
-    }
-  }
-}
+//     for (const securityGroupId of props.securityGroupIds) {
+//       const securityGroup = SecurityGroup.fromLookupById(
+//         this,
+//         `SecurityGroup-${securityGroupId}`,
+//         securityGroupId,
+//       );
+//       this.connections.addSecurityGroup(securityGroup);
+//     }
+//   }
+// }
 
 /**
  * Properties for adding a conditional load balancing rule

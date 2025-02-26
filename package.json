@@ -33,7 +33,7 @@
     "organization": false
   },
   "devDependencies": {
-    "@cdktf/provider-aws": "19.34.0",
+    "@cdktf/provider-aws": "19.54.0",
     "@cdktf/provider-time": "10.2.1",
     "@cdktf/provider-tls": "10.0.1",
     "@jsii/spec": "^1.102.0",
@@ -64,7 +64,7 @@
     "typescript": "~5.4"
   },
   "peerDependencies": {
-    "@cdktf/provider-aws": "^19.34.0",
+    "@cdktf/provider-aws": "^19.54.0",
     "@cdktf/provider-time": "^10.2.1",
     "@cdktf/provider-tls": "10.0.1",
     "cdktf": "^0.20.8",

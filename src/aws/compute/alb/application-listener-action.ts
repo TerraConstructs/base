@@ -91,14 +91,14 @@ export class ListenerAction implements IListenerAction {
       targetGroups.map((g) => g.targetGroup),
       {
         type: "forward",
-        forwardConfig: {
-          targetGroups: targetGroups.map((g) => ({
-            targetGroupArn: g.targetGroup.targetGroupArn,
+        forward: {
+          targetGroup: targetGroups.map((g) => ({
+            arn: g.targetGroup.targetGroupArn,
             weight: g.weight,
           })),
-          targetGroupStickinessConfig: options.stickinessDuration
+          stickiness: options.stickinessDuration
             ? {
-                durationSeconds: options.stickinessDuration.toSeconds(),
+                duration: options.stickinessDuration.toSeconds(),
                 enabled: true,
               }
             : undefined,
@@ -114,11 +114,11 @@ export class ListenerAction implements IListenerAction {
    */
   public static fixedResponse(
     statusCode: number,
-    options: FixedResponseOptions = {},
+    options: FixedResponseOptions,
   ): ListenerAction {
     return new ListenerAction({
       type: "fixed-response",
-      fixedResponseConfig: {
+      fixedResponse: {
         statusCode: Tokenization.stringifyNumber(statusCode),
         contentType: options.contentType,
         messageBody: options.messageBody,
@@ -173,7 +173,7 @@ export class ListenerAction implements IListenerAction {
 
     return new ListenerAction({
       type: "redirect",
-      redirectConfig: {
+      redirect: {
         statusCode: options.permanent ? "HTTP_301" : "HTTP_302",
         host: options.host,
         path: options.path,
@@ -320,10 +320,15 @@ export interface FixedResponseOptions {
    * Content Type of the response
    *
    * Valid Values: text/plain | text/css | text/html | application/javascript | application/json
-   *
-   * @default - Automatically determined
    */
-  readonly contentType?: string;
+  readonly contentType: string;
+
+  // TODO: Automatically determine content type?
+  // * @default - Automatically determined
+  // Required in elbv2 - CreateRule - API Call
+  // https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_FixedResponseActionConfig.html
+  // Optional in CloudFormation resource
+  // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-elasticloadbalancingv2-listener-fixedresponseconfig.html#cfn-elasticloadbalancingv2-listener-fixedresponseconfig-contenttype
 
   /**
    * The response body
@@ -572,7 +577,7 @@ class AuthenticateOidcAction extends ListenerAction {
     super(
       {
         type: "authenticate-oidc",
-        authenticateOidcConfig: defaultActionConfig,
+        authenticateOidc: defaultActionConfig,
       },
       options.next,
     );
@@ -580,7 +585,7 @@ class AuthenticateOidcAction extends ListenerAction {
     this.allowHttpsOutbound = options.allowHttpsOutbound ?? true;
     this.addRuleAction({
       type: "authenticate-oidc",
-      authenticateOidcConfig: {
+      authenticateOidc: {
         ...defaultActionConfig,
         sessionTimeout: options.sessionTimeout?.toSeconds(),
       },

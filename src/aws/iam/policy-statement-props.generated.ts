@@ -6,34 +6,34 @@ import type { Condition, Effect, IPrincipal } from './';
  */
 export interface PolicyStatementProps {
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/data-sources/iam_policy_document#sid DataAwsIamPolicyDocument#sid}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#sid DataAwsIamPolicyDocument#sid}.
    * @stability stable
    */
   readonly sid?: string;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/data-sources/iam_policy_document#resources DataAwsIamPolicyDocument#resources}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#resources DataAwsIamPolicyDocument#resources}.
    * @stability stable
    */
   readonly resources?: Array<string>;
   /**
    * principals block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/data-sources/iam_policy_document#principals DataAwsIamPolicyDocument#principals}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#principals DataAwsIamPolicyDocument#principals}
    * @stability stable
    */
   readonly principals?: Array<IPrincipal>;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/data-sources/iam_policy_document#not_resources DataAwsIamPolicyDocument#not_resources}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#not_resources DataAwsIamPolicyDocument#not_resources}.
    * @stability stable
    */
   readonly notResources?: Array<string>;
   /**
    * not_principals block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/data-sources/iam_policy_document#not_principals DataAwsIamPolicyDocument#not_principals}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#not_principals DataAwsIamPolicyDocument#not_principals}
    * @stability stable
    */
   readonly notPrincipals?: Array<IPrincipal>;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/data-sources/iam_policy_document#not_actions DataAwsIamPolicyDocument#not_actions}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#not_actions DataAwsIamPolicyDocument#not_actions}.
    * @stability stable
    */
   readonly notActions?: Array<string>;
@@ -45,12 +45,12 @@ export interface PolicyStatementProps {
   readonly effect?: Effect;
   /**
    * condition block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/data-sources/iam_policy_document#condition DataAwsIamPolicyDocument#condition}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#condition DataAwsIamPolicyDocument#condition}
    * @stability stable
    */
   readonly condition?: Array<Condition>;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/data-sources/iam_policy_document#actions DataAwsIamPolicyDocument#actions}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#actions DataAwsIamPolicyDocument#actions}.
    * @stability stable
    */
   readonly actions?: Array<string>;

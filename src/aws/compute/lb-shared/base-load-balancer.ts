@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/shared/base-load-balancer.ts
 
-import { lb as tfLoadBalancer, LbConfig } from "@cdktf/provider-aws";
+import { lb as tfLoadBalancer } from "@cdktf/provider-aws";
 import {
   TerraformResource,
   // ContextProvider,
@@ -16,7 +16,6 @@ import {
   LoadBalancerAttribute as Attribute,
   lookupBoolAttribute,
   lookupNumberAttribute,
-  lookupStringAttribute,
   // mapTagMapToCxschema,
   // renderAttributes,
 } from "./util";
@@ -329,12 +328,92 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
     const resource = new tfLoadBalancer.Lb(this, "Resource", {
       name: this.physicalName,
       subnets: subnetIds,
-      internal: !internetFacing,
-      clientKeepAlive: this.lazyNumberLookup(Attribute.clientKeepAliveSeconds),
+      internal: !internetFacing, // AWS CDK "Scheme"
+      // Reverse CFN LoadBalancerAttributes to Terraform Resource properties
+      // https://github.com/hashicorp/terraform-provider-aws/blob/v5.88.0/internal/service/elbv2/load_balancer.go#L718
+      // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-elasticloadbalancingv2-loadbalancer-loadbalancerattribute.html
+      clientKeepAlive: this.lazyNumberAttr(Attribute.clientKeepAliveSeconds),
       // customerOwnedIpv4Pool [Application Load Balancers on Outposts]
-      desyncMitigationMode: this.lazyStringLookup(
+      desyncMitigationMode: this.lazyStringAttr(
         Attribute.routingHTTPDesyncMitigationMode,
       ),
+      dnsRecordClientRoutingPolicy: this.lazyStringAttr(
+        Attribute.dNSRecordClientRoutingPolicy,
+      ),
+      dropInvalidHeaderFields: this.lazyBoolAttr(
+        Attribute.routingHTTPDropInvalidHeaderFieldsEnabled,
+      ),
+      enableCrossZoneLoadBalancing: this.lazyBoolAttr(
+        Attribute.loadBalancingCrossZoneEnabled,
+      ),
+      enableDeletionProtection: this.lazyBoolAttr(
+        Attribute.deletionProtectionEnabled,
+      ),
+      enableHttp2: this.lazyBoolAttr(Attribute.routingHTTP2Enabled),
+      enableTlsVersionAndCipherSuiteHeaders: this.lazyBoolAttr(
+        Attribute.routingHTTPXAmznTLSVersionAndCipherSuiteEnabled,
+      ),
+      enableWafFailOpen: this.lazyBoolAttr(Attribute.wAFFailOpenEnabled),
+      enableXffClientPort: this.lazyBoolAttr(
+        Attribute.routingHTTPXFFClientPortEnabled,
+      ),
+      // enforceSecurityGroupInboundRulesOnPrivateLinkTraffic,
+      // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html#cfn-elasticloadbalancingv2-loadbalancer-enforcesecuritygroupinboundrulesonprivatelinktraffic
+      idleTimeout: this.lazyNumberAttr(Attribute.idleTimeoutTimeoutSeconds),
+      // ipAddressType
+      // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html#cfn-elasticloadbalancingv2-loadbalancer-ipaddresstype
+      preserveHostHeader: this.lazyBoolAttr(
+        Attribute.routingHTTPPreserveHostHeaderEnabled,
+      ),
+      xffHeaderProcessingMode: this.lazyStringAttr(
+        Attribute.routingHTTPXFFHeaderProcessingMode,
+      ),
+      accessLogs: Lazy.anyValue({
+        produce: (): tfLoadBalancer.LbAccessLogs | undefined => {
+          const enabled = lookupBoolAttribute(
+            this.attributes,
+            Attribute.accessLogsS3Enabled,
+          );
+          if (enabled) {
+            const bucket = this.attributes[Attribute.accessLogsS3Bucket];
+            if (!bucket) {
+              throw new Error(
+                "Access logs are enabled, but no bucket was provided.",
+              );
+            }
+            return {
+              enabled,
+              bucket,
+              prefix: this.attributes[Attribute.accessLogsS3Prefix],
+            };
+          }
+          return undefined;
+        },
+      }) as any,
+      connectionLogs: Lazy.anyValue({
+        produce: (): tfLoadBalancer.LbConnectionLogs | undefined => {
+          const enabled = lookupBoolAttribute(
+            this.attributes,
+            Attribute.connectionLogsS3Enabled,
+          );
+          if (enabled) {
+            const bucket = this.attributes[Attribute.connectionLogsS3Bucket];
+            if (!bucket) {
+              throw new Error(
+                "Connection logs are enabled, but no bucket was provided.",
+              );
+            }
+            return {
+              enabled,
+              bucket,
+              prefix: this.attributes[Attribute.connectionLogsS3Prefix],
+            };
+          }
+          return undefined;
+        },
+      }) as any,
+      //subnetMappings
+      // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html#cfn-elasticloadbalancingv2-loadbalancer-subnetmappings
       ...additionalProps,
     });
     if (internetFacing) {
@@ -462,19 +541,19 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
     this.setAttribute(key, undefined);
   }
 
-  private lazyStringLookup(attribute: string) {
+  private lazyStringAttr(key: string) {
     return Lazy.stringValue({
-      produce: () => lookupStringAttribute(this.attributes, attribute),
+      produce: () => this.attributes[key],
     });
   }
-  private lazyBoolLookup(attribute: string) {
+  private lazyBoolAttr(key: string) {
     return Lazy.anyValue({
-      produce: () => lookupBoolAttribute(this.attributes, attribute),
+      produce: () => lookupBoolAttribute(this.attributes, key),
     });
   }
-  private lazyNumberLookup(attribute: string) {
+  private lazyNumberAttr(key: string) {
     return Lazy.numberValue({
-      produce: () => lookupNumberAttribute(this.attributes, attribute),
+      produce: () => lookupNumberAttribute(this.attributes, key),
     });
   }
 

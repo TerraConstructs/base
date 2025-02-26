@@ -8,37 +8,37 @@ import type { provider } from '@cdktf/provider-aws';
 export interface AwsProviderConfig {
   /**
    * Resolve an endpoint with FIPS capability.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#use_fips_endpoint AwsProvider#use_fips_endpoint}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#use_fips_endpoint AwsProvider#use_fips_endpoint}
    * @stability stable
    */
   readonly useFipsEndpoint?: boolean | IResolvable;
   /**
    * Resolve an endpoint with DualStack capability.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#use_dualstack_endpoint AwsProvider#use_dualstack_endpoint}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#use_dualstack_endpoint AwsProvider#use_dualstack_endpoint}
    * @stability stable
    */
   readonly useDualstackEndpoint?: boolean | IResolvable;
   /**
    * The capacity of the AWS SDK's token bucket rate limiter.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#token_bucket_rate_limiter_capacity AwsProvider#token_bucket_rate_limiter_capacity}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#token_bucket_rate_limiter_capacity AwsProvider#token_bucket_rate_limiter_capacity}
    * @stability stable
    */
   readonly tokenBucketRateLimiterCapacity?: number;
   /**
    * session token. A session token is only required if you are using temporary security credentials.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#token AwsProvider#token}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#token AwsProvider#token}
    * @stability stable
    */
   readonly token?: string;
   /**
    * The region where AWS STS operations will take place. Examples are us-east-1 and us-west-2.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#sts_region AwsProvider#sts_region}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#sts_region AwsProvider#sts_region}
    * @stability stable
    */
   readonly stsRegion?: string;
   /**
    * Skip requesting the account ID. Used for AWS API implementations that do not have IAM/STS API and/or metadata API.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#skip_requesting_account_id AwsProvider#skip_requesting_account_id}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#skip_requesting_account_id AwsProvider#skip_requesting_account_id}
    * @stability stable
    */
   readonly skipRequestingAccountId?: boolean | IResolvable;
@@ -46,43 +46,43 @@ export interface AwsProviderConfig {
    * Skip static validation of region name.
    * Used by users of alternative AWS-like APIs or users w/ access to regions that are not public (yet).
    *
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#skip_region_validation AwsProvider#skip_region_validation}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#skip_region_validation AwsProvider#skip_region_validation}
    * @stability stable
    */
   readonly skipRegionValidation?: boolean | IResolvable;
   /**
    * Skip the AWS Metadata API check. Used for AWS API implementations that do not have a metadata api endpoint.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#skip_metadata_api_check AwsProvider#skip_metadata_api_check}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#skip_metadata_api_check AwsProvider#skip_metadata_api_check}
    * @stability stable
    */
   readonly skipMetadataApiCheck?: string;
   /**
    * Skip the credentials validation via STS API. Used for AWS API implementations that do not have STS available/implemented.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#skip_credentials_validation AwsProvider#skip_credentials_validation}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#skip_credentials_validation AwsProvider#skip_credentials_validation}
    * @stability stable
    */
   readonly skipCredentialsValidation?: boolean | IResolvable;
   /**
    * List of paths to shared credentials files. If not set, defaults to [~/.aws/credentials].
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#shared_credentials_files AwsProvider#shared_credentials_files}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#shared_credentials_files AwsProvider#shared_credentials_files}
    * @stability stable
    */
   readonly sharedCredentialsFiles?: Array<string>;
   /**
    * List of paths to shared config files. If not set, defaults to [~/.aws/config].
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#shared_config_files AwsProvider#shared_config_files}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#shared_config_files AwsProvider#shared_config_files}
    * @stability stable
    */
   readonly sharedConfigFiles?: Array<string>;
   /**
    * The secret key for API operations. You can retrieve this from the 'Security & Credentials' section of the AWS console.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#secret_key AwsProvider#secret_key}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#secret_key AwsProvider#secret_key}
    * @stability stable
    */
   readonly secretKey?: string;
   /**
    * Set this to true to enable the request to use path-style addressing, i.e., https://s3.amazonaws.com/BUCKET/KEY. By default, the S3 client will use virtual hosted bucket addressing when possible (https://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#s3_use_path_style AwsProvider#s3_use_path_style}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#s3_use_path_style AwsProvider#s3_use_path_style}
    * @stability stable
    */
   readonly s3UsePathStyle?: boolean | IResolvable;
@@ -90,7 +90,7 @@ export interface AwsProviderConfig {
    * Specifies whether S3 API calls in the `us-east-1` region use the legacy global endpoint or a regional endpoint.
    * Valid values are `legacy` or `regional`. Can also be configured using the `AWS_S3_US_EAST_1_REGIONAL_ENDPOINT` environment variable or the `s3_us_east_1_regional_endpoint` shared config file parameter
    *
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#s3_us_east_1_regional_endpoint AwsProvider#s3_us_east_1_regional_endpoint}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#s3_us_east_1_regional_endpoint AwsProvider#s3_us_east_1_regional_endpoint}
    * @stability stable
    */
   readonly s3UsEast1RegionalEndpoint?: string;
@@ -98,19 +98,19 @@ export interface AwsProviderConfig {
    * Specifies how retries are attempted.
    * Valid values are `standard` and `adaptive`. Can also be configured using the `AWS_RETRY_MODE` environment variable.
    *
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#retry_mode AwsProvider#retry_mode}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#retry_mode AwsProvider#retry_mode}
    * @stability stable
    */
   readonly retryMode?: string;
   /**
    * The region where AWS operations will take place. Examples are us-east-1, us-west-2, etc.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#region AwsProvider#region}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#region AwsProvider#region}
    * @stability stable
    */
   readonly region?: string;
   /**
    * The profile for API operations. If not set, the default profile created with `aws configure` will be used.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#profile AwsProvider#profile}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#profile AwsProvider#profile}
    * @stability stable
    */
   readonly profile?: string;
@@ -118,7 +118,7 @@ export interface AwsProviderConfig {
    * Comma-separated list of hosts that should not use HTTP or HTTPS proxies.
    * Can also be set using the `NO_PROXY` or `no_proxy` environment variables.
    *
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#no_proxy AwsProvider#no_proxy}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#no_proxy AwsProvider#no_proxy}
    * @stability stable
    */
   readonly noProxy?: string;
@@ -127,19 +127,19 @@ export interface AwsProviderConfig {
    * If the API request still fails, an error is
    * thrown.
    *
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#max_retries AwsProvider#max_retries}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#max_retries AwsProvider#max_retries}
    * @stability stable
    */
   readonly maxRetries?: number;
   /**
    * Explicitly allow the provider to perform "insecure" SSL requests. If omitted, default value is `false`.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#insecure AwsProvider#insecure}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#insecure AwsProvider#insecure}
    * @stability stable
    */
   readonly insecure?: boolean | IResolvable;
   /**
    * ignore_tags block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#ignore_tags AwsProvider#ignore_tags}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#ignore_tags AwsProvider#ignore_tags}
    * @stability stable
    */
   readonly ignoreTags?: IResolvable | Array<provider.AwsProviderIgnoreTags>;
@@ -147,7 +147,7 @@ export interface AwsProviderConfig {
    * URL of a proxy to use for HTTPS requests when accessing the AWS API.
    * Can also be set using the `HTTPS_PROXY` or `https_proxy` environment variables.
    *
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#https_proxy AwsProvider#https_proxy}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#https_proxy AwsProvider#https_proxy}
    * @stability stable
    */
   readonly httpsProxy?: string;
@@ -155,36 +155,36 @@ export interface AwsProviderConfig {
    * URL of a proxy to use for HTTP requests when accessing the AWS API.
    * Can also be set using the `HTTP_PROXY` or `http_proxy` environment variables.
    *
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#http_proxy AwsProvider#http_proxy}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#http_proxy AwsProvider#http_proxy}
    * @stability stable
    */
   readonly httpProxy?: string;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#forbidden_account_ids AwsProvider#forbidden_account_ids}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#forbidden_account_ids AwsProvider#forbidden_account_ids}.
    * @stability stable
    */
   readonly forbiddenAccountIds?: Array<string>;
   /**
    * endpoints block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#endpoints AwsProvider#endpoints}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#endpoints AwsProvider#endpoints}
    * @stability stable
    */
   readonly endpoints?: IResolvable | Array<provider.AwsProviderEndpoints>;
   /**
    * Protocol to use with EC2 metadata service endpoint.Valid values are `IPv4` and `IPv6`. Can also be configured using the `AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE` environment variable.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#ec2_metadata_service_endpoint_mode AwsProvider#ec2_metadata_service_endpoint_mode}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#ec2_metadata_service_endpoint_mode AwsProvider#ec2_metadata_service_endpoint_mode}
    * @stability stable
    */
   readonly ec2MetadataServiceEndpointMode?: string;
   /**
    * Address of the EC2 metadata service endpoint to use. Can also be configured using the `AWS_EC2_METADATA_SERVICE_ENDPOINT` environment variable.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#ec2_metadata_service_endpoint AwsProvider#ec2_metadata_service_endpoint}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#ec2_metadata_service_endpoint AwsProvider#ec2_metadata_service_endpoint}
    * @stability stable
    */
   readonly ec2MetadataServiceEndpoint?: string;
   /**
    * default_tags block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#default_tags AwsProvider#default_tags}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#default_tags AwsProvider#default_tags}
    * @stability stable
    */
   readonly defaultTags?: IResolvable | Array<provider.AwsProviderDefaultTags>;
@@ -192,30 +192,30 @@ export interface AwsProviderConfig {
    * File containing custom root and intermediate certificates.
    * Can also be configured using the `AWS_CA_BUNDLE` environment variable. (Setting `ca_bundle` in the shared config file is not supported.)
    *
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#custom_ca_bundle AwsProvider#custom_ca_bundle}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#custom_ca_bundle AwsProvider#custom_ca_bundle}
    * @stability stable
    */
   readonly customCaBundle?: string;
   /**
    * assume_role_with_web_identity block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#assume_role_with_web_identity AwsProvider#assume_role_with_web_identity}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#assume_role_with_web_identity AwsProvider#assume_role_with_web_identity}
    * @stability stable
    */
   readonly assumeRoleWithWebIdentity?: IResolvable | Array<provider.AwsProviderAssumeRoleWithWebIdentity>;
   /**
    * assume_role block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#assume_role AwsProvider#assume_role}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#assume_role AwsProvider#assume_role}
    * @stability stable
    */
   readonly assumeRole?: IResolvable | Array<provider.AwsProviderAssumeRole>;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#allowed_account_ids AwsProvider#allowed_account_ids}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#allowed_account_ids AwsProvider#allowed_account_ids}.
    * @stability stable
    */
   readonly allowedAccountIds?: Array<string>;
   /**
    * The access key for API operations. You can retrieve this from the 'Security & Credentials' section of the AWS console.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs#access_key AwsProvider#access_key}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs#access_key AwsProvider#access_key}
    * @stability stable
    */
   readonly accessKey?: string;

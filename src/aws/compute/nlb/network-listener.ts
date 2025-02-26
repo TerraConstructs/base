@@ -208,6 +208,8 @@ export class NetworkListener extends BaseListener implements INetworkListener {
 
   /**
    * ARNs of certificates added to this listener
+   *
+   * The first certificate is used as the default certificate.
    */
   private readonly certificateArns: string[];
 
@@ -249,14 +251,11 @@ export class NetworkListener extends BaseListener implements INetworkListener {
       protocol: proto,
       port: props.port,
       sslPolicy: props.sslPolicy,
-      certificates: Lazy.anyValue(
-        {
-          produce: () =>
-            this.certificateArns.map((certificateArn) => ({ certificateArn })),
-        },
-        { omitEmptyArray: true },
-      ),
-      alpnPolicy: props.alpnPolicy ? [props.alpnPolicy] : undefined,
+      certificateArn: Lazy.stringValue({
+        produce: () =>
+          this.certificateArns.length > 0 ? this.certificateArns[0] : undefined,
+      }),
+      alpnPolicy: props.alpnPolicy ? props.alpnPolicy : undefined,
     });
 
     this.certificateArns = [];

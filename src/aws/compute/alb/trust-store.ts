@@ -12,9 +12,28 @@ import { AwsStack } from "../../aws-stack";
 import { IBucket } from "../../storage";
 
 /**
+ * Outputs which may be registered for output via the Grid.
+ */
+export interface TrustStoreOutputs {
+  /**
+   * The name of the trust store
+   * @attribute
+   */
+  readonly trustStoreName: string;
+
+  /**
+   * The ARN of the trust store
+   * @attribute
+   */
+  readonly trustStoreArn: string;
+}
+
+/**
  * Represents a Trust Store
  */
 export interface ITrustStore extends IAwsConstruct {
+  /** Strongly typed outputs */
+  readonly trustStoreOutputs: TrustStoreOutputs;
   /**
    * The name of the trust store
    * @attribute
@@ -75,10 +94,29 @@ export class TrustStore extends AwsConstructBase implements ITrustStore {
     const trustStoreName = Fn.element(resourceParts, 0);
 
     class Import extends AwsConstructBase implements ITrustStore {
+      public get trustStoreOutputs(): TrustStoreOutputs {
+        return {
+          trustStoreName: this.trustStoreName,
+          trustStoreArn: this.trustStoreArn,
+        };
+      }
+      public get outputs(): Record<string, any> {
+        return this.trustStoreOutputs;
+      }
       public readonly trustStoreArn = trustStoreArn;
       public readonly trustStoreName = trustStoreName;
     }
     return new Import(scope, id);
+  }
+
+  public get trustStoreOutputs(): TrustStoreOutputs {
+    return {
+      trustStoreName: this.trustStoreName,
+      trustStoreArn: this.trustStoreArn,
+    };
+  }
+  public get outputs(): Record<string, any> {
+    return this.trustStoreOutputs;
   }
 
   /**
