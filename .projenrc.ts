@@ -41,12 +41,14 @@ const project = new cdk.JsiiProject({
     "cdktf@^0.20.8",
     "@cdktf/provider-aws@^19.34.0",
     "@cdktf/provider-time@^10.2.1",
+    "@cdktf/provider-tls@10.0.1",
     "constructs@^10.3.0",
   ],
   devDeps: [
     "cdktf@^0.20.8",
     "@cdktf/provider-aws@^19.34.0",
     "@cdktf/provider-time@^10.2.1",
+    "@cdktf/provider-tls@10.0.1",
     "constructs@^10.3.0",
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
@@ -101,6 +103,8 @@ const project = new cdk.JsiiProject({
   // disable autoMerge for now
   autoMerge: false,
 });
+
+project.prettier?.addIgnorePattern("*.generated.ts");
 
 project.gitignore.exclude(".env");
 

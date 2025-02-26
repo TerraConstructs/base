@@ -35,6 +35,7 @@
   "devDependencies": {
     "@cdktf/provider-aws": "19.34.0",
     "@cdktf/provider-time": "10.2.1",
+    "@cdktf/provider-tls": "10.0.1",
     "@jsii/spec": "^1.102.0",
     "@mrgrain/jsii-struct-builder": "^0.7.43",
     "@types/jest": "^29.5.13",
@@ -65,6 +66,7 @@
   "peerDependencies": {
     "@cdktf/provider-aws": "^19.34.0",
     "@cdktf/provider-time": "^10.2.1",
+    "@cdktf/provider-tls": "10.0.1",
     "cdktf": "^0.20.8",
     "constructs": "^10.3.0"
   },

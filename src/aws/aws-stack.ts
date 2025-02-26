@@ -19,6 +19,8 @@ import { Arn, ArnComponents, ArnFormat } from "./arn";
 import { AwsProviderConfig } from "./provider-config.generated";
 import { SKIP_DEPENDENCY_PROPAGATION } from "../private/terraform-dependables-aspect";
 import { StackBaseProps, StackBase, IStack } from "../stack-base";
+// import { TagType } from "./aws-construct";
+// import { TagManager, ITaggableV2 } from "./tag-manager";
 
 const AWS_STACK_SYMBOL = Symbol.for("terraconstructs/lib/aws.AwsStack");
 
@@ -29,6 +31,7 @@ export interface AwsStackProps extends StackBaseProps {
   readonly providerConfig: AwsProviderConfig;
 }
 
+// TODO: Re-add ITaggableV2
 export interface IAwsStack extends IStack {
   /**
    * The AWS Region for the TerraConstruct
@@ -100,6 +103,11 @@ export class AwsStack extends StackBase implements IAwsStack {
     );
   }
 
+  // /**
+  //  * Tags to be applied to the stack.
+  //  */
+  // public readonly cdkTagManager: TagManager;
+
   private readonly lookup: AwsLookup;
   private regionalAwsProviders: { [region: string]: provider.AwsProvider } = {};
 
@@ -121,12 +129,16 @@ export class AwsStack extends StackBase implements IAwsStack {
 
   constructor(scope: Construct, id: string, props: AwsStackProps) {
     super(scope, id, props);
+    // this.cdkTagManager = new TagManager(
+    //   TagType.KEY_VALUE,
+    //   "cdktf:stack",
+    //   props.providerConfig.defaultTags,
+    // );
     this.lookup = {
-      awsProvider: new provider.AwsProvider(
-        this,
-        "defaultAwsProvider",
-        props.providerConfig,
-      ),
+      awsProvider: new provider.AwsProvider(this, "defaultAwsProvider", {
+        // defaultTags: this.cdkTagManager.renderedTags,
+        ...props.providerConfig,
+      }),
       dataAwsServicePrincipals: {},
     };
     // these should never depend on anything (HACK to avoid cycles)
@@ -413,18 +425,21 @@ export class AwsStack extends StackBase implements IAwsStack {
   }
 
   /**
-   * Returns a Token as List of AZ names that are available in the stack's
+   * Returns a List of Tokens for AZ names available in the stack's
    * AWS environment (account/region).
    *
-   * The list is slized by `maxCount` which defaults to 2.
-   *
-   * Note: Must use `Fn.element` to access the AZ names.
+   * The list length is `maxCount` which defaults to 2.
    *
    * @param maxCount the maximum number of AZs to return
    */
   public availabilityZones(maxCount: number = 2): string[] {
+    // TODO: Implement ContextProvider
     const azs = this.dataAwsAvailabilityZones;
-    return Token.asList(Fn.slice(azs.names, 0, maxCount));
+    const azLookups = [];
+    for (let i = 0; i < maxCount; i++) {
+      azLookups.push(Fn.element(azs.names, i));
+    }
+    return azLookups;
   }
 
   // /**

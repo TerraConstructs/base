@@ -42,12 +42,14 @@ export interface ITerraConstruct extends IConstruct {
   readonly outputs: Record<string, any>;
 }
 
-type TaggableConstruct = IConstruct & {
+// TODO: this is aws specific, should be moved to aws module
+export type TaggableConstruct = TerraformResource & {
   tags?: { [key: string]: string };
   tagsInput?: { [key: string]: string };
 };
 
-function isTaggableConstruct(x: IConstruct): x is TaggableConstruct {
+// TODO: this is aws specific, should be moved to aws module
+export function isTaggableConstruct(x: IConstruct): x is TaggableConstruct {
   return (
     TerraformResource.isTerraformResource(x) && "tags" in x && "tagsInput" in x
   );

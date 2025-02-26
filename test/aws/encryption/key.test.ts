@@ -3,7 +3,7 @@
 import { kmsKey, dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
 import { App, Testing, TerraformOutput, Fn } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsStack } from "../../../src/aws";
+import { AwsStack, Tags } from "../../../src/aws";
 import { IKey, Key, KeySpec, KeyUsage } from "../../../src/aws/encryption/key";
 import * as iam from "../../../src/aws/iam";
 import { Duration } from "../../../src/duration";
@@ -1093,16 +1093,16 @@ describe("key", () => {
   });
 
   test("with some options", () => {
-    new Key(stack, "MyKey", {
+    const key = new Key(stack, "MyKey", {
       enableKeyRotation: true,
       enabled: false,
       pendingWindow: Duration.days(7),
       rotationPeriod: Duration.days(180),
     });
 
-    // cdk.Tags.of(key).add("tag1", "value1");
-    // cdk.Tags.of(key).add("tag2", "value2");
-    // cdk.Tags.of(key).add("tag3", "");
+    Tags.of(key).add("tag1", "value1");
+    Tags.of(key).add("tag2", "value2");
+    Tags.of(key).add("tag3", "");
 
     Template.synth(stack).toHaveResourceWithProperties(kmsKey.KmsKey, {
       deletion_window_in_days: 7,
@@ -1110,6 +1110,11 @@ describe("key", () => {
       is_enabled: false,
       policy: "${data.aws_iam_policy_document.MyKey_Policy_A23B479B.json}",
       rotation_period_in_days: 180,
+      tags: {
+        tag1: "value1",
+        tag2: "value2",
+        tag3: "",
+      },
     });
 
     // Template.fromStack(stack).hasResourceProperties("AWS::KMS::Key", {
