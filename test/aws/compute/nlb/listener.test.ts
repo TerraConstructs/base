@@ -10,10 +10,10 @@ import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
+import { InstanceTarget } from "../../../../src/aws/compute/lb-shared/load-balancer-targets";
 import { NetworkListenerAction } from "../../../../src/aws/compute/nlb/network-listener-action";
 import { NetworkLoadBalancer } from "../../../../src/aws/compute/nlb/network-load-balancer";
 import { NetworkTargetGroup } from "../../../../src/aws/compute/nlb/network-target-group";
-import { InstanceTarget } from "../../../../src/aws/compute/lb-shared/load-balancer-targets";
 
 import * as edge from "../../../../src/aws/edge";
 import { Template } from "../../../assertions";
