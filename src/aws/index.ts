@@ -1,7 +1,10 @@
 // core
+// export * from "./tag-aspect";
+// export * from "./tag-manager";
 export * from "./arn";
 export * from "./aws-construct";
 export * from "./aws-stack";
+export * from "./aws-tags";
 export * from "./log-retention";
 
 // core JSII compatible generated interfaces

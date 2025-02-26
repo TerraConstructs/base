@@ -48,6 +48,12 @@ export class Template {
     return expect(synthesized);
   }
 
+  static expectStacksEqual(stack1: TerraformStack, stack2: TerraformStack) {
+    const synth1 = Template.getSynthString(stack1);
+    const synth2 = Template.getSynthString(stack2);
+    expect(synth1).toEqual(synth2);
+  }
+
   /**
    * Create Jest Matchers for stack resources of a specific type
    *
@@ -60,16 +66,29 @@ export class Template {
     type: TerraformConstructor,
     options: SynthOptions = {},
   ) {
-    const synthesized = Template.getSynthString(stack, options);
-    const parsed = JSON.parse(synthesized);
-    const resources = parsed.resource
-      ? Object.values(parsed.resource[type.tfResourceType] ?? {})
-      : [];
-    return expect(resources);
+    const resourceObjects = Template.resourceObjects(stack, type, options);
+    return expect(Object.values(resourceObjects));
   }
 
   /**
    * Create Jest Matchers for stack resources of a specific type
+   *
+   * This always runs TerraformStack.prepareStack() as this
+   * library heavily depends on it for pre-synth resource
+   * generation.
+   */
+  static resourceObjects(
+    stack: TerraformStack,
+    type: TerraformConstructor,
+    options: SynthOptions = {},
+  ) {
+    const synthesized = Template.getSynthString(stack, options);
+    const parsed = JSON.parse(synthesized);
+    return parsed.resource ? (parsed.resource[type.tfResourceType] ?? {}) : {};
+  }
+
+  /**
+   * Create Jest Matchers for stack outputs of a specific type
    *
    * This always runs TerraformStack.prepareStack() as this
    * library heavily depends on it for pre-synth resource
@@ -86,6 +105,26 @@ export class Template {
       ? Object.values(parsed.data[type.tfResourceType] ?? {})
       : [];
     return expect(dataSources);
+  }
+
+  /**
+   * Create Jest Matchers for a specific stack output or
+   * throw an error if the output is not found
+   *
+   * This always runs TerraformStack.prepareStack() as this
+   * library heavily depends on it for pre-synth resource
+   * generation.
+   */
+  static expectOutput(
+    stack: TerraformStack,
+    outputName: string,
+    options: SynthOptions = {},
+  ) {
+    const synthesized = Template.getSynthString(stack, options);
+    const parsed = JSON.parse(synthesized);
+    expect(parsed.output).toHaveProperty(outputName);
+    expect(parsed.output[outputName]).toBeDefined();
+    return expect(parsed.output[outputName]);
   }
 
   private static getSynthString(
@@ -153,6 +192,26 @@ export class Annotations {
       return expect.objectContaining(transformed);
     });
     expect(this.warnings).toEqual(expect.arrayContaining(warningMatchers));
+  }
+
+  /**
+   * check if the stack has an error for certain context path and message
+   */
+  public hasErrors(...expectedErrors: Array<Partial<StackAnnotationMatcher>>) {
+    const errorMatchers = expectedErrors.map((error) => {
+      const transformed: Partial<StackAnnotationMatcher> = {};
+      for (const key in error) {
+        const value = error[key as keyof StackAnnotationMatcher];
+        if (value instanceof RegExp) {
+          transformed[key as keyof StackAnnotationMatcher] =
+            expect.stringMatching(value);
+        } else {
+          transformed[key as keyof StackAnnotationMatcher] = value;
+        }
+      }
+      return expect.objectContaining(transformed);
+    });
+    expect(this.errors).toEqual(expect.arrayContaining(errorMatchers));
   }
 }
 

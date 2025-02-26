@@ -1,4 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-stepfunctions/lib/types.ts
+
 import { Chain } from "./chain";
 import { Duration } from "../..";
 import { State } from "./states/state";

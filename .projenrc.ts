@@ -8,6 +8,7 @@ import {
   SqsQueueConfigStructBuilder,
   PolicyDocumentStatementStructBuilder,
   PolicyDocumentConfigStructBuilder,
+  LbListenerConfigStructBuilder,
 } from "./projenrc";
 
 // set strict node version compatible with webcontainers.io
@@ -39,14 +40,16 @@ const project = new cdk.JsiiProject({
   // cdktf construct lib config
   peerDeps: [
     "cdktf@^0.20.8",
-    "@cdktf/provider-aws@^19.34.0",
+    "@cdktf/provider-aws@^19.54.0",
     "@cdktf/provider-time@^10.2.1",
+    "@cdktf/provider-tls@10.0.1",
     "constructs@^10.3.0",
   ],
   devDeps: [
     "cdktf@^0.20.8",
-    "@cdktf/provider-aws@^19.34.0",
+    "@cdktf/provider-aws@^19.54.0",
     "@cdktf/provider-time@^10.2.1",
+    "@cdktf/provider-tls@10.0.1",
     "constructs@^10.3.0",
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
@@ -102,6 +105,8 @@ const project = new cdk.JsiiProject({
   autoMerge: false,
 });
 
+project.prettier?.addIgnorePattern("*.generated.ts");
+
 project.gitignore.exclude(".env");
 
 // exclude the integration tests from the npm package
@@ -132,5 +137,6 @@ new S3BucketWebsiteConfigurationConfigStructBuilder(project);
 new S3BucketCorsConfigurationConfigStructBuilder(project);
 new S3BucketLifecycleConfigurationRuleStructBuilder(project);
 new SqsQueueConfigStructBuilder(project);
+new LbListenerConfigStructBuilder(project);
 
 project.synth();

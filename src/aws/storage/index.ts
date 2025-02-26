@@ -5,6 +5,7 @@ export * from "./bucket-source";
 export * from "./bucket";
 export * from "./util";
 export * from "./origin-access-identity";
+export * from "./parameter";
 
 export * as targets from "./notification-targets";
 

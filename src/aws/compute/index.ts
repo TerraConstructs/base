@@ -42,6 +42,72 @@ export * from "./states/map-base";
 export * from "./states/task-base";
 export * from "./task-credentials";
 
+// ec2
+export * from "./aspects";
+export * from "./bastion-host";
+export * from "./connections";
+export * from "./ec2-augmentations.generated";
+export * from "./ec2-canned-metrics.generated";
+// export * from "./cfn-init";
+// export * from "./cfn-init-elements";
+export * from "./instance-types";
+export * from "./instance";
+export * from "./launch-template";
+export * from "./machine-image";
+export * from "./nat";
+export * from "./network-acl";
+export * from "./network-acl-types";
+export * from "./port";
+export * from "./prefix-list";
+export * from "./security-group";
+export * from "./subnet";
+export * from "./peer";
+export * from "./volume";
+export * from "./vpc";
+export * from "./vpc-lookup";
+export * from "./vpn";
+export * from "./vpc-endpoint";
+export * from "./vpc-endpoint-service";
+export * from "./user-data";
+export * from "./windows-versions";
+export * from "./vpc-flow-logs";
+export * from "./client-vpn-endpoint-types";
+export * from "./client-vpn-endpoint";
+export * from "./client-vpn-authorization-rule";
+export * from "./client-vpn-route";
+export * from "./ip-addresses";
+export * from "./machine-image";
+export * from "./placement-group";
+export * from "./key-pair";
+// ec2-alpha
+export * as alpha from "./index-alpha";
+
+// elasticloadbalancing
+export * from "./load-balancer";
+// elasticloadbalancingv2
+export * from "./alb/application-listener";
+export * from "./alb/application-listener-certificate";
+export * from "./alb/application-listener-rule";
+export * from "./alb/application-load-balancer";
+export * from "./alb/application-target-group";
+export * from "./alb/application-listener-action";
+export * from "./alb/conditions";
+export * from "./alb/trust-store";
+export * from "./alb/trust-store-revocation";
+
+export * from "./nlb/network-listener";
+export * from "./nlb/network-load-balancer";
+export * from "./nlb/network-target-group";
+export * from "./nlb/network-listener-action";
+
+export * from "./lb-shared/base-listener";
+export * from "./lb-shared/base-load-balancer";
+export * from "./lb-shared/base-target-group";
+export * from "./lb-shared/enums";
+export * from "./lb-shared/load-balancer-targets";
+export * from "./lb-shared/listener-certificate";
+export * from "./lb-shared/listener-action";
+
 export * as sources from "./event-sources";
 export * as destinations from "./function-destinations";
 export * as tasks from "./tasks"; // State Machine Tasks

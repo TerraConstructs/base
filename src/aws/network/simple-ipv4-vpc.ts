@@ -80,7 +80,7 @@ export class SimpleIPv4Vpc extends AwsConstructBase implements INetwork {
   private readonly natGateways: natGateway.NatGateway[] = [];
   private readonly privateRouteTables: routeTable.RouteTable[] = [];
   private readonly azCount: number;
-  private readonly availabilityZones: string[]; // Token as StringList
+  private readonly availabilityZones: string[];
   private readonly vpc: vpc.Vpc;
   public get vpcId(): string {
     return this.vpc.id;
@@ -223,7 +223,7 @@ export class SimpleIPv4Vpc extends AwsConstructBase implements INetwork {
       const createNatGateway =
         this.natGatewayOption !== NatGatewayOption.SINGLE_NAT_GATEWAY ||
         i === 0;
-      const availabilityZone = Fn.element(this.availabilityZones, i);
+      const availabilityZone = this.availabilityZones[i];
       const publicSubnet = new PublicSubnet(this, `PublicSubnet${i}`, {
         vpc: this.vpc,
         availabilityZone,
@@ -263,7 +263,7 @@ export class SimpleIPv4Vpc extends AwsConstructBase implements INetwork {
 
   private createPrivateSubnets(privateIpv4CidrBlock: string) {
     for (let i = 0; i < this.azCount; i++) {
-      const availabilityZone = Fn.element(this.availabilityZones, i);
+      const availabilityZone = this.availabilityZones[i];
       const rtbIdx = this.privateRouteTables.length >= this.azCount ? i : 0;
       const privateSubnet = new PrivateSubnet(this, `PrivateSubnet${i}`, {
         vpc: this.vpc,
@@ -283,7 +283,7 @@ export class SimpleIPv4Vpc extends AwsConstructBase implements INetwork {
 
   private createDataSubnets(dataIpv4CidrBlock: string) {
     for (let i = 0; i < this.azCount; i++) {
-      const availabilityZone = Fn.element(this.availabilityZones, i);
+      const availabilityZone = this.availabilityZones[i];
       const rtbIdx = this.privateRouteTables.length >= this.azCount ? i : 0;
       const dataSubnet = new DataSubnet(this, `DataSubnet${i}`, {
         vpc: this.vpc,
