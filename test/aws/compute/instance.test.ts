@@ -1069,32 +1069,50 @@ test("associate public IP address with instance", () => {
   // THEN
   const template = Template.synth(stack);
   template.toHaveResourceWithProperties(tfNetworkInterface.NetworkInterface, {
-    security_groups: "aws_security_group.SecurityGroupDD263621.id",
+    security_groups: ["${aws_security_group.SecurityGroup_DD263621.id}"],
     // [
     //   {
     //     "Fn::GetAtt": ["SecurityGroupDD263621", "GroupId"],
     //   },
     // ],
-    subnet_id: "aws_subnet.VPCPublicSubnet1SubnetB4246D30.id",
+    subnet_id: "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
     // {
     //   Ref: "VPCPublicSubnet1SubnetB4246D30",
     // },
-    depends_on: [
-      "InstanceInstanceRoleE9785DE5",
-      "VPCPublicSubnet1DefaultRoute91CEF279",
-      "VPCPublicSubnet1RouteTableAssociation0B0896DC",
-      "VPCPublicSubnet2DefaultRouteB7481BBA",
-      "VPCPublicSubnet2RouteTableAssociation5A808732",
-    ],
+    // // NOTE: AWSCDK only adds deps on Instance no network interface
+    // // to add deps on network interface, call
+    // // this.primaryNetworkInterface.node.addDependency(internetConnected);
+    // depends_on: [
+    //   "InstanceInstanceRoleE9785DE5",
+    //   "VPCPublicSubnet1DefaultRoute91CEF279",
+    //   "VPCPublicSubnet1RouteTableAssociation0B0896DC",
+    //   "VPCPublicSubnet2DefaultRouteB7481BBA",
+    //   "VPCPublicSubnet2RouteTableAssociation5A808732",
+    // ],
   });
   template.toHaveResourceWithProperties(tfInstance.Instance, {
     associate_public_ip_address: true,
     network_interface: [
       {
-        device_index: "0",
+        device_index: 0,
         network_interface_id:
-          "${aws_network_interface.InstanceNetworkInterface.id}",
+          "${aws_network_interface.Instance_NetworkInterface_96CFD750.id}",
       },
+    ],
+    depends_on: [
+      // "InstanceInstanceRoleE9785DE5",
+      "data.aws_iam_policy_document.Instance_InstanceRole_AssumeRolePolicy_5AE9180F",
+      "aws_iam_role.Instance_InstanceRole_E9785DE5",
+      // "VPCPublicSubnet1RouteTableAssociation0B0896DC",
+      "aws_route_table_association.VPC_PublicSubnet1_RouteTableAssociation_0B0896DC",
+      // "VPCPublicSubnet1DefaultRoute91CEF279",
+      "aws_route.VPC_PublicSubnet1_DefaultRoute_91CEF279",
+      // "VPCPublicSubnet2RouteTableAssociation5A808732",
+      "aws_route_table_association.VPC_PublicSubnet2_RouteTableAssociation_5A808732",
+      // "VPCPublicSubnet2DefaultRouteB7481BBA",
+      "aws_route.VPC_PublicSubnet2_DefaultRoute_B7481BBA",
+      "aws_route_table_association.VPC_PublicSubnet3_RouteTableAssociation_427FE0C6",
+      "aws_route.VPC_PublicSubnet3_DefaultRoute_A0D29D46",
     ],
   });
 });
@@ -1117,13 +1135,13 @@ test("do not associate public IP address with instance", () => {
   // THEN
   const template = Template.synth(stack);
   template.toHaveResourceWithProperties(tfNetworkInterface.NetworkInterface, {
-    security_groups: "aws_security_group.SecurityGroupDD263621.id",
+    security_groups: ["${aws_security_group.SecurityGroup_DD263621.id}"],
     // [
     //   {
     //     "Fn::GetAtt": ["SecurityGroupDD263621", "GroupId"],
     //   },
     // ],
-    subnet_id: "aws_subnet.VPCPublicSubnet1SubnetB4246D30.id",
+    subnet_id: "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
     // {
     //   Ref: "VPCPublicSubnet1SubnetB4246D30",
     // },
@@ -1132,9 +1150,9 @@ test("do not associate public IP address with instance", () => {
     associate_public_ip_address: false,
     network_interface: [
       {
-        device_index: "0",
+        device_index: 0,
         network_interface_id:
-          "${aws_network_interface.InstanceNetworkInterface.id}",
+          "${aws_network_interface.Instance_NetworkInterface_96CFD750.id}",
       },
     ],
   });
@@ -1201,7 +1219,9 @@ test.each([
 
   // THEN
   Template.synth(stack).toHaveResourceWithProperties(tfInstance.Instance, {
-    enclave_options: expected,
+    enclave_options: {
+      enabled: expected,
+    },
   });
 });
 

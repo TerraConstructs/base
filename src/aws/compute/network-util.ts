@@ -1,5 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/network-util.ts
 
+// TODO: Fix duplicates from https://github.com/aws/aws-cdk/blob/v2.175.1/packages/@aws-cdk/aws-ec2-alpha/lib/util.ts
+// classes overlap and seem identical: CidrBlock, NetworkUtils in ./util.ts
+
 /**
  * InvalidCidrRangeError is thrown when attempting to perform operations on a CIDR
  * range that is either not valid, or outside of the VPC size limits.

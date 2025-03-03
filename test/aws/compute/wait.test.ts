@@ -1,7 +1,7 @@
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { render } from "./private/render-util";
-import { AwsStack } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import { Pass, Wait, WaitTime } from "../../../src/aws/compute";
 import { Duration } from "../../../src/duration";
 

@@ -17,7 +17,7 @@ import {
  * If you register a target of this type, you are responsible for making
  * sure the load balancer's security group can connect to the instance.
  *
- * @deprecated Use IpTarget from the aws-cdk-lib/aws-elasticloadbalancingv2-targets package instead.
+ * @deprecated Use IpTarget from the compute/lb-targets instead.
  */
 export class InstanceTarget
   implements IApplicationLoadBalancerTarget, INetworkLoadBalancerTarget

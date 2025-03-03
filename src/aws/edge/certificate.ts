@@ -1,6 +1,9 @@
+// https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-certificatemanager/lib/certificate.ts
+
 import {
   acmCertificate,
   acmCertificateValidation,
+  dataAwsAcmCertificate,
   // route53Record,
 } from "@cdktf/provider-aws";
 import {
@@ -11,12 +14,10 @@ import {
 } from "cdktf";
 import { Construct } from "constructs";
 import { IDnsZone, RecordSet, RecordTarget, RecordType } from ".";
+import { CertificateBase } from "./certificate-base";
 import { Duration } from "../../duration";
-import {
-  AwsConstructBase,
-  IAwsConstruct,
-  AwsConstructProps,
-} from "../aws-construct";
+import { IAwsConstruct, AwsConstructProps } from "../aws-construct";
+import * as cloudwatch from "../cloudwatch";
 
 export interface CertificateOutputs {
   /**
@@ -51,10 +52,21 @@ export interface ICertificate extends IAwsConstruct {
    * Domain name of the certificate.
    */
   readonly domainName: string;
+
   /**
    * The ARN of the certificate.
    */
   readonly certificateArn: string;
+
+  /**
+   * Return the DaysToExpiry metric for this AWS Certificate Manager
+   * Certificate. By default, this is the minimum value over 1 day.
+   *
+   * This metric is no longer emitted once the certificate has effectively
+   * expired, so alarms configured on this metric should probably treat missing
+   * data as "breaching".
+   */
+  metricDaysToExpiry(props?: cloudwatch.MetricOptions): cloudwatch.Metric;
 }
 
 export interface PublicCertificateProps extends AwsConstructProps {
@@ -121,11 +133,69 @@ export interface CertificateValidationOption {
 /**
  * Amazon issued certificate
  */
-export class PublicCertificate
-  extends AwsConstructBase
-  implements ICertificate
-{
-  // TODO: Add static fromLookup?
+export class PublicCertificate extends CertificateBase implements ICertificate {
+  /**
+   * Import a certificate
+   */
+  public static fromDomainName(
+    scope: Construct,
+    id: string,
+    domain: string,
+  ): ICertificate {
+    class Import extends CertificateBase {
+      public readonly domainName = domain;
+      public readonly certificateArn: string;
+      public readonly certificateOutputs: CertificateOutputs;
+      public get outputs(): Record<string, any> {
+        return this.certificateOutputs;
+      }
+      constructor() {
+        super(scope, id);
+        const lookup = new dataAwsAcmCertificate.DataAwsAcmCertificate(
+          this,
+          "Resource",
+          {
+            domain,
+          },
+        );
+        this.certificateArn = lookup.arn;
+        this.certificateOutputs = {
+          arn: lookup.arn,
+          status: lookup.status,
+        };
+      }
+    }
+
+    return new Import();
+  }
+  /**
+   * Import a certificate from ARN
+   *
+   * Terraform provider aws does not support importing certificates by ARN
+   */
+  public static fromCertificateArn(
+    scope: Construct,
+    id: string,
+    certificateArn: string,
+  ): ICertificate {
+    class Import extends CertificateBase {
+      public readonly certificateArn = certificateArn;
+      public get domainName(): string {
+        throw new Error("Cannot access domainName of an imported certificate");
+      }
+      public get certificateOutputs(): CertificateOutputs {
+        return {
+          arn: certificateArn,
+          status: "UNKNOWN",
+        };
+      }
+      public get outputs(): Record<string, any> {
+        return this.certificateOutputs;
+      }
+    }
+
+    return new Import(scope, id);
+  }
   resource: acmCertificate.AcmCertificate;
 
   private readonly _outputs: CertificateOutputs;

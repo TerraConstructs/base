@@ -295,6 +295,8 @@ export class S3Origin implements IOrigin {
   }
 }
 
+// https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-cloudfront-origins/lib/s3-origin.ts#L51
+
 /**
  * An Origin specific to a S3 bucket (not configured for website hosting).
  *
@@ -308,7 +310,8 @@ class S3BucketOrigin extends OriginBase {
     super(bucket.bucketOutputs.regionalDomainName, props);
     if (!this.bucket.bucketOutputs.originAccessIdentity) {
       throw new Error(
-        "The bucket must have an origin access identity to be used as a CloudFront origin.",
+        "The bucket must have an origin access identity to be used as a CloudFront origin. " +
+          "If the bucket is imported, you must include the originaccess identity in the import options.",
       );
     }
   }

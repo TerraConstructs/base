@@ -2,7 +2,11 @@ import * as fs from "fs";
 import { iamSamlProvider } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
-import { IAwsConstruct, AwsConstructBase, AwsConstructProps } from "../";
+import {
+  IAwsConstruct,
+  AwsConstructBase,
+  AwsConstructProps,
+} from "../aws-construct";
 
 export interface SamlProviderOutputs {
   /**

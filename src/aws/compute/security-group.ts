@@ -153,7 +153,7 @@ abstract class SecurityGroupBase
     // Skip duplicates
     if (scope.node.tryFindChild(id) === undefined) {
       new vpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule(scope, id, {
-        groupId: this.securityGroupId,
+        securityGroupId: this.securityGroupId,
         ...peer.toIngressRuleConfig(),
         ...connection.toRuleJson(),
         description,
@@ -650,11 +650,21 @@ export class SecurityGroup extends SecurityGroupBase {
       name: groupName,
       description: groupDescription,
       ingress: Lazy.anyValue(
-        { produce: () => this.directIngressRules },
+        {
+          produce: () =>
+            this.directIngressRules.map(
+              securityGroup.securityGroupIngressToTerraform,
+            ),
+        },
         { omitEmptyArray: true },
       ),
       egress: Lazy.anyValue(
-        { produce: () => this.directEgressRules },
+        {
+          produce: () =>
+            this.directEgressRules.map(
+              securityGroup.securityGroupEgressToTerraform,
+            ),
+        },
         { omitEmptyArray: true },
       ),
       vpcId: props.vpc.vpcId,

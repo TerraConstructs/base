@@ -409,7 +409,10 @@ export class Port {
       [Protocol.IPTM]: "84",
     };
     return {
+      // tf provider ingress and egress rule use `ipProtocol`
       ipProtocol: PROTOCOL_MAP[this.props.protocol] ?? this.props.protocol,
+      // tf provider direct rule and generic rule use `protocol`
+      protocol: PROTOCOL_MAP[this.props.protocol] ?? this.props.protocol,
       fromPort: this.props.fromPort,
       toPort: this.props.toPort,
     };

@@ -357,6 +357,7 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
       enableXffClientPort: this.lazyBoolAttr(
         Attribute.routingHTTPXFFClientPortEnabled,
       ),
+      enableZonalShift: this.lazyBoolAttr(Attribute.zonalShiftConfigEnabled),
       // enforceSecurityGroupInboundRulesOnPrivateLinkTraffic,
       // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html#cfn-elasticloadbalancingv2-loadbalancer-enforcesecuritygroupinboundrulesonprivatelinktraffic
       idleTimeout: this.lazyNumberAttr(Attribute.idleTimeoutTimeoutSeconds),

@@ -9,10 +9,10 @@ import {
 } from "cdktf";
 import { Construct } from "constructs";
 import { Connections, IConnectable } from "./connections";
+import { allRouteTableIds, flatten } from "./ec2-util";
 import { Peer } from "./peer";
 import { Port } from "./port";
 import { ISecurityGroup, SecurityGroup } from "./security-group";
-import { allRouteTableIds, flatten } from "./util";
 import { ISubnet, IVpc, SubnetSelection } from "./vpc";
 import {
   IAwsConstruct,

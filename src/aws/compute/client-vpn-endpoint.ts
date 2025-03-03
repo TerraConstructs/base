@@ -334,7 +334,7 @@ export class ClientVpnEndpoint
   }
 
   public readonly endpointId: string;
-  public readonly SelfServicePortalUrl?: string;
+  public readonly selfServicePortalUrl?: string;
 
   /**
    * Allows specify security group connections for the endpoint.
@@ -348,7 +348,7 @@ export class ClientVpnEndpoint
   public get clientVpnOutputs(): ClientVpnOutputs {
     return {
       clientVpnEndpointId: this.endpointId,
-      SelfServicePortalUrl: this.SelfServicePortalUrl,
+      selfServicePortalUrl: this.selfServicePortalUrl,
     };
   }
   public get outputs(): Record<string, any> {
@@ -454,7 +454,7 @@ export class ClientVpnEndpoint
 
     if (props.userBasedAuthentication && (props.selfServicePortal ?? true)) {
       // Output self-service portal URL
-      this.SelfServicePortalUrl = this.resource.selfServicePortalUrl;
+      this.selfServicePortalUrl = this.resource.selfServicePortalUrl;
       // new TerraformOutput(this, "SelfServicePortalUrl", {
       //   value: `https://self-service.clientvpn.amazonaws.com/endpoints/${this.endpointId}`,
       // });

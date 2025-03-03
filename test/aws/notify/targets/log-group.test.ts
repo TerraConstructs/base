@@ -8,7 +8,7 @@ import {
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { Duration } from "../../../../src//duration";
-import { AwsStack } from "../../../../src/aws";
+import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as logs from "../../../../src/aws/cloudwatch";
 import * as notify from "../../../../src/aws/notify/";
 import * as targets from "../../../../src/aws/notify/targets";

@@ -23,7 +23,7 @@ import {
 import { FunctionUrl, FunctionUrlOptions } from "./function-url";
 import { VpcConfig } from "./function-vpc-config.generated";
 import { addAlias } from "./util";
-import { Duration } from "../../";
+import { Duration } from "../../duration";
 import * as iam from "../iam";
 import { IQueue, Queue } from "../notify";
 

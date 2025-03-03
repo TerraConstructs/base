@@ -38,7 +38,8 @@ describe("parameterstore", () => {
 
     // THEN
     expect(stack.resolve(ref.stringValue)).toEqual(
-      "{{resolve:ssm:/some/key:123}}",
+      // "{{resolve:ssm:/some/key:123}}",
+      "${data.aws_ssm_parameter.RefParameter.insecure_value}",
     );
   });
 
@@ -49,17 +50,19 @@ describe("parameterstore", () => {
     });
 
     // THEN
-    Template.fromStack(stack, { snapshot: true });
-    // templateMatches({
-    //   Parameters: {
-    //     RefParameter: {
-    //       Type: "AWS::SSM::Parameter::Value<String>",
-    //       Default: "/some/key",
-    //     },
-    //   },
-    // });
+    Template.fromStack(stack).toMatchObject({
+      data: {
+        aws_ssm_parameter: {
+          RefParameter: {
+            name: "/some/key",
+          },
+        },
+      },
+    });
 
-    expect(stack.resolve(ref.stringValue)).toEqual({ Ref: "RefParameter" });
+    expect(stack.resolve(ref.stringValue)).toEqual(
+      "${data.aws_ssm_parameter.RefParameter.insecure_value}",
+    );
   });
 
   test("can reference SSMPS secure string", () => {
@@ -74,7 +77,10 @@ describe("parameterstore", () => {
     ).stringValue;
 
     // THEN
-    expect(stack.resolve(ref)).toEqual("{{resolve:ssm-secure:/some/key:123}}");
+    expect(stack.resolve(ref)).toEqual(
+      // "{{resolve:ssm-secure:/some/key:123}}"
+      "${data.aws_ssm_parameter.RefParameter.insecure_value}",
+    );
   });
 
   test("empty parameterName will throw", () => {

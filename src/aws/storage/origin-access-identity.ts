@@ -1,10 +1,16 @@
+// https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-cloudfront/lib/origin-access-identity.ts
+
 import {
   cloudfrontOriginAccessIdentity,
   dataAwsCloudfrontOriginAccessIdentity,
 } from "@cdktf/provider-aws";
 import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
-import { AwsConstructBase, IAwsConstruct, AwsConstructProps } from "..";
+import {
+  AwsConstructBase,
+  IAwsConstruct,
+  AwsConstructProps,
+} from "../aws-construct";
 import { ArnPrincipal, IPrincipal, IGrantable } from "../iam";
 
 // TODO: migrate to OAC

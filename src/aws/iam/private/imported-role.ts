@@ -1,7 +1,7 @@
 import { Annotations } from "cdktf";
 import { Construct } from "constructs";
-import { AwsConstructBase } from "../..";
 import { TokenComparison, tokenCompareStrings } from "../../../token";
+import { AwsConstructBase } from "../../aws-construct";
 import { Grant } from "../grant";
 import { IManagedPolicy } from "../managed-policy";
 import { Policy, IPolicy } from "../policy";

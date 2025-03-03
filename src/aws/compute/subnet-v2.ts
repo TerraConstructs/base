@@ -15,8 +15,8 @@ import {
   INetworkAcl,
 } from "./network-acl";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
+import { CidrBlock, CidrBlockIpv6 } from "./ec2-util-v2";
 import { RouteTable } from "./route";
-import { CidrBlock, CidrBlockIpv6 } from "./util";
 import { IRouteTable, ISubnet, SubnetOutputs, SubnetType } from "./vpc";
 import { IVpcV2 } from "./vpc-v2-base";
 import { AwsStack } from "../aws-stack";

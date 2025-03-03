@@ -1,5 +1,6 @@
 import { Construct, Dependable } from "constructs";
-import { AwsConstructBase, AwsStack } from "../..";
+import { AwsConstructBase } from "../../aws-construct";
+import { AwsStack } from "../../aws-stack";
 import { Grant } from "../grant";
 import { IManagedPolicy } from "../managed-policy";
 import { Policy } from "../policy";

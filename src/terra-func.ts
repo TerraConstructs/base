@@ -166,6 +166,26 @@ export class Fn extends tfFn {
     }
     return tfFn.lengthOf(array);
   }
+
+  /**
+   * {@link https://developer.hashicorp.com/terraform/language/functions/join join} produces a string by concatenating together all elements of a given list of strings with the given delimiter.
+   *
+   * If any of the values are unresolved, the intrinsic function will be used.
+   * if the list has only one element, the element will be returned.
+   * if the list has more than one element, the elements will be joined with the delimiter.
+   * @param {string} delimiter
+   * @param {Array<string>} values
+   */
+  public static join(delimiter: string, values: string[]): string {
+    if (Token.isUnresolved(values)) {
+      // This is a list token, don't try to do smart things with it.
+      return tfFn.join(delimiter, values);
+    }
+    if (values.length === 1) {
+      return values[0];
+    }
+    return values.join(delimiter);
+  }
 }
 
 function range(n: number): number[] {

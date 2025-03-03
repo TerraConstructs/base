@@ -8,7 +8,11 @@ import {
   routeTableAssociation,
 } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsConstructBase, AwsConstructProps, IAwsConstruct } from "../";
+import {
+  AwsConstructBase,
+  AwsConstructProps,
+  IAwsConstruct,
+} from "../aws-construct";
 
 export enum SubnetType {
   PUBLIC = "PUBLIC",

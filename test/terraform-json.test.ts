@@ -16,7 +16,7 @@ import {
 } from "cdktf/lib/functions/helpers";
 import { Intrinsic } from "cdktf/lib/tokens/private/intrinsic";
 import "cdktf/lib/testing/adapters/jest";
-import { StackBase } from "../src";
+import { StackBase } from "../src/stack-base";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";

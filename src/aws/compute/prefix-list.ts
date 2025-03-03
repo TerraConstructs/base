@@ -8,7 +8,6 @@ import {
   AwsConstructBase,
   AwsConstructProps,
 } from "../aws-construct";
-import { AwsStack } from "../aws-stack";
 
 /**
  * Outputs which may be registered for output via the Grid.
@@ -179,7 +178,7 @@ export class PrefixList extends PrefixListBase {
       props?.prefixListName ??
       Lazy.stringValue({
         produce: () =>
-          AwsStack.uniqueResourceName(this, {
+          this.stack.uniqueResourceName(this, {
             maxLength: 255,
             allowedSpecialCharacters: ".-_",
           }),

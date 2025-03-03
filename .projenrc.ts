@@ -23,13 +23,19 @@ const project = new cdk.JsiiProject({
   repositoryUrl: "https://github.com/TerraConstructs/base",
   keywords: ["terraconstructs"],
   defaultReleaseBranch: "main",
-  typescriptVersion: "~5.4",
-  jsiiVersion: "~5.4",
+  typescriptVersion: "~5.7",
+  jsiiVersion: "~5.7",
   packageManager: javascript.NodePackageManager.PNPM,
   pnpmVersion: "9",
   projenrcTs: true,
   prettier: true,
   eslint: true,
+  tsconfig: {
+    compilerOptions: {
+      target: "ES2020",
+      lib: ["es2020"],
+    },
+  },
 
   // release config
   release: true,
@@ -92,6 +98,15 @@ const project = new cdk.JsiiProject({
   jestOptions: {
     jestConfig: {
       setupFilesAfterEnv: ["<rootDir>/setup.js"],
+      // Jest is resource greedy so this shouldn't be more than 50%
+      maxWorkers: "50%",
+      testEnvironment: "node",
+    },
+  },
+  tsJestOptions: {
+    transformOptions: {
+      // Skips type checking, speeds up tests significantly
+      isolatedModules: true,
     },
   },
 
@@ -113,9 +128,9 @@ project.gitignore.exclude(".env");
 project.addPackageIgnore("/integ/");
 project.tsconfigDev?.addInclude("integ/**/*.ts");
 
-// Limit workers and disable coverage for faster test runs
+// Temp disable coverage for faster test runs
 project.testTask.updateStep(0, {
-  exec: "jest --passWithNoTests --updateSnapshot --maxWorkers=4 --coverage=false",
+  exec: "jest --passWithNoTests --updateSnapshot --coverage=false",
   receiveArgs: true,
 });
 

@@ -39,6 +39,14 @@ import {
   ClientVpnEndpointOptions,
 } from "./client-vpn-endpoint";
 import {
+  allRouteTableIds,
+  defaultSubnetName,
+  flatten,
+  ImportSubnetGroup,
+  subnetGroupNameFromConstructId,
+  subnetId,
+} from "./ec2-util";
+import {
   AllocatedSubnet,
   IIpAddresses,
   RequestedSubnet,
@@ -53,14 +61,6 @@ import {
   SubnetNetworkAclAssociation,
 } from "./network-acl";
 import { SubnetFilter } from "./subnet";
-import {
-  allRouteTableIds,
-  defaultSubnetName,
-  flatten,
-  ImportSubnetGroup,
-  subnetGroupNameFromConstructId,
-  subnetId,
-} from "./util";
 import {
   GatewayVpcEndpoint,
   GatewayVpcEndpointAwsService,
@@ -3360,3 +3360,23 @@ function determineNatGatewayCount(
 //   ],
 //   vpcId: "vpc-12345",
 // };
+
+// moved due to cycles
+// ref: https://github.com/aws/aws-cdk/blob/a2c633f1e698249496f11338312ab42bd7b1e4f0/packages/aws-cdk-lib/aws-ec2/lib/util.ts
+
+// /**
+//  * The default names for every subnet type
+//  */
+// export function defaultSubnetName(type: SubnetType) {
+//   switch (type) {
+//     case SubnetType.PUBLIC:
+//       return "Public";
+//     case SubnetType.PRIVATE_WITH_NAT:
+//     case SubnetType.PRIVATE_WITH_EGRESS:
+//     case SubnetType.PRIVATE:
+//       return "Private";
+//     case SubnetType.PRIVATE_ISOLATED:
+//     case SubnetType.ISOLATED:
+//       return "Isolated";
+//   }
+// }

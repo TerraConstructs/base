@@ -1,3 +1,5 @@
+// https://github.com/aws/aws-cdk/blob/41cd57290e03e9256cc77466fd39e7f3e7a295b4/packages/aws-cdk-lib/aws-ec2/lib/machine-image/machine-image.ts
+
 import { dataAwsAmi } from "@cdktf/provider-aws";
 // import {
 //   // TODO: Use Grid as contextProvider
@@ -813,11 +815,16 @@ export class LookupMachineImage implements IMachineImage {
     };
     Object.assign(filters, this.props.filters);
 
-    // TODO: Use Grid Lookups instead
-    const dataSource = new dataAwsAmi.DataAwsAmi(scope, "Ami", {
+    let uniqueId = "Ami";
+    let counter = 1;
+    while (scope.node.tryFindChild(uniqueId)) {
+      uniqueId = `Ami${counter++}`;
+    }
+
+    const dataSource = new dataAwsAmi.DataAwsAmi(scope, uniqueId, {
       owners: this.props.owners,
       filter: Object.entries(filters)
-        .filter((filter) => filter.values !== undefined)
+        .filter(([_key, values]) => values !== undefined)
         .map(([name, values]) => ({
           name,
           values: values as string[],

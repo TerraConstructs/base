@@ -30,8 +30,9 @@ import {
 // TODO: Use TagManager and tag-aspect instead
 import { Tags } from "../aws-tags";
 // import { Tags } from "../tag-aspect";
+import { allRouteTableIds } from "./ec2-util";
+import { NetworkUtils, CidrBlock } from "./ec2-util-v2";
 import { ISubnetV2 } from "./subnet-v2";
-import { NetworkUtils, allRouteTableIds, CidrBlock } from "./util";
 import { IVpcV2, VPNGatewayV2Options } from "./vpc-v2-base";
 
 /**

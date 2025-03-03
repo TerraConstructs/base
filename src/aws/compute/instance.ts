@@ -20,7 +20,7 @@ import { AwsStack } from "../aws-stack";
 // TODO: Use TagManager and tag-aspect instead
 import { Tags } from "../aws-tags";
 // import { Tags } from "../tag-aspect";
-import { InstanceRequireImdsv2Aspect } from "./aspects";
+import { InstanceRequireImdsv2Aspect } from "./aspects/require-imdsv2-aspect";
 // import { CloudFormationInit } from "./cfn-init";
 import { Connections, IConnectable } from "./connections";
 import { InstanceType } from "./instance-types";

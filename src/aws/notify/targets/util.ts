@@ -1,9 +1,9 @@
 import { Annotations } from "cdktf";
 import { Construct, IConstruct, Node } from "constructs";
 import * as notify from "..";
-import { AwsStack } from "../..";
-import { Duration } from "../../..";
+import { Duration } from "../../../duration";
 import { TokenComparison, tokenCompareStrings } from "../../../token";
+import { AwsStack } from "../../aws-stack";
 import * as compute from "../../compute";
 import * as iam from "../../iam";
 

@@ -3,9 +3,11 @@
 import {
   vpcEndpointService,
   vpcEndpointServiceAllowedPrincipal,
+  vpcEndpointServicePrivateDnsVerification,
 } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import { IAwsConstruct, AwsConstructBase } from "../aws-construct";
+import { IDnsZone, TxtRecord } from "../edge";
 import { ArnPrincipal } from "../iam";
 
 /**
@@ -148,6 +150,12 @@ export class VpcEndpointService
       );
     }
 
+    if (props.privateDnsName && !props.dnsZone) {
+      throw new Error(
+        "A DNS zone must be provided for validation when a private DNS name is specified.",
+      );
+    }
+
     this.vpcEndpointServiceLoadBalancers =
       props.vpcEndpointServiceLoadBalancers;
     this.acceptanceRequired = props.acceptanceRequired ?? true;
@@ -167,12 +175,40 @@ export class VpcEndpointService
         (lb) => lb.loadBalancerArn,
       ),
       acceptanceRequired: this.acceptanceRequired,
+      privateDnsName: props.privateDnsName,
       // Not supported in Terraform
       // contributorInsightsEnabled: this.contributorInsightsEnabled,
     });
 
     this.vpcEndpointServiceId = this.endpointService.id;
     this.vpcEndpointServiceName = this.endpointService.serviceName;
+
+    // TODO: This fails when enabling privateDnsName on existing resources?
+    // relevant GH Issue:
+    // https://github.com/hashicorp/terraform-provider-aws/issues/24044
+    if (props.privateDnsName && props.dnsZone) {
+      // this value is only available if privateDnsName is set
+      const privateDnsNameConfiguration =
+        this.endpointService.privateDnsNameConfiguration.get(0);
+      // create Route53 TXT records to validate the domain ownership
+      const verificationRecord = new TxtRecord(
+        this,
+        "PrivateDnsVerificationRecord",
+        {
+          zone: props.dnsZone,
+          recordName: privateDnsNameConfiguration.name,
+          values: [privateDnsNameConfiguration.value],
+        },
+      );
+      new vpcEndpointServicePrivateDnsVerification.VpcEndpointServicePrivateDnsVerification(
+        this,
+        "PrivateDnsVerification",
+        {
+          serviceId: this.endpointService.id,
+          dependsOn: [verificationRecord],
+        },
+      );
+    }
 
     if (this.allowedPrincipals.length > 0) {
       this.allowedPrincipals.map((principal, index) => {
@@ -194,12 +230,24 @@ export class VpcEndpointService
  *
  */
 export interface VpcEndpointServiceProps {
+  // /**
+  //  * Name of the Vpc Endpoint Service
+  //  * @deprecated This property is not used
+  //  * @default - CDK generated name
+  //  */
+  // readonly vpcEndpointServiceName?: string;
+
   /**
-   * Name of the Vpc Endpoint Service
-   * @deprecated This property is not used
-   * @default - CDK generated name
+   * The private DNS name for the service.
    */
-  readonly vpcEndpointServiceName?: string;
+  readonly privateDnsName?: string;
+
+  /**
+   * Zone to validate the domain ownership.
+   *
+   * required if `privateDnsName` is set
+   */
+  readonly dnsZone?: IDnsZone;
 
   /**
    * One or more load balancers to host the VPC Endpoint Service.

@@ -8,7 +8,6 @@ import {
   AwsConstructBase,
   AwsConstructProps,
 } from "../../aws-construct";
-import { AwsStack } from "../../aws-stack";
 import { IBucket } from "../../storage";
 
 /**
@@ -154,7 +153,7 @@ export class TrustStore extends AwsConstructBase implements ITrustStore {
     super(scope, id, props);
     this.physicalName =
       props.trustStoreName ??
-      AwsStack.uniqueResourceName(this, { maxLength: 32 });
+      this.stack.uniqueResourceName(this, { maxLength: 32 });
 
     if (
       props.trustStoreName !== undefined &&

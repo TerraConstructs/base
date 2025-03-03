@@ -7,13 +7,14 @@ import {
   // TODO: Use Grid as contextProvider
   // ContextProvider,
   Annotations,
-  Fn,
+  // Fn,
   Token,
   Tokenization,
   IResolvable,
 } from "cdktf";
 import { Construct } from "constructs";
 import { arnForParameterName } from "./parameter-util";
+import { Fn } from "../../terra-func";
 import {
   IAwsConstruct,
   AwsConstructBase,
@@ -644,6 +645,8 @@ export class StringParameter extends ParameterBase implements IStringParameter {
     }
     let name: string;
     if (attrs.version) {
+      // To query by parameter version, use "Name": "name:version".
+      // https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_GetParameter.html#systemsmanager-GetParameter-request-Name
       name = `${attrs.parameterName}:${Tokenization.stringifyNumber(attrs.version)}`;
     } else {
       name = attrs.parameterName;
@@ -709,8 +712,8 @@ export class StringParameter extends ParameterBase implements IStringParameter {
         { simpleName: attrs.simpleName },
       );
       public readonly parameterType = ParameterType.SECURE_STRING; // resource.type - instead of token use concrete
-      // Use caution: This value is never marked as sensitive.
-      public readonly stringValue = resource.insecureValue;
+      // value is always marked as sensitive
+      public readonly stringValue = resource.value;
       public readonly encryptionKey = attrs.encryptionKey;
     }
 

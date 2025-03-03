@@ -1,141 +1,144 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/test/nlb/load-balancer.test.ts
 
-import { Match, Template } from "../../../assertions";
-import * as ec2 from "../../../aws-ec2";
-import * as route53 from "../../../aws-route53";
-import * as s3 from "../../../aws-s3";
-import * as cdk from "../../../core";
-import * as elbv2 from "../../lib";
+import {
+  lbListener as tfLbListener,
+  lbListenerCertificate as tfListenerCertificate,
+  lbTargetGroup as tfLbTargetGroup,
+  lbTargetGroupAttachment as tfTargetGroupAttachment,
+  lb as tfLoadBalancer,
+  route53Record,
+  s3BucketPolicy,
+  dataAwsIamPolicyDocument,
+} from "@cdktf/provider-aws";
+import { App, Testing } from "cdktf";
+import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../../src/aws";
+import * as compute from "../../../../src/aws/compute";
+import * as edge from "../../../../src/aws/edge";
+import * as storage from "../../../../src/aws/storage";
+
+import { Template } from "../../../assertions";
+
+const environmentName = "Test";
+const gridUUID = "123e4567-e89b-12d3";
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
+const providerConfig = { region: "us-east-1" };
 
 describe("tests", () => {
+  let app: App;
+  let stack: AwsStack;
+
+  beforeEach(() => {
+    app = Testing.app();
+    stack = new AwsStack(app, "IPAMTestStack", {
+      environmentName,
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
+  });
+
   test("Trivial construction: internet facing", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "LB", {
+    new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: true,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Scheme: "internet-facing",
-        Subnets: [
-          { Ref: "StackPublicSubnet1Subnet0AD81D22" },
-          { Ref: "StackPublicSubnet2Subnet3C7D2288" },
-        ],
-        Type: "network",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: false,
+      subnets: [
+        "${aws_subnet.StackPublicSubnet1Subnet0AD81D22.id}",
+        "${aws_subnet.StackPublicSubnet2Subnet3C7D2288.id}",
+      ],
+      type: "network",
+    });
   });
 
   test("Trivial construction: internal", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    new compute.NetworkLoadBalancer(stack, "LB", { vpc });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Scheme: "internal",
-        Subnets: [
-          { Ref: "StackPrivateSubnet1Subnet47AC2BC7" },
-          { Ref: "StackPrivateSubnet2SubnetA2F8EDD8" },
-        ],
-        Type: "network",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: true,
+      subnets: [
+        "${aws_subnet.StackPrivateSubnet1Subnet47AC2BC7.id}",
+        "${aws_subnet.StackPrivateSubnet2SubnetA2F8EDD8.id}",
+      ],
+      type: "network",
+    });
   });
 
   test("VpcEndpointService with Domain Name imported from public hosted zone", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Vpc");
-    const nlb = new elbv2.NetworkLoadBalancer(stack, "Nlb", { vpc });
-    const endpointService = new ec2.VpcEndpointService(
-      stack,
-      "EndpointService",
-      { vpcEndpointServiceLoadBalancers: [nlb] },
-    );
+    const vpc = new compute.Vpc(stack, "Vpc");
+    const nlb = new compute.NetworkLoadBalancer(stack, "Nlb", { vpc });
+    const importedPHZ = edge.DnsZone.fromZoneId(stack, "MyPHZ", "sampleid");
+    // const endpointService =
+    new compute.VpcEndpointService(stack, "EndpointService", {
+      vpcEndpointServiceLoadBalancers: [nlb],
+      privateDnsName: "MyDomain", // create private Dns name for load balancer
+      dnsZone: importedPHZ,
+    });
 
     // WHEN
-    const importedPHZ = route53.PublicHostedZone.fromPublicHostedZoneAttributes(
-      stack,
-      "MyPHZ",
-      {
-        hostedZoneId: "sampleid",
-        zoneName: "MyZone",
-      },
-    );
-    new route53.VpcEndpointServiceDomainName(
-      stack,
-      "EndpointServiceDomainName",
-      {
-        endpointService,
-        domainName: "MyDomain",
-        publicHostedZone: importedPHZ,
-      },
-    );
+    // // NOTE: Terraform does not use a custom resource for DomainName configuration
+    // // the VpcEndPointService has a property for the domain name
+    // const importedPHZ = route53.PublicHostedZone.fromPublicHostedZoneAttributes(stack, 'MyPHZ', {
+    //   hostedZoneId: 'sampleid',
+    //   zoneName: 'MyZone',
+    // });
+    // new edge.VpcEndpointServiceDomainName(stack, "EndpointServiceDomainName", {
+    //   endpointService,
+    //   domainName: "MyDomain",
+    //   publicHostedZone: importedPHZ,
+    // });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::Route53::RecordSet", {
-      HostedZoneId: "sampleid",
-    });
+    Template.synth(stack).toHaveResourceWithProperties(
+      route53Record.Route53Record,
+      {
+        zone_id: "sampleid",
+      },
+    );
   });
 
   test("Attributes", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "LB", {
+    new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       crossZoneEnabled: true,
       clientRoutingPolicy:
-        elbv2.ClientRoutingPolicy.PARTIAL_AVAILABILITY_ZONE_AFFINITY,
+        compute.ClientRoutingPolicy.PARTIAL_AVAILABILITY_ZONE_AFFINITY,
       zonalShift: true,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        LoadBalancerAttributes: Match.arrayWith([
-          {
-            Key: "load_balancing.cross_zone.enabled",
-            Value: "true",
-          },
-          {
-            Key: "dns_record.client_routing_policy",
-            Value: "partial_availability_zone_affinity",
-          },
-          {
-            Key: "zonal_shift.config.enabled",
-            Value: "true",
-          },
-        ]),
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      enable_cross_zone_load_balancing: true,
+      dns_record_client_routing_policy: "partial_availability_zone_affinity",
+      enable_zonal_shift: true,
+    });
   });
 
   test("Access logging", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, undefined, {
-      env: { region: "us-east-1" },
-    });
-    const vpc = new ec2.Vpc(stack, "Stack");
-    const bucket = new s3.Bucket(stack, "AccessLoggingBucket");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const vpc = new compute.Vpc(stack, "Stack");
+    const bucket = new storage.Bucket(stack, "AccessLoggingBucket");
+    const lb = new compute.NetworkLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     lb.logAccessLogs(bucket);
@@ -143,218 +146,167 @@ describe("tests", () => {
     // THEN
 
     // verify that the LB attributes reference the bucket
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        LoadBalancerAttributes: Match.arrayWith([
-          {
-            Key: "access_logs.s3.enabled",
-            Value: "true",
-          },
-          {
-            Key: "access_logs.s3.bucket",
-            Value: { Ref: "AccessLoggingBucketA6D88F29" },
-          },
-          {
-            Key: "access_logs.s3.prefix",
-            Value: "",
-          },
-        ]),
+    Template.resources(stack, s3BucketPolicy.S3BucketPolicy).toHaveLength(1);
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      access_logs: {
+        enabled: true,
+        bucket: stack.resolve(bucket.bucketName),
       },
-    );
-
-    // verify the bucket policy allows the NLB to put objects in the bucket
-    Template.fromStack(stack).hasResourceProperties("AWS::S3::BucketPolicy", {
-      PolicyDocument: {
-        Version: "2012-10-17",
-        Statement: [
-          {
-            Action: "s3:PutObject",
-            Effect: "Allow",
-            Principal: {
-              AWS: {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:",
-                    { Ref: "AWS::Partition" },
-                    ":iam::127311923021:root",
-                  ],
-                ],
-              },
-            },
-            Resource: {
-              "Fn::Join": [
-                "",
-                [
-                  { "Fn::GetAtt": ["AccessLoggingBucketA6D88F29", "Arn"] },
-                  "/AWSLogs/",
-                  { Ref: "AWS::AccountId" },
-                  "/*",
-                ],
-              ],
-            },
-          },
-          {
-            Action: "s3:PutObject",
-            Condition: {
-              StringEquals: { "s3:x-amz-acl": "bucket-owner-full-control" },
-            },
-            Effect: "Allow",
-            Principal: { Service: "delivery.logs.amazonaws.com" },
-            Resource: {
-              "Fn::Join": [
-                "",
-                [
-                  { "Fn::GetAtt": ["AccessLoggingBucketA6D88F29", "Arn"] },
-                  "/AWSLogs/",
-                  { Ref: "AWS::AccountId" },
-                  "/*",
-                ],
-              ],
-            },
-          },
-          {
-            Action: "s3:GetBucketAcl",
-            Effect: "Allow",
-            Principal: { Service: "delivery.logs.amazonaws.com" },
-            Resource: {
-              "Fn::GetAtt": ["AccessLoggingBucketA6D88F29", "Arn"],
-            },
-          },
-        ],
-      },
+      // verify the NLB depends on the bucket policy
+      depends_on: ["aws_s3_bucket_policy.AccessLoggingBucketPolicy700D7CC6"],
     });
 
-    // verify the NLB depends on the bucket policy
-    Template.fromStack(stack).hasResource(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    // verify the bucket policy allows the NLB to put objects in the bucket
+    template.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
-        DependsOn: ["AccessLoggingBucketPolicy700D7CC6"],
+        statement: [
+          {
+            actions: ["s3:PutObject"],
+            effect: "Allow",
+            principals: [
+              {
+                identifiers: [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::127311923021:root",
+                ],
+                type: "AWS",
+              },
+            ],
+            resources: [
+              "${aws_bucket.AccessLoggingBucketA6D88F29.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+            ],
+          },
+          {
+            action: "s3:PutObject",
+            effect: "Allow",
+            condition: [
+              {
+                test: "StringEquals",
+                variable: "s3:x-amz-acl",
+                values: ["bucket-owner-full-control"],
+              },
+            ],
+            principals: [
+              {
+                type: "Service",
+                identifier: "delivery.logs.amazonaws.com",
+              },
+            ],
+            resources: [
+              "${aws_bucket.AccessLoggingBucketA6D88F29.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+            ],
+          },
+          {
+            action: "s3:GetBucketAcl",
+            effect: "Allow",
+            principals: [
+              {
+                type: "Service",
+                identifier: "delivery.logs.amazonaws.com",
+              },
+            ],
+            resources: ["${aws_bucket.AccessLoggingBucketA6D88F29.arn}"],
+          },
+        ],
       },
     );
   });
 
   test("access logging with prefix", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, undefined, {
-      env: { region: "us-east-1" },
-    });
-    const vpc = new ec2.Vpc(stack, "Stack");
-    const bucket = new s3.Bucket(stack, "AccessLoggingBucket");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const vpc = new compute.Vpc(stack, "Stack");
+    const bucket = new storage.Bucket(stack, "AccessLoggingBucket");
+    const lb = new compute.NetworkLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     lb.logAccessLogs(bucket, "prefix-of-access-logs");
 
     // THEN
     // verify that the LB attributes reference the bucket
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        LoadBalancerAttributes: Match.arrayWith([
-          {
-            Key: "access_logs.s3.enabled",
-            Value: "true",
-          },
-          {
-            Key: "access_logs.s3.bucket",
-            Value: { Ref: "AccessLoggingBucketA6D88F29" },
-          },
-          {
-            Key: "access_logs.s3.prefix",
-            Value: "prefix-of-access-logs",
-          },
-        ]),
+    Template.resources(stack, s3BucketPolicy.S3BucketPolicy).toHaveLength(1);
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      access_logs: {
+        enabled: true,
+        bucket: stack.resolve(bucket.bucketName),
+        prefix: "prefix-of-access-logs",
       },
-    );
+    });
 
     // verify the bucket policy allows the NLB to put objects in the bucket
-    Template.fromStack(stack).hasResourceProperties("AWS::S3::BucketPolicy", {
-      PolicyDocument: {
-        Version: "2012-10-17",
-        Statement: [
+    template.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+      {
+        statement: [
           {
-            Action: "s3:PutObject",
-            Effect: "Allow",
-            Principal: {
-              AWS: {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:",
-                    { Ref: "AWS::Partition" },
-                    ":iam::127311923021:root",
-                  ],
+            actions: ["s3:PutObject"],
+            effect: "Allow",
+            principals: [
+              {
+                identifiers: [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::127311923021:root",
                 ],
+                type: "AWS",
               },
-            },
-            Resource: {
-              "Fn::Join": [
-                "",
-                [
-                  { "Fn::GetAtt": ["AccessLoggingBucketA6D88F29", "Arn"] },
-                  "/prefix-of-access-logs/AWSLogs/",
-                  { Ref: "AWS::AccountId" },
-                  "/*",
-                ],
-              ],
-            },
+            ],
+            resources: [
+              "${aws_bucket.AccessLoggingBucketA6D88F29.arn}/prefix-of-access-logs/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+            ],
           },
           {
-            Action: "s3:PutObject",
-            Condition: {
-              StringEquals: { "s3:x-amz-acl": "bucket-owner-full-control" },
-            },
-            Effect: "Allow",
-            Principal: { Service: "delivery.logs.amazonaws.com" },
-            Resource: {
-              "Fn::Join": [
-                "",
-                [
-                  { "Fn::GetAtt": ["AccessLoggingBucketA6D88F29", "Arn"] },
-                  "/prefix-of-access-logs/AWSLogs/",
-                  { Ref: "AWS::AccountId" },
-                  "/*",
-                ],
-              ],
-            },
+            action: "s3:PutObject",
+            effect: "Allow",
+            condition: [
+              {
+                test: "StringEquals",
+                variable: "s3:x-amz-acl",
+                values: ["bucket-owner-full-control"],
+              },
+            ],
+            principals: [
+              {
+                type: "Service",
+                identifier: "delivery.logs.amazonaws.com",
+              },
+            ],
+            resources: [
+              "${aws_bucket.AccessLoggingBucketA6D88F29.arn}/prefix-of-access-logs/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+            ],
           },
           {
-            Action: "s3:GetBucketAcl",
-            Effect: "Allow",
-            Principal: { Service: "delivery.logs.amazonaws.com" },
-            Resource: {
-              "Fn::GetAtt": ["AccessLoggingBucketA6D88F29", "Arn"],
-            },
+            action: "s3:GetBucketAcl",
+            effect: "Allow",
+            principals: [
+              {
+                type: "Service",
+                identifier: "delivery.logs.amazonaws.com",
+              },
+            ],
+            resources: ["${aws_bucket.AccessLoggingBucketA6D88F29.arn}"],
           },
         ],
       },
-    });
+    );
   });
 
   test("Access logging on imported bucket", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, undefined, {
-      env: { region: "us-east-1" },
-    });
-    const vpc = new ec2.Vpc(stack, "Stack");
-    const bucket = s3.Bucket.fromBucketName(
+    const vpc = new compute.Vpc(stack, "Stack");
+    const bucket = storage.Bucket.fromBucketName(
       stack,
       "ImportedAccessLoggingBucket",
       "imported-bucket",
     );
     // Imported buckets have `autoCreatePolicy` disabled by default
-    bucket.policy = new s3.BucketPolicy(
+    bucket.policy = new storage.BucketPolicy(
       stack,
       "ImportedAccessLoggingBucketPolicy",
       {
         bucket,
       },
     );
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new compute.NetworkLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     lb.logAccessLogs(bucket);
@@ -362,175 +314,133 @@ describe("tests", () => {
     // THEN
 
     // verify that the LB attributes reference the bucket
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        LoadBalancerAttributes: Match.arrayWith([
-          {
-            Key: "access_logs.s3.enabled",
-            Value: "true",
-          },
-          {
-            Key: "access_logs.s3.bucket",
-            Value: "imported-bucket",
-          },
-          {
-            Key: "access_logs.s3.prefix",
-            Value: "",
-          },
-        ]),
+    Template.resources(stack, s3BucketPolicy.S3BucketPolicy).toHaveLength(1);
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      access_logs: {
+        enabled: true,
+        bucket: stack.resolve(bucket.bucketName),
       },
-    );
-
-    // verify the bucket policy allows the NLB to put objects in the bucket
-    Template.fromStack(stack).hasResourceProperties("AWS::S3::BucketPolicy", {
-      PolicyDocument: {
-        Version: "2012-10-17",
-        Statement: [
-          {
-            Action: "s3:PutObject",
-            Effect: "Allow",
-            Principal: {
-              AWS: {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:",
-                    { Ref: "AWS::Partition" },
-                    ":iam::127311923021:root",
-                  ],
-                ],
-              },
-            },
-            Resource: {
-              "Fn::Join": [
-                "",
-                [
-                  "arn:",
-                  { Ref: "AWS::Partition" },
-                  ":s3:::imported-bucket/AWSLogs/",
-                  { Ref: "AWS::AccountId" },
-                  "/*",
-                ],
-              ],
-            },
-          },
-          {
-            Action: "s3:PutObject",
-            Condition: {
-              StringEquals: { "s3:x-amz-acl": "bucket-owner-full-control" },
-            },
-            Effect: "Allow",
-            Principal: { Service: "delivery.logs.amazonaws.com" },
-            Resource: {
-              "Fn::Join": [
-                "",
-                [
-                  "arn:",
-                  { Ref: "AWS::Partition" },
-                  ":s3:::imported-bucket/AWSLogs/",
-                  { Ref: "AWS::AccountId" },
-                  "/*",
-                ],
-              ],
-            },
-          },
-          {
-            Action: "s3:GetBucketAcl",
-            Effect: "Allow",
-            Principal: { Service: "delivery.logs.amazonaws.com" },
-            Resource: {
-              "Fn::Join": [
-                "",
-                ["arn:", { Ref: "AWS::Partition" }, ":s3:::imported-bucket"],
-              ],
-            },
-          },
-        ],
-      },
+      // verify the NLB depends on the bucket policy
+      depends_on: [
+        "aws_s3_bucket_policy.ImportedAccessLoggingBucketPolicy97AE3371",
+      ],
     });
 
-    // verify the NLB depends on the bucket policy
-    Template.fromStack(stack).hasResource(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    // verify the bucket policy allows the NLB to put objects in the bucket
+    template.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
-        DependsOn: ["ImportedAccessLoggingBucketPolicy97AE3371"],
+        statement: [
+          {
+            actions: ["s3:PutObject"],
+            effect: "Allow",
+            principals: [
+              {
+                identifiers: [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::127311923021:root",
+                ],
+                type: "AWS",
+              },
+            ],
+            resources: [
+              "${aws_bucket.ImportedAccessLoggingBucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+            ],
+          },
+          {
+            action: "s3:PutObject",
+            effect: "Allow",
+            condition: [
+              {
+                test: "StringEquals",
+                variable: "s3:x-amz-acl",
+                values: ["bucket-owner-full-control"],
+              },
+            ],
+            principals: [
+              {
+                type: "Service",
+                identifier: "delivery.logs.amazonaws.com",
+              },
+            ],
+            resources: [
+              "${aws_bucket.ImportedAccessLoggingBucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+            ],
+          },
+          {
+            action: "s3:GetBucketAcl",
+            effect: "Allow",
+            principals: [
+              {
+                type: "Service",
+                identifier: "delivery.logs.amazonaws.com",
+              },
+            ],
+            resources: ["${aws_bucket.ImportedAccessLoggingBucket.arn}"],
+          },
+        ],
       },
     );
   });
 
   test("loadBalancerName", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "NLB", {
+    new compute.NetworkLoadBalancer(stack, "NLB", {
       loadBalancerName: "myLoadBalancer",
       vpc,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Name: "myLoadBalancer",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      name: "myLoadBalancer",
+    });
   });
 
   test("can set EnforceSecurityGroupInboundRulesOnPrivateLinkTraffic on", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "NLB", {
+    new compute.NetworkLoadBalancer(stack, "NLB", {
       loadBalancerName: "myLoadBalancer",
       enforceSecurityGroupInboundRulesOnPrivateLinkTraffic: true,
       vpc,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Name: "myLoadBalancer",
-        EnforceSecurityGroupInboundRulesOnPrivateLinkTraffic: "on",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      name: "myLoadBalancer",
+      enforce_security_group_inbound_rules_on_private_link_traffic: "on",
+    });
   });
 
   test("can set EnforceSecurityGroupInboundRulesOnPrivateLinkTraffic off", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "NLB", {
+    new compute.NetworkLoadBalancer(stack, "NLB", {
       loadBalancerName: "myLoadBalancer",
       enforceSecurityGroupInboundRulesOnPrivateLinkTraffic: false,
       vpc,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Name: "myLoadBalancer",
-        EnforceSecurityGroupInboundRulesOnPrivateLinkTraffic: "off",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      Name: "myLoadBalancer",
+      enforce_security_group_inbound_rules_on_private_link_traffic: "off",
+    });
   });
 
   test("loadBalancerName unallowed: more than 32 characters", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app);
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "NLB", {
+    new compute.NetworkLoadBalancer(stack, "NLB", {
       loadBalancerName: "a".repeat(33),
       vpc,
     });
@@ -545,12 +455,10 @@ describe("tests", () => {
 
   test('loadBalancerName unallowed: starts with "internal-"', () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app);
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "NLB", {
+    new compute.NetworkLoadBalancer(stack, "NLB", {
       loadBalancerName: "internal-myLoadBalancer",
       vpc,
     });
@@ -565,12 +473,10 @@ describe("tests", () => {
 
   test("loadBalancerName unallowed: starts with hyphen", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app);
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "NLB", {
+    new compute.NetworkLoadBalancer(stack, "NLB", {
       loadBalancerName: "-myLoadBalancer",
       vpc,
     });
@@ -585,12 +491,10 @@ describe("tests", () => {
 
   test("loadBalancerName unallowed: ends with hyphen", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app);
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "NLB", {
+    new compute.NetworkLoadBalancer(stack, "NLB", {
       loadBalancerName: "myLoadBalancer-",
       vpc,
     });
@@ -605,12 +509,10 @@ describe("tests", () => {
 
   test("loadBalancerName unallowed: unallowed characters", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app);
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "NLB", {
+    new compute.NetworkLoadBalancer(stack, "NLB", {
       loadBalancerName: "my load balancer",
       vpc,
     });
@@ -626,34 +528,32 @@ describe("tests", () => {
   test.each([
     [false, undefined],
     [true, undefined],
-    [false, elbv2.IpAddressType.IPV4],
-    [true, elbv2.IpAddressType.IPV4],
+    [false, compute.IpAddressType.IPV4],
+    [true, compute.IpAddressType.IPV4],
   ])(
     "throw error for denyAllIgwTraffic set to %s for Ipv4 (default) addressing.",
     (denyAllIgwTraffic, ipAddressType) => {
       // GIVEN
-      const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "Stack");
+      const vpc = new compute.Vpc(stack, "Stack");
 
       // THEN
       expect(() => {
-        new elbv2.NetworkLoadBalancer(stack, "NLB", {
+        new compute.NetworkLoadBalancer(stack, "NLB", {
           vpc,
           denyAllIgwTraffic: denyAllIgwTraffic,
           ipAddressType: ipAddressType,
         });
       }).toThrow(
-        `'denyAllIgwTraffic' may only be set on load balancers with ${elbv2.IpAddressType.DUAL_STACK} addressing.`,
+        `'denyAllIgwTraffic' may only be set on load balancers with ${compute.IpAddressType.DUAL_STACK} addressing.`,
       );
     },
   );
 
   test("imported network load balancer with no vpc specified throws error when calling addTargets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const nlbArn =
       "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188";
-    const nlb = elbv2.NetworkLoadBalancer.fromNetworkLoadBalancerAttributes(
+    const nlb = compute.NetworkLoadBalancer.fromNetworkLoadBalancerAttributes(
       stack,
       "NLB",
       {
@@ -667,11 +567,10 @@ describe("tests", () => {
 
   test("imported network load balancer with vpc does not throw error when calling addTargets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Vpc");
+    const vpc = new compute.Vpc(stack, "Vpc");
     const nlbArn =
       "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188";
-    const nlb = elbv2.NetworkLoadBalancer.fromNetworkLoadBalancerAttributes(
+    const nlb = compute.NetworkLoadBalancer.fromNetworkLoadBalancerAttributes(
       stack,
       "NLB",
       {
@@ -687,12 +586,10 @@ describe("tests", () => {
   });
 
   test("imported load balancer knows its region", () => {
-    const stack = new cdk.Stack();
-
     // WHEN
     const albArn =
       "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188";
-    const alb = elbv2.NetworkLoadBalancer.fromNetworkLoadBalancerAttributes(
+    const alb = compute.NetworkLoadBalancer.fromNetworkLoadBalancerAttributes(
       stack,
       "NLB",
       {
@@ -705,12 +602,10 @@ describe("tests", () => {
   });
 
   test("imported load balancer can have metrics", () => {
-    const stack = new cdk.Stack();
-
     // WHEN
     const arn =
       "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/network/my-load-balancer/50dc6c495c0c9188";
-    const nlb = elbv2.NetworkLoadBalancer.fromNetworkLoadBalancerAttributes(
+    const nlb = compute.NetworkLoadBalancer.fromNetworkLoadBalancerAttributes(
       stack,
       "NLB",
       {
@@ -729,19 +624,18 @@ describe("tests", () => {
 
   test("Trivial construction: internal with Isolated subnets only", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "VPC", {
+    const vpc = new compute.Vpc(stack, "VPC", {
       subnetConfiguration: [
         {
           cidrMask: 20,
           name: "Isolated",
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+          subnetType: compute.SubnetType.PRIVATE_ISOLATED,
         },
       ],
     });
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "LB", {
+    new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: false,
     });
@@ -761,29 +655,28 @@ describe("tests", () => {
   });
   test("Internal with Public, Private, and Isolated subnets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "VPC", {
+    const vpc = new compute.Vpc(stack, "VPC", {
       subnetConfiguration: [
         {
           cidrMask: 24,
           name: "Public",
-          subnetType: ec2.SubnetType.PUBLIC,
+          subnetType: compute.SubnetType.PUBLIC,
         },
         {
           cidrMask: 24,
           name: "Private",
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+          subnetType: compute.SubnetType.PRIVATE_WITH_EGRESS,
         },
         {
           cidrMask: 28,
           name: "Isolated",
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+          subnetType: compute.SubnetType.PRIVATE_ISOLATED,
         },
       ],
     });
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "LB", {
+    new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: false,
     });
@@ -803,29 +696,28 @@ describe("tests", () => {
   });
   test("Internet-facing with Public, Private, and Isolated subnets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "VPC", {
+    const vpc = new compute.Vpc(stack, "VPC", {
       subnetConfiguration: [
         {
           cidrMask: 24,
           name: "Public",
-          subnetType: ec2.SubnetType.PUBLIC,
+          subnetType: compute.SubnetType.PUBLIC,
         },
         {
           cidrMask: 24,
           name: "Private",
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+          subnetType: compute.SubnetType.PRIVATE_WITH_EGRESS,
         },
         {
           cidrMask: 28,
           name: "Isolated",
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+          subnetType: compute.SubnetType.PRIVATE_ISOLATED,
         },
       ],
     });
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "LB", {
+    new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: true,
     });
@@ -845,14 +737,13 @@ describe("tests", () => {
   });
   test("Internal load balancer supplying public subnets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "VPC");
+    const vpc = new compute.Vpc(stack, "VPC");
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "LB", {
+    new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: false,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      vpcSubnets: { subnetType: compute.SubnetType.PUBLIC },
     });
 
     // THEN
@@ -870,32 +761,31 @@ describe("tests", () => {
   });
   test("Internal load balancer supplying isolated subnets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "VPC", {
+    const vpc = new compute.Vpc(stack, "VPC", {
       subnetConfiguration: [
         {
           cidrMask: 24,
           name: "Public",
-          subnetType: ec2.SubnetType.PUBLIC,
+          subnetType: compute.SubnetType.PUBLIC,
         },
         {
           cidrMask: 24,
           name: "Private",
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+          subnetType: compute.SubnetType.PRIVATE_WITH_EGRESS,
         },
         {
           cidrMask: 28,
           name: "Isolated",
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+          subnetType: compute.SubnetType.PRIVATE_ISOLATED,
         },
       ],
     });
 
     // WHEN
-    new elbv2.NetworkLoadBalancer(stack, "LB", {
+    new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: false,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      vpcSubnets: { subnetType: compute.SubnetType.PRIVATE_ISOLATED },
     });
 
     // THEN
@@ -914,18 +804,17 @@ describe("tests", () => {
 
   test("Trivial construction: security groups", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Stack");
-    const sg1 = new ec2.SecurityGroup(stack, "SG1", { vpc });
-    const sg2 = new ec2.SecurityGroup(stack, "SG2", { vpc });
+    const vpc = new compute.Vpc(stack, "Stack");
+    const sg1 = new compute.SecurityGroup(stack, "SG1", { vpc });
+    const sg2 = new compute.SecurityGroup(stack, "SG2", { vpc });
 
     // WHEN
-    const nlb = new elbv2.NetworkLoadBalancer(stack, "LB", {
+    const nlb = new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: true,
       securityGroups: [sg1],
     });
-    nlb.connections.allowFromAnyIpv4(ec2.Port.tcp(80));
+    nlb.connections.allowFromAnyIpv4(compute.Port.tcp(80));
     nlb.addSecurityGroup(sg2);
 
     // THEN
@@ -978,15 +867,14 @@ describe("tests", () => {
 
   test("Trivial construction: no security groups", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    const nlb = new elbv2.NetworkLoadBalancer(stack, "LB", {
+    const nlb = new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: true,
     });
-    nlb.connections.allowFromAnyIpv4(ec2.Port.tcp(80));
+    nlb.connections.allowFromAnyIpv4(compute.Port.tcp(80));
 
     // THEN
     const template = Template.fromStack(stack);
@@ -1007,16 +895,15 @@ describe("tests", () => {
 
   test("Trivial construction: empty security groups", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Stack");
+    const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
-    const nlb = new elbv2.NetworkLoadBalancer(stack, "LB", {
+    const nlb = new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: true,
       securityGroups: [],
     });
-    nlb.connections.allowFromAnyIpv4(ec2.Port.tcp(80));
+    nlb.connections.allowFromAnyIpv4(compute.Port.tcp(80));
 
     // THEN
     const template = Template.fromStack(stack);
@@ -1037,18 +924,17 @@ describe("tests", () => {
 
   test("Can add a security groups from no security groups", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new ec2.Vpc(stack, "Stack");
-    const sg1 = new ec2.SecurityGroup(stack, "SG1", { vpc });
-    const sg2 = new ec2.SecurityGroup(stack, "SG2", { vpc });
+    const vpc = new compute.Vpc(stack, "Stack");
+    const sg1 = new compute.SecurityGroup(stack, "SG1", { vpc });
+    const sg2 = new compute.SecurityGroup(stack, "SG2", { vpc });
 
     // WHEN
-    const nlb = new elbv2.NetworkLoadBalancer(stack, "LB", {
+    const nlb = new compute.NetworkLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: true,
     });
     nlb.addSecurityGroup(sg1);
-    nlb.connections.allowFromAnyIpv4(ec2.Port.tcp(80));
+    nlb.connections.allowFromAnyIpv4(compute.Port.tcp(80));
     nlb.addSecurityGroup(sg2);
 
     // THEN
@@ -1111,7 +997,7 @@ describe("tests", () => {
       });
 
       // WHEN
-      const loadBalancer = elbv2.NetworkLoadBalancer.fromLookup(stack, "a", {
+      const loadBalancer = compute.NetworkLoadBalancer.fromLookup(stack, "a", {
         loadBalancerTags: {
           some: "tag",
         },
@@ -1144,22 +1030,22 @@ describe("tests", () => {
         },
       });
 
-      const loadBalancer = elbv2.NetworkLoadBalancer.fromLookup(stack, "a", {
+      const loadBalancer = compute.NetworkLoadBalancer.fromLookup(stack, "a", {
         loadBalancerTags: {
           some: "tag",
         },
       });
 
-      const targetGroup = new elbv2.NetworkTargetGroup(stack, "tg", {
+      const targetGroup = new compute.NetworkTargetGroup(stack, "tg", {
         vpc: loadBalancer.vpc,
         port: 3000,
       });
 
       // WHEN
       loadBalancer.addListener("listener", {
-        protocol: elbv2.Protocol.TCP,
+        protocol: compute.Protocol.TCP,
         port: 3000,
-        defaultAction: elbv2.NetworkListenerAction.forward([targetGroup]),
+        defaultAction: compute.NetworkListenerAction.forward([targetGroup]),
       });
 
       // THEN
@@ -1182,7 +1068,7 @@ describe("tests", () => {
         },
       });
 
-      const loadBalancer = elbv2.NetworkLoadBalancer.fromLookup(stack, "a", {
+      const loadBalancer = compute.NetworkLoadBalancer.fromLookup(stack, "a", {
         loadBalancerTags: {
           some: "tag",
         },
@@ -1209,12 +1095,12 @@ describe("tests", () => {
       });
 
       // WHEN
-      const nlb = elbv2.NetworkLoadBalancer.fromLookup(stack, "LB", {
+      const nlb = compute.NetworkLoadBalancer.fromLookup(stack, "LB", {
         loadBalancerTags: {
           some: "tag",
         },
       });
-      nlb.connections.allowFromAnyIpv4(ec2.Port.tcp(80));
+      nlb.connections.allowFromAnyIpv4(compute.Port.tcp(80));
 
       // THEN
       Template.fromStack(stack).hasResourceProperties(
@@ -1240,10 +1126,10 @@ describe("tests", () => {
       // GIVEN
       const app = new cdk.App();
       const stack = new cdk.Stack(app, "stack");
-      const vpc = new ec2.Vpc(stack, "Vpc");
+      const vpc = new compute.Vpc(stack, "Vpc");
 
       // WHEN
-      new elbv2.NetworkLoadBalancer(stack, "nlb", {
+      new compute.NetworkLoadBalancer(stack, "nlb", {
         vpc,
         crossZoneEnabled: true,
       });
@@ -1266,10 +1152,10 @@ describe("tests", () => {
       // GIVEN
       const app = new cdk.App();
       const stack = new cdk.Stack(app, "stack");
-      const vpc = new ec2.Vpc(stack, "Vpc");
+      const vpc = new compute.Vpc(stack, "Vpc");
 
       // WHEN
-      new elbv2.NetworkLoadBalancer(stack, "nlb", {
+      new compute.NetworkLoadBalancer(stack, "nlb", {
         vpc,
         crossZoneEnabled: false,
       });
@@ -1292,10 +1178,10 @@ describe("tests", () => {
       // GIVEN
       const app = new cdk.App();
       const stack = new cdk.Stack(app, "stack");
-      const vpc = new ec2.Vpc(stack, "Vpc");
+      const vpc = new compute.Vpc(stack, "Vpc");
 
       // WHEN
-      new elbv2.NetworkLoadBalancer(stack, "nlb", {
+      new compute.NetworkLoadBalancer(stack, "nlb", {
         vpc,
       });
       const t = Template.fromStack(stack);
@@ -1314,13 +1200,13 @@ describe("tests", () => {
     test("Can create internet-facing dualstack NetworkLoadBalancer", () => {
       // GIVEN
       const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "Stack");
+      const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
-      new elbv2.NetworkLoadBalancer(stack, "LB", {
+      new compute.NetworkLoadBalancer(stack, "LB", {
         vpc,
         internetFacing: true,
-        ipAddressType: elbv2.IpAddressType.DUAL_STACK,
+        ipAddressType: compute.IpAddressType.DUAL_STACK,
       });
 
       // THEN
@@ -1337,14 +1223,14 @@ describe("tests", () => {
     test("Can create internet-facing dualstack NetworkLoadBalancer with denyAllIgwTraffic set to false", () => {
       // GIVEN
       const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "Stack");
+      const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
-      new elbv2.NetworkLoadBalancer(stack, "LB", {
+      new compute.NetworkLoadBalancer(stack, "LB", {
         vpc,
         denyAllIgwTraffic: false,
         internetFacing: true,
-        ipAddressType: elbv2.IpAddressType.DUAL_STACK,
+        ipAddressType: compute.IpAddressType.DUAL_STACK,
       });
 
       // THEN
@@ -1363,14 +1249,14 @@ describe("tests", () => {
       (internetFacing) => {
         // GIVEN
         const stack = new cdk.Stack();
-        const vpc = new ec2.Vpc(stack, "Stack");
+        const vpc = new compute.Vpc(stack, "Stack");
 
         // WHEN
-        new elbv2.NetworkLoadBalancer(stack, "LB", {
+        new compute.NetworkLoadBalancer(stack, "LB", {
           vpc,
           denyAllIgwTraffic: true,
           internetFacing: internetFacing,
-          ipAddressType: elbv2.IpAddressType.DUAL_STACK,
+          ipAddressType: compute.IpAddressType.DUAL_STACK,
         });
 
         // THEN
@@ -1393,13 +1279,13 @@ describe("tests", () => {
     ])("specify EnablePrefixForIpv6SourceNat", ({ config, value }) => {
       // GIVEN
       const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "Stack");
+      const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
-      new elbv2.NetworkLoadBalancer(stack, "Lb", {
+      new compute.NetworkLoadBalancer(stack, "Lb", {
         vpc,
         enablePrefixForIpv6SourceNat: config,
-        ipAddressType: elbv2.IpAddressType.DUAL_STACK,
+        ipAddressType: compute.IpAddressType.DUAL_STACK,
       });
 
       // THEN
@@ -1419,10 +1305,10 @@ describe("tests", () => {
       (enablePrefixForIpv6SourceNat) => {
         // GIVEN
         const stack = new cdk.Stack();
-        const vpc = new ec2.Vpc(stack, "Stack");
-        const lb = new elbv2.NetworkLoadBalancer(stack, "Lb", {
+        const vpc = new compute.Vpc(stack, "Stack");
+        const lb = new compute.NetworkLoadBalancer(stack, "Lb", {
           vpc,
-          ipAddressType: elbv2.IpAddressType.DUAL_STACK,
+          ipAddressType: compute.IpAddressType.DUAL_STACK,
           enablePrefixForIpv6SourceNat,
         });
 
@@ -1430,9 +1316,9 @@ describe("tests", () => {
         expect(() => {
           lb.addListener("Listener", {
             port: 80,
-            protocol: elbv2.Protocol.UDP,
+            protocol: compute.Protocol.UDP,
             defaultTargetGroups: [
-              new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+              new compute.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
             ],
           });
         }).toThrow(
@@ -1445,13 +1331,13 @@ describe("tests", () => {
   describe("dualstack without public ipv4", () => {
     test("Throws when creating a dualstack without public ipv4 and a NetworkLoadBalancer", () => {
       const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "Stack");
+      const vpc = new compute.Vpc(stack, "Stack");
 
       expect(() => {
-        new elbv2.NetworkLoadBalancer(stack, "LB", {
+        new compute.NetworkLoadBalancer(stack, "LB", {
           vpc,
           internetFacing: true,
-          ipAddressType: elbv2.IpAddressType.DUAL_STACK_WITHOUT_PUBLIC_IPV4,
+          ipAddressType: compute.IpAddressType.DUAL_STACK_WITHOUT_PUBLIC_IPV4,
         });
       }).toThrow(
         "'ipAddressType' DUAL_STACK_WITHOUT_PUBLIC_IPV4 can only be used with Application Load Balancer, got network",

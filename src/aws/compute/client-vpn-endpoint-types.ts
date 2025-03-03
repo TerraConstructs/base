@@ -16,7 +16,7 @@ export interface ClientVpnOutputs {
   /**
    * The URL of the self-service portal
    */
-  readonly SelfServicePortalUrl?: string;
+  readonly selfServicePortalUrl?: string;
 }
 
 /**

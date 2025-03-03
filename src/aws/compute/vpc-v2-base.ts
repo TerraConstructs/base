@@ -19,6 +19,11 @@ import {
   ClientVpnEndpoint,
 } from "./client-vpn-endpoint";
 import {
+  allRouteTableIds,
+  flatten,
+  subnetGroupNameFromConstructId,
+} from "./ec2-util";
+import {
   EgressOnlyInternetGateway,
   InternetGateway,
   NatConnectivityType,
@@ -30,11 +35,6 @@ import {
   VPNGatewayV2,
 } from "./route";
 import { ISubnetV2 } from "./subnet-v2";
-import {
-  allRouteTableIds,
-  flatten,
-  subnetGroupNameFromConstructId,
-} from "./util";
 import {
   VpcOutputs,
   IVpc,

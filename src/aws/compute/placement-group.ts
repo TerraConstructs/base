@@ -198,7 +198,7 @@ export class PlacementGroup
 
   public readonly partitions?: number;
   public readonly spreadLevel?: PlacementGroupSpreadLevel;
-  public readonly strategy: PlacementGroupStrategy;
+  public readonly strategy?: PlacementGroupStrategy;
   public get placementGroupOutputs(): PlacementGroupOutputs {
     return {
       placementGroupName: this.placementGroupName,

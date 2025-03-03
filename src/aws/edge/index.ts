@@ -1,3 +1,4 @@
+export * from "./certificate-base";
 export * from "./certificate";
 export * from "./distribution";
 export * from "./dns-alias-record-targets";

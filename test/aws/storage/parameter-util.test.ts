@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ssm/test/util.test.ts
 
-import { App, Testing, Token } from "cdktf";
+import { App, TerraformVariable, Testing, Token } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsStack } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import { arnForParameterName } from "../../../src/aws/storage/parameter-util";
 
 const environmentName = "Test";
@@ -15,6 +15,7 @@ const providerConfig = { region: "us-east-1" };
 describe("arnForParameterName", () => {
   let app: App;
   let stack: AwsStack;
+  let varBoom: TerraformVariable;
 
   beforeEach(() => {
     app = Testing.app();
@@ -24,73 +25,42 @@ describe("arnForParameterName", () => {
       providerConfig,
       gridBackendConfig,
     });
+    varBoom = new TerraformVariable(stack, "Boom", {
+      type: "string",
+      default: "foo/bar",
+    });
   });
   describe("simple names", () => {
     test('concrete parameterName and no physical name (sep is "/")', () => {
       expect(
         stack.resolve(arnForParameterName(stack, "myParam", undefined)),
-      ).toEqual({
-        "Fn::Join": [
-          "",
-          [
-            "arn:",
-            { Ref: "AWS::Partition" },
-            ":ssm:",
-            { Ref: "AWS::Region" },
-            ":",
-            { Ref: "AWS::AccountId" },
-            ":parameter/myParam",
-          ],
-        ],
-      });
+      ).toEqual(
+        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/myParam",
+      );
     });
 
     test('token parameterName and concrete physical name (no additional "/")', () => {
       expect(
         stack.resolve(
-          arnForParameterName(stack, Token.asString({ Ref: "Boom" }), {
+          arnForParameterName(stack, Token.asString(varBoom.stringValue), {
             physicalName: "myParam",
           }),
         ),
-      ).toEqual({
-        "Fn::Join": [
-          "",
-          [
-            "arn:",
-            { Ref: "AWS::Partition" },
-            ":ssm:",
-            { Ref: "AWS::Region" },
-            ":",
-            { Ref: "AWS::AccountId" },
-            ":parameter/",
-            { Ref: "Boom" },
-          ],
-        ],
-      });
+      ).toEqual(
+        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${var.Boom}",
+      );
     });
 
     test('token parameterName, explicit "/" separator', () => {
       expect(
         stack.resolve(
-          arnForParameterName(stack, Token.asString({ Ref: "Boom" }), {
+          arnForParameterName(stack, Token.asString(varBoom.stringValue), {
             simpleName: true,
           }),
         ),
-      ).toEqual({
-        "Fn::Join": [
-          "",
-          [
-            "arn:",
-            { Ref: "AWS::Partition" },
-            ":ssm:",
-            { Ref: "AWS::Region" },
-            ":",
-            { Ref: "AWS::AccountId" },
-            ":parameter/",
-            { Ref: "Boom" },
-          ],
-        ],
-      });
+      ).toEqual(
+        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${var.Boom}",
+      );
     });
   });
 
@@ -98,68 +68,33 @@ describe("arnForParameterName", () => {
     test('concrete parameterName and no physical name (sep is "/")', () => {
       expect(
         stack.resolve(arnForParameterName(stack, "/foo/bar", undefined)),
-      ).toEqual({
-        "Fn::Join": [
-          "",
-          [
-            "arn:",
-            { Ref: "AWS::Partition" },
-            ":ssm:",
-            { Ref: "AWS::Region" },
-            ":",
-            { Ref: "AWS::AccountId" },
-            ":parameter/foo/bar",
-          ],
-        ],
-      });
+      ).toEqual(
+        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/foo/bar",
+      );
     });
 
     test("token parameterName and concrete physical name (no sep)", () => {
       expect(
         stack.resolve(
-          arnForParameterName(stack, Token.asString({ Ref: "Boom" }), {
+          arnForParameterName(stack, Token.asString(varBoom.stringValue), {
             physicalName: "/foo/bar",
           }),
         ),
-      ).toEqual({
-        "Fn::Join": [
-          "",
-          [
-            "arn:",
-            { Ref: "AWS::Partition" },
-            ":ssm:",
-            { Ref: "AWS::Region" },
-            ":",
-            { Ref: "AWS::AccountId" },
-            ":parameter",
-            { Ref: "Boom" },
-          ],
-        ],
-      });
+      ).toEqual(
+        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${var.Boom}",
+      );
     });
 
     test('token parameterName, explicit "" separator', () => {
       expect(
         stack.resolve(
-          arnForParameterName(stack, Token.asString({ Ref: "Boom" }), {
+          arnForParameterName(stack, varBoom.stringValue, {
             simpleName: false,
           }),
         ),
-      ).toEqual({
-        "Fn::Join": [
-          "",
-          [
-            "arn:",
-            { Ref: "AWS::Partition" },
-            ":ssm:",
-            { Ref: "AWS::Region" },
-            ":",
-            { Ref: "AWS::AccountId" },
-            ":parameter",
-            { Ref: "Boom" },
-          ],
-        ],
-      });
+      ).toEqual(
+        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${var.Boom}",
+      );
     });
   });
 

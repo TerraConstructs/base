@@ -13,7 +13,6 @@ import {
   AwsConstructBase,
   AwsConstructProps,
 } from "../aws-construct";
-import { AwsStack } from "../aws-stack";
 // TODO: Use TagManager and tag-aspect instead
 import { Tags } from "../aws-tags";
 // import { Tags } from "../tag-aspect";
@@ -399,7 +398,7 @@ class IpamPool extends AwsConstructBase implements IIpamPool {
       props.ipamPoolName ??
       Lazy.stringValue({
         produce: () =>
-          AwsStack.uniqueResourceName(this, {
+          this.stack.uniqueResourceName(this, {
             maxLength: 128,
             allowedSpecialCharacters: "_",
           }),

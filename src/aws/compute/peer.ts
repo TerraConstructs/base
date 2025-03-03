@@ -79,6 +79,8 @@ export class Peer {
 
   /**
    * A security group ID
+   *
+   * NOTE: Terraform provider AWS does not support sourceSecurityGroupOwnerId
    */
   public static securityGroupId(
     securityGroupId: string,
@@ -120,13 +122,19 @@ class CidrIPv4 implements IPeer {
    * Produce the ingress rule JSON for the given connection
    */
   public toIngressRuleConfig(): any {
-    return { cidrIp: this.cidrIp };
+    return {
+      cidrIpv4: this.cidrIp,
+      cidrBlocks: [this.cidrIp],
+    };
   }
   /**
    * Produce the egress rule JSON for the given connection
    */
   public toEgressRuleConfig(): any {
-    return { cidrIp: this.cidrIp };
+    return {
+      cidrIpv4: this.cidrIp,
+      cidrBlocks: [this.cidrIp],
+    };
   }
 }
 
@@ -171,13 +179,19 @@ class CidrIPv6 implements IPeer {
    * Produce the ingress rule JSON for the given connection
    */
   public toIngressRuleConfig(): any {
-    return { cidrIpv6: this.cidrIpv6 };
+    return {
+      cidrIpv6: this.cidrIpv6,
+      pv6CidrBlocks: [this.cidrIpv6],
+    };
   }
   /**
    * Produce the egress rule JSON for the given connection
    */
   public toEgressRuleConfig(): any {
-    return { cidrIpv6: this.cidrIpv6 };
+    return {
+      cidrIpv6: this.cidrIpv6,
+      ipv6CidrBlocks: [this.cidrIpv6],
+    };
   }
 }
 
@@ -209,11 +223,17 @@ class PrefixList implements IPeer {
   }
 
   public toIngressRuleConfig(): any {
-    return { sourcePrefixListId: this.prefixListId };
+    return {
+      prefixListId: this.prefixListId,
+      prefixListIds: [this.prefixListId],
+    };
   }
 
   public toEgressRuleConfig(): any {
-    return { destinationPrefixListId: this.prefixListId };
+    return {
+      prefixListId: this.prefixListId,
+      prefixListIds: [this.prefixListId],
+    };
   }
 }
 
@@ -229,10 +249,13 @@ class SecurityGroupId implements IPeer {
   public readonly connections: Connections = new Connections({ peer: this });
   public readonly uniqueId: string;
 
+  // private readonly sourceSecurityGroupOwnerId?: string;
+
   constructor(
     private readonly securityGroupId: string,
-    private readonly sourceSecurityGroupOwnerId?: string,
+    sourceSecurityGroupOwnerId?: string,
   ) {
+    // this.sourceSecurityGroupOwnerId = _sourceSecurityGroupOwnerId;
     if (!Token.isUnresolved(securityGroupId)) {
       const securityGroupMatch = securityGroupId.match(/^sg-[a-z0-9]{8,17}$/);
 
@@ -262,10 +285,11 @@ class SecurityGroupId implements IPeer {
    */
   public toIngressRuleConfig(): any {
     return {
-      sourceSecurityGroupId: this.securityGroupId,
-      ...(this.sourceSecurityGroupOwnerId && {
-        sourceSecurityGroupOwnerId: this.sourceSecurityGroupOwnerId,
-      }),
+      securityGroups: [this.securityGroupId],
+      // TODO: Terraform provider aws does not support sourceSecurityGroupOwnerId
+      // ...(this.sourceSecurityGroupOwnerId && {
+      //   sourceSecurityGroupOwnerId: this.sourceSecurityGroupOwnerId,
+      // }),
     };
   }
 
@@ -273,6 +297,6 @@ class SecurityGroupId implements IPeer {
    * Produce the egress rule JSON for the given connection
    */
   public toEgressRuleConfig(): any {
-    return { destinationSecurityGroupId: this.securityGroupId };
+    return { securityGroups: [this.securityGroupId] };
   }
 }

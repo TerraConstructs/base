@@ -4,10 +4,10 @@ import {
   Fn,
   // TerraformResource
 } from "cdktf";
-import { OperatingSystemType } from "./machine-image";
 // import { AwsConstructBase } from "../aws-construct";
 // import { AwsStack } from "../aws-stack";
 import { IBucket } from "../storage";
+import { OperatingSystemType } from "./machine-image/common";
 
 /**
  * Options when constructing UserData for Linux

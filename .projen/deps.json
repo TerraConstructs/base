@@ -34,7 +34,7 @@
     },
     {
       "name": "@types/node",
-      "version": "ts5.4",
+      "version": "ts5.7",
       "type": "build"
     },
     {
@@ -102,12 +102,12 @@
     },
     {
       "name": "jsii-rosetta",
-      "version": "~5.4",
+      "version": "~5.7",
       "type": "build"
     },
     {
       "name": "jsii",
-      "version": "~5.4",
+      "version": "~5.7",
       "type": "build"
     },
     {
@@ -128,7 +128,7 @@
     },
     {
       "name": "typescript",
-      "version": "~5.4",
+      "version": "~5.7",
       "type": "build"
     },
     {

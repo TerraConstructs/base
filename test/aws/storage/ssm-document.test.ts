@@ -3,7 +3,7 @@
 import { ssmAssociation } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsStack } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import { Template } from "../../assertions";
 
 const environmentName = "Test";

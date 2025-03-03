@@ -3,7 +3,7 @@
 import { cloudwatchLogSubscriptionFilter } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
-import { AwsConstructBase, AwsConstructProps } from "..";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { ILogGroup, SubscriptionFilterOptions } from "./log-group";
 import * as iam from "../iam";
 import { KinesisDestination } from "./log-destinations";

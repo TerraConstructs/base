@@ -43,11 +43,9 @@ export * from "./states/task-base";
 export * from "./task-credentials";
 
 // ec2
-export * from "./aspects";
+export * from "./aspects/require-imdsv2-aspect";
 export * from "./bastion-host";
 export * from "./connections";
-export * from "./ec2-augmentations.generated";
-export * from "./ec2-canned-metrics.generated";
 // export * from "./cfn-init";
 // export * from "./cfn-init-elements";
 export * from "./instance-types";
@@ -107,6 +105,7 @@ export * from "./lb-shared/enums";
 export * from "./lb-shared/load-balancer-targets";
 export * from "./lb-shared/listener-certificate";
 export * from "./lb-shared/listener-action";
+export * from "./lb-shared/lb-listener-config.generated";
 
 export * as sources from "./event-sources";
 export * as destinations from "./function-destinations";

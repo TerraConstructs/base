@@ -86,10 +86,10 @@ describe("connections", () => {
     template.toHaveResourceWithProperties(
       vpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
       {
-        group_id: stack.resolve(sg1.securityGroupId),
+        security_group_id: stack.resolve(sg1.securityGroupId),
         ip_protocol: "tcp",
         description: "Connect there",
-        destination_security_group_id: "sg-12345",
+        referenced_security_group_id: "sg-12345",
         from_port: 0,
         to_port: 65535,
       },
@@ -102,8 +102,8 @@ describe("connections", () => {
         ip_protocol: "tcp",
         description: "Connect there",
         from_port: 0,
-        group_id: "sg-12345",
-        source_security_group_id: stack.resolve(sg1.securityGroupId),
+        security_group_id: "sg-12345",
+        referenced_security_group_id: stack.resolve(sg1.securityGroupId),
         to_port: 65535,
       },
     );
@@ -128,28 +128,30 @@ describe("connections", () => {
     // THEN
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfSecurityGroup.SecurityGroup, {
-      group_description: "Default/SecurityGroup1",
+      description: "MyStack/SecurityGroup1",
       ingress: [
-        {
+        expect.objectContaining({
+          // TODO: will additional `null` properties cause issues?
           description: "from 0.0.0.0/0:88",
-          cidr_ip: "0.0.0.0/0",
+          cidr_blocks: ["0.0.0.0/0"],
           from_port: 88,
           to_port: 88,
-          ip_protocol: "tcp",
-        },
+          protocol: "tcp",
+        }),
       ],
     });
 
     template.toHaveResourceWithProperties(tfSecurityGroup.SecurityGroup, {
-      group_description: "Default/SecurityGroup2",
+      description: "MyStack/SecurityGroup2",
       ingress: [
-        {
+        expect.objectContaining({
+          // TODO: will additional `null` properties cause issues?
           description: "from 0.0.0.0/0:88",
-          cidr_ip: "0.0.0.0/0",
+          cidr_blocks: ["0.0.0.0/0"],
           from_port: 88,
           to_port: 88,
-          ip_protocol: "tcp",
-        },
+          protocol: "tcp",
+        }),
       ],
     });
   });
@@ -181,8 +183,8 @@ describe("connections", () => {
     template.toHaveResourceWithProperties(
       vpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
-        group_id: stack.resolve(sg2.securityGroupId),
-        source_security_group_id: stack.resolve(sg1.securityGroupId),
+        security_group_id: stack.resolve(sg2.securityGroupId),
+        referenced_security_group_id: stack.resolve(sg1.securityGroupId),
         from_port: 88,
         to_port: 88,
       },
@@ -191,8 +193,8 @@ describe("connections", () => {
     template.toHaveResourceWithProperties(
       vpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
-        group_id: stack.resolve(sg3.securityGroupId),
-        source_security_group_id: stack.resolve(sg1.securityGroupId),
+        security_group_id: stack.resolve(sg3.securityGroupId),
+        referenced_security_group_id: stack.resolve(sg1.securityGroupId),
         from_port: 88,
         to_port: 88,
       },
@@ -220,8 +222,8 @@ describe("connections", () => {
     template.toHaveResourceWithProperties(
       vpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
-        group_id: stack.resolve(sg1.securityGroupId),
-        source_security_group_id: stack.resolve(sg1.securityGroupId),
+        security_group_id: stack.resolve(sg1.securityGroupId),
+        referenced_security_group_id: stack.resolve(sg1.securityGroupId),
         from_port: 88,
         to_port: 88,
       },
@@ -230,8 +232,8 @@ describe("connections", () => {
     template.toHaveResourceWithProperties(
       vpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
       {
-        destination_security_group_id: stack.resolve(sg1.securityGroupId),
-        group_id: stack.resolve(sg1.securityGroupId),
+        referenced_security_group_id: stack.resolve(sg1.securityGroupId),
+        security_group_id: stack.resolve(sg1.securityGroupId),
         from_port: 88,
         to_port: 88,
       },
@@ -265,19 +267,19 @@ describe("connections", () => {
     template.toHaveResourceWithProperties(
       vpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
-        group_id: stack2.resolve(sg2.securityGroupId),
+        security_group_id: stack2.resolve(sg2.securityGroupId),
         // remote state reference
-        source_security_group_id:
-          "${data.Stack1:ExportsOutputFnGetAttSecurityGroupDD263621GroupIdDF6F8B09}",
+        referenced_security_group_id:
+          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
       },
     );
 
     template.toHaveResourceWithProperties(
       vpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
       {
-        group_id:
-          "${data.Stack1:ExportsOutputFnGetAttSecurityGroupDD263621GroupIdDF6F8B09}",
-        destination_security_group_id: stack2.resolve(sg2.securityGroupId),
+        security_group_id:
+          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
+        referenced_security_group_id: stack2.resolve(sg2.securityGroupId),
       },
     );
   });
@@ -310,18 +312,18 @@ describe("connections", () => {
       vpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
         // remote state reference
-        group_id:
-          "${data.Stack1:ExportsOutputFnGetAttSecurityGroupDD263621GroupIdDF6F8B09}",
-        source_security_group_id: stack2.resolve(sg2.securityGroupId),
+        security_group_id:
+          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
+        referenced_security_group_id: stack2.resolve(sg2.securityGroupId),
       },
     );
 
     template.toHaveResourceWithProperties(
       vpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
       {
-        group_id: stack2.resolve(sg2.securityGroupId),
-        destination_security_group_id:
-          "${data.Stack1:ExportsOutputFnGetAttSecurityGroupDD263621GroupIdDF6F8B09}",
+        security_group_id: stack2.resolve(sg2.securityGroupId),
+        referenced_security_group_id:
+          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
       },
     );
   });
@@ -358,18 +360,18 @@ describe("connections", () => {
     template.toHaveResourceWithProperties(
       vpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
       {
-        group_id:
-          "${Stack1:ExportsOutputFnGetAttSecurityGroupAED40ADC5GroupId1D10C76A}",
-        destination_security_group_id: stack2.resolve(sg2.securityGroupId),
+        security_group_id:
+          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroupB_04591F90id}",
+        referenced_security_group_id: stack2.resolve(sg2.securityGroupId),
       },
     );
 
     template.toHaveResourceWithProperties(
       vpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
       {
-        group_id:
-          "${data.Stack1:ExportsOutputFnGetAttSecurityGroupB04591F90GroupIdFA7208D5}",
-        destination_security_group_id: stack2.resolve(sg2.securityGroupId),
+        security_group_id:
+          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroupB_04591F90id}",
+        referenced_security_group_id: stack2.resolve(sg2.securityGroupId),
       },
     );
   });
@@ -397,15 +399,16 @@ describe("connections", () => {
     );
 
     // THEN: rule to generated security group to connect to imported
-    Template.fromStack(stack).toHaveResourceWithProperties(
+    Template.synth(stack).toHaveResourceWithProperties(
       vpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
-        GroupId: { "Fn::GetAtt": ["SomeSecurityGroupEF219AD6", "GroupId"] },
-        IpProtocol: "tcp",
-        Description: "Connect there",
-        SourceSecurityGroupId: "sg-12345",
-        FromPort: 0,
-        ToPort: 65535,
+        security_group_id:
+          "${aws_security_group.SomeSecurityGroup_EF219AD6.id}",
+        ip_protocol: "tcp",
+        description: "Connect there",
+        referenced_security_group_id: "sg-12345",
+        from_port: 0,
+        to_port: 65535,
       },
     );
 
@@ -446,10 +449,10 @@ describe("connections", () => {
     template.toHaveResourceWithProperties(
       vpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
-        group_id: stack.resolve(securityGroup.securityGroupId),
+        security_group_id: stack.resolve(sg1.securityGroupId),
         ip_protocol: "tcp",
         description: "Connect there",
-        source_security_group_id: "sg-12345",
+        referenced_security_group_id: "sg-12345",
         from_port: 0,
         to_port: 65535,
       },
@@ -462,10 +465,8 @@ describe("connections", () => {
         ip_protocol: "tcp",
         description: "Connect there",
         from_port: 0,
-        group_id: "sg-12345",
-        destination_security_group_id: stack.resolve(
-          securityGroup.securityGroupId,
-        ),
+        security_group_id: "sg-12345",
+        referenced_security_group_id: stack.resolve(sg1.securityGroupId),
         to_port: 65535,
       },
     );

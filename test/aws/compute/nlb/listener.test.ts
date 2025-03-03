@@ -2,20 +2,29 @@
 
 import {
   lbListener as tfLbListener,
+  lbListenerCertificate as tfListenerCertificate,
   lbTargetGroup as tfLbTargetGroup,
   lbTargetGroupAttachment as tfTargetGroupAttachment,
 } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
+import { App, Testing, TerraformResource } from "cdktf";
 import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
+import { ITargetGroup } from "../../../../src/aws/compute/lb-shared/base-target-group.ts";
+import {
+  LbProtocol,
+  SslPolicy,
+  AlpnPolicy,
+} from "../../../../src/aws/compute/lb-shared/enums";
+import { ListenerCertificate } from "../../../../src/aws/compute/lb-shared/listener-certificate.ts";
 import { InstanceTarget } from "../../../../src/aws/compute/lb-shared/load-balancer-targets";
 import { NetworkListenerAction } from "../../../../src/aws/compute/nlb/network-listener-action";
+import { NetworkListener } from "../../../../src/aws/compute/nlb/network-listener.ts";
 import { NetworkLoadBalancer } from "../../../../src/aws/compute/nlb/network-load-balancer";
 import { NetworkTargetGroup } from "../../../../src/aws/compute/nlb/network-target-group";
-
 import * as edge from "../../../../src/aws/edge";
+import { Duration } from "../../../../src/duration.ts";
 import { Template } from "../../../assertions";
 import { FakeSelfRegisteringTarget } from "../lb-helpers";
 
@@ -39,6 +48,7 @@ describe("tests", () => {
       gridBackendConfig,
     });
   });
+
   test("Trivial add listener", () => {
     // GIVEN
     const vpc = new compute.Vpc(stack, "Stack");
@@ -105,10 +115,11 @@ describe("tests", () => {
     // THEN
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfLbListener.LbListener, {
-      DefaultActions: [
+      default_action: [
         {
-          TargetGroupArn: { Ref: "LBListenerTargetsGroup76EF81E8" },
-          Type: "forward",
+          target_group_arn:
+            "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+          type: "forward",
         },
       ],
     });
@@ -116,117 +127,123 @@ describe("tests", () => {
       vpc_id: stack.resolve(vpc.vpcId),
       port: 80,
       protocol: "TCP",
-      targets: [{ Id: "i-12345" }],
+      targetType: "instance",
     });
     template.toHaveResourceWithProperties(
       tfTargetGroupAttachment.LbTargetGroupAttachment,
       {
-        VpcId: { Ref: "Stack8A423254" },
-        Port: 80,
-        Protocol: "TCP",
-        Targets: [{ Id: "i-12345" }],
+        target_group_arn:
+          "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+        target_id: "i-12345",
+        port: 9700,
       },
     );
   });
 
-  testDeprecated("implicitly created target group inherits protocol", () => {
+  // TODO: InstanceTarget is deprecated, Use IpTarget from the compute/lb-targets
+  test("implicitly created target group inherits protocol", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", {
       port: 9700,
-      protocol: elbv2.Protocol.TCP_UDP,
+      protocol: LbProtocol.TCP_UDP,
     });
 
     // WHEN
     listener.addTargets("Targets", {
       port: 9700,
-      targets: [new elbv2.InstanceTarget("i-12345")],
+      targets: [new InstanceTarget("i-12345")],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfLbListener.LbListener, {
+      default_action: [
+        {
+          target_group_arn:
+            "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+          type: "forward",
+        },
+      ],
+    });
+    template.toHaveResourceWithProperties(tfLbTargetGroup.LbTargetGroup, {
+      vpc_id: stack.resolve(vpc.vpcId),
+      port: 9700,
+      protocol: "TCP_UDP",
+      targetType: "instance",
+    });
+    template.toHaveResourceWithProperties(
+      tfTargetGroupAttachment.LbTargetGroupAttachment,
       {
-        DefaultActions: [
-          {
-            TargetGroupArn: { Ref: "LBListenerTargetsGroup76EF81E8" },
-            Type: "forward",
-          },
-        ],
-      },
-    );
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
-      {
-        VpcId: { Ref: "Stack8A423254" },
-        Port: 9700,
-        Protocol: "TCP_UDP",
-        Targets: [{ Id: "i-12345" }],
+        target_group_arn:
+          "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+        target_id: "i-12345",
+        port: 9700,
       },
     );
   });
 
-  testDeprecated(
-    "implicitly created target group but overrides inherited protocol",
-    () => {
-      // GIVEN
-      const stack = new cdk.Stack();
-      const vpc = new compute.Vpc(stack, "Stack");
-      const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
-      const cert = new edge.Certificate(stack, "Certificate", {
-        domainName: "example.com",
-      });
+  // TODO: InstanceTarget is deprecated, Use IpTarget from the compute/lb-targets
+  test("implicitly created target group but overrides inherited protocol", () => {
+    // GIVEN
+    const vpc = new compute.Vpc(stack, "Stack");
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
+    const cert = new edge.PublicCertificate(stack, "Certificate", {
+      domainName: "example.com",
+    });
 
-      // WHEN
-      const listener = lb.addListener("Listener", {
-        port: 443,
-        protocol: elbv2.Protocol.TLS,
-        certificates: [elbv2.ListenerCertificate.fromCertificateManager(cert)],
-        sslPolicy: elbv2.SslPolicy.TLS12,
-      });
+    // WHEN
+    const listener = lb.addListener("Listener", {
+      port: 443,
+      protocol: LbProtocol.TLS,
+      certificates: [ListenerCertificate.fromCertificateManager(cert)],
+      sslPolicy: SslPolicy.TLS12,
+    });
 
-      // WHEN
-      listener.addTargets("Targets", {
+    // WHEN
+    listener.addTargets("Targets", {
+      port: 80,
+      protocol: LbProtocol.TCP,
+      targets: [new InstanceTarget("i-12345")],
+    });
+
+    // THEN
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfLbListener.LbListener, {
+      protocol: "TLS",
+      port: 443,
+      certificate_arn: "${aws_acm_certificate.Certificate4E7ABB08.arn}",
+      ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01",
+      default_action: [
+        {
+          target_group_arn:
+            "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+          type: "forward",
+        },
+      ],
+    });
+    template.toHaveResourceWithProperties(tfLbTargetGroup.LbTargetGroup, {
+      vpc_id: stack.resolve(vpc.vpcId),
+      port: 80,
+      protocol: "TCP",
+      targetType: "instance",
+    });
+    template.toHaveResourceWithProperties(
+      tfTargetGroupAttachment.LbTargetGroupAttachment,
+      {
+        target_group_arn:
+          "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+        target_id: "i-12345",
         port: 80,
-        protocol: elbv2.Protocol.TCP,
-        targets: [new elbv2.InstanceTarget("i-12345")],
-      });
-
-      // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::Listener",
-        {
-          Protocol: "TLS",
-          Port: 443,
-          Certificates: [{ CertificateArn: { Ref: "Certificate4E7ABB08" } }],
-          SslPolicy: "ELBSecurityPolicy-TLS-1-2-2017-01",
-          DefaultActions: [
-            {
-              TargetGroupArn: { Ref: "LBListenerTargetsGroup76EF81E8" },
-              Type: "forward",
-            },
-          ],
-        },
-      );
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::TargetGroup",
-        {
-          VpcId: { Ref: "Stack8A423254" },
-          Port: 80,
-          Protocol: "TCP",
-          Targets: [{ Id: "i-12345" }],
-        },
-      );
-    },
-  );
+      },
+    );
+  });
 
   test("Enable health check for targets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", { port: 443 });
 
     // WHEN
@@ -235,23 +252,24 @@ describe("tests", () => {
       targets: [new FakeSelfRegisteringTarget(stack, "Target", vpc)],
     });
     group.configureHealthCheck({
-      interval: cdk.Duration.seconds(30),
+      interval: Duration.seconds(30),
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbTargetGroup.LbTargetGroup,
       {
-        HealthCheckIntervalSeconds: 30,
+        health_check: {
+          interval: 30,
+        },
       },
     );
   });
 
   test("Enable taking a dependency on an NLB target group's load balancer", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", { port: 443 });
     const group = listener.addTargets("Group", {
       port: 80,
@@ -262,117 +280,112 @@ describe("tests", () => {
     new ResourceWithLBDependency(stack, "MyResource", group);
 
     // THEN
-    Template.fromStack(stack).templateMatches(
-      Match.objectLike({
-        Resources: {
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        test_resource: {
           MyResource: {
-            Type: "Test::Resource",
-            DependsOn: [
+            depends_on: [
               // 2nd dependency is there because of the structure of the construct tree.
               // It does not harm.
-              "LBListenerGroupGroup79B304FF",
-              "LBListener49E825B4",
+              "aws_lb_target_group.LBListenerGroupGroup79B304FF",
+              "aws_lb_listener.LBListener49E825B4",
             ],
           },
         },
-      }),
-    );
+      },
+    });
   });
 
   test("Trivial add TLS listener", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
-    const cert = new edge.Certificate(stack, "Certificate", {
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
+    const cert = new edge.PublicCertificate(stack, "Certificate", {
       domainName: "example.com",
     });
 
     // WHEN
     lb.addListener("Listener", {
       port: 443,
-      protocol: elbv2.Protocol.TLS,
-      certificates: [elbv2.ListenerCertificate.fromCertificateManager(cert)],
-      sslPolicy: elbv2.SslPolicy.TLS12,
+      protocol: LbProtocol.TLS,
+      certificates: [ListenerCertificate.fromCertificateManager(cert)],
+      sslPolicy: SslPolicy.TLS12,
       defaultTargetGroups: [
-        new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbListener.LbListener,
       {
-        Protocol: "TLS",
-        Port: 443,
-        Certificates: [{ CertificateArn: { Ref: "Certificate4E7ABB08" } }],
-        SslPolicy: "ELBSecurityPolicy-TLS-1-2-2017-01",
+        protocol: "TLS",
+        port: 443,
+        certificate_arn: stack.resolve(cert.certificateArn),
+        ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01",
       },
     );
   });
 
   test("Trivial add TLS listener with ALPN", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
-    const cert = new edge.Certificate(stack, "Certificate", {
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
+    const cert = new edge.PublicCertificate(stack, "Certificate", {
       domainName: "example.com",
     });
 
     // WHEN
     lb.addListener("Listener", {
       port: 443,
-      protocol: elbv2.Protocol.TLS,
-      alpnPolicy: elbv2.AlpnPolicy.HTTP2_ONLY,
-      certificates: [elbv2.ListenerCertificate.fromCertificateManager(cert)],
-      sslPolicy: elbv2.SslPolicy.TLS12,
+      protocol: LbProtocol.TLS,
+      alpnPolicy: AlpnPolicy.HTTP2_ONLY,
+      certificates: [ListenerCertificate.fromCertificateManager(cert)],
+      sslPolicy: SslPolicy.TLS12,
       defaultTargetGroups: [
-        new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbListener.LbListener,
       {
-        Protocol: "TLS",
-        Port: 443,
-        AlpnPolicy: ["HTTP2Only"],
-        Certificates: [{ CertificateArn: { Ref: "Certificate4E7ABB08" } }],
-        SslPolicy: "ELBSecurityPolicy-TLS-1-2-2017-01",
+        protocol: "TLS",
+        port: 443,
+        alpn_policy: ["HTTP2Only"],
+        certificate_arn: stack.resolve(cert.certificateArn),
+        ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01",
       },
     );
   });
 
   test("Incompatible Protocol with ALPN", () => {
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
 
     expect(() =>
       lb.addListener("Listener", {
         port: 443,
-        protocol: elbv2.Protocol.TCP,
-        alpnPolicy: elbv2.AlpnPolicy.HTTP2_OPTIONAL,
+        protocol: LbProtocol.TCP,
+        alpnPolicy: AlpnPolicy.HTTP2_OPTIONAL,
         defaultTargetGroups: [
-          new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+          new NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
         ],
       }),
     ).toThrow(/Protocol must be TLS when alpnPolicy have been specified/);
   });
 
   test("Invalid Protocol listener", () => {
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
 
     expect(() =>
       lb.addListener("Listener", {
         port: 443,
-        protocol: elbv2.Protocol.HTTP,
+        protocol: LbProtocol.HTTP,
         defaultTargetGroups: [
-          new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+          new NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
         ],
       }),
     ).toThrow(
@@ -381,14 +394,13 @@ describe("tests", () => {
   });
 
   test("Invalid Listener Target Healthcheck Interval", () => {
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("PublicListener", { port: 80 });
     const targetGroup = listener.addTargets("ECS", {
       port: 80,
       healthCheck: {
-        interval: cdk.Duration.seconds(350),
+        interval: Duration.seconds(350),
       },
     });
 
@@ -400,20 +412,19 @@ describe("tests", () => {
   });
 
   test("validation error if invalid health check protocol", () => {
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("PublicListener", { port: 80 });
     const targetGroup = listener.addTargets("ECS", {
       port: 80,
       healthCheck: {
-        interval: cdk.Duration.seconds(60),
+        interval: Duration.seconds(60),
       },
     });
 
     targetGroup.configureHealthCheck({
-      interval: cdk.Duration.seconds(30),
-      protocol: elbv2.Protocol.UDP,
+      interval: Duration.seconds(30),
+      protocol: LbProtocol.UDP,
     });
 
     // THEN
@@ -424,20 +435,19 @@ describe("tests", () => {
   });
 
   test("validation error if invalid path health check protocol", () => {
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("PublicListener", { port: 80 });
     const targetGroup = listener.addTargets("ECS", {
       port: 80,
       healthCheck: {
-        interval: cdk.Duration.seconds(60),
+        interval: Duration.seconds(60),
       },
     });
 
     targetGroup.configureHealthCheck({
-      interval: cdk.Duration.seconds(30),
-      protocol: elbv2.Protocol.TCP,
+      interval: Duration.seconds(30),
+      protocol: LbProtocol.TCP,
       path: "/",
     });
 
@@ -449,21 +459,20 @@ describe("tests", () => {
   });
 
   test("validation error if invalid timeout health check", () => {
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("PublicListener", { port: 80 });
     const targetGroup = listener.addTargets("ECS", {
       port: 80,
       healthCheck: {
-        interval: cdk.Duration.seconds(60),
+        interval: Duration.seconds(60),
       },
     });
 
     targetGroup.configureHealthCheck({
-      interval: cdk.Duration.seconds(150),
-      protocol: elbv2.Protocol.HTTP,
-      timeout: cdk.Duration.seconds(130),
+      interval: Duration.seconds(150),
+      protocol: LbProtocol.HTTP,
+      timeout: Duration.seconds(130),
     });
 
     // THEN
@@ -477,21 +486,20 @@ describe("tests", () => {
   });
 
   test("validation error if Health check timeout is greater than the interval", () => {
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("PublicListener", { port: 80 });
     const targetGroup = listener.addTargets("ECS", {
       port: 80,
       healthCheck: {
-        interval: cdk.Duration.seconds(60),
+        interval: Duration.seconds(60),
       },
     });
 
     targetGroup.configureHealthCheck({
-      interval: cdk.Duration.seconds(30),
-      protocol: elbv2.Protocol.HTTP,
-      timeout: cdk.Duration.seconds(40),
+      interval: Duration.seconds(30),
+      protocol: LbProtocol.HTTP,
+      timeout: Duration.seconds(40),
     });
 
     // THEN
@@ -502,36 +510,34 @@ describe("tests", () => {
   });
 
   test("Protocol & certs TLS listener", () => {
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
 
     expect(() =>
       lb.addListener("Listener", {
         port: 443,
-        protocol: elbv2.Protocol.TLS,
+        protocol: LbProtocol.TLS,
         defaultTargetGroups: [
-          new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+          new NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
         ],
       }),
     ).toThrow(/When the protocol is set to TLS, you must specify certificates/);
   });
 
   test("TLS and certs specified listener", () => {
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
-    const cert = new edge.Certificate(stack, "Certificate", {
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
+    const cert = new edge.PublicCertificate(stack, "Certificate", {
       domainName: "example.com",
     });
 
     expect(() =>
       lb.addListener("Listener", {
         port: 443,
-        protocol: elbv2.Protocol.TCP,
+        protocol: LbProtocol.TCP,
         certificates: [{ certificateArn: cert.certificateArn }],
         defaultTargetGroups: [
-          new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+          new NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
         ],
       }),
     ).toThrow(/Protocol must be TLS when certificates have been specified/);
@@ -539,199 +545,180 @@ describe("tests", () => {
 
   test("Can pass multiple certificates to network listener constructor", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
 
+    const vpc = new compute.Vpc(stack, "Stack");
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
+
+    const cert1 = importedCertificate(stack, "cert1");
+    const cert2 = importedCertificate(stack, "cert2");
     // WHEN
     lb.addListener("Listener", {
       port: 443,
-      certificates: [
-        importedCertificate(stack, "cert1"),
-        importedCertificate(stack, "cert2"),
-      ],
+      certificates: [cert1, cert2],
       defaultTargetGroups: [
-        new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfLbListener.LbListener, {
+      certificate_arn: stack.resolve(cert1.certificateArn),
+      protocol: "TLS",
+    });
+    template.toHaveResourceWithProperties(
+      tfListenerCertificate.LbListenerCertificate,
       {
-        Protocol: "TLS",
-      },
-    );
-
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerCertificate",
-      {
-        Certificates: [{ CertificateArn: "cert2" }],
+        certificate_arn: stack.resolve(cert2.certificateArn),
       },
     );
   });
 
   test("Can add multiple certificates to network listener after construction", () => {
     // GIVEN
-    const stack = new cdk.Stack();
+
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     const listener = lb.addListener("Listener", {
       port: 443,
       certificates: [importedCertificate(stack, "cert1")],
       defaultTargetGroups: [
-        new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
-    listener.addCertificates("extra", [importedCertificate(stack, "cert2")]);
+    const cert2 = importedCertificate(stack, "cert2");
+    listener.addCertificates("extra", [cert2]);
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
+    const template = Template.fromStack(stack);
+    template.toHaveResourceWithProperties(tfLbListener.LbListener, {
+      protocol: "TLS",
+    });
+    template.toHaveResourceWithProperties(
+      tfListenerCertificate.LbListenerCertificate,
       {
-        Protocol: "TLS",
-      },
-    );
-
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerCertificate",
-      {
-        Certificates: [{ CertificateArn: "cert2" }],
+        certificate_arn: stack.resolve(cert2.certificateArn),
       },
     );
   });
 
   test("not allowed to specify defaultTargetGroups and defaultAction together", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const group = new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+    const group = new NetworkTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
     });
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     expect(() => {
       lb.addListener("Listener1", {
         port: 80,
         defaultTargetGroups: [group],
-        defaultAction: elbv2.NetworkListenerAction.forward([group]),
+        defaultAction: NetworkListenerAction.forward([group]),
       });
     }).toThrow(/Specify at most one/);
   });
 
-  test("Can look up an NetworkListener", () => {
-    // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, "stack", {
-      env: {
-        account: "123456789012",
-        region: "us-west-2",
-      },
-    });
+  // // TODO: Add Grid Context Provider
+  // test("Can look up an NetworkListener", () => {
+  //   // GIVEN
+  //   // const stack = new cdk.Stack(app, "stack", {
+  //   //   env: {
+  //   //     account: "123456789012",
+  //   //     region: "us-west-2",
+  //   //   },
+  //   // });
 
-    // WHEN
-    const listener = elbv2.NetworkListener.fromLookup(stack, "a", {
-      loadBalancerTags: {
-        some: "tag",
-      },
-    });
+  //   // WHEN
+  //   const listener = NetworkListener.fromLookup(stack, "a", {
+  //     loadBalancerTags: {
+  //       some: "tag",
+  //     },
+  //   });
 
-    // THEN
-    Template.fromStack(stack).resourceCountIs(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      0,
-    );
-    expect(listener.listenerArn).toEqual(
-      "arn:aws:elasticloadbalancing:us-west-2:123456789012:listener/network/my-load-balancer/50dc6c495c0c9188/f2f7dc8efc522ab2",
-    );
-  });
+  //   // THEN
+  //   Template.resources(stack, tfLbListener.LbListener).toHaveLength(0);
+  //   expect(listener.listenerArn).toEqual(
+  //     "arn:aws:elasticloadbalancing:us-west-2:123456789012:listener/network/my-load-balancer/50dc6c495c0c9188/f2f7dc8efc522ab2",
+  //   );
+  // });
 
   test("Create Listener with TCP idle timeout", () => {
     // GIVEN
-    const stack = new cdk.Stack();
+
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
-    new elbv2.NetworkListener(stack, "Listener", {
+    new NetworkListener(stack, "Listener", {
       loadBalancer: lb,
       port: 443,
       defaultTargetGroups: [
-        new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
-      tcpIdleTimeout: cdk.Duration.seconds(100),
+      tcpIdleTimeout: Duration.seconds(100),
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbListener.LbListener,
       {
-        Protocol: "TCP",
-        Port: 443,
-        ListenerAttributes: Match.arrayWith([
-          {
-            Key: "tcp.idle_timeout.seconds",
-            Value: "100",
-          },
-        ]),
+        protocol: "TCP",
+        port: 443,
+        tcp_idle_timeout_seconds: 100,
       },
     );
   });
 
   test("Add Listener with TCP idle timeout", () => {
     // GIVEN
-    const stack = new cdk.Stack();
+
     const vpc = new compute.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     lb.addListener("Listener", {
       port: 443,
       defaultTargetGroups: [
-        new elbv2.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
-      tcpIdleTimeout: cdk.Duration.seconds(100),
+      tcpIdleTimeout: Duration.seconds(100),
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbListener.LbListener,
       {
-        Protocol: "TCP",
-        Port: 443,
-        ListenerAttributes: Match.arrayWith([
-          {
-            Key: "tcp.idle_timeout.seconds",
-            Value: "100",
-          },
-        ]),
+        protocol: "TCP",
+        port: 443,
+        tcp_idle_timeout_seconds: 100,
       },
     );
   });
 
   test("throws when tcpIdleTimeout is set with UDP.", () => {
     // GIVEN
-    const stack = new cdk.Stack();
+
     const vpc = new compute.Vpc(stack, "Stack");
-    const group = new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+    const group = new NetworkTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
-      protocol: elbv2.Protocol.UDP,
+      protocol: LbProtocol.UDP,
     });
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     expect(() => {
       lb.addListener("Listener1", {
         port: 80,
-        defaultAction: elbv2.NetworkListenerAction.forward([group]),
-        tcpIdleTimeout: cdk.Duration.seconds(100),
-        protocol: elbv2.Protocol.UDP,
+        defaultAction: NetworkListenerAction.forward([group]),
+        tcpIdleTimeout: Duration.seconds(100),
+        protocol: LbProtocol.UDP,
       });
     }).toThrow(
       "`tcpIdleTimeout` cannot be set when `protocol` is `Protocol.UDP`.",
@@ -740,20 +727,19 @@ describe("tests", () => {
 
   test("throws when tcpIdleTimeout is smaller than 1 second.", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new compute.Vpc(stack, "Stack");
-    const group = new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+    const group = new NetworkTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
     });
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     expect(() => {
       lb.addListener("Listener1", {
         port: 80,
-        defaultAction: elbv2.NetworkListenerAction.forward([group]),
-        tcpIdleTimeout: cdk.Duration.millis(1),
+        defaultAction: NetworkListenerAction.forward([group]),
+        tcpIdleTimeout: Duration.millis(1),
       });
     }).toThrow(
       "`tcpIdleTimeout` must be between 60 and 6000 seconds, got 1 milliseconds.",
@@ -764,20 +750,19 @@ describe("tests", () => {
     "throws when tcpIdleTimeout is invalid seconds, got: %d seconds",
     (tcpIdleTimeoutSeconds) => {
       // GIVEN
-      const stack = new cdk.Stack();
       const vpc = new compute.Vpc(stack, "Stack");
-      const group = new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      const group = new NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
       });
-      const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
+      const lb = new NetworkLoadBalancer(stack, "LB", { vpc });
 
       // WHEN
       expect(() => {
         lb.addListener("Listener1", {
           port: 80,
-          defaultAction: elbv2.NetworkListenerAction.forward([group]),
-          tcpIdleTimeout: cdk.Duration.seconds(tcpIdleTimeoutSeconds),
+          defaultAction: NetworkListenerAction.forward([group]),
+          tcpIdleTimeout: Duration.seconds(tcpIdleTimeoutSeconds),
         });
       }).toThrow(
         `\`tcpIdleTimeout\` must be between 60 and 6000 seconds, got ${tcpIdleTimeoutSeconds} seconds.`,
@@ -786,18 +771,18 @@ describe("tests", () => {
   );
 });
 
-class ResourceWithLBDependency extends cdk.CfnResource {
-  constructor(scope: Construct, id: string, targetGroup: elbv2.ITargetGroup) {
-    super(scope, id, { type: "Test::Resource" });
+class ResourceWithLBDependency extends TerraformResource {
+  constructor(scope: Construct, id: string, targetGroup: ITargetGroup) {
+    super(scope, id, { terraformResourceType: "test_resource" });
     this.node.addDependency(targetGroup.loadBalancerAttached);
   }
 }
 
 function importedCertificate(
-  stack: cdk.Stack,
+  stack: AwsStack,
   certificateArn = "arn:aws:certificatemanager:123456789012:testregion:certificate/fd0b8392-3c0e-4704-81b6-8edf8612c852",
 ) {
-  return edge.Certificate.fromCertificateArn(
+  return edge.PublicCertificate.fromCertificateArn(
     stack,
     certificateArn,
     certificateArn,
