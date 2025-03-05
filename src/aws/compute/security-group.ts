@@ -965,7 +965,9 @@ function egressRulesEqual(
  */
 function isAllTrafficRule(rule: any) {
   return (
-    (rule.cidrIp === "0.0.0.0/0" || rule.cidrIpv6 === "::/0") &&
+    (rule.cidrIpv4 === "0.0.0.0/0" ||
+      (rule.cidrBlocks && rule.cidrBlocks[0] === "0.0.0.0/0") ||
+      rule.cidrIpv6 === "::/0") &&
     rule.ipProtocol === "-1"
   );
 }

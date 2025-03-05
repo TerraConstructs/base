@@ -214,7 +214,6 @@ describe("security group", () => {
     );
   });
 
-  // TODO: FIX FAILING TEST
   test("all outbound rule cannot be added after creation", () => {
     // GIVEN
     const vpc = new Vpc(stack, "VPC");
