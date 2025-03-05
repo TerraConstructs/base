@@ -24,17 +24,24 @@ export interface SynthOptions {
 export class Template {
   /**
    * Create Jest Matchers from the parsed synthesized spec
+   *
+   * Best for common Jest Matchers
+   *
+   * This always runs TerraformStack.prepareStack() as this
+   * library heavily depends on it for pre-synth resource
+   * generation.
    */
   static fromStack(
     stack: TerraformStack,
     options: SynthOptions = {},
   ): jest.JestMatchers<any> {
-    const synthesized = Template.getSynthString(stack, options);
-    const parsed = JSON.parse(synthesized);
-    return expect(parsed);
+    const parsed = new Template(stack, options);
+    return expect(parsed.template);
   }
   /**
    * Create Jest Matchers for the synthesized JSON string
+   *
+   * Required by the CDKTF Jest Matchers (toHaveResourceWithProperties, ...)
    *
    * This always runs TerraformStack.prepareStack() as this
    * library heavily depends on it for pre-synth resource
@@ -66,25 +73,20 @@ export class Template {
     type: TerraformConstructor,
     options: SynthOptions = {},
   ) {
-    const resourceObjects = Template.resourceObjects(stack, type, options);
-    return expect(Object.values(resourceObjects));
+    const parsed = new Template(stack, options);
+    return expect(Object.values(parsed.resourcesByType(type)));
   }
 
   /**
-   * Create Jest Matchers for stack resources of a specific type
-   *
-   * This always runs TerraformStack.prepareStack() as this
-   * library heavily depends on it for pre-synth resource
-   * generation.
+   * Get stack resources by type
    */
   static resourceObjects(
     stack: TerraformStack,
     type: TerraformConstructor,
     options: SynthOptions = {},
   ) {
-    const synthesized = Template.getSynthString(stack, options);
-    const parsed = JSON.parse(synthesized);
-    return parsed.resource ? (parsed.resource[type.tfResourceType] ?? {}) : {};
+    const parsed = new Template(stack, options);
+    return parsed.resourcesByType(type);
   }
 
   /**
@@ -99,12 +101,8 @@ export class Template {
     type: TerraformConstructor,
     options: SynthOptions = {},
   ) {
-    const synthesized = Template.getSynthString(stack, options);
-    const parsed = JSON.parse(synthesized);
-    const dataSources = parsed.data
-      ? Object.values(parsed.data[type.tfResourceType] ?? {})
-      : [];
-    return expect(dataSources);
+    const parsed = new Template(stack, options);
+    return expect(parsed.resourceTypeArray(type));
   }
 
   /**
@@ -120,11 +118,10 @@ export class Template {
     outputName: string,
     options: SynthOptions = {},
   ) {
-    const synthesized = Template.getSynthString(stack, options);
-    const parsed = JSON.parse(synthesized);
-    expect(parsed.output).toHaveProperty(outputName);
-    expect(parsed.output[outputName]).toBeDefined();
-    return expect(parsed.output[outputName]);
+    const parsed = new Template(stack, options);
+    const output = parsed.outputByName(outputName);
+    expect(output).toBeDefined();
+    return expect(output);
   }
 
   private static getSynthString(
@@ -138,6 +135,63 @@ export class Template {
       expect(result).toMatchSnapshot();
     }
     return result;
+  }
+
+  private readonly raw: string;
+  private readonly template: any;
+  public constructor(stack: TerraformStack, options: SynthOptions = {}) {
+    this.raw = Template.getSynthString(stack, options);
+    this.template = JSON.parse(this.raw);
+  }
+
+  public get expect(): jest.JestMatchers<any> {
+    return expect(this.raw);
+  }
+
+  public get resource(): object | undefined {
+    return this.template.resource;
+  }
+
+  /**
+   * Get an Object of resources by type,
+   * the key is the resource name and the value is the resource object
+   */
+  public resourcesByType(type: TerraformConstructor): object {
+    return this.resource ? (this.resource[type.tfResourceType] ?? {}) : {};
+  }
+
+  /**
+   * Get an Array of resources by type, discarding the resource names
+   */
+  public resourceTypeArray(type: TerraformConstructor): Array<object> {
+    return Object.values(
+      this.resource ? this.resource[type.tfResourceType] : {},
+    );
+  }
+
+  /**
+   * Jest Matcher for resourceTypeArray
+   *
+   * shortcut for expect(template.resourceTypeArray(type))
+   */
+  public expectResources(type: TerraformConstructor): jest.JestMatchers<any> {
+    return expect(this.resourceTypeArray(type));
+  }
+
+  public get data(): object | undefined {
+    return this.template.data;
+  }
+
+  public dataSourcesByType(type: TerraformConstructor): object {
+    return this.data ? (this.data[type.tfResourceType] ?? {}) : {};
+  }
+
+  public get output(): object | undefined {
+    return this.template.output;
+  }
+
+  public outputByName(name: string): object | undefined {
+    return this.output ? this.output[name] : undefined;
   }
 }
 

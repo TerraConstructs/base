@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/@aws-cdk/aws-ec2-alpha/test/util.test.ts
 
-import { CidrBlock } from "../../../src/aws/compute/util";
+import { CidrBlock } from "../../../src/aws/compute/ec2-util-v2";
 
 describe("Tests for the CidrBlock.rangesOverlap method to check if IPv4 ranges overlap", () => {
   test("Should return false for non-overlapping IP ranges", () => {

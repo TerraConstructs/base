@@ -68,7 +68,7 @@ export class AwsTag implements IAspect {
     ) {
       // https://developer.hashicorp.com/terraform/cdktf/concepts/aspects
       const currentTags = node.tagsInput || {};
-      node.tags = { [this.key]: this.value, ...currentTags };
+      node.tags = { ...currentTags, [this.key]: this.value };
     }
   }
 

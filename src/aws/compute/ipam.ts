@@ -427,7 +427,12 @@ class IpamPool extends AwsConstructBase implements IIpamPool {
 
     // provisionedCidrs: props.ipv4ProvisionedCidrs?.map((cidr) => ({ cidr })),
     // Populating to check for subnet range against all IPv4 ranges assigned to VPC including IPAM
-    props.ipv4ProvisionedCidrs?.map((cidr) => this.ipamIpv4Cidrs.push(cidr));
+    props.ipv4ProvisionedCidrs?.forEach((cidr) => {
+      this.ipamIpv4Cidrs.push(cidr);
+      // Terraform VpcIpamPool does not support inline "ProvisionedCidrs" property
+      // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-ipampool.html#cfn-ec2-ipampool-provisionedcidrs
+      this.provisionCidr("ProvisionedCidr", { cidr });
+    });
   }
 
   /**
@@ -441,6 +446,7 @@ class IpamPool extends AwsConstructBase implements IIpamPool {
     id: string,
     options: IpamPoolCidrProvisioningOptions,
   ): tfIpamPoolCidr.VpcIpamPoolCidr {
+    // TODO: Error if neither or both cidr and netmask length are provided
     const cidr = new tfIpamPoolCidr.VpcIpamPoolCidr(this, id, {
       ...options,
       ipamPoolId: this.ipamPoolId,

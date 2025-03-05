@@ -123,6 +123,7 @@ export class Fn extends tfFn {
     id: string,
     options: TerraformVariableConfig = {},
   ): string {
+    // TODO: This should be a terraform remote state data source instead
     const importVariable = new TerraformVariable(scope, id, options);
     return importVariable.stringValue;
   }

@@ -574,7 +574,7 @@ export class VpcV2 extends VpcV2Base {
         if (secondaryVpcOptions.ipv4CidrBlock!) {
           const ret = validateIpv4address(
             secondaryVpcOptions.ipv4CidrBlock,
-            this.resource.cidrBlock,
+            this.resource.cidrBlockInput,
           );
           if (ret === false) {
             throw new Error(

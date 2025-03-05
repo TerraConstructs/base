@@ -179,7 +179,9 @@ class LinuxUserData extends UserData {
 
   public render(): string {
     const shebang = this.props.shebang ?? "#!/bin/bash";
-    return [shebang, ...this.renderOnExitLines(), ...this.lines].join("\n");
+    return Fn.rawString(
+      [shebang, ...this.renderOnExitLines(), ...this.lines].join("\n"),
+    );
   }
 
   public addS3DownloadCommand(params: S3DownloadOptions): string {
@@ -248,13 +250,15 @@ class WindowsUserData extends UserData {
   }
 
   public render(): string {
-    return `<powershell>${[
-      ...this.renderOnExitLines(),
-      ...this.lines,
-      ...(this.onExitLines.length > 0 ? ['throw "Success"'] : []),
-    ].join(
-      "\n",
-    )}</powershell>${(this.props.persist ?? false) ? "<persist>true</persist>" : ""}`;
+    return Fn.rawString(
+      `<powershell>${[
+        ...this.renderOnExitLines(),
+        ...this.lines,
+        ...(this.onExitLines.length > 0 ? ['throw "Success"'] : []),
+      ].join(
+        "\n",
+      )}</powershell>${(this.props.persist ?? false) ? "<persist>true</persist>" : ""}`,
+    );
   }
 
   public addS3DownloadCommand(params: S3DownloadOptions): string {
@@ -322,7 +326,7 @@ class CustomUserData extends UserData {
   }
 
   public render(): string {
-    return this.lines.join("\n");
+    return Fn.rawString(this.lines.join("\n"));
   }
 
   public addS3DownloadCommand(): string {

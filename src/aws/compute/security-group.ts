@@ -822,7 +822,7 @@ export class SecurityGroup extends SecurityGroupBase {
    *   a default allow all ipv4 rule.
    */
   private addDefaultEgressRule() {
-    if (this.allowAllOutbound) {
+    if (!this.allowAllOutbound) {
       return;
     }
     if (this.disableInlineRules) {
@@ -866,10 +866,16 @@ export class SecurityGroup extends SecurityGroupBase {
 /**
  * Egress rule that matches all traffic
  */
-const ALLOW_ALL_RULE = {
-  cidrIp: "0.0.0.0/0",
+const ALLOW_ALL_RULE: securityGroup.SecurityGroupEgress = {
+  cidrBlocks: ["0.0.0.0/0"],
   description: "Allow all outbound traffic by default",
-  ipProtocol: "-1",
+  /**
+   * If you select a protocol of -1 (semantically equivalent to all, which is not a valid value here),
+   * you must specify a from_port and to_port equal to 0.
+   */
+  protocol: "-1",
+  fromPort: 0,
+  toPort: 0,
 };
 
 const ALL_TRAFFIC_PEER = Peer.anyIpv4();

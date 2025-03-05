@@ -61,22 +61,18 @@ describe("Subnet V2 with custom IP and routing", () => {
 
     createTestSubnet(stack, subnetConfig);
 
-    Template.fromStack(stack, { snapshot: true }).toMatchObject({
-      Resources: {
-        TestVPCD26570D8: {
-          Type: "AWS::EC2::VPC",
-          Properties: {
-            CidrBlock: "10.1.0.0/16",
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_vpc: {
+          TestVPC_D26570D8: {
+            cidr_block: "10.1.0.0/16",
           },
         },
-        TestSubnet2A4BE4CA: {
-          Type: "AWS::EC2::Subnet",
-          Properties: {
-            CidrBlock: "10.1.0.0/24",
-            AvailabilityZone: "us-east-1a",
-            VpcId: {
-              "Fn::GetAtt": ["TestVPCD26570D8", "VpcId"],
-            },
+        aws_subnet: {
+          TestSubnet_7ABA0E56: {
+            cidr_block: "10.1.0.0/24",
+            availability_zone: "us-east-1a",
+            vpc_id: "${aws_vpc.TestVPC_D26570D8.id}",
           },
         },
       },
@@ -174,24 +170,23 @@ describe("Subnet V2 with custom IP and routing", () => {
       subnetType: SubnetType.PUBLIC,
     };
     createTestSubnet(stack, subnetConfig);
-    Template.fromStack(stack, { snapshot: true }).toMatchObject({
-      Resources: {
-        TestVPCD26570D8: {
-          Type: "AWS::EC2::VPC",
-          Properties: {
-            CidrBlock: "10.1.0.0/16",
-          },
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_vpc: {
+          TestVPC_D26570D8: expect.objectContaining({
+            cidr_block: "10.1.0.0/16",
+          }),
         },
-        TestSubnet2A4BE4CA: {
-          Type: "AWS::EC2::Subnet",
-          Properties: {
-            CidrBlock: "10.1.0.0/24",
-            AvailabilityZone: "us-east-1a",
-            VpcId: {
-              "Fn::GetAtt": ["TestVPCD26570D8", "VpcId"],
-            },
-            Ipv6CidrBlock: "2001:db8:1::/64",
-          },
+        aws_subnet: {
+          TestSubnet_7ABA0E56: expect.objectContaining({
+            cidr_block: "10.1.0.0/24",
+            availability_zone: "us-east-1a",
+            vpc_id: "${aws_vpc.TestVPC_D26570D8.id}",
+            depends_on: [
+              "aws_vpc_ipv6_cidr_block_association.TestVPC_AmazonIpv6_8C95CD97",
+            ],
+            ipv6_cidr_block: "2001:db8:1::/64",
+          }),
         },
       },
     });
@@ -225,27 +220,58 @@ describe("Subnet V2 with custom IP and routing", () => {
       availabilityZone: "us-east-1a",
       subnetType: SubnetType.PUBLIC,
     });
-    Template.fromStack(stack, { snapshot: true }).toMatchObject({
-      Resources: {
-        TestIpamDBF92BA8: { Type: "AWS::EC2::IPAM" },
-        TestIpamPublicPool0588A338B: {
-          Type: "AWS::EC2::IPAMPool",
-          Properties: {
-            AddressFamily: "ipv6",
-            IpamScopeId: {
-              "Fn::GetAtt": ["TestIpamDBF92BA8", "PublicDefaultScopeId"],
-            },
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_vpc_ipam: {
+          // TestIpamDBF92BA8: { Type: "AWS::EC2::IPAM" },
+          TestIpam_DBF92BA8: expect.anything(),
+        },
+        aws_vpc_ipam_pool: {
+          // TestIpamPublicPool0588A338B: {
+          //   Type: "AWS::EC2::IPAMPool",
+          //   Properties: {
+          //     AddressFamily: "ipv6",
+          //     IpamScopeId: {
+          //       "Fn::GetAtt": ["TestIpamDBF92BA8", "PublicDefaultScopeId"],
+          //     },
+          //   },
+          // },
+          TestIpam_PublicPool0_696E1634: {
+            address_family: "ipv6",
+            aws_service: "ec2",
+            ipam_scope_id:
+              "${aws_vpc_ipam.TestIpam_DBF92BA8.public_default_scope_id}",
+            locale: "us-west-1",
+            public_ip_source: "amazon",
           },
         },
-        TestVPCD26570D8: { Type: "AWS::EC2::VPC" },
-        TestVPCipv6IpamFF061725: { Type: "AWS::EC2::VPCCidrBlock" },
-        IpamSubnet78671F8A: {
-          Type: "AWS::EC2::Subnet",
-          Properties: {
-            CidrBlock: "10.1.0.0/24",
-            AvailabilityZone: "us-east-1a",
-            VpcId: { "Fn::GetAtt": ["TestVPCD26570D8", "VpcId"] },
-            Ipv6CidrBlock: "2001:db8:1::/64",
+        aws_vpc: {
+          // TestVPCD26570D8: { Type: "AWS::EC2::VPC" },
+          TestVPC_D26570D8: expect.anything(),
+        },
+        aws_vpc_ipv6_cidr_block_association: {
+          // TestVPCipv6IpamFF061725: { Type: "AWS::EC2::VPCCidrBlock" },
+          TestVPC_ipv6Ipam_FF061725: expect.anything(),
+        },
+        aws_subnet: {
+          // IpamSubnet78671F8A: {
+          //   Type: "AWS::EC2::Subnet",
+          //   Properties: {
+          //     CidrBlock: "10.1.0.0/24",
+          //     AvailabilityZone: "us-east-1a",
+          //     VpcId: { "Fn::GetAtt": ["TestVPCD26570D8", "VpcId"] },
+          //     Ipv6CidrBlock: "2001:db8:1::/64",
+          //   },
+          // },
+          IpamSubnet_E30B23D4: {
+            assign_ipv6_address_on_creation: false,
+            availability_zone: "us-east-1a",
+            cidr_block: "10.1.0.0/24",
+            depends_on: [
+              "aws_vpc_ipv6_cidr_block_association.TestVPC_ipv6Ipam_FF061725",
+            ],
+            ipv6_cidr_block: "2001:db8:1::/64",
+            vpc_id: "${aws_vpc.TestVPC_D26570D8.id}",
           },
         },
       },

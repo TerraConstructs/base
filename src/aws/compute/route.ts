@@ -478,13 +478,13 @@ export class VPNGatewayV2 extends AwsConstructBase implements IRouteTarget {
       );
     }
 
-    for (const sn of subnets) {
+    for (let i = 0; i < subnets.length; i++) {
       const routePropagation =
         new tfVpnGatewayRoutePropagation.VpnGatewayRoutePropagation(
           this,
-          "RoutePropagation",
+          `RoutePropagation${i}`,
           {
-            routeTableId: sn.routeTable.routeTableId,
+            routeTableId: subnets[i].routeTable.routeTableId,
             vpnGatewayId: this.routerTargetId,
           },
         );

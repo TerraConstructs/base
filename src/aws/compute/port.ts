@@ -360,8 +360,14 @@ export class Port {
    * All traffic
    */
   public static allTraffic() {
+    /**
+     * If you select a protocol of -1 (semantically equivalent to all, which is not a valid value here),
+     * you must specify a from_port and to_port equal to 0.
+     */
     return new Port({
       protocol: Protocol.ALL,
+      fromPort: 0,
+      toPort: 0,
       stringRepresentation: "ALL TRAFFIC",
     });
   }

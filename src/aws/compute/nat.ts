@@ -466,14 +466,16 @@ export class NatInstanceProvider extends NatProvider implements IConnectable {
     //   routerId: gatewayInstance.instanceId,
     //   enablesInternetConnectivity: true,
     // });
-    if (!gatewayInstance.primaryNetworkInterface) {
-      throw new Error(
-        `Primary network interface not found for gateway instance ${gatewayInstance.instanceId}`,
-      );
-    }
+    // if (!gatewayInstance.primaryNetworkInterfaceId) {
+    //   throw new Error(
+    //     `Primary network interface not found for gateway instance ${gatewayInstance.node.path}`,
+    //   );
+    // }
+    // If there is no primary network interface, the value is ""
+    // https://github.com/hashicorp/terraform-provider-aws/blob/v5.88.0/internal/service/ec2/ec2_instance.go#L1340
     subnet.addRoute("DefaultRoute", {
       routerType: RouterType.NETWORK_INTERFACE,
-      routerId: gatewayInstance.primaryNetworkInterface.id,
+      routerId: gatewayInstance.primaryNetworkInterfaceId,
       enablesInternetConnectivity: true,
     });
   }
@@ -665,14 +667,16 @@ export class NatInstanceProviderV2 extends NatProvider implements IConnectable {
     //   routerId: gatewayInstance.instanceId,
     //   enablesInternetConnectivity: true,
     // });
-    if (!gatewayInstance.primaryNetworkInterface) {
-      throw new Error(
-        `Primary network interface not found for gateway instance ${gatewayInstance.instanceId}`,
-      );
-    }
+    // if (!gatewayInstance.primaryNetworkInterface) {
+    //   throw new Error(
+    //     `Primary network interface not found for gateway instance ${gatewayInstance.node.path}`,
+    //   );
+    // }
+    // If there is no primary network interface, the value is ""
+    // https://github.com/hashicorp/terraform-provider-aws/blob/v5.88.0/internal/service/ec2/ec2_instance.go#L1340
     subnet.addRoute("DefaultRoute", {
       routerType: RouterType.NETWORK_INTERFACE,
-      routerId: gatewayInstance.primaryNetworkInterface.id,
+      routerId: gatewayInstance.primaryNetworkInterfaceId,
       enablesInternetConnectivity: true,
     });
   }

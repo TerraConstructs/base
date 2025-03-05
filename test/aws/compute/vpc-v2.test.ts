@@ -39,14 +39,13 @@ describe("Vpc V2 with full control", () => {
       enableDnsHostnames: true,
       enableDnsSupport: true,
     });
-    Template.fromStack(stack, { snapshot: true }).toMatchObject({
-      Resources: {
-        TestVpcE77CE678: {
-          Type: "AWS::EC2::VPC",
-          Properties: {
-            CidrBlock: "10.1.0.0/16",
-            EnableDnsHostnames: true,
-            EnableDnsSupport: true,
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_vpc: {
+          TestVpc_E77CE678: {
+            cidr_block: "10.1.0.0/16",
+            enable_dns_hostnames: true,
+            enable_dns_support: true,
           },
         },
       },
@@ -64,22 +63,19 @@ describe("Vpc V2 with full control", () => {
       enableDnsHostnames: true,
       enableDnsSupport: true,
     });
-    Template.fromStack(stack, { snapshot: true }).toMatchObject({
-      Resources: {
-        TestVpcE77CE678: {
-          Type: "AWS::EC2::VPC",
-          Properties: {
-            CidrBlock: "10.1.0.0/16",
-            EnableDnsHostnames: true,
-            EnableDnsSupport: true,
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_vpc: {
+          TestVpc_E77CE678: {
+            cidr_block: "10.1.0.0/16",
+            enable_dns_hostnames: true,
+            enable_dns_support: true,
           },
         },
-        TestVpcSecondaryAddress72BC831D: {
-          Type: "AWS::EC2::VPCCidrBlock",
-          Properties: {
-            VpcId: {
-              "Fn::GetAtt": ["TestVpcE77CE678", "VpcId"],
-            },
+        aws_vpc_ipv4_cidr_block_association: {
+          TestVpc_SecondaryAddress_72BC831D: {
+            cidr_block: "10.2.0.0/16",
+            vpc_id: "${aws_vpc.TestVpc_E77CE678.id}",
           },
         },
       },
@@ -110,23 +106,19 @@ describe("Vpc V2 with full control", () => {
       enableDnsHostnames: true,
       enableDnsSupport: true,
     });
-    Template.fromStack(stack, { snapshot: true }).toMatchObject({
-      Resources: {
-        TestVpcE77CE678: {
-          Type: "AWS::EC2::VPC",
-          Properties: {
-            CidrBlock: "10.1.0.0/16",
-            EnableDnsHostnames: true,
-            EnableDnsSupport: true,
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_vpc: {
+          TestVpc_E77CE678: {
+            cidr_block: "10.1.0.0/16",
+            enable_dns_hostnames: true,
+            enable_dns_support: true,
           },
         },
-        TestVpcAmazonProvided00BF109D: {
-          Type: "AWS::EC2::VPCCidrBlock",
-          Properties: {
-            AmazonProvidedIpv6CidrBlock: true, //Amazon Provided IPv6 address
-            VpcId: {
-              "Fn::GetAtt": ["TestVpcE77CE678", "VpcId"],
-            },
+        aws_vpc_ipv6_cidr_block_association: {
+          TestVpc_AmazonProvided_00BF109D: {
+            assign_generated_ipv6_cidr_block: true, //Amazon Provided IPv6 address
+            vpc_id: "${aws_vpc.TestVpc_E77CE678.id}",
           },
         },
       },
@@ -153,32 +145,39 @@ describe("Vpc V2 with full control", () => {
       enableDnsHostnames: true,
       enableDnsSupport: true,
     });
-    Template.fromStack(stack, { snapshot: true }).toMatchObject({
-      Resources: {
-        TestIpamDBF92BA8: { Type: "AWS::EC2::IPAM" },
-        TestIpamPrivatePool0E8589980: {
-          Type: "AWS::EC2::IPAMPool",
-          Properties: {
-            AddressFamily: "ipv4",
-            IpamScopeId: {
-              "Fn::GetAtt": ["TestIpamDBF92BA8", "PrivateDefaultScopeId"],
-            },
-            Locale: "us-west-1",
-            ProvisionedCidrs: [
-              {
-                Cidr: "10.1.0.1/24",
-              },
-            ],
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_vpc_ipam: {
+          TestIpam_DBF92BA8: expect.anything(),
+        },
+        aws_vpc_ipam_pool: {
+          TestIpam_PrivatePool0_AF92E01C: {
+            address_family: "ipv4",
+            ipam_scope_id:
+              "${aws_vpc_ipam.TestIpam_DBF92BA8.private_default_scope_id}",
+            // TF provider aws does not support inline cidr provisioning
+            // provisioned_cidrs: [
+            //   {
+            //     cidr: "10.1.0.1/24",
+            //   },
+            // ],
+            locale: "us-west-1",
           },
         },
-        TestVpcE77CE678: {
-          Type: "AWS::EC2::VPC",
-          Properties: {
-            Ipv4IpamPoolId: {
-              "Fn::GetAtt": ["TestIpamPrivatePool0E8589980", "IpamPoolId"],
-            },
-            EnableDnsHostnames: true,
-            EnableDnsSupport: true,
+        aws_vpc_ipam_pool_cidr: {
+          TestIpam_PrivatePool0_ProvisionedCidr_B99F6E6F: {
+            cidr: "10.1.0.1/24",
+            ipam_pool_id:
+              "${aws_vpc_ipam_pool.TestIpam_PrivatePool0_AF92E01C.id}",
+          },
+        },
+        aws_vpc: {
+          TestVpc_E77CE678: {
+            enable_dns_hostnames: true,
+            enable_dns_support: true,
+            ipv4_ipam_pool_id:
+              "${aws_vpc_ipam_pool.TestIpam_PrivatePool0_AF92E01C.id}",
+            ipv4_netmask_length: 28, // not in AWS CDK vpc-v2 test
           },
         },
       },
@@ -212,48 +211,43 @@ describe("Vpc V2 with full control", () => {
       enableDnsHostnames: true,
       enableDnsSupport: true,
     });
-    Template.fromStack(stack, { snapshot: true }).toMatchObject({
-      Resources: {
-        TestIpamDBF92BA8: { Type: "AWS::EC2::IPAM" },
-        TestIpamPublicPool0588A338B: {
-          Type: "AWS::EC2::IPAMPool",
-          Properties: {
-            AddressFamily: "ipv6",
-            AwsService: "ec2",
-            IpamScopeId: {
-              "Fn::GetAtt": ["TestIpamDBF92BA8", "PublicDefaultScopeId"],
-            },
-            PublicIpSource: "amazon",
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_vpc_ipam: {
+          TestIpam_DBF92BA8: expect.anything(),
+        },
+        aws_vpc_ipam_pool: {
+          TestIpam_PublicPool0_696E1634: {
+            address_family: "ipv6",
+            aws_service: "ec2",
+            ipam_scope_id:
+              "${aws_vpc_ipam.TestIpam_DBF92BA8.public_default_scope_id}",
+            // locale: "us-west-1", // not in AWS CDK test
+            public_ip_source: "amazon",
           },
         },
         // Test Amazon Provided IPAM IPv6
-        TestIpamPublicPool0PublicPoolCidrB0FF20F7: {
-          Type: "AWS::EC2::IPAMPoolCidr",
-          Properties: {
-            IpamPoolId: {
-              "Fn::GetAtt": ["TestIpamPublicPool0588A338B", "IpamPoolId"],
-            },
-            NetmaskLength: 60,
+        aws_vpc_ipam_pool_cidr: {
+          TestIpam_PublicPool0_PublicPoolCidr_B0FF20F7: {
+            ipam_pool_id:
+              "${aws_vpc_ipam_pool.TestIpam_PublicPool0_696E1634.id}",
+            netmask_length: 60,
           },
         },
-        TestVpcE77CE678: {
-          Type: "AWS::EC2::VPC",
-          Properties: {
-            CidrBlock: "10.1.0.0/16",
-            EnableDnsHostnames: true,
-            EnableDnsSupport: true,
+        aws_vpc: {
+          TestVpc_E77CE678: {
+            cidr_block: "10.1.0.0/16",
+            enable_dns_hostnames: true,
+            enable_dns_support: true,
+            // instance_tenancy: "default", // not in AWS CDK test
           },
         },
-        TestVpcIPv6Ipam402F1C75: {
-          Type: "AWS::EC2::VPCCidrBlock",
-          Properties: {
-            VpcId: {
-              "Fn::GetAtt": ["TestVpcE77CE678", "VpcId"],
-            },
-            Ipv6IpamPoolId: {
-              "Fn::GetAtt": ["TestIpamPublicPool0588A338B", "IpamPoolId"],
-            },
-            Ipv6NetmaskLength: 64,
+        aws_vpc_ipv6_cidr_block_association: {
+          TestVpc_IPv6Ipam_402F1C75: {
+            vpc_id: "${aws_vpc.TestVpc_E77CE678.id}",
+            ipv6_ipam_pool_id:
+              "${aws_vpc_ipam_pool.TestIpam_PublicPool0_696E1634.id}",
+            ipv6_netmask_length: 64,
           },
         },
       },

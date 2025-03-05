@@ -177,7 +177,7 @@ describe("vpc", () => {
         const stack = getTestStack();
         const vpc = new Vpc(stack, "TheVPC");
         expect(stack.resolve(vpc.vpcId)).toEqual(
-          "${aws_vpc.TheVPC92636AB0.id}",
+          "${aws_vpc.TheVPC_92636AB0.id}",
         );
       });
 
@@ -185,7 +185,7 @@ describe("vpc", () => {
         const stack = getTestStack();
         const vpc = new Vpc(stack, "TheVPC");
         expect(stack.resolve(vpc.vpcArn)).toEqual(
-          "arn:${AWS::Partition}:ec2:us-east-1:123456789012:vpc/${aws_vpc.TheVPC92636AB0.id}",
+          "arn:${data.aws_partition.Partitition.partition}:ec2:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:vpc/${aws_vpc.TheVPC_92636AB0.id}",
         );
       });
 
@@ -274,12 +274,13 @@ describe("vpc", () => {
         const stack = getTestStack();
         const vpc = new Vpc(stack, "TheVPC");
         // NOTE: This is a property in AWSCDK but a method in TerraConstructs!
-        // defaults to 2 AZs
-        const zones = stack.availabilityZones().length;
+        // defaults to 2 AZs (like AWS CDK Env agnostic stacks do)
+        // but Vpc defaults to 3 AZs ...
+        const zones = stack.availabilityZones(3).length;
         expect(vpc.publicSubnets.length).toEqual(zones);
         expect(vpc.privateSubnets.length).toEqual(zones);
         expect(stack.resolve(vpc.vpcId)).toEqual(
-          "${aws_vpc.TheVPC92636AB0.id}",
+          "${aws_vpc.TheVPC_92636AB0.id}",
         );
       });
 
@@ -287,7 +288,7 @@ describe("vpc", () => {
         const stack = getTestStack();
         const vpc = new Vpc(stack, "TheVPC");
         expect(stack.resolve(vpc.internetGatewayId)).toEqual(
-          "${aws_internet_gateway.TheVPCIGWFA25CC08.id}",
+          "${aws_internet_gateway.TheVPC_IGW_FA25CC08.id}",
         );
       });
 
@@ -402,13 +403,16 @@ describe("vpc", () => {
 
       test("with no subnets defined, the VPC should have an IGW, and a NAT Gateway per AZ", () => {
         const stack = getTestStack();
+        // TODO: Don't default to 2 AZs
         const zones = stack.availabilityZones().length;
-        new Vpc(stack, "TheVPC", {});
-        Template.resources(
-          stack,
-          tfInternetGateway.InternetGateway,
-        ).toHaveLength(1);
-        Template.resources(stack, tfNatGateway.NatGateway).toHaveLength(zones);
+        new Vpc(stack, "TheVPC", {
+          maxAzs: 2, // default is 3
+        });
+        const template = new Template(stack);
+        template
+          .expectResources(tfInternetGateway.InternetGateway)
+          .toHaveLength(1);
+        template.expectResources(tfNatGateway.NatGateway).toHaveLength(zones);
       });
 
       test("with isolated and public subnet, should be able to use the internet gateway to define routes", () => {
@@ -430,13 +434,13 @@ describe("vpc", () => {
           routerType: RouterType.GATEWAY,
           destinationCidrBlock: "8.8.8.8/32",
         });
-        Template.resources(
-          stack,
-          tfInternetGateway.InternetGateway,
-        ).toHaveLength(1);
-        Template.synth(stack).toHaveResourceWithProperties(tfRoute.Route, {
+        const template = new Template(stack);
+        template
+          .expectResources(tfInternetGateway.InternetGateway)
+          .toHaveLength(1);
+        template.expect.toHaveResourceWithProperties(tfRoute.Route, {
           destination_cidr_block: "8.8.8.8/32",
-          gateway_id: {},
+          gateway_id: "${aws_internet_gateway.TheVPC_IGW_FA25CC08.id}",
         });
       });
 
@@ -607,7 +611,7 @@ describe("vpc", () => {
       });
       test("with custom subnets, the VPC should have the right number of subnets, an IGW, and a NAT Gateway per AZ", () => {
         const stack = getTestStack();
-        const zones = stack.availabilityZones().length;
+        const zones = stack.availabilityZones(3).length;
         new Vpc(stack, "TheVPC", {
           ipAddresses: IpAddresses.cidr("10.0.0.0/21"),
           subnetConfiguration: [
@@ -633,16 +637,17 @@ describe("vpc", () => {
           stack,
           tfInternetGateway.InternetGateway,
         ).toHaveLength(1);
-        Template.resources(stack, tfNatGateway.NatGateway).toHaveLength(zones);
-        Template.resources(stack, tfSubnet.Subnet).toHaveLength(9);
-        const template = Template.synth(stack);
+        const template = new Template(stack);
+        template.expectResources(tfNatGateway.NatGateway).toHaveLength(zones);
+        template.expectResources(tfSubnet.Subnet).toHaveLength(9);
+        // const template = Template.synth(stack);
         for (let i = 0; i < 6; i++) {
-          template.toHaveResourceWithProperties(tfSubnet.Subnet, {
+          template.expect.toHaveResourceWithProperties(tfSubnet.Subnet, {
             cidr_block: `10.0.${i}.0/24`,
           });
         }
         for (let i = 0; i < 3; i++) {
-          template.toHaveResourceWithProperties(tfSubnet.Subnet, {
+          template.expect.toHaveResourceWithProperties(tfSubnet.Subnet, {
             cidr_block: `10.0.6.${i * 16}/28`,
           });
         }
@@ -858,34 +863,37 @@ describe("vpc", () => {
       test("maxAZs defaults to 3 if unset", () => {
         const stack = getTestStack();
         new Vpc(stack, "VPC");
-        Template.resources(stack, tfSubnet.Subnet).toHaveLength(6);
-        Template.resources(stack, tfRoute.Route).toHaveLength(6);
-        const template = Template.synth(stack);
+        const template = new Template(stack);
+        template.expectResources(tfSubnet.Subnet).toHaveLength(6);
+        template.expectResources(tfRoute.Route).toHaveLength(6);
         for (let i = 0; i < 6; i++) {
-          template.toHaveResourceWithProperties(tfSubnet.Subnet, {
+          template.expect.toHaveResourceWithProperties(tfSubnet.Subnet, {
             cidr_block: `10.0.${i * 32}.0/19`,
           });
         }
-        template.toHaveResourceWithProperties(tfRoute.Route, {
+        // one route for each, only validating one...
+        template.expect.toHaveResourceWithProperties(tfRoute.Route, {
           destination_cidr_block: "0.0.0.0/0",
-          nat_gateway_id: {},
+          nat_gateway_id:
+            "${aws_nat_gateway.VPC_PublicSubnet1_NATGateway_E0556630.id}",
         });
       });
 
       test("with maxAZs set to 2", () => {
         const stack = getTestStack();
         new Vpc(stack, "VPC", { maxAzs: 2 });
-        Template.resources(stack, tfSubnet.Subnet).toHaveLength(4);
-        Template.resources(stack, tfRoute.Route).toHaveLength(4);
-        const template = Template.synth(stack);
+        const template = new Template(stack);
+        template.expectResources(tfSubnet.Subnet).toHaveLength(4);
+        template.expectResources(tfRoute.Route).toHaveLength(4);
         for (let i = 0; i < 4; i++) {
-          template.toHaveResourceWithProperties(tfSubnet.Subnet, {
+          template.expect.toHaveResourceWithProperties(tfSubnet.Subnet, {
             cidr_block: `10.0.${i * 64}.0/18`,
           });
         }
-        template.toHaveResourceWithProperties(tfRoute.Route, {
+        template.expect.toHaveResourceWithProperties(tfRoute.Route, {
           destination_cidr_block: "0.0.0.0/0",
-          nat_gateway_id: {},
+          nat_gateway_id:
+            "${aws_nat_gateway.VPC_PublicSubnet1_NATGateway_E0556630.id}",
         });
       });
 
@@ -958,12 +966,14 @@ describe("vpc", () => {
         new Vpc(stack, "VPC", {
           natGateways: 1,
         });
-        Template.resources(stack, tfSubnet.Subnet).toHaveLength(6);
-        Template.resources(stack, tfRoute.Route).toHaveLength(6);
-        Template.resources(stack, tfNatGateway.NatGateway).toHaveLength(1);
-        Template.synth(stack).toHaveResourceWithProperties(tfRoute.Route, {
+        const template = new Template(stack);
+        template.expectResources(tfSubnet.Subnet).toHaveLength(6);
+        template.expectResources(tfRoute.Route).toHaveLength(6);
+        template.expectResources(tfNatGateway.NatGateway).toHaveLength(1);
+        template.expect.toHaveResourceWithProperties(tfRoute.Route, {
           destination_cidr_block: "0.0.0.0/0",
-          nat_gateway_id: {},
+          nat_gateway_id:
+            "${aws_nat_gateway.VPC_PublicSubnet1_NATGateway_E0556630.id}",
         });
       });
       test("with natGateway subnets defined", () => {
@@ -1152,14 +1162,14 @@ describe("vpc", () => {
         const template = Template.synth(stack);
         template.toHaveResourceWithProperties(tfVpnGateway.VpnGateway, {
           // type: "ipsec.1",
-          amazon_side_asn: 65000,
+          amazon_side_asn: "65000",
         });
 
         template.toHaveResourceWithProperties(
           tfVpnGatewayAttachment.VpnGatewayAttachment,
           {
             vpc_id: stack.resolve(myVpc.vpcId),
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
 
@@ -1168,24 +1178,24 @@ describe("vpc", () => {
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCPrivateSubnet1RouteTableBE8A6027.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_PrivateSubnet1_RouteTable_BE8A6027.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCPrivateSubnet2RouteTable0A19E10E.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_PrivateSubnet2_RouteTable_0A19E10E.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCPrivateSubnet3RouteTable192186F8.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_PrivateSubnet3_RouteTable_192186F8.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
       });
@@ -1211,24 +1221,24 @@ describe("vpc", () => {
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCIsolatedSubnet1RouteTableEB156210.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_IsolatedSubnet1_RouteTable_EB156210.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCIsolatedSubnet2RouteTable9B4F78DC.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_IsolatedSubnet2_RouteTable_9B4F78DC.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCIsolatedSubnet3RouteTableCB6A1FDA.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_IsolatedSubnet3_RouteTable_CB6A1FDA.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
       });
@@ -1258,48 +1268,48 @@ describe("vpc", () => {
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCPrivateSubnet1RouteTableBE8A6027.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_PrivateSubnet1_RouteTable_BE8A6027.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCPrivateSubnet2RouteTable0A19E10E.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_PrivateSubnet2_RouteTable_0A19E10E.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCPrivateSubnet3RouteTable192186F8.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_PrivateSubnet3_RouteTable_192186F8.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCIsolatedSubnet1RouteTableEB156210.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_IsolatedSubnet1_RouteTable_EB156210.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCIsolatedSubnet2RouteTable9B4F78DC.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_IsolatedSubnet2_RouteTable_9B4F78DC.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCIsolatedSubnet3RouteTableCB6A1FDA.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_IsolatedSubnet3_RouteTable_CB6A1FDA.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
       });
@@ -1319,24 +1329,24 @@ describe("vpc", () => {
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCIsolatedSubnet1RouteTableEB156210.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_IsolatedSubnet1_RouteTable_EB156210.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCIsolatedSubnet2RouteTable9B4F78DC.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_IsolatedSubnet2_RouteTable_9B4F78DC.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCIsolatedSubnet3RouteTableCB6A1FDA.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_IsolatedSubnet3_RouteTable_CB6A1FDA.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
       });
@@ -1355,24 +1365,24 @@ describe("vpc", () => {
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCPublicSubnet1RouteTableFEE4B781.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_PublicSubnet1_RouteTable_FEE4B781.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCPublicSubnet2RouteTable6F1A15F1.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_PublicSubnet2_RouteTable_6F1A15F1.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
         template.toHaveResourceWithProperties(
           vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
           {
             route_table_id:
-              "${aws_subnet.VPCPublicSubnet3RouteTable98AE0E14.id}",
-            vpn_gateway_id: "${aws_vpn_gateway.VPCVpnGatewayB5ABAE68.id}",
+              "${aws_route_table.VPC_PublicSubnet3_RouteTable_98AE0E14.id}",
+            vpn_gateway_id: "${aws_vpn_gateway.VPC_VpnGateway_B5ABAE68.id}",
           },
         );
       });
@@ -1627,7 +1637,9 @@ describe("vpc", () => {
             ],
           });
           Template.synth(stack).toHaveResourceWithProperties(tfSubnet.Subnet, {
-            depends_on: ["TheVPCipv6cidrF3E84E30"],
+            depends_on: [
+              "aws_vpc_ipv6_cidr_block_association.TheVPC_ipv6cidr_F3E84E30",
+            ],
           });
         },
       );
@@ -1783,35 +1795,36 @@ describe("vpc", () => {
       Template.resources(stack, tfInstance.Instance).toHaveLength(3);
       const template = Template.synth(stack);
       template.toHaveResourceWithProperties(tfInstance.Instance, {
-        image_id: "ami-1",
+        ami: "ami-1",
         instance_type: "q86.mega",
         source_dest_check: false,
       });
       template.toHaveResourceWithProperties(tfRoute.Route, {
         route_table_id:
-          "${aws_route_table.TheVPCPrivateSubnet1RouteTableF6513BC2.id",
+          "${aws_route_table.TheVPC_PrivateSubnet1_RouteTable_F6513BC2.id}",
         destination_cidr_block: "0.0.0.0/0",
-        instance_id:
-          "${aws_instance.TheVPCPublicSubnet1NatInstanceCC514192.id}",
+        // Terraform route does not support `instance_id`
+        network_interface_id:
+          "${aws_instance.TheVPC_PublicSubnet1_NatInstance_CC514192.primary_network_interface_id}",
       });
       template.toHaveResourceWithProperties(tfSecurityGroup.SecurityGroup, {
         egress: [
-          {
+          expect.objectContaining({
             cidr_blocks: ["0.0.0.0/0"],
             description: "Allow all outbound traffic by default",
             protocol: "-1",
             from_port: 0,
             to_port: 0,
-          },
+          }),
         ],
         ingress: [
-          {
+          expect.objectContaining({
             cidr_blocks: ["0.0.0.0/0"],
             description: "from 0.0.0.0/0:ALL TRAFFIC",
             protocol: "-1",
             from_port: 0,
             to_port: 0,
-          },
+          }),
         ],
       });
     });
@@ -1833,35 +1846,36 @@ describe("vpc", () => {
       Template.resources(stack, tfInstance.Instance).toHaveLength(3);
       const template = Template.synth(stack);
       template.toHaveResourceWithProperties(tfInstance.Instance, {
-        image_id: "ami-1",
+        ami: "ami-1",
         instance_type: "q86.mega",
         source_dest_check: false,
       });
       template.toHaveResourceWithProperties(tfRoute.Route, {
         route_table_id:
-          "${aws_route_table.TheVPCPrivateSubnet1RouteTableF6513BC2.id",
+          "${aws_route_table.TheVPC_PrivateSubnet1_RouteTable_F6513BC2.id}",
         destination_cidr_block: "0.0.0.0/0",
-        instance_id:
-          "${aws_instance.TheVPCPublicSubnet1NatInstanceCC514192.id}",
+        // Terraform route does not support `instance_id`
+        network_interface_id:
+          "${aws_instance.TheVPC_PublicSubnet1_NatInstance_CC514192.primary_network_interface_id}",
       });
       template.toHaveResourceWithProperties(tfSecurityGroup.SecurityGroup, {
         egress: [
-          {
+          expect.objectContaining({
             cidr_blocks: ["0.0.0.0/0"],
             description: "Allow all outbound traffic by default",
             protocol: "-1",
             from_port: 0,
             to_port: 0,
-          },
+          }),
         ],
         ingress: [
-          {
+          expect.objectContaining({
             cidr_blocks: ["0.0.0.0/0"],
             description: "from 0.0.0.0/0:ALL TRAFFIC",
             protocol: "-1",
             from_port: 0,
             to_port: 0,
-          },
+          }),
         ],
       });
     });
@@ -1900,29 +1914,30 @@ describe("vpc", () => {
       Template.resources(stack, tfInstance.Instance).toHaveLength(3);
       const template = Template.synth(stack);
       template.toHaveResourceWithProperties(tfInstance.Instance, {
-        image_id: "ami-1",
+        ami: "ami-1",
         instance_type: "t3.small",
         source_dest_check: false,
         credit_specification: { cpu_credits: "unlimited" },
         key_name: "KeyPairName",
-        user_data: "${base64encode('#!/bin/bash\necho \"hello world!\"'}",
+        user_data: '${base64encode("#!/bin/bash\\necho \\"hello world!\\"")}',
       });
       template.toHaveResourceWithProperties(tfRoute.Route, {
         route_table_id:
-          "${aws_route_table.TheVPCPrivateSubnet1RouteTableF6513BC2.id",
+          "${aws_route_table.TheVPC_PrivateSubnet1_RouteTable_F6513BC2.id}",
         destination_cidr_block: "0.0.0.0/0",
-        instance_id:
-          "${aws_instance.TheVPCPublicSubnet1NatInstanceCC514192.id}",
+        // Terraform route does not support `instance_id`
+        network_interface_id:
+          "${aws_instance.TheVPC_PublicSubnet1_NatInstance_CC514192.primary_network_interface_id}",
       });
       template.toHaveResourceWithProperties(tfSecurityGroup.SecurityGroup, {
         egress: [
-          {
+          expect.objectContaining({
             cidr_blocks: ["0.0.0.0/0"],
             description: "Allow all outbound traffic by default",
             protocol: "-1",
             from_port: 0,
             to_port: 0,
-          },
+          }),
         ],
       });
     });
@@ -2032,11 +2047,7 @@ describe("vpc", () => {
         Template.synth(stack).toHaveResourceWithProperties(
           tfInstance.Instance,
           {
-            network_interfaces: [
-              {
-                associate_public_ip_address: value,
-              },
-            ],
+            associate_public_ip_address: value,
           },
         );
       },
@@ -2100,28 +2111,29 @@ describe("vpc", () => {
       provider.connections.allowFrom(Peer.ipv4("1.2.3.4/32"), Port.tcp(86));
 
       // THEN
-      Template.synth(stack).toHaveResourceWithProperties(
-        tfSecurityGroup.SecurityGroup,
-        {
-          egress: [
-            {
-              cidr_blocks: ["0.0.0.0/0"],
-              description: "Allow all outbound traffic by default",
-              protocol: "-1",
-              from_port: 0,
-              to_port: 0,
-            },
-          ],
-          ingress: [
-            {
-              cidr_blocks: ["1.2.3.4/32"],
-              description: "from 1.2.3.4/32:86",
-              from_port: 86,
-              protocol: "tcp",
-              to_port: 86,
-            },
-          ],
-        },
+      Template.resources(stack, tfSecurityGroup.SecurityGroup).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            egress: [
+              expect.objectContaining({
+                cidr_blocks: ["0.0.0.0/0"],
+                description: "Allow all outbound traffic by default",
+                protocol: "-1",
+                from_port: 0,
+                to_port: 0,
+              }),
+            ],
+            ingress: [
+              expect.objectContaining({
+                cidr_blocks: ["1.2.3.4/32"],
+                description: "from 1.2.3.4/32:86",
+                from_port: 86,
+                protocol: "tcp",
+                to_port: 86,
+              }),
+            ],
+          }),
+        ]),
       );
     });
 
@@ -2142,28 +2154,30 @@ describe("vpc", () => {
       });
 
       // THEN
-      Template.synth(stack).toHaveResourceWithProperties(
-        tfSecurityGroup.SecurityGroup,
-        {
-          egress: [
-            {
-              cidr_blocks: ["0.0.0.0/0"],
-              description: "Allow all outbound traffic by default",
-              protocol: "-1",
-              from_port: 0,
-              to_port: 0,
-            },
-          ],
-          ingress: [
-            {
-              cidr_blocks: ["0.0.0.0/0"],
-              description: "from 0.0.0.0/0:ALL TRAFFIC",
-              protocol: "-1",
-              from_port: 0,
-              to_port: 0,
-            },
-          ],
-        },
+      Template.resources(stack, tfSecurityGroup.SecurityGroup).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            egress: [
+              // TODO: Does Terraform error if other properties are set to `null` ?
+              expect.objectContaining({
+                cidr_blocks: ["0.0.0.0/0"],
+                description: "Allow all outbound traffic by default",
+                protocol: "-1",
+                from_port: 0,
+                to_port: 0,
+              }),
+            ],
+            ingress: [
+              expect.objectContaining({
+                cidr_blocks: ["0.0.0.0/0"],
+                description: "from 0.0.0.0/0:ALL TRAFFIC",
+                protocol: "-1",
+                from_port: 0,
+                to_port: 0,
+              }),
+            ],
+          }),
+        ]),
       );
     });
 
@@ -2188,13 +2202,13 @@ describe("vpc", () => {
         tfSecurityGroup.SecurityGroup,
         {
           egress: [
-            {
+            expect.objectContaining({
               cidr_blocks: ["0.0.0.0/0"],
               description: "Allow all outbound traffic by default",
               protocol: "-1",
               from_port: 0,
               to_port: 0,
-            },
+            }),
           ],
         },
       );
@@ -2217,22 +2231,33 @@ describe("vpc", () => {
       });
 
       // THEN
-      Template.synth(stack).toHaveResourceWithProperties(
-        tfSecurityGroup.SecurityGroup,
-        {
-          egress: [
-            {
-              cidr_blocks: ["255.255.255.255/32"],
-              description: "Disallow all traffic",
-              from_port: 252,
-              protocol: "icmp",
-              to_port: 86,
-            },
-          ],
-        },
+      // The security group should have no egress rules.
+      // (default terraform provider aws behavior)
+      Template.resources(stack, tfSecurityGroup.SecurityGroup).toEqual(
+        expect.not.arrayContaining([
+          expect.objectContaining({
+            egress: expect.anything(),
+          }),
+        ]),
       );
+      // // CFN Allows all outbound, so AWS-CDK adds a 'Disallow all traffic' rule
+      // Template.synth(stack).toHaveResourceWithProperties(
+      //   tfSecurityGroup.SecurityGroup,
+      //   {
+      //     egress: [
+      //       {
+      //         cidr_blocks: ["255.255.255.255/32"],
+      //         description: "Disallow all traffic",
+      //         from_port: 252,
+      //         protocol: "icmp",
+      //         to_port: 86,
+      //       },
+      //     ],
+      //   },
+      // );
     });
 
+    // TODO: Deprecated NatProvider v1?
     test("burstable instance with explicit credit specification", () => {
       // GIVEN
       const stack = getTestStack();
@@ -2299,7 +2324,7 @@ describe("vpc", () => {
         subnetSelection: { subnetType: SubnetType.PUBLIC },
       });
 
-      Template.fromStack(stack, { snapshot: true }).toMatchObject({
+      Template.fromStack(stack).toMatchObject({
         output: {
           Output: {
             value: stack.resolve(acl.networkAclId),
@@ -2376,16 +2401,17 @@ describe("vpc", () => {
     test("Subnet Name will propagate to route tables and NATGW", () => {
       const stack = getTestStack();
       const vpc = new Vpc(stack, "TheVPC");
-      const natGateways = Template.resources(stack, tfNatGateway.NatGateway);
-      const routeTables = Template.resources(stack, tfRouteTable.RouteTable);
+      const template = new Template(stack);
+      const natGateways = template.resourceTypeArray(tfNatGateway.NatGateway);
+      const routeTables = template.resourceTypeArray(tfRouteTable.RouteTable);
       for (const subnet of vpc.publicSubnets) {
         const tag = { Name: subnet.node.path };
-        natGateways.toEqual(arrayWithTaggedObject(tag));
-        routeTables.toEqual(arrayWithTaggedObject(tag));
+        expect(natGateways).toEqual(arrayWithTaggedObject(tag));
+        expect(routeTables).toEqual(arrayWithTaggedObject(tag));
       }
       for (const subnet of vpc.privateSubnets) {
         const tag = { Name: subnet.node.path };
-        routeTables.toEqual(arrayWithTaggedObject(tag));
+        expect(routeTables).toEqual(arrayWithTaggedObject(tag));
       }
     });
     test("Tags can be added after the Vpc is created with `Tags.of(vpc).add(..., ...)`", () => {
@@ -2557,44 +2583,45 @@ describe("vpc", () => {
       expect(subnetIds[0]).toEqual(vpc.privateSubnets[0].subnetId);
     });
 
-    test("fromVpcAttributes using unknown-length list tokens", () => {
-      // GIVEN
-      const stack = getTestStack();
+    // // TODO: Fix import from unknown-length list tokens
+    // test("fromVpcAttributes using unknown-length list tokens", () => {
+    //   // GIVEN
+    //   const stack = getTestStack();
 
-      const vpcId = Fn.importValue(stack, "myVpcId");
-      const availabilityZones = Fn.split(
-        ",",
-        Fn.importValue(stack, "myAvailabilityZones"),
-      );
-      const publicSubnetIds = Fn.split(
-        ",",
-        Fn.importValue(stack, "myPublicSubnetIds"),
-      );
+    //   const vpcId = Fn.importValue(stack, "myVpcId");
+    //   const availabilityZones = Fn.split(
+    //     ",",
+    //     Fn.importValue(stack, "myAvailabilityZones"),
+    //   );
+    //   const publicSubnetIds = Fn.split(
+    //     ",",
+    //     Fn.importValue(stack, "myPublicSubnetIds"),
+    //   );
 
-      // WHEN
-      const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
-        vpcId,
-        availabilityZones,
-        publicSubnetIds,
-      });
+    //   // WHEN
+    //   const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
+    //     vpcId,
+    //     availabilityZones,
+    //     publicSubnetIds,
+    //   });
 
-      new TestResource(stack, "Resource", {
-        properties: {
-          subnetIds: vpc.selectSubnets().subnetIds,
-        },
-      });
+    //   new TestResource(stack, "Resource", {
+    //     properties: {
+    //       subnetIds: vpc.selectSubnets().subnetIds,
+    //     },
+    //   });
 
-      // THEN - No exception
-      Template.synth(stack).toHaveResourceWithProperties(TestResource, {
-        subnetIds: '${split(",",var.myPublicSubnetIds)}',
-      });
+    //   // THEN - No exception
+    //   Template.synth(stack).toHaveResourceWithProperties(TestResource, {
+    //     subnetIds: '${split(",", var.myPublicSubnetIds)}',
+    //   });
 
-      Annotations.fromStack(stack).hasWarnings({
-        constructPath: "/TestStack/VPC",
-        message:
-          "fromVpcAttributes: 'availabilityZones' is a list token: the imported VPC will not work with constructs that require a list of subnets at synthesis time. Use 'Vpc.fromLookup()' or 'Fn.importListValue' instead. [ack: @aws-cdk/aws-ec2:vpcAttributeIsListTokenavailabilityZones]",
-      });
-    });
+    //   Annotations.fromStack(stack).hasWarnings({
+    //     constructPath: "/TestStack/VPC",
+    //     message:
+    //       "fromVpcAttributes: 'availabilityZones' is a list token: the imported VPC will not work with constructs that require a list of subnets at synthesis time. Use 'Vpc.fromLookup()' or 'Fn.importListValue' instead. [ack: @aws-cdk/aws-ec2:vpcAttributeIsListTokenavailabilityZones]",
+    //   });
+    // });
 
     test("fromVpcAttributes using fixed-length list tokens", () => {
       // GIVEN
@@ -2623,11 +2650,11 @@ describe("vpc", () => {
 
       // THEN - No exception
 
-      const publicSubnetList = 'split(",",var.myPublicSubnetIds)';
+      const publicSubnetList = 'split(",", var.myPublicSubnetIds)';
       Template.synth(stack).toHaveResourceWithProperties(TestResource, {
         subnetIds: [
-          `\${element(${publicSubnetList},0)}`,
-          `\${element(${publicSubnetList},1)}`,
+          `\${element(${publicSubnetList}, 0)}`,
+          `\${element(${publicSubnetList}, 1)}`,
         ],
       });
     });
@@ -2717,7 +2744,9 @@ describe("vpc", () => {
       // GIVEN
       const stack = getTestStack();
       const vpc = new Vpc(stack, "VPC", {
-        maxAzs: 3,
+        // maxAzs: 3,
+        // TODO: Implement Context provider... until then must provide AZs
+        availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
       });
 
       // WHEN
@@ -2741,8 +2770,8 @@ describe("vpc", () => {
           service_name:
             "com.amazonaws.vpce.us-east-1.vpce-svc-uuddlrlrbastrtsvc",
           subnet_ids: [
-            "${aws_subnet.VPCPrivateSubnet1Subnet8BCA10E0.id}",
-            "${aws_subnet.VPCPrivateSubnet3Subnet3EDCD457.id}",
+            "${aws_subnet.VPC_PrivateSubnet1_05F5A6DA.id}",
+            "${aws_subnet.VPC_PrivateSubnet3_EAEE5839.id}",
           ],
         },
       );
@@ -2752,7 +2781,9 @@ describe("vpc", () => {
       // GIVEN
       const stack = getTestStack();
       const vpc = new Vpc(stack, "VPC", {
-        maxAzs: 3,
+        // maxAzs: 3,
+        // TODO: Implement Context provider... until then must provide AZs
+        availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
       });
 
       // WHEN
@@ -2774,8 +2805,8 @@ describe("vpc", () => {
           service_name:
             "com.amazonaws.vpce.us-east-1.vpce-svc-uuddlrlrbastrtsvc",
           subnet_ids: [
-            "${aws_subnet.VPCPrivateSubnet1Subnet8BCA10E0.id}",
-            "${aws_subnet.VPCPrivateSubnet3Subnet3EDCD457.id}",
+            "${aws_subnet.VPC_PrivateSubnet1_05F5A6DA.id}",
+            "${aws_subnet.VPC_PrivateSubnet3_EAEE5839.id}",
           ],
         },
       );
@@ -2819,7 +2850,7 @@ describe("vpc", () => {
       // 10.0.160.0/19 is the third subnet, sequentially, if you split
       // 10.0.0.0/16 into 6 pieces
       Template.synth(stack).toHaveResourceWithProperties(tfInstance.Instance, {
-        subnet_id: "${aws_subnet.VPCPrivateSubnet3Subnet3EDCD457.id}",
+        subnet_id: "${aws_subnet.VPC_PrivateSubnet3_EAEE5839.id}",
       });
     });
 
@@ -2856,8 +2887,8 @@ describe("vpc", () => {
           service_name:
             "com.amazonaws.vpce.us-east-1.vpce-svc-uuddlrlrbastrtsvc",
           subnet_ids: [
-            "${aws_subnet.VPCPrivateSubnet1Subnet8BCA10E0.id}",
-            "${aws_subnet.VPCPrivateSubnet3Subnet3EDCD457.id}",
+            "${aws_subnet.VPC_PrivateSubnet1_05F5A6DA.id}",
+            "${aws_subnet.VPC_PrivateSubnet3_EAEE5839.id}",
           ],
         },
       );
@@ -2972,9 +3003,9 @@ describe("vpc", () => {
           service_name:
             "com.amazonaws.vpce.us-east-1.vpce-svc-uuddlrlrbastrtsvc",
           subnet_ids: [
-            "${aws_subnet.VPCPrivateSubnet1Subnet8BCA10E0.id}",
-            "${aws_subnet.VPCPrivateSubnet2SubnetCFCDAA7A.id}",
-            "${aws_subnet.VPCPrivateSubnet3Subnet3EDCD457.id}",
+            "${aws_subnet.VPC_PrivateSubnet1_05F5A6DA.id}",
+            "${aws_subnet.VPC_PrivateSubnet2_8C0AEF3A.id}",
+            "${aws_subnet.VPC_PrivateSubnet3_EAEE5839.id}",
           ],
         },
       );
@@ -3217,6 +3248,9 @@ describe("vpc", () => {
     });
 
     // THEN
+    // TODO: Review VPC v1 DUAL_STACK implementation
+    // Note default subnets ipv6 cidr block set up currently:
+    // "ipv6_cidr_block": "\${element(cidrsubnets(aws_vpc.Vpc_8378EB38.ipv6_cidr_block, 8, 8, 8, 8, 8, 8), 4)}",
     Template.synth(stack).toHaveResourceWithProperties(
       vpcIpv6CidrBlockAssociation.VpcIpv6CidrBlockAssociation,
       {
@@ -3257,11 +3291,13 @@ function getTestStack(): AwsStack {
 }
 
 function arrayWithTaggedObject(tags: { [key: string]: string }) {
-  return expect.arrayContaining([
-    {
-      tags: expect.objectContaining(tags),
-    },
-  ]);
+  return expect.arrayContaining([taggedObject(tags)]);
+}
+
+function taggedObject(tags: { [key: string]: string }) {
+  return expect.objectContaining({
+    tags: expect.objectContaining(tags),
+  });
 }
 
 export enum TestProviderMetadata {

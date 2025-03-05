@@ -175,6 +175,15 @@ export interface CreateIpv6CidrBlocksRequest {
    * @default - 128 - 64 = /64 CIDR.
    */
   readonly sizeMask?: string;
+
+  /**
+   * The parent mask of the CIDR.
+   *
+   * Valid values are from 44 to 60 in increments of 4.
+   *
+   * @default - 56
+   */
+  readonly parentMask?: number;
 }
 
 /**
@@ -460,6 +469,9 @@ export interface IIpv6Addresses {
 class AmazonProvided implements IIpv6Addresses {
   /**
    * Whether the IPv6 CIDR is Amazon provided or not.
+   *
+   * equests an Amazon-provided IPv6 CIDR block with a /56 prefix length for the VPC.
+   * You cannot specify the range of IPv6 addresses, or the size of the CIDR block
    */
   amazonProvided: boolean;
 
@@ -495,16 +507,14 @@ class AmazonProvided implements IIpv6Addresses {
    * Note this is specific to the IPv6 CIDR.
    */
   createIpv6CidrBlocks(input: CreateIpv6CidrBlocksRequest): string[] {
-    if (Token.isUnresolved(input.ipv6SelectedCidr)) {
-      throw new Error(
-        `IPv6 CIDR must be a concrete CIDR string, got a Token (we need to parse it for automatic subdivision)`,
-      );
-    }
-    const parentMask = parseInt(input.ipv6SelectedCidr.split("/")[1], 10);
-    if (Number.isNaN(parentMask)) {
-      throw new Error(
-        `Parent CIDR must include a valid mask, got: '${input.ipv6SelectedCidr}'`,
-      );
+    let parentMask: number = input.parentMask ?? 56;
+    if (!Token.isUnresolved(input.ipv6SelectedCidr)) {
+      parentMask = parseInt(input.ipv6SelectedCidr.split("/")[1], 10);
+      if (Number.isNaN(parentMask)) {
+        throw new Error(
+          `Parent CIDR must include a valid mask, got: '${input.ipv6SelectedCidr}'`,
+        );
+      }
     }
     const sizeMask = parseInt(input.sizeMask ?? "64"); // 128 - 64
     const newbits = sizeMask - parentMask;

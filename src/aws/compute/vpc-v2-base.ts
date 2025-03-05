@@ -428,13 +428,13 @@ export abstract class VpcV2Base extends AwsConstructBase implements IVpcV2 {
       );
     }
 
-    for (const routeTableId of routeTableIds) {
+    for (let i = 0; i < routeTableIds.length; i++) {
       const routePropagation =
         new vpnGatewayRoutePropagation.VpnGatewayRoutePropagation(
           this,
-          "RoutePropagation",
+          `RoutePropagation${i}`,
           {
-            routeTableId,
+            routeTableId: routeTableIds[i],
             vpnGatewayId: this._vpnGatewayId,
           },
         );

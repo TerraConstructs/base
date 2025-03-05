@@ -66,6 +66,7 @@ export class GridTags implements IAspect {
     if (isTaggableTerraformResource(node)) {
       // https://developer.hashicorp.com/terraform/cdktf/concepts/aspects
       const currentTags = node.tagsInput || {};
+      // TODO: Bug - tagsToAdd are overwritten by currenTags
       node.tags = { ...this.tagsToAdd, ...currentTags };
     }
   }

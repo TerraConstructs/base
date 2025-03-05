@@ -491,7 +491,12 @@ export class Instance extends AwsConstructBase implements IInstance {
   /**
    * the primary network inteface (if applicable)
    */
-  public readonly primaryNetworkInterface?: tfNetworkInterface.NetworkInterface;
+  private readonly primaryNetworkInterface?: tfNetworkInterface.NetworkInterface;
+
+  /**
+   * the primary network interface id.
+   */
+  public readonly primaryNetworkInterfaceId: string;
 
   /**
    * @attribute
@@ -768,6 +773,9 @@ export class Instance extends AwsConstructBase implements IInstance {
     this.instancePrivateIp = this.instance.privateIp;
     this.instancePublicDnsName = this.instance.publicDns;
     this.instancePublicIp = this.instance.publicIp;
+    this.primaryNetworkInterfaceId = this.primaryNetworkInterface
+      ? this.primaryNetworkInterface.id
+      : this.instance.primaryNetworkInterfaceId;
 
     // TODO: Add support for Cfn Signals
     // // if both the resourceSignalTimeout and initOptions.timeout are set,

@@ -15,13 +15,13 @@ import {
   internetGatewayAttachment,
   vpnGatewayAttachment,
   vpnGatewayRoutePropagation,
+  dataAwsSubnet,
 } from "@cdktf/provider-aws";
 import {
   // ContextProvider,
   // CustomResource,
   // FeatureFlags,
   Annotations,
-  Fn,
   Lazy,
   Token,
 } from "cdktf";
@@ -708,13 +708,13 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
       );
     }
 
-    for (const routeTableId of routeTableIds) {
+    for (let i = 0; i < routeTableIds.length; i++) {
       const routePropagation =
         new vpnGatewayRoutePropagation.VpnGatewayRoutePropagation(
           this,
-          "RoutePropagation",
+          `RoutePropagation${i}`,
           {
-            routeTableId,
+            routeTableId: routeTableIds[i],
             vpnGatewayId: this._vpnGatewayId,
           },
         );
@@ -1127,6 +1127,20 @@ export interface SubnetAttributes {
    * The subnetId for this particular subnet
    */
   readonly subnetId: string;
+
+  /**
+   * Whether to register Terraform outputs for this TerraConstruct
+   *
+   * @default false
+   */
+  readonly registerOutputs?: boolean;
+
+  /**
+   * Optional override for the outputs name
+   *
+   * @default id
+   */
+  readonly outputName?: string;
 }
 
 /**
@@ -1931,7 +1945,8 @@ export class Vpc extends VpcBase {
         vpcId: this.vpcId,
       });
 
-      this.ipv6SelectedCidr = Fn.element(this.resource.cidrBlock, 0);
+      // TODO: how to allow ipv6 cidr block inputs?
+      this.ipv6SelectedCidr = this.resource.ipv6CidrBlock;
     }
 
     // subnetConfiguration must be set before calling createSubnets
@@ -3158,7 +3173,10 @@ class ImportedSubnet
   private readonly _ipv4CidrBlock?: string;
 
   constructor(scope: Construct, id: string, attrs: SubnetAttributes) {
-    super(scope, id);
+    super(scope, id, {
+      outputName: attrs.outputName,
+      registerOutputs: attrs.registerOutputs,
+    });
 
     if (!attrs.routeTableId) {
       // The following looks a little weird, but comes down to:
@@ -3186,9 +3204,12 @@ class ImportedSubnet
         `No routeTableId was provided to the subnet ${ref}. Attempting to read its .routeTable.routeTableId will return null/undefined. (More info: https://github.com/aws/aws-cdk/pull/3171)`,
       );
     }
+    const lookup = new dataAwsSubnet.DataAwsSubnet(this, "Resource", {
+      id: attrs.subnetId,
+    });
 
-    this._ipv4CidrBlock = attrs.ipv4CidrBlock;
-    this._availabilityZone = attrs.availabilityZone;
+    this._ipv4CidrBlock = attrs.ipv4CidrBlock; // ?? lookup.cidrBlock;
+    this._availabilityZone = attrs.availabilityZone; // ?? lookup.availabilityZone;
     this.subnetId = attrs.subnetId;
     this.routeTable = {
       // Forcing routeTableId to pretend non-null to maintain backwards-compatibility. See https://github.com/aws/aws-cdk/pull/3171
@@ -3197,7 +3218,7 @@ class ImportedSubnet
     this.subnetOutputs = {
       subnetId: this.subnetId,
       routeTableId: this.routeTable.routeTableId,
-      ipv4CidrBlock: this.ipv4CidrBlock,
+      ipv4CidrBlock: lookup.cidrBlock,
     };
   }
 
