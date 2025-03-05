@@ -1,3 +1,5 @@
+// https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-events/lib/connection.ts
+
 import { cloudwatchEventConnection } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import {

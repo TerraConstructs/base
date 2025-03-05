@@ -7,7 +7,7 @@ import {
   launchTemplate as tfLaunchTemplate,
   dataAwsIamPolicyDocument,
   iamInstanceProfile,
-  iamRolePolicyAttachment,
+  iamRole,
 } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
@@ -101,14 +101,14 @@ describe("instance", () => {
       {
         statement: [
           {
-            action: [
+            actions: [
               "ssm:DescribeParameters",
               "ssm:GetParameters",
               "ssm:GetParameter",
               "ssm:GetParameterHistory",
             ],
             effect: "Allow",
-            resource: stack.resolve(param.parameterArn),
+            resources: [stack.resolve(param.parameterArn)],
             // {
             //   "Fn::Join": [
             //     "",
@@ -294,7 +294,9 @@ describe("instance", () => {
 
     // THEN
     Template.synth(stack).toHaveResourceWithProperties(tfInstance.Instance, {
-      volume_tags: true,
+      volume_tags: {
+        Name: "MyStack/Instance",
+      },
     });
   });
   // placementGroup
@@ -324,13 +326,13 @@ describe("instance", () => {
       const t = Template.synth(stack);
       // THEN
       t.toHaveResourceWithProperties(tfInstance.Instance, {
-        placement_group_name: stack.resolve(pg1.placementGroupName),
+        placement_group: stack.resolve(pg1.placementGroupName),
         // {
         //   "Fn::GetAtt": ["myPlacementGroup180969E8B", "GroupName"],
         // },
       });
       t.toHaveResourceWithProperties(tfInstance.Instance, {
-        placement_group_name: "myPlacementGroup2",
+        placement_group: "myPlacementGroup2",
       });
     });
   });
@@ -391,53 +393,53 @@ describe("instance", () => {
       });
 
       // THEN
-      Template.synth(stack, { snapshot: true }).toHaveResourceWithProperties(
-        tfInstance.Instance,
-        {
-          ebs_block_device: [
-            {
-              device_name: "ebs",
-              delete_on_termination: true,
-              encrypted: true,
-              iops: 5000,
-              volume_size: 15,
-              volume_type: "io1",
-            },
-            {
-              device_name: "ebs-gp3",
-              delete_on_termination: true,
-              encrypted: true,
-              iops: 5000,
-              volume_size: 15,
-              volume_type: "gp3",
-            },
-            {
-              device_name: "ebs-cmk",
-              delete_on_termination: true,
-              encrypted: true,
-              kms_key_id: stack.resolve(kmsKey.keyArn),
-              // {
-              //   "Fn::GetAtt": ["EbsKeyD3FEE551", "Arn"],
-              // },
-              iops: 5000,
-              volume_size: 15,
-              volume_type: "io1",
-            },
-            {
-              device_name: "ebs-snapshot",
-              delete_on_termination: false,
-              snapshot_id: "snapshot-id",
-              volume_size: 500,
-              volume_type: "sc1",
-              no_device: {},
-            },
-            {
-              device_name: "ephemeral",
-              virtual_name: "ephemeral0",
-            },
-          ],
-        },
-      );
+      Template.synth(stack).toHaveResourceWithProperties(tfInstance.Instance, {
+        ebs_block_device: [
+          {
+            device_name: "ebs",
+            delete_on_termination: true,
+            encrypted: true,
+            iops: 5000,
+            volume_size: 15,
+            volume_type: "io1",
+          },
+          {
+            device_name: "ebs-gp3",
+            delete_on_termination: true,
+            encrypted: true,
+            iops: 5000,
+            volume_size: 15,
+            volume_type: "gp3",
+          },
+          {
+            device_name: "ebs-cmk",
+            delete_on_termination: true,
+            encrypted: true,
+            kms_key_id: stack.resolve(kmsKey.keyArn),
+            // {
+            //   "Fn::GetAtt": ["EbsKeyD3FEE551", "Arn"],
+            // },
+            iops: 5000,
+            volume_size: 15,
+            volume_type: "io1",
+          },
+          {
+            device_name: "ebs-snapshot",
+            delete_on_termination: false,
+            snapshot_id: "snapshot-id",
+            volume_size: 500,
+            volume_type: "sc1",
+            // Terraform provider AWS only supports no_device on ephemeral...
+            // no_device: {},
+          },
+        ],
+        ephemeral_block_device: [
+          {
+            device_name: "ephemeral",
+            no_device: false,
+          },
+        ],
+      });
     });
 
     test("throws if ephemeral volumeIndex < 0", () => {
@@ -521,10 +523,10 @@ describe("instance", () => {
       });
 
       // THEN
+      // TODO: Support Warning Acknowledgements - [ack: @aws-cdk/aws-ec2:iopsIgnored]
       Annotations.fromStack(stack).hasWarnings({
-        constructPath: "/Default/Instance",
-        message:
-          "iops will be ignored without volumeType: IO1, IO2, or GP3 [ack: @aws-cdk/aws-ec2:iopsIgnored]",
+        constructPath: "MyStack/Instance",
+        message: "iops will be ignored without volumeType: IO1, IO2, or GP3",
       });
     });
 
@@ -547,10 +549,10 @@ describe("instance", () => {
       });
 
       // THEN
+      // TODO: Support Warning Acknowledgements - [ack: @aws-cdk/aws-ec2:iopsIgnored]
       Annotations.fromStack(stack).hasWarnings({
-        constructPath: "/Default/Instance",
-        message:
-          "iops will be ignored without volumeType: IO1, IO2, or GP3 [ack: @aws-cdk/aws-ec2:iopsIgnored]",
+        constructPath: "MyStack/Instance",
+        message: "iops will be ignored without volumeType: IO1, IO2, or GP3",
       });
     });
   });
@@ -579,7 +581,7 @@ describe("instance", () => {
       Template.synth(stack).toHaveResourceWithProperties(
         iamInstanceProfile.IamInstanceProfile,
         {
-          Roles: [stack.resolve(role.roleName)],
+          role: stack.resolve(role.roleName),
         },
       );
     });
@@ -608,8 +610,8 @@ describe("instance", () => {
 
     // THEN
     Template.synth(stack).toHaveResourceWithProperties(tfInstance.Instance, {
-      InstanceType: "t3.large",
-      PrivateIpAddress: "10.0.0.2",
+      instance_type: "t3.large",
+      private_ip: "10.0.0.2",
     });
   });
 
@@ -631,6 +633,46 @@ describe("instance", () => {
 
     // THEN
     // PrivateIpAddress AND NetworkInterfaces cannot both be present
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfInstance.Instance, {
+      // private_ip property should not exist
+      // private_ip: undefined, // Jest / CDKTF Helpers -> This does not work!
+      // should point to network interface with private IP set
+      network_interface: [
+        {
+          device_index: 0,
+          network_interface_id:
+            "${aws_network_interface.Instance_NetworkInterface_96CFD750.id}",
+        },
+      ],
+      // // should depend on VPC Public routing for connectivity
+      depends_on: [
+        "data.aws_iam_policy_document.Instance_InstanceRole_AssumeRolePolicy_5AE9180F",
+        "aws_iam_role.Instance_InstanceRole_E9785DE5",
+        "aws_route_table_association.VPC_PublicSubnet1_RouteTableAssociation_0B0896DC",
+        "aws_route.VPC_PublicSubnet1_DefaultRoute_91CEF279",
+        "aws_route_table_association.VPC_PublicSubnet2_RouteTableAssociation_5A808732",
+        "aws_route.VPC_PublicSubnet2_DefaultRoute_B7481BBA",
+        "aws_route_table_association.VPC_PublicSubnet3_RouteTableAssociation_427FE0C6",
+        "aws_route.VPC_PublicSubnet3_DefaultRoute_A0D29D46",
+      ],
+    });
+    template.toHaveResourceWithProperties(tfNetworkInterface.NetworkInterface, {
+      private_ips: [privateIpAddress],
+      subnet_id: "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
+      security_groups: ["${aws_security_group.SecurityGroup_DD263621.id}"],
+      // TODO: Dependencies are only attached to the Instance resource
+      // depends_on: [
+      //   "InstanceInstanceRoleE9785DE5",
+      //   "VPCPublicSubnet1DefaultRoute91CEF279",
+      //   "VPCPublicSubnet1RouteTableAssociation0B0896DC",
+      //   "VPCPublicSubnet2DefaultRouteB7481BBA",
+      //   "VPCPublicSubnet2RouteTableAssociation5A808732",
+      // ],
+    });
+
+    // Validate the instances created (1) have no private IP set
+    // TODO: Find a better way to ensure a property does not exist...
     const instances = Template.resources(stack, tfInstance.Instance);
     instances.toEqual(
       expect.not.arrayContaining([
@@ -638,44 +680,6 @@ describe("instance", () => {
           private_ip: expect.anything(),
         }),
       ]),
-    );
-    // toHaveResourceWithProperties(tfInstance.Instance, {
-    //   PrivateIpAddress: Match.absent(),
-    // });
-    instances.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          network_interface: [
-            {
-              device_index: "0",
-              network_interface_id:
-                "${aws_network_interface.InstanceNetworkInterface.id}",
-            },
-          ],
-          depends_on: [
-            "InstanceInstanceRoleE9785DE5",
-            "VPCPublicSubnet1DefaultRoute91CEF279",
-            "VPCPublicSubnet1RouteTableAssociation0B0896DC",
-            "VPCPublicSubnet2DefaultRouteB7481BBA",
-            "VPCPublicSubnet2RouteTableAssociation5A808732",
-          ],
-        }),
-      ]),
-    );
-    Template.synth(stack).toHaveResourceWithProperties(
-      tfNetworkInterface.NetworkInterface,
-      {
-        private_ips: [privateIpAddress],
-        subnet_id: "${aws_subnet.VPCPublicSubnet1SubnetB4246D30.id}",
-        security_groups: ["${aws_security_group.SecurityGroupDD263621.id}"],
-        depends_on: [
-          "InstanceInstanceRoleE9785DE5",
-          "VPCPublicSubnet1DefaultRoute91CEF279",
-          "VPCPublicSubnet1RouteTableAssociation0B0896DC",
-          "VPCPublicSubnet2DefaultRouteB7481BBA",
-          "VPCPublicSubnet2RouteTableAssociation5A808732",
-        ],
-      },
     );
   });
 
@@ -697,7 +701,7 @@ describe("instance", () => {
     ) as tfLaunchTemplate.LaunchTemplate;
     expect(launchTemplate).toBeDefined();
     template.toHaveResourceWithProperties(tfLaunchTemplate.LaunchTemplate, {
-      name: stack.resolve(launchTemplate.name),
+      name: stack.resolve(launchTemplate.nameInput),
       metadata_options: {
         http_tokens: "required",
       },
@@ -979,9 +983,9 @@ test("cause replacement from s3 asset in userdata", () => {
   // (which would base the hash on '${Token[1234.bla]}'
   const hash = "f88eace39faf39d7";
   Template.fromStack(stack).toMatchObject({
-    resources: {
+    resource: {
       aws_instance: {
-        [`InstanceOne5B821005${hash}`]: expect.anything(),
+        InstanceOne_5B821005: expect.anything(),
         // [`InstanceTwoDC29A7A7${hash}`]: expect.anything(),
       },
     },
@@ -997,25 +1001,11 @@ test("ssm permissions adds right managed policy", () => {
     ssmSessionPermissions: true,
   });
 
-  Template.synth(stack).toHaveResourceWithProperties(
-    iamRolePolicyAttachment.IamRolePolicyAttachment,
-    {
-      policy_arn:
-        "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore",
-      // [
-      //   {
-      //     "Fn::Join": [
-      //       "",
-      //       [
-      //         "arn:",
-      //         { Ref: "AWS::Partition" },
-      //         ":iam::aws:policy/AmazonSSMManagedInstanceCore",
-      //       ],
-      //     ],
-      //   },
-      // ],
-    },
-  );
+  Template.synth(stack).toHaveResourceWithProperties(iamRole.IamRole, {
+    managed_policy_arns: [
+      "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    ],
+  });
 });
 
 test("sameInstanceClassAs compares identical InstanceTypes correctly", () => {

@@ -79,8 +79,8 @@ describe("prefix list", () => {
         address_family: "IPv4",
         max_entries: 2,
         entry: [
-          { Cidr: "10.0.0.1/32" },
-          { Cidr: "10.0.0.2/32", Description: "sample1" },
+          { cidr: "10.0.0.1/32" },
+          { cidr: "10.0.0.2/32", description: "sample1" },
         ],
       },
     );

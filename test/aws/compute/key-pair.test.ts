@@ -49,7 +49,8 @@ describe("Key Pair", () => {
     // THEN
     expect(keyPair.keyPairName).toBeTruthy();
     Template.synth(stack).toHaveResourceWithProperties(tfKeyPair.KeyPair, {
-      key_name: expect.stringMatching(/\\w{1,255}/),
+      // TerraConstructs generate prefix only
+      key_name_prefix: expect.stringMatching(/(\\w|-){1,255}/),
     });
   });
 
@@ -81,7 +82,7 @@ describe("Key Pair", () => {
 
     // THEN
     Template.synth(stack).toHaveResourceWithProperties(privateKey.PrivateKey, {
-      KeyType: "ED25519",
+      algorithm: "ED25519",
     });
   });
 
@@ -161,9 +162,29 @@ describe("Key Pair", () => {
 
     // THEN
     expect(keyPair.privateKey).toBeTruthy();
-    Template.expectOutput(stack, "TestOutput").toMatchObject({
-      value: stack.resolve(`/ec2/keypair/${keyPair.keyPairId}`),
+    Template.fromStack(stack).toMatchObject({
+      output: {
+        TestOutput: {
+          value:
+            "${aws_ssm_parameter.TestKeyPair_PrivateKeyParameter_F60F642E.name}",
+        },
+      },
+      resource: {
+        aws_ssm_parameter: {
+          TestKeyPair_PrivateKeyParameter_F60F642E: {
+            name: "/ec2/keypair/${aws_key_pair.TestKeyPair_38B6CD21.id}",
+            type: "SecureString",
+            value:
+              "${tls_private_key.TestKeyPair_PrivateKey_32408C03.private_key_pem}",
+          },
+        },
+      },
     });
+    // // Terraform passes the SSM Parameter name directly
+    // Template.expectOutput(stack, "TestOutput").toMatchObject({
+    //   // ${aws_ssm_parameter.TestKeyPair_PrivateKeyParameter_F60F642E.name}
+    //   value: stack.resolve(`/ec2/keypair/${keyPair.keyPairId}`),
+    // });
   });
 
   it("throws an error when accessing the SSM parameter for an imported key", () => {

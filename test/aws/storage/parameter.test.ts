@@ -1241,8 +1241,7 @@ describe("parameter", () => {
 
     // THEN
     const expected =
-      // /Unable to determine ARN separator for SSM parameter since the parameter name is an unresolved token. Use "fromAttributes" and specify "simpleName" explicitly/;
-      /parameterName cannot be an unresolved token/;
+      /Unable to determine ARN separator for SSM parameter since the parameter name is an unresolved token. Use "fromAttributes" and specify "simpleName" explicitly/;
     expect(() =>
       StringParameter.fromStringParameterName(
         stack,
@@ -1262,18 +1261,14 @@ describe("parameter", () => {
           parameterName: param.stringValue,
           stringValue: "foo",
         }),
-    ).toThrow(
-      /Unable to determine ARN separator for SSM parameter since the parameter name is an unresolved token. Use \"fromAttributes\" and specify \"simpleName\" explicitly/,
-    );
+    ).toThrow(expected);
     expect(
       () =>
         new StringParameter(stack, `p${i++}`, {
           parameterName: param.stringValue,
           stringValue: "foo",
         }),
-    ).toThrow(
-      /Unable to determine ARN separator for SSM parameter since the parameter name is an unresolved token. Use \"fromAttributes\" and specify \"simpleName\" explicitly/,
-    );
+    ).toThrow(expected);
   });
 
   test("fails if simpleName is wrong based on a concrete physical name", () => {

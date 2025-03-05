@@ -1,4 +1,5 @@
-// ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-events/lib/event-pattern.ts
+// https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-events/lib/util.ts
+
 import { EventPattern } from "./event-pattern";
 
 /**

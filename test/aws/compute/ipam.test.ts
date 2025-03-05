@@ -112,18 +112,44 @@ describe("IPAM Test", () => {
     ipamIpv6.publicScope.addPool("TestPool", poolOptions);
 
     // Assert that the generated template matches the expected template
-    Template.fromStack(stack, { snapshot: true }).toMatchObject({
-      Resources: {
-        Ipam50346F82: { Type: "AWS::EC2::IPAM" },
-        TestIpamDBF92BA8: { Type: "AWS::EC2::IPAM" },
-        TestIpamTestPool5D90F91B: {
-          Type: "AWS::EC2::IPAMPool",
-          Properties: {
-            AddressFamily: "ipv6",
-            IpamScopeId: {
-              "Fn::GetAtt": ["TestIpamDBF92BA8", "PublicDefaultScopeId"],
-            },
-            Locale: "us-west-2",
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_vpc_ipam: {
+          // Ipam50346F82: { Type: "AWS::EC2::IPAM" },
+          Ipam_50346F82: {
+            operating_regions: [
+              {
+                region_name: "us-west-2",
+              },
+            ],
+          },
+          // TestIpamDBF92BA8: { Type: "AWS::EC2::IPAM" },
+          TestIpam_DBF92BA8: {
+            operating_regions: [
+              {
+                region_name: "us-west-2",
+              },
+            ],
+          },
+        },
+        aws_vpc_ipam_pool: {
+          // TestIpamTestPool5D90F91B: {
+          //   Type: "AWS::EC2::IPAMPool",
+          //   Properties: {
+          //     AddressFamily: "ipv6",
+          //     IpamScopeId: {
+          //       "Fn::GetAtt": ["TestIpamDBF92BA8", "PublicDefaultScopeId"],
+          //     },
+          //     Locale: "us-west-2",
+          //   },
+          // },
+          TestIpam_TestPool_A1D45CCB: {
+            address_family: "ipv6",
+            aws_service: "ec2",
+            ipam_scope_id:
+              "${aws_vpc_ipam.TestIpam_DBF92BA8.public_default_scope_id}",
+            locale: "us-west-2",
+            public_ip_source: "amazon",
           },
         },
       },
@@ -144,18 +170,44 @@ describe("IPAM Test", () => {
     ipamRegion.publicScope.addPool("TestPool", poolOptions);
 
     // Assert that the generated template matches the expected template
-    Template.fromStack(stack, { snapshot: true }).toMatchObject({
-      Resources: {
-        Ipam50346F82: { Type: "AWS::EC2::IPAM" },
-        TestIpamDBF92BA8: { Type: "AWS::EC2::IPAM" },
-        TestIpamTestPool5D90F91B: {
-          Type: "AWS::EC2::IPAMPool",
-          Properties: {
-            AddressFamily: "ipv6",
-            IpamScopeId: {
-              "Fn::GetAtt": ["TestIpamDBF92BA8", "PublicDefaultScopeId"],
-            },
-            Locale: "us-west-2",
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_vpc_ipam: {
+          // Ipam50346F82: { Type: "AWS::EC2::IPAM" },
+          Ipam_50346F82: {
+            operating_regions: [
+              {
+                region_name: "us-west-2",
+              },
+            ],
+          },
+          // TestIpamDBF92BA8: { Type: "AWS::EC2::IPAM" },
+          TestIpam_DBF92BA8: {
+            operating_regions: [
+              {
+                region_name: "us-west-2",
+              },
+            ],
+          },
+        },
+        // TestIpamTestPool5D90F91B: {
+        //   Type: "AWS::EC2::IPAMPool",
+        //   Properties: {
+        //     AddressFamily: "ipv6",
+        //     IpamScopeId: {
+        //       "Fn::GetAtt": ["TestIpamDBF92BA8", "PublicDefaultScopeId"],
+        //     },
+        //     Locale: "us-west-2",
+        //   },
+        // },
+        aws_vpc_ipam_pool: {
+          TestIpam_TestPool_A1D45CCB: {
+            address_family: "ipv6",
+            aws_service: "ec2",
+            ipam_scope_id:
+              "${aws_vpc_ipam.TestIpam_DBF92BA8.public_default_scope_id}",
+            locale: "us-west-2",
+            public_ip_source: "amazon",
           },
         },
       },
@@ -164,6 +216,6 @@ describe("IPAM Test", () => {
 
   test("Creates IPAM with default scopes", () => {
     new Ipam(stack, "TestIpam", {});
-    Template.synth(stack).toHaveResourceWithProperties(tfVpcIpam.VpcIpam, {});
+    Template.synth(stack).toHaveResource(tfVpcIpam.VpcIpam);
   });
 }); // End Test

@@ -43,6 +43,8 @@ export interface BlockDevice {
    * If set to false for the root device, the instance might fail the Amazon EC2 health check.
    * Amazon EC2 Auto Scaling launches a replacement instance if the instance fails the health check.
    *
+   * NOTE: Terraform Provider AWS does not support this for aws_instance non-ephemeral Block Devices
+   *
    * @default true - device mapping is left untouched
    */
   readonly mappingEnabled?: boolean;

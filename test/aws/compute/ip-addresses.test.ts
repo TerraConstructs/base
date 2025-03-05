@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/test/ip-addresses.test.ts
 
 import { vpc, subnet } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
+import { App, Testing, Fn } from "cdktf";
 import { AwsStack } from "../../../src/aws";
 import { IpAddresses, SubnetType, Vpc } from "../../../src/aws/compute";
 import "cdktf/lib/testing/adapters/jest";
@@ -267,7 +267,7 @@ describe("IpAddresses.cidr Vpc Integration", () => {
     new Vpc(stack, "VpcNetwork", { ipAddresses: ipAddresses });
 
     Template.synth(stack).toHaveResourceWithProperties(vpc.Vpc, {
-      CidrBlock: cidrProps,
+      cidr_block: cidrProps,
     });
   });
 
@@ -275,21 +275,21 @@ describe("IpAddresses.cidr Vpc Integration", () => {
     const cidrProps = "10.0.0.0/16";
     const ipAddresses = IpAddresses.cidr(cidrProps);
 
-    new Vpc(stack, "VpcNetwork", { ipAddresses: ipAddresses });
+    new Vpc(stack, "VpcNetwork", { ipAddresses: ipAddresses, maxAzs: 2 });
 
     const template = Template.synth(stack);
 
     template.toHaveResourceWithProperties(subnet.Subnet, {
-      CidrBlock: "10.0.0.0/18",
+      cidr_block: "10.0.0.0/18",
     });
     template.toHaveResourceWithProperties(subnet.Subnet, {
-      CidrBlock: "10.0.64.0/18",
+      cidr_block: "10.0.64.0/18",
     });
     template.toHaveResourceWithProperties(subnet.Subnet, {
-      CidrBlock: "10.0.128.0/18",
+      cidr_block: "10.0.128.0/18",
     });
     template.toHaveResourceWithProperties(subnet.Subnet, {
-      CidrBlock: "10.0.192.0/18",
+      cidr_block: "10.0.192.0/18",
     });
   });
 });
@@ -331,11 +331,14 @@ describe("AwsIpam Vpc Integration", () => {
 
     const ipAddresses = IpAddresses.awsIpamAllocation(awsIpamProps);
 
-    new Vpc(stack, "VpcNetwork", { ipAddresses: ipAddresses });
+    // AWS-CDK only uses 2 Azs for Environment-agnostic Stacks (TerraConstructs defaults to 3)
+    // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/vpc.ts#L960
+    // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/core/lib/stack.ts#L850-L855
+    new Vpc(stack, "VpcNetwork", { ipAddresses: ipAddresses, maxAzs: 2 });
 
     Template.synth(stack).toHaveResourceWithProperties(vpc.Vpc, {
-      Ipv4IpamPoolId: awsIpamProps.ipv4IpamPoolId,
-      Ipv4NetmaskLength: awsIpamProps.ipv4NetmaskLength,
+      ipv4_ipam_pool_id: awsIpamProps.ipv4IpamPoolId,
+      ipv4_netmask_length: awsIpamProps.ipv4NetmaskLength,
     });
   });
 
@@ -350,12 +353,16 @@ describe("AwsIpam Vpc Integration", () => {
 
     const network = new Vpc(stack, "VpcNetwork", {
       ipAddresses: ipAddresses,
+      // AWS-CDK only uses 2 Azs for Environment-agnostic Stacks (TerraConstructs defaults to 3)
+      // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/vpc.ts#L960
+      // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/core/lib/stack.ts#L850-L855
+      maxAzs: 2,
     });
 
-    const template = Template.synth(stack, { snapshot: true });
+    const template = Template.synth(stack);
 
     template.toHaveResourceWithProperties(subnet.Subnet, {
-      cidr: `\${cidrsubnet(${stack.resolve(network.vpcCidrBlock)}, 2, 0)}`,
+      cidr_block: stack.resolve(Fn.cidrsubnet(network.vpcCidrBlock, 2, 0)),
     });
     // {
     //   CidrBlock: {
@@ -367,14 +374,14 @@ describe("AwsIpam Vpc Integration", () => {
     //             "Fn::GetAtt": ["VpcNetworkB258E83A", "CidrBlock"],
     //           },
     //           4,
-    //           "8",
+    //           "8", // 32 - 8 = 24 (22+2 newbits) -> cidrsubnet(22, 2, 0)
     //         ],
     //       },
     //     ],
     //   },
     // }
     template.toHaveResourceWithProperties(subnet.Subnet, {
-      cidr: `\${cidrsubnet(${stack.resolve(network.vpcCidrBlock)}, 2, 1)}`,
+      cidr_block: stack.resolve(Fn.cidrsubnet(network.vpcCidrBlock, 2, 1)),
     });
     // {
     //   CidrBlock: {
@@ -393,7 +400,7 @@ describe("AwsIpam Vpc Integration", () => {
     //   },
     // }
     template.toHaveResourceWithProperties(subnet.Subnet, {
-      cidr: `\${cidrsubnet(${stack.resolve(network.vpcCidrBlock)}, 2, 2)}`,
+      cidr_block: stack.resolve(Fn.cidrsubnet(network.vpcCidrBlock, 2, 2)),
     });
     // {
     //   CidrBlock: {
@@ -412,7 +419,7 @@ describe("AwsIpam Vpc Integration", () => {
     //   },
     // }
     template.toHaveResourceWithProperties(subnet.Subnet, {
-      cidr: `\${cidrsubnet(${stack.resolve(network.vpcCidrBlock)}, 2, 3)}`,
+      cidr_block: stack.resolve(Fn.cidrsubnet(network.vpcCidrBlock, 2, 3)),
     });
     // {
     //   CidrBlock: {
@@ -469,10 +476,10 @@ describe("AwsIpam Vpc Integration", () => {
       maxAzs: 2,
     });
 
-    const template = Template.synth(stack, { snapshot: true });
+    const template = Template.synth(stack);
 
     template.toHaveResourceWithProperties(subnet.Subnet, {
-      cidr: `\${cidrsubnet(${stack.resolve(network.vpcCidrBlock)}, 6, 0)}`,
+      cidr_block: stack.resolve(Fn.cidrsubnet(network.vpcCidrBlock, 6, 0)),
     });
     // {
     //   CidrBlock: {
@@ -484,7 +491,7 @@ describe("AwsIpam Vpc Integration", () => {
     //             "Fn::GetAtt": ["VpcNetworkB258E83A", "CidrBlock"],
     //           },
     //           64,
-    //           "8",
+    //           "8", // 32 - 8 = 24 (18 + 6 newbits) -> cidrsubnet(18, 6, 0)
     //         ],
     //       },
     //     ],
@@ -492,7 +499,7 @@ describe("AwsIpam Vpc Integration", () => {
     // };
 
     template.toHaveResourceWithProperties(subnet.Subnet, {
-      cidr: `\${cidrsubnet(${stack.resolve(network.vpcCidrBlock)}, 6, 1)}`,
+      cidr_block: stack.resolve(Fn.cidrsubnet(network.vpcCidrBlock, 6, 1)),
     });
     // {
     //   CidrBlock: {
@@ -504,7 +511,7 @@ describe("AwsIpam Vpc Integration", () => {
     //             "Fn::GetAtt": ["VpcNetworkB258E83A", "CidrBlock"],
     //           },
     //           64,
-    //           "8",
+    //           "8", // 32 - 8 = 24 (18 + 6 newbits) -> cidrsubnet(18, 6, 1)
     //         ],
     //       },
     //     ],
@@ -513,5 +520,6 @@ describe("AwsIpam Vpc Integration", () => {
 
     // TODO: Verify subnet count
     // template.resourceCountIs(subnet.Subnet, 2);
+    Template.resources(stack, subnet.Subnet).toHaveLength(2);
   });
 });

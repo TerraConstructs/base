@@ -63,40 +63,33 @@ describe("LaunchTemplate", () => {
     // Note: The following is intentionally a toEqual instead of toMatchObject
     // to ensure that only the bare minimum of properties have values when no properties
     // are given to a LaunchTemplate.
-    Template.resources(stack, tfLaunchTemplate.LaunchTemplate, {
-      snapshot: true,
-    }).toEqual([
+    Template.resources(stack, tfLaunchTemplate.LaunchTemplate).toEqual([
       {
-        Template_F3339C3F: {
-          tag_specifications: [
-            {
-              resource_type: "instance",
-              tags: [
-                {
-                  key: "Name",
-                  value: "Default/Template",
-                },
-              ],
+        tag_specifications: [
+          {
+            resource_type: "instance",
+            tags: {
+              Name: "MyStack/Template",
             },
-            {
-              resource_type: "volume",
-              tags: [
-                {
-                  key: "Name",
-                  value: "Default/Template",
-                },
-              ],
+          },
+          {
+            resource_type: "volume",
+            tags: {
+              Name: "MyStack/Template",
             },
-            {
-              resource_type: "launch-template",
-              tags: [
-                {
-                  key: "Name",
-                  value: "Default/Template",
-                },
-              ],
+          },
+          {
+            resource_type: "launch-template",
+            tags: {
+              Name: "MyStack/Template",
             },
-          ],
+          },
+        ],
+        // These are GRID backend specific tags
+        tags: {
+          Name: "Test-Template",
+          "grid:EnvironmentName": environmentName,
+          "grid:UUID": gridUUID,
         },
       },
     ]);
@@ -226,16 +219,23 @@ describe("LaunchTemplate", () => {
     Template.fromStack(stack).toMatchObject({
       resource: {
         aws_launch_template: {
-          Template_F3339C3F: {
+          Template_576A9730: {
             image_id: expect.stringMatching(
-              "SsmParameterValueawsserviceamiamazonlinuxlatestamznami.*Parameter",
+              /SsmParameterValue--aws--service--ami-amazon-linux-latest--amzn-ami-hvm-x86_64-gp2.*Parameter/,
             ),
           },
         },
       },
     });
     expect(template.osType).toBe(OperatingSystemType.LINUX);
-    expect(template.userData).toBeUndefined();
+    // expect(template.userData).toBeUndefined();
+
+    // We default to feature flag @aws-cdk/aws-ec2:launchTemplateDefaultUserData
+    // feature flag summary:
+    // The ec2.LaunchTemplate construct did not define user data when a machine image is
+    // provided despite the document. If this is set, a user data is automatically defined
+    // according to the OS of the machine image.
+    expect(template.userData).toBeDefined();
   });
 
   test("Given machineImage (Windows)", () => {
@@ -250,16 +250,23 @@ describe("LaunchTemplate", () => {
     Template.fromStack(stack).toMatchObject({
       resource: {
         aws_launch_template: {
-          Template_F3339C3F: {
+          Template_576A9730: {
             image_id: expect.stringMatching(
-              "SsmParameterValueawsserviceamiwindowslatestWindowsServer2019EnglishFullBase.*Parameter",
+              /SsmParameterValue--aws--service--ami-windows-latest--Windows_Server-2019-English-Full-Base.*Parameter/,
             ),
           },
         },
       },
     });
     expect(template.osType).toBe(OperatingSystemType.WINDOWS);
-    expect(template.userData).toBeUndefined();
+    // expect(template.userData).toBeUndefined();
+
+    // We default to feature flag @aws-cdk/aws-ec2:launchTemplateDefaultUserData
+    // feature flag summary:
+    // The ec2.LaunchTemplate construct did not define user data when a machine image is
+    // provided despite the document. If this is set, a user data is automatically defined
+    // according to the OS of the machine image.
+    expect(template.userData).toBeDefined();
   });
 
   test("Given userData", () => {
@@ -276,7 +283,7 @@ describe("LaunchTemplate", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       tfLaunchTemplate.LaunchTemplate,
       {
-        user_data: '${base64encode("#!/bin/bash\necho Test")}',
+        user_data: '${base64encode("#!/bin/bash\\necho Test")}',
       },
     );
     expect(template.userData).toBeDefined();
@@ -295,45 +302,36 @@ describe("LaunchTemplate", () => {
 
     // THEN
     Template.resources(stack, iamRole.IamRole).toHaveLength(1);
-    const result = Template.synth(stack, { snapshot: true });
+    const generatedlt = template.node.findChild(
+      "Profile",
+    ) as iamInstanceProfile.IamInstanceProfile;
+    expect(generatedlt).toBeDefined();
+    const result = Template.synth(stack);
     result.toHaveResourceWithProperties(iamInstanceProfile.IamInstanceProfile, {
       role: stack.resolve(role.roleName),
     });
     result.toHaveResourceWithProperties(tfLaunchTemplate.LaunchTemplate, {
-      iam_instance_profile: stack.resolve(
-        (
-          template.node.findChild(
-            "Profile",
-          ) as iamInstanceProfile.IamInstanceProfile
-        ).arn,
-      ),
+      iam_instance_profile: {
+        arn: stack.resolve(generatedlt.arn),
+      },
       tag_specifications: [
         {
           resource_type: "instance",
-          tags: [
-            {
-              key: "Name",
-              value: "Default/Template",
-            },
-          ],
+          tags: {
+            Name: "MyStack/Template",
+          },
         },
         {
           resource_type: "volume",
-          tags: [
-            {
-              key: "Name",
-              value: "Default/Template",
-            },
-          ],
+          tags: {
+            Name: "MyStack/Template",
+          },
         },
         {
           resource_type: "launch-template",
-          tags: [
-            {
-              key: "Name",
-              value: "Default/Template",
-            },
-          ],
+          tags: {
+            Name: "MyStack/Template",
+          },
         },
       ],
     });
@@ -394,15 +392,15 @@ describe("LaunchTemplate", () => {
     });
 
     // THEN
-    Template.synth(stack, { snapshot: true }).toHaveResourceWithProperties(
+    Template.synth(stack).toHaveResourceWithProperties(
       tfLaunchTemplate.LaunchTemplate,
       {
         block_device_mappings: [
           {
             device_name: "ebs",
             ebs: {
-              delete_on_termination: true,
-              encrypted: true,
+              delete_on_termination: "true",
+              encrypted: "true",
               iops: 5000,
               volume_size: 15,
               volume_type: "io1",
@@ -411,8 +409,8 @@ describe("LaunchTemplate", () => {
           {
             device_name: "ebs-cmk",
             ebs: {
-              delete_on_termination: true,
-              encrypted: true,
+              delete_on_termination: "true",
+              encrypted: "true",
               kms_key_id: stack.resolve(kmsKey.keyArn),
               iops: 5000,
               volume_size: 15,
@@ -422,7 +420,7 @@ describe("LaunchTemplate", () => {
           {
             device_name: "ebs-snapshot",
             ebs: {
-              delete_on_termination: false,
+              delete_on_termination: "false",
               snapshot_id: "snapshot-id",
               volume_size: 500,
               volume_type: "sc1",
@@ -531,12 +529,14 @@ describe("LaunchTemplate", () => {
 
     // THEN
     Template.resources(stack, iamRole.IamRole).toHaveLength(1);
-    const result = Template.synth(stack, { snapshot: true });
+    const result = Template.synth(stack);
     result.toHaveResourceWithProperties(iamInstanceProfile.IamInstanceProfile, {
       role: stack.resolve(role.roleName),
     });
     result.toHaveResourceWithProperties(tfLaunchTemplate.LaunchTemplate, {
-      iam_instance_profile: stack.resolve(instanceProfile.instanceProfileArn),
+      iam_instance_profile: {
+        arn: stack.resolve(instanceProfile.instanceProfileArn),
+      },
     });
     expect(template.role).toBeDefined();
     expect(template.grantPrincipal).toBeDefined();
@@ -554,9 +554,9 @@ describe("LaunchTemplate", () => {
       Template.fromStack(stack).toMatchObject({
         resource: {
           aws_launch_template: {
-            Template_F3339C3F: {
+            Template_576A9730: {
               image_id: expect.stringMatching(
-                "SsmParameterValueawsserviceamiamazonlinuxlatestamznami.*Parameter",
+                /SsmParameterValue--aws--service--ami-amazon-linux-latest--amzn-ami-hvm-x86_64-gp2.*Parameter/,
               ),
             },
           },
@@ -579,9 +579,9 @@ describe("LaunchTemplate", () => {
       Template.fromStack(stack).toMatchObject({
         resource: {
           aws_launch_template: {
-            Template_F3339C3F: {
+            Template_576A9730: {
               image_id: expect.stringMatching(
-                "SsmParameterValueawsserviceamiwindowslatestWindowsServer2019EnglishFullBase.*Parameter",
+                /SsmParameterValue--aws--service--ami-windows-latest--Windows_Server-2019-English-Full-Base.*Parameter/,
               ),
             },
           },
@@ -605,9 +605,9 @@ describe("LaunchTemplate", () => {
       Template.fromStack(stack).toMatchObject({
         resource: {
           aws_launch_template: {
-            Template_F3339C3F: {
+            Template_576A9730: {
               image_id: expect.stringMatching(
-                "SsmParameterValueawsserviceamiamazonlinuxlatestamznami.*Parameter",
+                /.*SsmParameterValue--aws--service--ami-amazon-linux-latest--amzn-ami-hvm-x86_64-gp2.*Parameter/,
               ),
             },
           },
@@ -631,9 +631,9 @@ describe("LaunchTemplate", () => {
       Template.fromStack(stack).toMatchObject({
         resource: {
           aws_launch_template: {
-            Template_F3339C3F: {
+            Template_576A9730: {
               image_id: expect.stringMatching(
-                "SsmParameterValueawsserviceamiwindowslatestWindowsServer2019EnglishFullBase.*Parameter",
+                /.*SsmParameterValue--aws--service--ami-windows-latest--Windows_Server-2019-English-Full-Base.*Parameter/,
               ),
             },
           },
@@ -682,10 +682,12 @@ describe("LaunchTemplate", () => {
     );
   });
 
+  // Somehow this is a string
+  // https://github.com/cdktf/cdktf-provider-aws/blob/v19.55.0/src/launch-template/index.ts#L34
   test.each([
-    [true, true],
-    [false, false],
-  ])("Given ebsOptimized %p", (given: boolean, expected: boolean) => {
+    [true, "true"],
+    [false, "false"],
+  ])("Given ebsOptimized %p", (given: boolean, expected: string) => {
     // WHEN
     new LaunchTemplate(stack, "Template", {
       ebsOptimized: given,
@@ -824,11 +826,7 @@ describe("LaunchTemplate", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       tfLaunchTemplate.LaunchTemplate,
       {
-        network_interfaces: [
-          {
-            security_groups: [stack.resolve(sg.securityGroupId)],
-          },
-        ],
+        vpc_security_group_ids: [stack.resolve(sg.securityGroupId)],
       },
     );
     expect(template.connections).toBeDefined();
@@ -850,42 +848,24 @@ describe("LaunchTemplate", () => {
         tag_specifications: [
           {
             resource_type: "instance",
-            tags: [
-              {
-                key: "Name",
-                value: "Default/Template",
-              },
-              {
-                key: "TestKey",
-                value: "TestValue",
-              },
-            ],
+            tags: {
+              Name: "MyStack/Template",
+              TestKey: "TestValue",
+            },
           },
           {
             resource_type: "volume",
-            tags: [
-              {
-                key: "Name",
-                value: "Default/Template",
-              },
-              {
-                key: "TestKey",
-                value: "TestValue",
-              },
-            ],
+            tags: {
+              Name: "MyStack/Template",
+              TestKey: "TestValue",
+            },
           },
           {
             resource_type: "launch-template",
-            tags: [
-              {
-                key: "Name",
-                value: "Default/Template",
-              },
-              {
-                key: "TestKey",
-                value: "TestValue",
-              },
-            ],
+            tags: {
+              Name: "MyStack/Template",
+              TestKey: "TestValue",
+            },
           },
         ],
       },
@@ -927,7 +907,9 @@ describe("LaunchTemplate", () => {
         network_interfaces: [
           {
             device_index: 0,
-            associate_public_ip_address: true,
+            // Somehow this is a string
+            // https://github.com/cdktf/cdktf-provider-aws/blob/v19.55.0/src/launch-template/index.ts#L4786
+            associate_public_ip_address: "true",
             security_groups: [stack.resolve(sg.securityGroupId)],
           },
         ],
@@ -952,9 +934,11 @@ describe("LaunchTemplate", () => {
       {
         network_interfaces: [
           {
+            // Somehow this is a string
+            // https://github.com/cdktf/cdktf-provider-aws/blob/v19.55.0/src/launch-template/index.ts#L4786
+            associate_public_ip_address: "false",
             device_index: 0,
-            associate_public_ip_address: false,
-            security_groups: [stack.resolve(sg.securityGroupId)],
+            security_groups: ["${aws_security_group.SG_ADB53937.id}"],
           },
         ],
       },
@@ -1011,17 +995,16 @@ describe("LaunchTemplate marketOptions", () => {
       // THEN
       if (expectErrors) {
         Annotations.fromStack(stack).hasErrors({
-          constructPath: "/Default/Template",
+          constructPath: "MyStack/Template",
         });
+      } else {
+        // Check for no errors expected?
+        expect(() => {
+          Annotations.fromStack(stack).hasErrors({
+            constructPath: "MyStack/Template",
+          });
+        }).toThrow();
       }
-      // TODO: check for no errors expected
-      // else {
-      //   expect(() => {
-      //     Annotations.fromStack(stack).hasErrors({
-      //       constructPath: "/Default/Template",
-      //     });
-      //   }).toThrow();
-      // }
     },
   );
 
@@ -1287,7 +1270,7 @@ describe("LaunchTemplate metadataOptions", () => {
     // THEN
     if (expectError) {
       Annotations.fromStack(stack).hasErrors({
-        constructPath: "/Default/Template",
+        constructPath: "MyStack/Template",
       });
     }
     // TODO: check for no errors expected

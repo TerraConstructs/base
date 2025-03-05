@@ -1,6 +1,13 @@
 import { IAspect, Aspects } from "cdktf";
 import { IConstruct } from "constructs";
-import { isTaggableConstruct, TaggableConstruct } from "../construct-base";
+import { TaggableConstruct } from "../construct-base";
+
+/**
+ * TaggableConstruct is a Construct that can have tags
+ */
+export function isTaggableConstruct(x: IConstruct): x is TaggableConstruct {
+  return "tags" in x && "tagsInput" in x;
+}
 
 // TODO: Implement TagsManager?
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/core/lib/tag-aspect.ts

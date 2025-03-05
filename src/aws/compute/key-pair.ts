@@ -10,7 +10,11 @@ import {
   AwsConstructProps,
   IAwsConstruct,
 } from "../aws-construct";
-import { StringParameter, IStringParameter } from "../storage/parameter";
+import {
+  StringParameter,
+  IStringParameter,
+  ParameterType,
+} from "../storage/parameter";
 
 // /**
 //  * The format of the Key Pair
@@ -284,6 +288,7 @@ export class KeyPair extends AwsConstructBase implements IKeyPair {
       props?.keyPairNamePrefix ||
       this.stack.uniqueResourceName(this, {
         prefix: this.gridUUID,
+        maxLength: 255,
       });
 
     // Lazy.stringValue({
@@ -321,6 +326,17 @@ export class KeyPair extends AwsConstructBase implements IKeyPair {
       publicKey,
     });
 
+    if (this._privateKey) {
+      // if privateKey was generated, mimic CFN behavior with SSM
+      this._privateKeySsm = new StringParameter(this, "PrivateKeyParameter", {
+        parameterName: `/ec2/keypair/${this.resource.id}`,
+        description: `Private key for ${this.resource.keyName}`,
+        type: ParameterType.SECURE_STRING,
+        sensitiveStringValue: this._privateKey.privateKeyPem,
+        simpleName: false,
+      });
+    }
+
     this.keyPairName = this.resource.keyName;
     this.keyPairFingerprint = this.resource.fingerprint;
     this.keyPairId = this.resource.id;
@@ -347,14 +363,8 @@ export class KeyPair extends AwsConstructBase implements IKeyPair {
         "An SSM parameter with private key material is not created for imported keys",
       );
     }
-    if (!this._privateKeySsm) {
-      this._privateKeySsm = new StringParameter(this, "PrivateKeyParameter", {
-        parameterName: `/ec2/keypair/${this.keyPairId}`,
-        description: `Private key for ${this.keyPairName}`,
-        sensitiveStringValue: this._privateKey!.privateKeyPem,
-      });
-    }
-    return this._privateKeySsm;
+    // else, this is guaranteed to be set
+    return this._privateKeySsm!;
   }
 
   /**

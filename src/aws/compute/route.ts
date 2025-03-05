@@ -583,7 +583,12 @@ export class NatGateway extends AwsConstructBase implements IRouteTarget {
     this.resource = new tfNatGateway.NatGateway(this, "NATGateway", {
       subnetId: props.subnet.subnetId,
       allocationId: aId,
+      privateIp: props.privateIpAddress,
+      // ...props,
+      connectivityType: props.connectivityType,
       secondaryAllocationIds: props.secondaryAllocationIds,
+      secondaryPrivateIpAddressCount: props.secondaryPrivateIpAddressCount,
+      secondaryPrivateIpAddresses: props.secondaryPrivateIpAddresses,
       // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-natgateway.html#cfn-ec2-natgateway-maxdraindurationseconds
       // https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/nat_gateway#timeouts
       ...(this.maxDrainDuration
@@ -593,7 +598,6 @@ export class NatGateway extends AwsConstructBase implements IRouteTarget {
             },
           }
         : {}),
-      ...props,
     });
     this.natGatewayId = this.resource.id;
 

@@ -38,7 +38,8 @@ const gridUUID = "123e4567-e89b-12d3";
 const gridBackendConfig = {
   address: "http://localhost:3000",
 };
-const providerConfig = { region: "us-east-1" };
+const region = "us-east-1";
+const providerConfig = { region };
 
 describe("EC2 Routing", () => {
   let stack: AwsStack;
@@ -107,11 +108,7 @@ describe("EC2 Routing", () => {
     routeTable.addRoute("Route", "0.0.0.0/0", { gateway: vpngw });
     const template = Template.synth(stack);
     // VPN Gateway should be in stack
-    template.toHaveResourceWithProperties(tfVpnGateway.VpnGateway, {
-      vpc_id: stack.resolve(myVpc.vpcId),
-      // NOTE: TF Provider does not expose type, only "ipsec.1" is valid anyway...
-      // type: "ipsec.1",
-    });
+    template.toHaveResource(tfVpnGateway.VpnGateway);
     // Route linking IP to VPN GW should be in stack
     template.toHaveResourceWithProperties(tfRoute.Route, {
       destination_cidr_block: "0.0.0.0/0",
@@ -134,11 +131,15 @@ describe("EC2 Routing", () => {
         amazonSideAsn: 12345678,
       });
       // VPN Gateway should be in stack
-      Template.synth(stack).toHaveResourceWithProperties(
+      const template = Template.synth(stack);
+      template.toHaveResourceWithProperties(tfVpnGateway.VpnGateway, {
+        // type: "ipsec.1",
+        amazon_side_asn: "12345678",
+      });
+      template.toHaveResourceWithProperties(
         tfVpnGatewayAttachment.VpnGatewayAttachment,
         {
-          // type: "ipsec.1",
-          amazon_side_asn: 12345678,
+          vpc_id: stack.resolve(myVpc.vpcId),
         },
       );
     }),
@@ -147,7 +148,7 @@ describe("EC2 Routing", () => {
         vpc: myVpc,
       });
       routeTable.addRoute("Route", "0.0.0.0/0", { gateway: igw });
-      const template = Template.fromStack(stack);
+      const template = Template.synth(stack);
       // Internet Gateway should be in stack
       template.toHaveResource(tfInternetGateway.InternetGateway);
       // Route linking IP to IGW should be in stack
@@ -176,14 +177,16 @@ describe("EC2 Routing", () => {
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
       connectivity_type: "private",
-      private_ip_address: "10.0.0.42",
+      private_ip: "10.0.0.42",
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
     // Route linking private IP to NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfRoute.Route, {
       destination_cidr_block: "0.0.0.0/0",
-      nat_gatewa_id: stack.resolve(natgw.routerTargetId),
+      nat_gateway_id: stack.resolve(natgw.routerTargetId),
       route_table_id: stack.resolve(routeTable.routeTableId),
     });
   });
@@ -200,10 +203,12 @@ describe("EC2 Routing", () => {
     // NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
       connectivity_type: "private",
-      private_ip_address: "10.0.0.42",
+      private_ip: "10.0.0.42",
       secondary_private_ip_addresses: ["10.0.1.0/28", "10.0.2.0/28"],
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
   });
 
@@ -219,15 +224,17 @@ describe("EC2 Routing", () => {
     // NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
       connectivity_type: "private",
-      private_ip_address: "10.0.0.42",
+      private_ip: "10.0.0.42",
       secondary_private_ip_address_count: 2,
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
     // Route linking private IP to NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfRoute.Route, {
       destination_cidr_block: "0.0.0.0/0",
-      nat_gatewa_id: stack.resolve(natgw.routerTargetId),
+      nat_gateway_id: stack.resolve(natgw.routerTargetId),
       route_table_id: stack.resolve(routeTable.routeTableId),
     });
   });
@@ -242,17 +249,21 @@ describe("EC2 Routing", () => {
     // NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
     // Route linking private IP to NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfRoute.Route, {
       destination_cidr_block: "0.0.0.0/0",
-      nat_gatewa_id: stack.resolve(natgw.routerTargetId),
+      nat_gateway_id: stack.resolve(natgw.routerTargetId),
       route_table_id: stack.resolve(routeTable.routeTableId),
     });
     // EIP should be created when not provided
     template.toHaveResourceWithProperties(tfEip.Eip, {
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
   });
 
@@ -268,12 +279,14 @@ describe("EC2 Routing", () => {
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
     // Route linking private IP to NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfRoute.Route, {
       destination_cidr_block: "0.0.0.0/0",
-      nat_gatewa_id: stack.resolve(natgw.routerTargetId),
+      nat_gateway_id: stack.resolve(natgw.routerTargetId),
       route_table_id: stack.resolve(routeTable.routeTableId),
     });
     // EIP should be in stack
@@ -296,20 +309,24 @@ describe("EC2 Routing", () => {
       subnet_id: stack.resolve(mySubnet.subnetId),
       connectivity_type: "public",
       // MaxDrainDurationSeconds: 2001,
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
       timeouts: {
-        delete: 2001,
+        delete: "2001",
       },
     });
     // Route linking private IP to NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfRoute.Route, {
       destination_cidr_block: "0.0.0.0/0",
-      nat_gatewa_id: stack.resolve(natgw.routerTargetId),
+      nat_gateway_id: stack.resolve(natgw.routerTargetId),
       route_table_id: stack.resolve(routeTable.routeTableId),
     });
     // EIP should be created when not provided
     template.toHaveResourceWithProperties(tfEip.Eip, {
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
   });
 
@@ -324,7 +341,7 @@ describe("EC2 Routing", () => {
       tfVpcEndpoint.VpcEndpoint,
       {
         route_table_ids: [stack.resolve(routeTable.routeTableId)],
-        service_name: "com.amazonaws.${AWS::Region}.dynamodb",
+        service_name: `com.amazonaws.${region}.dynamodb`,
         vpc_endpoint_type: "Gateway",
         vpc_id: stack.resolve(myVpc.vpcId),
       },
@@ -342,7 +359,7 @@ describe("EC2 Routing", () => {
       tfVpcEndpoint.VpcEndpoint,
       {
         route_table_ids: [stack.resolve(routeTable.routeTableId)],
-        service_name: "com.amazonaws.${AWS::Region}.s3",
+        service_name: `com.amazonaws.${region}.s3`,
         vpc_endpoint_type: "Gateway",
         vpc_id: stack.resolve(myVpc.vpcId),
       },
@@ -360,7 +377,7 @@ describe("EC2 Routing", () => {
       tfVpcEndpoint.VpcEndpoint,
       {
         route_table_ids: [stack.resolve(routeTable.routeTableId)],
-        service_name: "com.amazonaws.${AWS::Region}.s3express",
+        service_name: `com.amazonaws.${region}.s3express`,
         vpc_endpoint_type: "Gateway",
         vpc_id: stack.resolve(myVpc.vpcId),
       },
@@ -444,7 +461,7 @@ describe("VPCPeeringConnection", () => {
   // });
 
   test("Creates a cross region VPC peering connection", () => {
-    const importedVpcC = VpcV2.fromVpcV2Attributes(stackB, "VpcB", {
+    const importedVpcC = VpcV2.fromVpcV2Attributes(stackB, "VpcC", {
       vpcId: "mockVpcCId", //cross account stack references are not supported
       vpcCidrBlock: "10.3.0.0/16",
       region: vpcC.env.region,

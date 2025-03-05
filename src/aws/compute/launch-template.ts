@@ -661,9 +661,7 @@ export class LaunchTemplate
   //  */
   // protected readonly tags: TagManager;
 
-  // isTaggable required properties
-  public readonly terraformResourceType =
-    tfLaunchTemplate.LaunchTemplate.tfResourceType;
+  // isTaggableConstruct required properties
   private _tags: Record<string, string> | undefined = undefined;
   public set tags(value: Record<string, string>) {
     this._tags = value;
@@ -826,7 +824,7 @@ export class LaunchTemplate
               resourceType: "launch-template",
               tags: this._tags,
             },
-          ];
+          ].map(tfLaunchTemplate.launchTemplateTagSpecificationsToTerraform);
         }
         return undefined;
       },
@@ -897,10 +895,11 @@ export class LaunchTemplate
               enabled: props.detailedMonitoring,
             }
           : undefined,
+      vpcSecurityGroupIds: networkInterfaces ? undefined : securityGroupsToken,
       tagSpecifications: tagsToken,
       userData: userDataToken,
       metadataOptions: this.renderMetadataOptions(props),
-      networkInterfaces, // TF conflicts with vpcSecurityGroupIds
+      networkInterfaces,
 
       // Fields not yet implemented:
       // ==========================

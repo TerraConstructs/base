@@ -15,8 +15,9 @@ export function instanceEbsBlockDeviceMappings(
   tags?: Record<string, string>,
 ): instance.InstanceEbsBlockDevice[] | undefined {
   const result: instance.InstanceEbsBlockDevice[] = [];
-  for (const blockDevice of blockDevices) {
-    if (!isRootBlockDevice(blockDevice)) {
+  blockDevices
+    .filter((x) => !isEphemeral(x) && !isRootBlockDevice(x))
+    .forEach((blockDevice) => {
       const { deviceName, volume } = blockDevice;
       const common = blockDeviceCommon(construct, volume);
       result.push({
@@ -24,8 +25,7 @@ export function instanceEbsBlockDeviceMappings(
         ...common,
         tags,
       });
-    }
-  }
+    });
   return result.length === 0 ? undefined : result;
 }
 
@@ -49,13 +49,17 @@ export function launchTemplateBlockDeviceMappings(
           : undefined;
       result.push({
         deviceName,
-        noDevice: mappingEnabled ? "" : undefined,
+        noDevice: mappingEnabled === false ? "" : undefined,
         virtualName: volume.virtualName,
-        ebs: {
-          ...common,
-          encrypted,
-          deleteOnTermination,
-        },
+        ...(volume.virtualName
+          ? {}
+          : {
+              ebs: {
+                ...common,
+                encrypted,
+                deleteOnTermination,
+              },
+            }),
       });
     }
   }

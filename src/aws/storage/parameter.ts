@@ -340,6 +340,8 @@ export enum ParameterValueType {
   AWS_ROUTE53_HOSTEDZONE_ID = "AWS::Route53::HostedZone::Id",
 }
 
+// Deprecated - see https://github.com/aws/aws-cdk/issues/6039
+
 /**
  * SSM parameter type
  * @deprecated these types are no longer used
@@ -353,7 +355,10 @@ export enum ParameterType {
    * Secure String
    *
    * Parameter Store uses an AWS Key Management Service (KMS) customer master key (CMK) to encrypt the parameter value.
-   * Parameters of type SecureString cannot be created directly from a CDK application.
+   * Parameters of type SecureString cannot be created directly from a CDK application due to CFN limitations.
+   *
+   * NOTE: Terraform does not prevent creating SecureString parameters, but it is not recommended
+   * because the value will be stored in plain text in the state file.
    */
   SECURE_STRING = "SecureString",
   /**
@@ -640,9 +645,6 @@ export class StringParameter extends ParameterBase implements IStringParameter {
     // ref: https://github.com/aws/aws-cdk/blob/v2.143.0/packages/aws-cdk-lib/aws-ssm/lib/parameter.ts#L483
     // const type = attrs.type ?? attrs.valueType ?? ParameterValueType.STRING;
 
-    if (Token.isUnresolved(attrs.parameterName)) {
-      throw new Error("parameterName cannot be an unresolved token");
-    }
     let name: string;
     if (attrs.version) {
       // To query by parameter version, use "Name": "name:version".
@@ -685,9 +687,6 @@ export class StringParameter extends ParameterBase implements IStringParameter {
   ): IStringParameter {
     if (!attrs.parameterName) {
       throw new Error("parameterName cannot be an empty string");
-    }
-    if (Token.isUnresolved(attrs.parameterName)) {
-      throw new Error("parameterName cannot be an unresolved token");
     }
     let name: string;
     if (attrs.version) {
@@ -955,9 +954,6 @@ export class StringListParameter
   ): IStringListParameter {
     if (!attrs.parameterName) {
       throw new Error("parameterName cannot be an empty string");
-    }
-    if (Token.isUnresolved(attrs.parameterName)) {
-      throw new Error("parameterName cannot be an unresolved token");
     }
 
     let name: string;

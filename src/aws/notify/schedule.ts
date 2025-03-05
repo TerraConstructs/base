@@ -1,4 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-events/lib/schedule.ts
+
 import { Annotations } from "cdktf";
 import { Construct } from "constructs";
 import { Duration } from "../..";

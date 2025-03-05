@@ -86,7 +86,7 @@ export class InstanceRequireImdsv2Aspect extends RequireImdsv2Aspect {
     if (!(node instanceof Instance)) {
       return;
     }
-    if (node.instance.launchTemplate !== undefined) {
+    if (node.instance.launchTemplateInput !== undefined) {
       this.warn(
         node,
         "Cannot toggle IMDSv1 because this Instance is associated with an existing Launch Template.",

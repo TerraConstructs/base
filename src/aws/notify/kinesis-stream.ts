@@ -1,3 +1,5 @@
+// https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-kinesis/lib/stream.ts
+
 import { kinesisStream } from "@cdktf/provider-aws";
 import { Fn, Token, TerraformLocal } from "cdktf";
 import { Construct } from "constructs";

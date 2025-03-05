@@ -49,7 +49,9 @@ export type TaggableConstruct = TerraformResource & {
 };
 
 // TODO: this is aws specific, should be moved to aws module
-export function isTaggableConstruct(x: IConstruct): x is TaggableConstruct {
+export function isTaggableTerraformResource(
+  x: IConstruct,
+): x is TaggableConstruct {
   return (
     TerraformResource.isTerraformResource(x) && "tags" in x && "tagsInput" in x
   );
@@ -61,7 +63,7 @@ const GRID_TAG_PREFIX = "grid";
 export class GridTags implements IAspect {
   constructor(private tagsToAdd: Record<string, string>) {}
   visit(node: IConstruct) {
-    if (isTaggableConstruct(node)) {
+    if (isTaggableTerraformResource(node)) {
       // https://developer.hashicorp.com/terraform/cdktf/concepts/aspects
       const currentTags = node.tagsInput || {};
       node.tags = { ...this.tagsToAdd, ...currentTags };
