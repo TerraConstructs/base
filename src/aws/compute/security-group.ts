@@ -855,6 +855,8 @@ export class SecurityGroup extends SecurityGroupBase {
       } else {
         this.directEgressRules.push({
           protocol: "-1",
+          fromPort: 0,
+          toPort: 0,
           ipv6CidrBlocks: [peer.uniqueId],
           description,
         });

@@ -164,9 +164,7 @@ export class Template {
    * Get an Array of resources by type, discarding the resource names
    */
   public resourceTypeArray(type: TerraformConstructor): Array<object> {
-    return Object.values(
-      this.resource ? this.resource[type.tfResourceType] : {},
-    );
+    return Object.values(this.resourcesByType(type));
   }
 
   /**

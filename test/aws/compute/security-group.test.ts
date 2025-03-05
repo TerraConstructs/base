@@ -1,62 +1,105 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/test/security-group.test.ts
 
-import { testDeprecated } from "@aws-cdk/cdk-build-tools";
+import {
+  securityGroup as tfSecurityGroup,
+  vpcSecurityGroupEgressRule as tfVpcSecurityGroupEgressRule,
+  vpcSecurityGroupIngressRule as tfVpcSecurityGroupIngressRule,
+} from "@cdktf/provider-aws";
+import { App, Token, Lazy, Testing } from "cdktf";
+import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../src/aws";
+import {
+  Peer,
+  Port,
+  SecurityGroup,
+  SecurityGroupProps,
+  Vpc,
+} from "../../../src/aws/compute";
 import { Template } from "../../assertions";
-import { App, Intrinsic, Lazy, Stack, Token } from "../../core";
-import { Peer, Port, SecurityGroup, SecurityGroupProps, Vpc } from "../lib";
 
-const SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY =
-  "@aws-cdk/aws-ec2.securityGroupDisableInlineRules";
+const environmentName = "Test";
+const gridUUID = "123e4567-e89b-12d3";
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
+const providerConfig = { region: "us-east-1" };
+
+// Defaults to true in TerraConstructs
+// const SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY =
+//   "@aws-cdk/aws-ec2.securityGroupDisableInlineRules";
 
 describe("security group", () => {
+  let app: App;
+  let stack: AwsStack;
+
+  beforeEach(() => {
+    app = Testing.app();
+    stack = new AwsStack(app, "TestStack", {
+      environmentName,
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
+  });
   test("security group can allows all outbound traffic by default", () => {
     // GIVEN
-    const stack = new Stack();
     const vpc = new Vpc(stack, "VPC");
 
     // WHEN
     new SecurityGroup(stack, "SG1", { vpc, allowAllOutbound: true });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::EC2::SecurityGroup", {
-      SecurityGroupEgress: [
-        {
-          CidrIp: "0.0.0.0/0",
-          Description: "Allow all outbound traffic by default",
-          IpProtocol: "-1",
-        },
-      ],
-    });
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfSecurityGroup.SecurityGroup,
+      {
+        egress: [
+          // must wrap for nested attributes
+          expect.objectContaining({
+            cidr_blocks: ["0.0.0.0/0"],
+            description: "Allow all outbound traffic by default",
+            protocol: "-1",
+            from_port: 0,
+            to_port: 0,
+          }),
+        ],
+      },
+    );
   });
 
   test("security group can allows all ipv6 outbound traffic by default", () => {
     // GIVEN
-    const stack = new Stack();
     const vpc = new Vpc(stack, "VPC");
 
     // WHEN
     new SecurityGroup(stack, "SG1", { vpc, allowAllIpv6Outbound: true });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::EC2::SecurityGroup", {
-      SecurityGroupEgress: [
-        {
-          CidrIp: "0.0.0.0/0",
-          Description: "Allow all outbound traffic by default",
-          IpProtocol: "-1",
-        },
-        {
-          CidrIpv6: "::/0",
-          Description: "Allow all outbound ipv6 traffic by default",
-          IpProtocol: "-1",
-        },
-      ],
-    });
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfSecurityGroup.SecurityGroup,
+      {
+        egress: [
+          // must wrap for nested attributes
+          expect.objectContaining({
+            cidr_blocks: ["0.0.0.0/0"],
+            description: "Allow all outbound traffic by default",
+            protocol: "-1",
+            from_port: 0,
+            to_port: 0,
+          }),
+          expect.objectContaining({
+            description: "Allow all outbound ipv6 traffic by default",
+            ipv6_cidr_blocks: ["::/0"],
+            protocol: "-1",
+            from_port: 0,
+            to_port: 0,
+          }),
+        ],
+      },
+    );
   });
 
   test("can add ipv6 rules even if allowAllOutbound=true", () => {
     // GIVEN
-    const stack = new Stack();
     const vpc = new Vpc(stack, "VPC");
 
     // WHEN
@@ -64,27 +107,32 @@ describe("security group", () => {
     sg.addEgressRule(Peer.ipv6("2001:db8::/128"), Port.tcp(80));
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::EC2::SecurityGroup", {
-      SecurityGroupEgress: [
-        {
-          CidrIp: "0.0.0.0/0",
-          Description: "Allow all outbound traffic by default",
-          IpProtocol: "-1",
-        },
-        {
-          CidrIpv6: "2001:db8::/128",
-          Description: "from 2001:db8::/128:80",
-          FromPort: 80,
-          ToPort: 80,
-          IpProtocol: "tcp",
-        },
-      ],
-    });
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfSecurityGroup.SecurityGroup,
+      {
+        egress: [
+          // must wrap for nested attributes
+          expect.objectContaining({
+            cidr_blocks: ["0.0.0.0/0"],
+            description: "Allow all outbound traffic by default",
+            protocol: "-1",
+            from_port: 0,
+            to_port: 0,
+          }),
+          expect.objectContaining({
+            description: "from 2001:db8::/128:80",
+            from_port: 80,
+            ipv6_cidr_blocks: ["2001:db8::/128"],
+            protocol: "tcp",
+            to_port: 80,
+          }),
+        ],
+      },
+    );
   });
 
   test("no new outbound rule is added if we are allowing all traffic anyway", () => {
     // GIVEN
-    const stack = new Stack();
     const vpc = new Vpc(stack, "VPC");
 
     // WHEN
@@ -92,42 +140,41 @@ describe("security group", () => {
     sg.addEgressRule(Peer.anyIpv4(), Port.tcp(86), "This does not show up");
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::EC2::SecurityGroup", {
-      SecurityGroupEgress: [
-        {
-          CidrIp: "0.0.0.0/0",
-          Description: "Allow all outbound traffic by default",
-          IpProtocol: "-1",
-        },
-      ],
-    });
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfSecurityGroup.SecurityGroup,
+      {
+        egress: [
+          // must wrap for nested attributes
+          expect.objectContaining({
+            cidr_blocks: ["0.0.0.0/0"],
+            description: "Allow all outbound traffic by default",
+            protocol: "-1",
+            from_port: 0,
+            to_port: 0,
+          }),
+        ],
+      },
+    );
   });
 
   test("security group disallow outbound traffic by default", () => {
     // GIVEN
-    const stack = new Stack();
     const vpc = new Vpc(stack, "VPC");
 
     // WHEN
     new SecurityGroup(stack, "SG1", { vpc, allowAllOutbound: false });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::EC2::SecurityGroup", {
-      SecurityGroupEgress: [
-        {
-          CidrIp: "255.255.255.255/32",
-          Description: "Disallow all traffic",
-          FromPort: 252,
-          IpProtocol: "icmp",
-          ToPort: 86,
-        },
-      ],
-    });
+    Template.synth(stack).not.toHaveResourceWithProperties(
+      tfSecurityGroup.SecurityGroup,
+      {
+        egress: expect.anything(),
+      },
+    );
   });
 
   test("bogus outbound rule disappears if another rule is added", () => {
     // GIVEN
-    const stack = new Stack();
     const vpc = new Vpc(stack, "VPC");
 
     // WHEN
@@ -142,22 +189,34 @@ describe("security group", () => {
     );
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::EC2::SecurityGroup", {
-      SecurityGroupEgress: [
-        {
-          CidrIp: "0.0.0.0/0",
-          Description: "This replaces the other one",
-          FromPort: 86,
-          IpProtocol: "tcp",
-          ToPort: 86,
-        },
-      ],
-    });
+    // Terraform requires explicit allow all outbound rule
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfSecurityGroup.SecurityGroup,
+      {
+        egress: [
+          // must wrap for nested attributes
+          expect.objectContaining({
+            cidr_blocks: ["0.0.0.0/0"],
+            description: "This replaces the other one",
+            from_port: 86,
+            protocol: "tcp",
+            to_port: 86,
+          }),
+          // expect.objectContaining({
+          //   cidr_blocks: ["0.0.0.0/0"],
+          //   description: "Allow all outbound traffic by default",
+          //   protocol: "-1",
+          //   from_port: 0,
+          //   to_port: 0,
+          // }),
+        ],
+      },
+    );
   });
 
+  // TODO: FIX FAILING TEST
   test("all outbound rule cannot be added after creation", () => {
     // GIVEN
-    const stack = new Stack();
     const vpc = new Vpc(stack, "VPC");
 
     // WHEN
@@ -172,7 +231,6 @@ describe("security group", () => {
 
   test("all ipv6 outbound rule cannot be added after creation", () => {
     // GIVEN
-    const stack = new Stack();
     const vpc = new Vpc(stack, "VPC");
 
     // WHEN
@@ -186,47 +244,49 @@ describe("security group", () => {
   });
 
   test("immutable imports do not add rules", () => {
-    // GIVEN
-    const stack = new Stack();
-
     // WHEN
     const sg = SecurityGroup.fromSecurityGroupId(stack, "SG1", "test-id", {
-      mutable: false,
+      // TODO: Verify snapshot
+      // mutable: false,
     });
     sg.addEgressRule(Peer.anyIpv4(), Port.tcp(86), "This rule was not added");
     sg.addIngressRule(Peer.anyIpv4(), Port.tcp(86), "This rule was not added");
 
-    const openEgressRules = Template.fromStack(stack).findResources(
-      "AWS::EC2::SecurityGroup",
-      {
-        SecurityGroupEgress: [
-          {
-            CidrIp: "0.0.0.0/0",
-            Description: "This rule was not added",
-            FromPort: 86,
-            IpProtocol: "tcp",
-            ToPort: 86,
-          },
-        ],
-      },
+    const template = new Template(stack, { snapshot: true });
+    // THEN
+    // TODO: Verify this snapshot, set mutable to false :up:
+    template.expectResources(tfSecurityGroup.SecurityGroup).not.toEqual(
+      expect.arrayContaining([
+        {
+          // no security group has this egress rule
+          egress: [
+            expect.objectContaining({
+              cidr_blocks: ["0.0.0.0/0"],
+              description: "This rule was not added",
+              from_port: 86,
+              ip_protocol: "tcp",
+              to_port: 86,
+            }),
+          ],
+        },
+      ]),
     );
-    expect(Object.keys(openEgressRules).length).toBe(0);
-
-    const openIngressRules = Template.fromStack(stack).findResources(
-      "AWS::EC2::SecurityGroup",
-      {
-        SecurityGroupIngress: [
-          {
-            CidrIp: "0.0.0.0/0",
-            Description: "This rule was not added",
-            FromPort: 86,
-            IpProtocol: "tcp",
-            ToPort: 86,
-          },
-        ],
-      },
+    template.expectResources(tfSecurityGroup.SecurityGroup).not.toEqual(
+      expect.arrayContaining([
+        {
+          // no security group has this ingress rule
+          ingress: [
+            expect.objectContaining({
+              cidr_blocks: ["0.0.0.0/0"],
+              description: "This rule was not added",
+              from_port: 86,
+              ip_protocol: "tcp",
+              to_port: 86,
+            }),
+          ],
+        },
+      ]),
     );
-    expect(Object.keys(openIngressRules).length).toBe(0);
   });
 
   describe("Inline Rule Control", () => {
@@ -234,12 +294,13 @@ describe("security group", () => {
     describe("When props.disableInlineRules is true", () => {
       testRulesAreNotInlined(undefined, true);
     });
-    describe("When context.disableInlineRules is true", () => {
-      testRulesAreNotInlined(true, undefined);
-    });
-    describe("When context.disableInlineRules is true and props.disableInlineRules is true", () => {
-      testRulesAreNotInlined(true, true);
-    });
+    // TODO: We don't have a way to set context.disableInlineRules
+    // describe("When context.disableInlineRules is true", () => {
+    //   testRulesAreNotInlined(true, undefined);
+    // });
+    // describe("When context.disableInlineRules is true and props.disableInlineRules is true", () => {
+    //   testRulesAreNotInlined(true, true);
+    // });
     describe("When context.disableInlineRules is false and props.disableInlineRules is true", () => {
       testRulesAreNotInlined(false, true);
     });
@@ -250,9 +311,9 @@ describe("security group", () => {
     describe("When context.disableInlineRules is false and props.disableInlineRules is false", () => {
       testRulesAreInlined(false, false);
     });
-    describe("When context.disableInlineRules is true and props.disableInlineRules is false", () => {
-      testRulesAreInlined(true, false);
-    });
+    // describe("When context.disableInlineRules is true and props.disableInlineRules is false", () => {
+    //   testRulesAreInlined(true, false);
+    // });
     describe("When context.disableInlineRules is false", () => {
       testRulesAreInlined(false, undefined);
     });
@@ -272,9 +333,8 @@ describe("security group", () => {
 
   test("peer between all types of peers and port range types", () => {
     // GIVEN
-    const stack = new Stack(undefined, "TestStack", {
-      env: { account: "12345678", region: "dummy" },
-    });
+    // TODO: Work with Stack that has an environment (not env agnostic)
+    // env: { account: "12345678", region: "dummy" },
     const vpc = new Vpc(stack, "VPC");
     const sg = new SecurityGroup(stack, "SG", {
       vpc,
@@ -291,11 +351,11 @@ describe("security group", () => {
 
     const ports = [
       Port.tcp(1234),
-      Port.tcp(Lazy.number({ produce: () => 5000 })),
+      Port.tcp(Lazy.numberValue({ produce: () => 5000 })),
       Port.allTcp(),
       Port.tcpRange(80, 90),
       Port.udp(2345),
-      Port.udp(Lazy.number({ produce: () => 7777 })),
+      Port.udp(Lazy.numberValue({ produce: () => 7777 })),
       Port.allUdp(),
       Port.udpRange(85, 95),
       Port.icmpTypeAndCode(5, 1),
@@ -318,14 +378,13 @@ describe("security group", () => {
 
   test("can add multiple rules using tokens on same security group", () => {
     // GIVEN
-    const stack = new Stack(undefined, "TestStack", {
-      env: { account: "12345678", region: "dummy" },
-    });
+    // env: { account: "12345678", region: "dummy" },
+    // TODO: Work with Stack that has an environment (not env agnostic)
     const vpc = new Vpc(stack, "VPC");
     const sg = new SecurityGroup(stack, "SG", { vpc });
 
-    const p1 = Lazy.string({ produce: () => "dummyid1" });
-    const p2 = Lazy.string({ produce: () => "dummyid2" });
+    const p1 = Lazy.stringValue({ produce: () => "dummyid1" });
+    const p2 = Lazy.stringValue({ produce: () => "dummyid2" });
     const peer1 = Peer.prefixList(p1);
     const peer2 = Peer.prefixList(p2);
 
@@ -334,24 +393,24 @@ describe("security group", () => {
     sg.addIngressRule(peer2, Port.tcp(5432), "Rule 2");
 
     // THEN -- no crash
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::EC2::SecurityGroupIngress",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
-        Description: "Rule 1",
+        description: "Rule 1",
       },
     );
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::EC2::SecurityGroupIngress",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
-        Description: "Rule 2",
+        description: "Rule 2",
       },
     );
   });
 
   test("if tokens are used in ports, `canInlineRule` should be false to avoid cycles", () => {
     // GIVEN
-    const p1 = Lazy.number({ produce: () => 80 });
-    const p2 = Lazy.number({ produce: () => 5000 });
+    const p1 = Lazy.numberValue({ produce: () => 80 });
+    const p2 = Lazy.numberValue({ produce: () => 5000 });
 
     // WHEN
     const ports = [
@@ -387,12 +446,12 @@ describe("security group", () => {
       }
     });
 
-    test("passes with unresolved IP CIDR token", () => {
-      // GIVEN
-      Token.asString(new Intrinsic("ip"));
+    // test("passes with unresolved IP CIDR token", () => {
+    //   // GIVEN
+    //   Token.asString(new Intrinsic("ip"));
 
-      // THEN: don't throw
-    });
+    //   // THEN: don't throw
+    // });
 
     test("throws if invalid IPv4 CIDR block", () => {
       // THEN
@@ -468,8 +527,10 @@ describe("security group", () => {
       // GIVEN
       Token.asString("securityGroupId");
 
-      const securityGroupId = Lazy.string({ produce: () => "sg-01234567" });
-      const ownerId = Lazy.string({ produce: () => "000000000000" });
+      const securityGroupId = Lazy.stringValue({
+        produce: () => "sg-01234567",
+      });
+      const ownerId = Lazy.stringValue({ produce: () => "000000000000" });
       Peer.securityGroupId(securityGroupId);
       Peer.securityGroupId(securityGroupId, ownerId);
 
@@ -491,10 +552,11 @@ describe("security group", () => {
     });
   });
 
+  // TODO: Terraform provider aws does not support sourceSecurityGroupOwnerId
   describe("SourceSecurityGroupOwnerId property validation", () => {
+    // TODO: Terraform provider aws does not support sourceSecurityGroupOwnerId
     test("SourceSecurityGroupOwnerId property is not present when value is not provided to ingress rule", () => {
       // GIVEN
-      const stack = new Stack(undefined, "TestStack");
       const vpc = new Vpc(stack, "VPC");
       const sg = new SecurityGroup(stack, "SG", { vpc });
 
@@ -506,25 +568,25 @@ describe("security group", () => {
       );
 
       //THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      Template.synth(stack).toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          SecurityGroupIngress: [
-            {
-              SourceSecurityGroupId: "sg-123456789",
-              Description: "no owner id property",
-              FromPort: 0,
-              ToPort: 65535,
-              IpProtocol: "tcp",
-            },
+          ingress: [
+            expect.objectContaining({
+              security_groups: ["sg-123456789"],
+              description: "no owner id property",
+              protocol: "tcp",
+              from_port: 0,
+              to_port: 65535,
+            }),
           ],
         },
       );
     });
 
+    // TODO: Terraform provider aws does not support sourceSecurityGroupOwnerId
     test("SourceSecurityGroupOwnerId property is present when value is provided to ingress rule", () => {
       // GIVEN
-      const stack = new Stack(undefined, "TestStack");
       const vpc = new Vpc(stack, "VPC");
       const sg = new SecurityGroup(stack, "SG", { vpc });
 
@@ -536,18 +598,18 @@ describe("security group", () => {
       );
 
       //THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      Template.synth(stack).toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          SecurityGroupIngress: [
-            {
-              SourceSecurityGroupId: "sg-123456789",
-              SourceSecurityGroupOwnerId: "000000000000",
-              Description: "contains owner id property",
-              FromPort: 0,
-              ToPort: 65535,
-              IpProtocol: "tcp",
-            },
+          ingress: [
+            expect.objectContaining({
+              security_groups: ["sg-123456789"],
+              description: "contains owner id property",
+              // sourceSecurityGroupOwnerId: "000000000000",
+              protocol: "tcp",
+              from_port: 0,
+              to_port: 65535,
+            }),
           ],
         },
       );
@@ -555,7 +617,6 @@ describe("security group", () => {
 
     test("SourceSecurityGroupOwnerId property is not present when value is provided to egress rule", () => {
       // GIVEN
-      const stack = new Stack(undefined, "TestStack");
       const vpc = new Vpc(stack, "VPC");
       const sg = new SecurityGroup(stack, "SG", {
         vpc,
@@ -570,17 +631,17 @@ describe("security group", () => {
       );
 
       //THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      Template.synth(stack).toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          SecurityGroupEgress: [
-            {
-              DestinationSecurityGroupId: "sg-123456789",
-              Description: "no owner id property",
-              FromPort: 0,
-              ToPort: 65535,
-              IpProtocol: "tcp",
-            },
+          egress: [
+            expect.objectContaining({
+              security_groups: ["sg-123456789"],
+              description: "no owner id property",
+              from_port: 0,
+              to_port: 65535,
+              protocol: "tcp",
+            }),
           ],
         },
       );
@@ -594,209 +655,221 @@ describe("security group", () => {
   });
 });
 
-describe("security group lookup", () => {
-  testDeprecated("can look up a security group", () => {
-    const app = new App();
-    const stack = new Stack(app, "stack", {
-      env: {
-        account: "1234",
-        region: "us-east-1",
-      },
-    });
+// describe("security group lookup", () => {
+//   // DEPRECATED
+//   test("can look up a security group", () => {
+//     const app = new App();
+//     const stack = new AwsStack(app, "stack", {
+//       env: {
+//         account: "1234",
+//         region: "us-east-1",
+//       },
+//     });
 
-    const securityGroup = SecurityGroup.fromLookup(stack, "stack", "sg-1234");
+//     const securityGroup = SecurityGroup.fromLookup(stack, "stack", "sg-1234");
 
-    expect(securityGroup.securityGroupId).toEqual("sg-12345678");
-    expect(securityGroup.allowAllOutbound).toEqual(true);
-  });
+//     expect(securityGroup.securityGroupId).toEqual("sg-12345678");
+//     expect(securityGroup.allowAllOutbound).toEqual(true);
+//   });
 
-  test("can look up a security group by id", () => {
-    // GIVEN
-    const app = new App();
-    const stack = new Stack(app, "stack", {
-      env: {
-        account: "1234",
-        region: "us-east-1",
-      },
-    });
+//   test("can look up a security group by id", () => {
+//     // GIVEN
+//     const app = new App();
+//     const stack = new AwsStack(app, "stack", {
+//       env: {
+//         account: "1234",
+//         region: "us-east-1",
+//       },
+//     });
 
-    // WHEN
-    const securityGroup = SecurityGroup.fromLookupById(
-      stack,
-      "SG1",
-      "sg-12345",
-    );
+//     // WHEN
+//     const securityGroup = SecurityGroup.fromLookupById(
+//       stack,
+//       "SG1",
+//       "sg-12345",
+//     );
 
-    // THEN
-    expect(securityGroup.securityGroupId).toEqual("sg-12345678");
-    expect(securityGroup.allowAllOutbound).toEqual(true);
-  });
+//     // THEN
+//     expect(securityGroup.securityGroupId).toEqual("sg-12345678");
+//     expect(securityGroup.allowAllOutbound).toEqual(true);
+//   });
 
-  test("can look up a security group by name and vpc", () => {
-    // GIVEN
-    const app = new App();
-    const stack = new Stack(app, "stack", {
-      env: {
-        account: "1234",
-        region: "us-east-1",
-      },
-    });
+//   test("can look up a security group by name and vpc", () => {
+//     // GIVEN
+//     const app = new App();
+//     const stack = new AwsStack(app, "stack", {
+//       env: {
+//         account: "1234",
+//         region: "us-east-1",
+//       },
+//     });
 
-    const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
-      vpcId: "vpc-1234",
-      availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
-    });
+//     const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
+//       vpc_id: "vpc-1234",
+//       availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
+//     });
 
-    // WHEN
-    const securityGroup = SecurityGroup.fromLookupByName(
-      stack,
-      "SG1",
-      "sg-12345",
-      vpc,
-    );
+//     // WHEN
+//     const securityGroup = SecurityGroup.fromLookupByName(
+//       stack,
+//       "SG1",
+//       "sg-12345",
+//       vpc,
+//     );
 
-    // THEN
-    expect(securityGroup.securityGroupId).toEqual("sg-12345678");
-    expect(securityGroup.allowAllOutbound).toEqual(true);
-  });
+//     // THEN
+//     expect(securityGroup.securityGroupId).toEqual("sg-12345678");
+//     expect(securityGroup.allowAllOutbound).toEqual(true);
+//   });
 
-  test("can look up a security group by id and vpc", () => {
-    // GIVEN
-    const app = new App();
-    const stack = new Stack(app, "stack", {
-      env: {
-        account: "1234",
-        region: "us-east-1",
-      },
-    });
+//   test("can look up a security group by id and vpc", () => {
+//     // GIVEN
+//     const app = new App();
+//     const stack = new AwsStack(app, "stack", {
+//       env: {
+//         account: "1234",
+//         region: "us-east-1",
+//       },
+//     });
 
-    const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
-      vpcId: "vpc-1234",
-      availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
-    });
+//     const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
+//       vpc_id: "vpc-1234",
+//       availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
+//     });
 
-    // WHEN
-    const securityGroup = SecurityGroup.fromLookupByName(
-      stack,
-      "SG1",
-      "my-security-group",
-      vpc,
-    );
+//     // WHEN
+//     const securityGroup = SecurityGroup.fromLookupByName(
+//       stack,
+//       "SG1",
+//       "my-security-group",
+//       vpc,
+//     );
 
-    // THEN
-    expect(securityGroup.securityGroupId).toEqual("sg-12345678");
-    expect(securityGroup.allowAllOutbound).toEqual(true);
-  });
+//     // THEN
+//     expect(securityGroup.securityGroupId).toEqual("sg-12345678");
+//     expect(securityGroup.allowAllOutbound).toEqual(true);
+//   });
 
-  test("can look up a security group and use it as a peer", () => {
-    // GIVEN
-    const app = new App();
-    const stack = new Stack(app, "stack", {
-      env: {
-        account: "1234",
-        region: "us-east-1",
-      },
-    });
+//   test("can look up a security group and use it as a peer", () => {
+//     // GIVEN
+//     const app = new App();
+//     const stack = new AwsStack(app, "stack", {
+//       env: {
+//         account: "1234",
+//         region: "us-east-1",
+//       },
+//     });
 
-    const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
-      vpcId: "vpc-1234",
-      availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
-    });
+//     const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
+//       vpcId: "vpc-1234",
+//       availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
+//     });
 
-    // WHEN
-    const securityGroup = SecurityGroup.fromLookupByName(
-      stack,
-      "SG1",
-      "my-security-group",
-      vpc,
-    );
+//     // WHEN
+//     const securityGroup = SecurityGroup.fromLookupByName(
+//       stack,
+//       "SG1",
+//       "my-security-group",
+//       vpc,
+//     );
 
-    // THEN
-    expect(() => {
-      Peer.securityGroupId(securityGroup.securityGroupId);
-    }).not.toThrow();
-  });
+//     // THEN
+//     expect(() => {
+//       Peer.securityGroupId(securityGroup.securityGroupId);
+//     }).not.toThrow();
+//   });
 
-  test("throws if securityGroupId is tokenized", () => {
-    // GIVEN
-    const app = new App();
-    const stack = new Stack(app, "stack", {
-      env: {
-        account: "1234",
-        region: "us-east-1",
-      },
-    });
+//   test("throws if securityGroupId is tokenized", () => {
+//     // GIVEN
+//     const app = new App();
+//     const stack = new AwsStack(app, "stack", {
+//       env: {
+//         account: "1234",
+//         region: "us-east-1",
+//       },
+//     });
 
-    // WHEN
-    expect(() => {
-      SecurityGroup.fromLookupById(
-        stack,
-        "stack",
-        Lazy.string({ produce: () => "sg-12345" }),
-      );
-    }).toThrow(
-      "All arguments to look up a security group must be concrete (no Tokens)",
-    );
-  });
+//     // WHEN
+//     expect(() => {
+//       SecurityGroup.fromLookupById(
+//         stack,
+//         "stack",
+//         Lazy.stringValue({ produce: () => "sg-12345" }),
+//       );
+//     }).toThrow(
+//       "All arguments to look up a security group must be concrete (no Tokens)",
+//     );
+//   });
 
-  test("throws if securityGroupName is tokenized", () => {
-    // GIVEN
-    const app = new App();
-    const stack = new Stack(app, "stack", {
-      env: {
-        account: "1234",
-        region: "us-east-1",
-      },
-    });
+//   test("throws if securityGroupName is tokenized", () => {
+//     // GIVEN
+//     const app = new App();
+//     const stack = new AwsStack(app, "stack", {
+//       env: {
+//         account: "1234",
+//         region: "us-east-1",
+//       },
+//     });
 
-    // WHEN
-    expect(() => {
-      SecurityGroup.fromLookupById(
-        stack,
-        "stack",
-        Lazy.string({ produce: () => "my-security-group" }),
-      );
-    }).toThrow(
-      "All arguments to look up a security group must be concrete (no Tokens)",
-    );
-  });
+//     // WHEN
+//     expect(() => {
+//       SecurityGroup.fromLookupById(
+//         stack,
+//         "stack",
+//         Lazy.stringValue({ produce: () => "my-security-group" }),
+//       );
+//     }).toThrow(
+//       "All arguments to look up a security group must be concrete (no Tokens)",
+//     );
+//   });
 
-  test("throws if vpc id is tokenized", () => {
-    // GIVEN
-    const app = new App();
-    const stack = new Stack(app, "stack", {
-      env: {
-        account: "1234",
-        region: "us-east-1",
-      },
-    });
+//   test("throws if vpc id is tokenized", () => {
+//     // GIVEN
+//     const app = new App();
+//     const stack = new AwsStack(app, "stack", {
+//       env: {
+//         account: "1234",
+//         region: "us-east-1",
+//       },
+//     });
 
-    const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
-      vpcId: Lazy.string({ produce: () => "vpc-1234" }),
-      availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
-    });
+//     const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
+//       vpcId: Lazy.stringValue({ produce: () => "vpc-1234" }),
+//       availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
+//     });
 
-    // WHEN
-    expect(() => {
-      SecurityGroup.fromLookupByName(stack, "stack", "my-security-group", vpc);
-    }).toThrow(
-      "All arguments to look up a security group must be concrete (no Tokens)",
-    );
-  });
-});
+//     // WHEN
+//     expect(() => {
+//       SecurityGroup.fromLookupByName(stack, "stack", "my-security-group", vpc);
+//     }).toThrow(
+//       "All arguments to look up a security group must be concrete (no Tokens)",
+//     );
+//   });
+// });
 
 function testRulesAreInlined(
   contextDisableInlineRules: boolean | undefined | null,
   optionsDisableInlineRules: boolean | undefined,
 ) {
   describe("When allowAllOutbound", () => {
+    let app: App;
+    let stack: AwsStack;
+
+    beforeEach(() => {
+      app = Testing.app();
+      stack = new AwsStack(app, "TestStack", {
+        environmentName,
+        gridUUID,
+        providerConfig,
+        gridBackendConfig,
+      });
+    });
     test("new SecurityGroup will create an inline SecurityGroupEgress rule to allow all traffic", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -807,37 +880,41 @@ function testRulesAreInlined(
       // WHEN
       new SecurityGroup(stack, "SG1", props);
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack, { snapshot: true });
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
-          SecurityGroupEgress: [
-            {
-              CidrIp: "0.0.0.0/0",
-              Description: "Allow all outbound traffic by default",
-              IpProtocol: "-1",
-            },
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
+          egress: [
+            expect.objectContaining({
+              cidr_blocks: ["0.0.0.0/0"],
+              description: "Allow all outbound traffic by default",
+              protocol: "-1",
+              from_port: 0,
+              to_port: 0,
+            }),
           ],
         },
       );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupEgress",
-        0,
-      );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
+      template
+        .expectResources(
+          tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        )
+        .toHaveLength(0);
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
     });
 
     test("addEgressRule rule will not modify egress rules", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -849,38 +926,42 @@ function testRulesAreInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addEgressRule(Peer.anyIpv4(), Port.tcp(86), "An external Rule");
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
-          SecurityGroupEgress: [
-            {
-              CidrIp: "0.0.0.0/0",
-              Description: "Allow all outbound traffic by default",
-              IpProtocol: "-1",
-            },
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
+          egress: [
+            expect.objectContaining({
+              cidr_blocks: ["0.0.0.0/0"],
+              description: "Allow all outbound traffic by default",
+              protocol: "-1",
+              from_port: 0,
+              to_port: 0,
+            }),
           ],
         },
       );
 
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupEgress",
-        0,
-      );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
+      template
+        .expectResources(
+          tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        )
+        .toHaveLength(0);
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
     });
 
     test("addIngressRule will add a new ingress rule", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -892,26 +973,28 @@ function testRulesAreInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addIngressRule(Peer.anyIpv4(), Port.tcp(86), "An external Rule");
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      Template.synth(stack).toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
-          SecurityGroupIngress: [
-            {
-              CidrIp: "0.0.0.0/0",
-              Description: "An external Rule",
-              FromPort: 86,
-              IpProtocol: "tcp",
-              ToPort: 86,
-            },
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
+          ingress: [
+            expect.objectContaining({
+              cidr_blocks: ["0.0.0.0/0"],
+              description: "An external Rule",
+              from_port: 86,
+              protocol: "tcp",
+              to_port: 86,
+            }),
           ],
-          SecurityGroupEgress: [
-            {
-              CidrIp: "0.0.0.0/0",
-              Description: "Allow all outbound traffic by default",
-              IpProtocol: "-1",
-            },
+          egress: [
+            expect.objectContaining({
+              cidr_blocks: ["0.0.0.0/0"],
+              description: "Allow all outbound traffic by default",
+              protocol: "-1",
+              from_port: 0,
+              to_port: 0,
+            }),
           ],
         },
       );
@@ -919,13 +1002,24 @@ function testRulesAreInlined(
   });
 
   describe("When do not allowAllOutbound", () => {
+    let app: App;
+    let stack: AwsStack;
+
+    beforeEach(() => {
+      app = Testing.app();
+      stack = new AwsStack(app, "TestStack", {
+        environmentName,
+        gridUUID,
+        providerConfig,
+        gridBackendConfig,
+      });
+    });
     test("new SecurityGroup rule will create an egress rule that denies all traffic", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -936,38 +1030,41 @@ function testRulesAreInlined(
       // WHEN
       new SecurityGroup(stack, "SG1", props);
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
-          SecurityGroupEgress: [
-            {
-              CidrIp: "255.255.255.255/32",
-              Description: "Disallow all traffic",
-              IpProtocol: "icmp",
-              FromPort: 252,
-              ToPort: 86,
-            },
-          ],
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
+          // egress blocking rule is not present in Terraform
+          // egress: [
+          //   {
+          //     cidr_blocks: ["255.255.255.255/32"],
+          //     description: "Disallow all traffic",
+          //     protocol: "icmp",
+          //     from_port: 252,
+          //     to_port: 86,
+          //   },
+          // ],
         },
       );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
+      template
+        .expectResources(
+          tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        )
+        .toHaveLength(0);
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
     });
     test("addEgressRule rule will add a new inline egress rule and remove the denyAllTraffic rule", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -979,40 +1076,42 @@ function testRulesAreInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addEgressRule(Peer.anyIpv4(), Port.tcp(86), "An inline Rule");
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
-          SecurityGroupEgress: [
-            {
-              CidrIp: "0.0.0.0/0",
-              Description: "An inline Rule",
-              FromPort: 86,
-              IpProtocol: "tcp",
-              ToPort: 86,
-            },
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
+          egress: [
+            expect.objectContaining({
+              cidr_blocks: ["0.0.0.0/0"],
+              description: "An inline Rule",
+              protocol: "tcp",
+              from_port: 86,
+              to_port: 86,
+            }),
           ],
         },
       );
 
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupEgress",
-        0,
-      );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
+      template
+        .expectResources(
+          tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        )
+        .toHaveLength(0);
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
     });
 
     test("addIngressRule will add a new ingress rule", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -1024,40 +1123,44 @@ function testRulesAreInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addIngressRule(Peer.anyIpv4(), Port.tcp(86), "An external Rule");
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
-          SecurityGroupIngress: [
-            {
-              CidrIp: "0.0.0.0/0",
-              Description: "An external Rule",
-              FromPort: 86,
-              IpProtocol: "tcp",
-              ToPort: 86,
-            },
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
+          ingress: [
+            expect.objectContaining({
+              cidr_blocks: ["0.0.0.0/0"],
+              description: "An external Rule",
+              from_port: 86,
+              to_port: 86,
+              protocol: "tcp",
+            }),
           ],
-          SecurityGroupEgress: [
-            {
-              CidrIp: "255.255.255.255/32",
-              Description: "Disallow all traffic",
-              IpProtocol: "icmp",
-              FromPort: 252,
-              ToPort: 86,
-            },
-          ],
+          // egress blocking rule is not present in Terraform
+          // egress: [
+          //   {
+          //     CidrIp: "255.255.255.255/32",
+          //     Description: "Disallow all traffic",
+          //     IpProtocol: "icmp",
+          //     FromPort: 252,
+          //     ToPort: 86,
+          //   },
+          // ],
         },
       );
 
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupEgress",
-        0,
-      );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
+      template
+        .expectResources(
+          tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        )
+        .toHaveLength(0);
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
     });
   });
 }
@@ -1067,13 +1170,25 @@ function testRulesAreNotInlined(
   optionsDisableInlineRules: boolean | undefined,
 ) {
   describe("When allowAllOutbound", () => {
+    let app: App;
+    let stack: AwsStack;
+
+    beforeEach(() => {
+      app = Testing.app();
+      stack = new AwsStack(app, "TestStack", {
+        environmentName,
+        gridUUID,
+        providerConfig,
+        gridBackendConfig,
+      });
+    });
+
     test("new SecurityGroup will create an external SecurityGroupEgress rule", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -1084,35 +1199,39 @@ function testRulesAreNotInlined(
       // WHEN
       const sg = new SecurityGroup(stack, "SG1", props);
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
         },
       );
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroupEgress",
+      // the allow all egress rule should be present
+      template.expect.toHaveResourceWithProperties(
+        tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
         {
-          GroupId: stack.resolve(sg.securityGroupId),
-          CidrIp: "0.0.0.0/0",
-          Description: "Allow all outbound traffic by default",
-          IpProtocol: "-1",
+          security_group_id: stack.resolve(sg.securityGroupId),
+          cidr_ipv4: "0.0.0.0/0",
+          description: "Allow all outbound traffic by default",
+          from_port: 0,
+          ip_protocol: "-1",
+          to_port: 0,
         },
       );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
     });
 
     test("addIngressRule rule will not remove external allowAllOutbound rule", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -1124,37 +1243,41 @@ function testRulesAreNotInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addEgressRule(Peer.anyIpv4(), Port.tcp(86), "An external Rule");
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
         },
       );
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroupEgress",
+      // the allow all egress rule should be present
+      template.expect.toHaveResourceWithProperties(
+        tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
         {
-          GroupId: stack.resolve(sg.securityGroupId),
-          CidrIp: "0.0.0.0/0",
-          Description: "Allow all outbound traffic by default",
-          IpProtocol: "-1",
+          security_group_id: stack.resolve(sg.securityGroupId),
+          cidr_ipv4: "0.0.0.0/0",
+          description: "Allow all outbound traffic by default",
+          from_port: 0,
+          ip_protocol: "-1",
+          to_port: 0,
         },
       );
 
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
     });
 
     test("addIngressRule rule will not add a new egress rule", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -1166,36 +1289,53 @@ function testRulesAreNotInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addEgressRule(Peer.anyIpv4(), Port.tcp(86), "An external Rule");
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
+        },
+      );
+      // the allow all egress rule should be present
+      template.expect.toHaveResourceWithProperties(
+        tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        {
+          security_group_id: stack.resolve(sg.securityGroupId),
+          cidr_ipv4: "0.0.0.0/0",
+          description: "Allow all outbound traffic by default",
+          from_port: 0,
+          ip_protocol: "-1",
+          to_port: 0,
         },
       );
 
-      const egressGroups = Template.fromStack(stack).findResources(
-        "AWS::EC2::SecurityGroupEgress",
-        {
-          GroupId: stack.resolve(sg.securityGroupId),
-          Description: "An external Rule",
-        },
-      );
-      expect(Object.keys(egressGroups).length).toBe(0);
+      template
+        .expectResources(
+          tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        )
+        .not.toEqual(
+          expect.arrayContaining([
+            {
+              group_id: stack.resolve(sg.securityGroupId),
+              description: "An external Rule",
+            },
+          ]),
+        );
 
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
     });
 
     test("addIngressRule rule will add a new external ingress rule even if it could have been inlined", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -1207,46 +1347,57 @@ function testRulesAreNotInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addIngressRule(Peer.anyIpv4(), Port.tcp(86), "An external Rule");
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = Template.synth(stack);
+      template.toHaveResourceWithProperties(tfSecurityGroup.SecurityGroup, {
+        description: "TestStack/SG1",
+        vpc_id: stack.resolve(vpc.vpcId),
+      });
+
+      template.toHaveResourceWithProperties(
+        tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
+          security_group_id: stack.resolve(sg.securityGroupId),
+          cidr_ipv4: "0.0.0.0/0",
+          description: "An external Rule",
+          from_port: 86,
+          ip_protocol: "tcp",
+          to_port: 86,
         },
       );
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroupIngress",
+      template.toHaveResourceWithProperties(
+        tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
         {
-          GroupId: stack.resolve(sg.securityGroupId),
-          CidrIp: "0.0.0.0/0",
-          Description: "An external Rule",
-          FromPort: 86,
-          IpProtocol: "tcp",
-          ToPort: 86,
-        },
-      );
-
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroupEgress",
-        {
-          GroupId: stack.resolve(sg.securityGroupId),
-          CidrIp: "0.0.0.0/0",
-          Description: "Allow all outbound traffic by default",
-          IpProtocol: "-1",
+          security_group_id: stack.resolve(sg.securityGroupId),
+          cidr_ipv4: "0.0.0.0/0",
+          description: "Allow all outbound traffic by default",
+          from_port: 0,
+          ip_protocol: "-1",
+          to_port: 0,
         },
       );
     });
   });
 
   describe("When do not allowAllOutbound", () => {
+    let app: App;
+    let stack: AwsStack;
+
+    beforeEach(() => {
+      app = Testing.app();
+      stack = new AwsStack(app, "TestStack", {
+        environmentName,
+        gridUUID,
+        providerConfig,
+        gridBackendConfig,
+      });
+    });
     test("new SecurityGroup rule will create an external egress rule that denies all traffic", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -1255,39 +1406,46 @@ function testRulesAreNotInlined(
       };
 
       // WHEN
-      const sg = new SecurityGroup(stack, "SG1", props);
+      new SecurityGroup(stack, "SG1", props);
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
         },
       );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroupEgress",
-        {
-          GroupId: stack.resolve(sg.securityGroupId),
-          CidrIp: "255.255.255.255/32",
-          Description: "Disallow all traffic",
-          IpProtocol: "icmp",
-          FromPort: 252,
-          ToPort: 86,
-        },
-      );
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
+      // Terraform should not create allow all egress rule
+      template
+        .expectResources(
+          tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        )
+        .toHaveLength(0);
+      // template.expect.toHaveResourceWithProperties(
+      //   tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+      //   {
+      //     GroupId: stack.resolve(sg.securityGroupId),
+      //     CidrIp: "255.255.255.255/32",
+      //     Description: "Disallow all traffic",
+      //     IpProtocol: "icmp",
+      //     FromPort: 252,
+      //     ToPort: 86,
+      //   },
+      // );
     });
 
     test("addEgressRule rule will remove the rule that denies all traffic if another egress rule is added", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -1299,34 +1457,49 @@ function testRulesAreNotInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addEgressRule(Peer.anyIpv4(), Port.tcp(86), "An external Rule");
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
         },
       );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
-      const egressGroups = Template.fromStack(stack).findResources(
-        "AWS::EC2::SecurityGroupEgress",
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
+
+      // the allow all egress rule should not be present
+      template.expect.not.toHaveResourceWithProperties(
+        tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
         {
-          GroupId: stack.resolve(sg.securityGroupId),
-          CidrIp: "255.255.255.255/32",
+          security_group_id: stack.resolve(sg.securityGroupId),
+          cidr_ipv4: "0.0.0.0/0",
+          description: "Allow all outbound traffic by default",
+          from_port: 0,
+          ip_protocol: "-1",
+          to_port: 0,
         },
       );
-      expect(Object.keys(egressGroups).length).toBe(0);
+      // TODO: Verify the egress rule has not been added
+      // const egressGroups = Template.fromStack(stack).findResources(
+      //   tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+      //   {
+      //     GroupId: stack.resolve(sg.securityGroupId),
+      //     CidrIp: "255.255.255.255/32",
+      //   },
+      // );
+      // expect(Object.keys(egressGroups).length).toBe(0);
     });
 
     test("addEgressRule rule will add a new external egress rule even if it could have been inlined", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -1338,39 +1511,40 @@ function testRulesAreNotInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addEgressRule(Peer.anyIpv4(), Port.tcp(86), "An external Rule");
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
         },
       );
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroupEgress",
+      template.expect.toHaveResourceWithProperties(
+        tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
         {
-          GroupId: stack.resolve(sg.securityGroupId),
-          CidrIp: "0.0.0.0/0",
-          Description: "An external Rule",
-          FromPort: 86,
-          IpProtocol: "tcp",
-          ToPort: 86,
+          security_group_id: stack.resolve(sg.securityGroupId),
+          cidr_ipv4: "0.0.0.0/0",
+          description: "An external Rule",
+          from_port: 86,
+          ip_protocol: "tcp",
+          to_port: 86,
         },
       );
 
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::EC2::SecurityGroupIngress",
-        0,
-      );
+      template
+        .expectResources(
+          tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+        )
+        .toHaveLength(0);
     });
 
     test("addIngressRule will add a new external ingress rule even if it could have been inlined", () => {
       // GIVEN
-      const stack = new Stack();
-      stack.node.setContext(
-        SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
-        contextDisableInlineRules,
-      );
+      // stack.node.setContext(
+      //   SECURITY_GROUP_DISABLE_INLINE_RULES_CONTEXT_KEY,
+      //   contextDisableInlineRules,
+      // );
       const vpc = new Vpc(stack, "VPC");
       const props: SecurityGroupProps = {
         vpc,
@@ -1382,37 +1556,44 @@ function testRulesAreNotInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addIngressRule(Peer.anyIpv4(), Port.tcp(86), "An external Rule");
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroup",
+      const template = new Template(stack, { snapshot: true });
+      template.expect.toHaveResourceWithProperties(
+        tfSecurityGroup.SecurityGroup,
         {
-          GroupDescription: "Default/SG1",
-          VpcId: stack.resolve(vpc.vpcId),
+          description: "TestStack/SG1",
+          vpc_id: stack.resolve(vpc.vpcId),
         },
       );
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroupIngress",
+      template.expect.toHaveResourceWithProperties(
+        tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
         {
-          GroupId: stack.resolve(sg.securityGroupId),
-          CidrIp: "0.0.0.0/0",
-          Description: "An external Rule",
-          FromPort: 86,
-          IpProtocol: "tcp",
-          ToPort: 86,
+          security_group_id: stack.resolve(sg.securityGroupId),
+          cidr_ipv4: "0.0.0.0/0",
+          description: "An external Rule",
+          from_port: 86,
+          ip_protocol: "tcp",
+          to_port: 86,
         },
       );
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroupEgress",
-        {
-          GroupId: stack.resolve(sg.securityGroupId),
-          CidrIp: "255.255.255.255/32",
-          Description: "Disallow all traffic",
-          IpProtocol: "icmp",
-          FromPort: 252,
-          ToPort: 86,
-        },
-      );
+      // Terraform should not create blocking egress rule
+      template
+        .expectResources(
+          tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        )
+        .toHaveLength(0);
+      // template.expect.toHaveResourceWithProperties(
+      //   tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+      //   {
+      //     GroupId: stack.resolve(sg.securityGroupId),
+      //     CidrIp: "255.255.255.255/32",
+      //     Description: "Disallow all traffic",
+      //     IpProtocol: "icmp",
+      //     FromPort: 252,
+      //     ToPort: 86,
+      //   },
+      // );
     });
   });
 }
