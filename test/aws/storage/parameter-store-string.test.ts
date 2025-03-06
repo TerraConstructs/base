@@ -79,7 +79,7 @@ describe("parameterstore", () => {
     // THEN
     expect(stack.resolve(ref)).toEqual(
       // "{{resolve:ssm-secure:/some/key:123}}"
-      "${data.aws_ssm_parameter.RefParameter.insecure_value}",
+      "${data.aws_ssm_parameter.RefParameter.value}",
     );
   });
 

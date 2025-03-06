@@ -4,7 +4,7 @@ import {
   launchTemplate as tfLaunchTemplate,
   instance as tfInstance,
 } from "@cdktf/provider-aws";
-import { App, Testing, Aspects, Token } from "cdktf";
+import { App, Testing, Aspects } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { Construct } from "constructs";
 import { AwsStack } from "../../../../src/aws";
@@ -75,24 +75,26 @@ describe("RequireImdsv2Aspect", () => {
 
       // WHEN
       Aspects.of(stack).add(aspect);
-      app.synth();
+      const template = new Template(stack);
 
       // THEN
       const launchTemplate = instance.node.tryFindChild(
         "LaunchTemplate",
-      ) as LaunchTemplate;
+      ) as tfLaunchTemplate.LaunchTemplate;
       expect(launchTemplate).toBeDefined();
-      const template = Template.synth(stack);
-      template.toHaveResourceWithProperties(tfLaunchTemplate.LaunchTemplate, {
-        name: stack.resolve(launchTemplate.launchTemplateName),
-        metadata_options: {
-          http_tokens: "required",
+      template.expect.toHaveResourceWithProperties(
+        tfLaunchTemplate.LaunchTemplate,
+        {
+          name: stack.resolve(launchTemplate.nameInput),
+          metadata_options: {
+            http_tokens: "required",
+          },
         },
-      });
-      template.toHaveResourceWithProperties(tfInstance.Instance, {
+      );
+      template.expect.toHaveResourceWithProperties(tfInstance.Instance, {
         launch_template: {
-          name: stack.resolve(launchTemplate.launchTemplateName),
-          version: stack.resolve(launchTemplate.latestVersionNumber),
+          name: stack.resolve(launchTemplate.name),
+          version: stack.resolve(launchTemplate.latestVersion),
         },
       });
     });
@@ -120,7 +122,7 @@ describe("RequireImdsv2Aspect", () => {
         0,
       );
       Annotations.fromStack(stack).hasWarnings({
-        constructPath: "/Stack/Instance",
+        constructPath: "MyStack/Instance",
         message:
           /.*Cannot toggle IMDSv1 because this Instance is associated with an existing Launch Template./,
       });
@@ -154,94 +156,88 @@ describe("RequireImdsv2Aspect", () => {
 
     test("launch template name is unique with feature flag", () => {
       // GIVEN
-      const app2 = Testing.app();
-      const otherStack = new AwsStack(app2, "OtherStack", {
-        environmentName, // Should be different
-        gridUUID, // Should be different
-        providerConfig,
-        gridBackendConfig,
-      });
-      const otherVpc = new Vpc(otherStack, "OtherVpc");
-      const otherInstance = new Instance(otherStack, "OtherInstance", {
-        vpc: otherVpc,
+      const instance1 = new Instance(stack, "OtherInstance", {
+        vpc,
         instanceType: new InstanceType("t2.micro"),
         machineImage: MachineImage.latestAmazonLinux(),
       });
-      const imdsv2Stack = new AwsStack(app2, "RequireImdsv2Stack", {
+      const stack2 = new AwsStack(app, "RequireImdsv2Stack", {
         environmentName, // Should be different
         gridUUID, // Should be different
         providerConfig,
         gridBackendConfig,
       });
-      const imdsv2Vpc = new Vpc(imdsv2Stack, "Vpc");
-      const instance = new Instance(imdsv2Stack, "Instance", {
-        vpc: imdsv2Vpc,
+      const vpc2 = new Vpc(stack2, "Vpc");
+      const instance2 = new Instance(stack2, "Instance", {
+        vpc: vpc2,
         instanceType: new InstanceType("t2.micro"),
         machineImage: MachineImage.latestAmazonLinux(),
       });
       const aspect = new InstanceRequireImdsv2Aspect();
 
       // WHEN
-      Aspects.of(imdsv2Stack).add(aspect);
-      Aspects.of(otherStack).add(aspect);
-      app2.synth();
+      Aspects.of(stack).add(aspect);
+      Aspects.of(stack2).add(aspect);
+
+      // synth both stacks
+      new Template(stack);
+      new Template(stack2);
 
       // THEN
-      const launchTemplate = instance.node.tryFindChild(
+      const lt2 = instance2.node.tryFindChild(
         "LaunchTemplate",
-      ) as LaunchTemplate;
-      const otherLaunchTemplate = otherInstance.node.tryFindChild(
+      ) as tfLaunchTemplate.LaunchTemplate;
+      const lt1 = instance1.node.tryFindChild(
         "LaunchTemplate",
-      ) as LaunchTemplate;
-      expect(launchTemplate).toBeDefined();
-      expect(otherLaunchTemplate).toBeDefined();
-      expect(
-        launchTemplate.launchTemplateName !==
-          otherLaunchTemplate.launchTemplateName,
-      );
+      ) as tfLaunchTemplate.LaunchTemplate;
+      expect(lt2).toBeDefined();
+      expect(lt1).toBeDefined();
+      expect(lt2.nameInput !== lt1.nameInput);
     });
   });
 
   describe("LaunchTemplateRequireImdsv2Aspect", () => {
-    test("warns when LaunchTemplateData is a CDK token", () => {
-      // GIVEN
-      const launchTemplate = new LaunchTemplate(stack, "LaunchTemplate");
-      const cfnLaunchTemplate = launchTemplate.node.tryFindChild(
-        "Resource",
-      ) as tfLaunchTemplate.LaunchTemplate;
-      cfnLaunchTemplate.kernelId = "asfd";
-      const aspect = new LaunchTemplateRequireImdsv2Aspect();
+    // // Terraform LaunchTemplate does not have `launchTemplateData` attribute
+    // test("warns when LaunchTemplateData is a CDK token", () => {
+    //   // GIVEN
+    //   const launchTemplate = new LaunchTemplate(stack, "LaunchTemplate");
+    //   const cfnLaunchTemplate = launchTemplate.node.tryFindChild(
+    //     "Resource",
+    //   ) as tfLaunchTemplate.LaunchTemplate;
+    //   cfnLaunchTemplate.kernelId = "asfd";
+    //   const aspect = new LaunchTemplateRequireImdsv2Aspect();
 
-      // WHEN
-      aspect.visit(launchTemplate);
+    //   // WHEN
+    //   aspect.visit(launchTemplate);
 
-      // THEN
-      Annotations.fromStack(stack).hasWarnings({
-        constructPath: "/Stack/LaunchTemplate",
-        message: /.*LaunchTemplateData is a CDK token./,
-      });
-    });
+    //   // THEN
+    //   Annotations.fromStack(stack).hasWarnings({
+    //     constructPath: "/Stack/LaunchTemplate",
+    //     message: /.*LaunchTemplateData is a CDK token./,
+    //   });
+    // });
 
-    test("warns when MetadataOptions is a CDK token", () => {
-      // GIVEN
-      const launchTemplate = new LaunchTemplate(stack, "LaunchTemplate");
-      const cfnLaunchTemplate = launchTemplate.node.tryFindChild(
-        "Resource",
-      ) as tfLaunchTemplate.LaunchTemplate;
-      cfnLaunchTemplate.putMetadataOptions({
-        httpEndpoint: "http://bla",
-      });
-      const aspect = new LaunchTemplateRequireImdsv2Aspect();
+    // // metaDataOptions is ComplexListObject and can never be a token
+    // test("warns when MetadataOptions is a CDK token", () => {
+    //   // GIVEN
+    //   const launchTemplate = new LaunchTemplate(stack, "LaunchTemplate");
+    //   const cfnLaunchTemplate = launchTemplate.node.tryFindChild(
+    //     "Resource",
+    //   ) as tfLaunchTemplate.LaunchTemplate;
+    //   cfnLaunchTemplate.putMetadataOptions({
+    //     httpEndpoint: Token.asString("http://bla"),
+    //   });
+    //   const aspect = new LaunchTemplateRequireImdsv2Aspect();
 
-      // WHEN
-      aspect.visit(launchTemplate);
+    //   // WHEN
+    //   aspect.visit(launchTemplate);
 
-      // THEN
-      Annotations.fromStack(stack).hasWarnings({
-        constructPath: "/Stack/LaunchTemplate",
-        message: /.*LaunchTemplateData.MetadataOptions is a CDK token./,
-      });
-    });
+    //   // THEN
+    //   Annotations.fromStack(stack).hasWarnings({
+    //     constructPath: "/Stack/LaunchTemplate",
+    //     message: /.*LaunchTemplateData.MetadataOptions is a CDK token./,
+    //   });
+    // });
 
     test("requires IMDSv2", () => {
       // GIVEN

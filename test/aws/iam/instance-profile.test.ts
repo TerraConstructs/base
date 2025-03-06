@@ -1,3 +1,5 @@
+// https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-iam/test/instance-profile.test.ts
+
 import {
   dataAwsIamPolicyDocument,
   iamPolicy,
@@ -8,9 +10,11 @@ import {
 import { Token, Testing } from "cdktf";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import "cdktf/lib/testing/adapters/jest";
-import { InstanceProfile } from "../../../src/aws/iam/instance-profile";
-import { ServicePrincipal } from "../../../src/aws/iam/principals";
-import { Role } from "../../../src/aws/iam/role";
+import { Role, ServicePrincipal, InstanceProfile } from "../../../src/aws/iam";
+// // without Barrel file, getting cyclic dependency error:
+// import { InstanceProfile } from "../../../src/aws/iam/instance-profile";
+// import { ServicePrincipal } from "../../../src/aws/iam/principals";
+// import { Role } from "../../../src/aws/iam/role";
 import { Template } from "../../assertions";
 
 const environmentName = "Test";
@@ -39,38 +43,48 @@ describe("IAM instance profiles", () => {
     new InstanceProfile(stack, "InstanceProfile");
 
     // THEN
-    Template.fromStack(stack, { snapshot: true });
-    // .templateMatches({
-    //   Resources: {
-    //     InstanceProfileInstanceRole3FE337A6: {
-    //       Type: "AWS::IAM::Role",
-    //       Properties: {
-    //         AssumeRolePolicyDocument: {
-    //           Statement: [
-    //             {
-    //               Action: "sts:AssumeRole",
-    //               Effect: "Allow",
-    //               Principal: {
-    //                 Service: "ec2.amazonaws.com",
-    //               },
-    //             },
-    //           ],
-    //           Version: "2012-10-17",
-    //         },
-    //       },
-    //     },
-    //     InstanceProfile9F2F41CB: {
-    //       Type: "AWS::IAM::InstanceProfile",
-    //       Properties: {
-    //         Roles: [
-    //           {
-    //             Ref: "InstanceProfileInstanceRole3FE337A6",
-    //           },
-    //         ],
-    //       },
-    //     },
-    //   },
-    // });
+    Template.fromStack(stack).toMatchObject({
+      data: {
+        aws_iam_policy_document: {
+          InstanceProfile_InstanceRole_AssumeRolePolicy_58D2B4B4: {
+            statement: [
+              {
+                actions: ["sts:AssumeRole"],
+                effect: "Allow",
+                principals: [
+                  {
+                    identifiers: [
+                      "${data.aws_service_principal.aws_svcp_default_region_ec2.name}",
+                    ],
+                    type: "Service",
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        aws_service_principal: {
+          aws_svcp_default_region_ec2: {
+            service_name: "ec2",
+          },
+        },
+      },
+      resource: {
+        aws_iam_instance_profile: {
+          InstanceProfile_9F2F41CB: {
+            name: "123e4567-e89b-12d3MyStackInstanceProfileF6A8DB39",
+            role: "${aws_iam_role.InstanceProfile_InstanceRole_3FE337A6.name}",
+          },
+        },
+        aws_iam_role: {
+          InstanceProfile_InstanceRole_3FE337A6: {
+            assume_role_policy:
+              "${data.aws_iam_policy_document.InstanceProfile_InstanceRole_AssumeRolePolicy_58D2B4B4.json}",
+            name: "123e4567-e89b-12d3MyStackInstanceProfileF6A8DB39-role",
+          },
+        },
+      },
+    });
   });
 
   test("given role", () => {
@@ -83,38 +97,48 @@ describe("IAM instance profiles", () => {
     new InstanceProfile(stack, "InstanceProfile", { role });
 
     // THEN
-    Template.fromStack(stack, { snapshot: true });
-    // .templateMatches({
-    //   Resources: {
-    //     Role1ABCC5F0: {
-    //       Type: "AWS::IAM::Role",
-    //       Properties: {
-    //         AssumeRolePolicyDocument: {
-    //           Statement: [
-    //             {
-    //               Action: "sts:AssumeRole",
-    //               Effect: "Allow",
-    //               Principal: {
-    //                 Service: "ec2.amazonaws.com",
-    //               },
-    //             },
-    //           ],
-    //           Version: "2012-10-17",
-    //         },
-    //       },
-    //     },
-    //     InstanceProfile9F2F41CB: {
-    //       Type: "AWS::IAM::InstanceProfile",
-    //       Properties: {
-    //         Roles: [
-    //           {
-    //             Ref: "Role1ABCC5F0",
-    //           },
-    //         ],
-    //       },
-    //     },
-    //   },
-    // });
+    Template.fromStack(stack).toMatchObject({
+      data: {
+        aws_iam_policy_document: {
+          Role_AssumeRolePolicy_B27E8126: {
+            statement: [
+              {
+                actions: ["sts:AssumeRole"],
+                effect: "Allow",
+                principals: [
+                  {
+                    identifiers: [
+                      "${data.aws_service_principal.aws_svcp_default_region_ec2.name}",
+                    ],
+                    type: "Service",
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        aws_service_principal: {
+          aws_svcp_default_region_ec2: {
+            service_name: "ec2",
+          },
+        },
+      },
+      resource: {
+        aws_iam_instance_profile: {
+          InstanceProfile_9F2F41CB: {
+            name: "123e4567-e89b-12d3MyStackInstanceProfileF6A8DB39",
+            role: "${aws_iam_role.Role_1ABCC5F0.name}",
+          },
+        },
+        aws_iam_role: {
+          Role_1ABCC5F0: {
+            assume_role_policy:
+              "${data.aws_iam_policy_document.Role_AssumeRolePolicy_B27E8126.json}",
+            name_prefix: "123e4567-e89b-12d3-MyStackRole",
+          },
+        },
+      },
+    });
   });
 
   test("given instance profile name", () => {
@@ -124,39 +148,54 @@ describe("IAM instance profiles", () => {
     });
 
     // THEN
-    Template.fromStack(stack, { snapshot: true });
-    // .templateMatches({
-    //   Resources: {
-    //     InstanceProfileInstanceRole3FE337A6: {
-    //       Type: "AWS::IAM::Role",
-    //       Properties: {
-    //         AssumeRolePolicyDocument: {
-    //           Statement: [
-    //             {
-    //               Action: "sts:AssumeRole",
-    //               Effect: "Allow",
-    //               Principal: {
-    //                 Service: "ec2.amazonaws.com",
-    //               },
-    //             },
-    //           ],
-    //           Version: "2012-10-17",
-    //         },
-    //       },
-    //     },
-    //     InstanceProfile9F2F41CB: {
-    //       Type: "AWS::IAM::InstanceProfile",
-    //       Properties: {
-    //         Roles: [
-    //           {
-    //             Ref: "InstanceProfileInstanceRole3FE337A6",
-    //           },
-    //         ],
-    //         InstanceProfileName: "MyInstanceProfile",
-    //       },
-    //     },
-    //   },
-    // });
+    Template.fromStack(stack).toMatchObject({
+      data: {
+        aws_iam_policy_document: {
+          InstanceProfile_InstanceRole_AssumeRolePolicy_58D2B4B4: {
+            statement: [
+              {
+                actions: ["sts:AssumeRole"],
+                effect: "Allow",
+                principals: [
+                  {
+                    identifiers: [
+                      "${data.aws_service_principal.aws_svcp_default_region_ec2.name}",
+                    ],
+                    type: "Service",
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        aws_service_principal: {
+          aws_svcp_default_region_ec2: {
+            service_name: "ec2",
+          },
+        },
+      },
+      resource: {
+        aws_iam_instance_profile: {
+          InstanceProfile_9F2F41CB: {
+            name: "MyInstanceProfile",
+            role: "${aws_iam_role.InstanceProfile_InstanceRole_3FE337A6.name}",
+            tags: {
+              Name: "Test-InstanceProfile",
+            },
+          },
+        },
+        aws_iam_role: {
+          InstanceProfile_InstanceRole_3FE337A6: {
+            assume_role_policy:
+              "${data.aws_iam_policy_document.InstanceProfile_InstanceRole_AssumeRolePolicy_58D2B4B4.json}",
+            name: "MyInstanceProfile-role",
+            tags: {
+              Name: "Test-InstanceProfile",
+            },
+          },
+        },
+      },
+    });
   });
 
   test("given instance profile path", () => {
@@ -166,39 +205,55 @@ describe("IAM instance profiles", () => {
     });
 
     // THEN
-    Template.fromStack(stack, { snapshot: true });
-    // .templateMatches({
-    //   Resources: {
-    //     InstanceProfileInstanceRole3FE337A6: {
-    //       Type: "AWS::IAM::Role",
-    //       Properties: {
-    //         AssumeRolePolicyDocument: {
-    //           Statement: [
-    //             {
-    //               Action: "sts:AssumeRole",
-    //               Effect: "Allow",
-    //               Principal: {
-    //                 Service: "ec2.amazonaws.com",
-    //               },
-    //             },
-    //           ],
-    //           Version: "2012-10-17",
-    //         },
-    //       },
-    //     },
-    //     InstanceProfile9F2F41CB: {
-    //       Type: "AWS::IAM::InstanceProfile",
-    //       Properties: {
-    //         Roles: [
-    //           {
-    //             Ref: "InstanceProfileInstanceRole3FE337A6",
-    //           },
-    //         ],
-    //         Path: "/sample/path/",
-    //       },
-    //     },
-    //   },
-    // });
+    Template.fromStack(stack).toMatchObject({
+      data: {
+        aws_iam_policy_document: {
+          InstanceProfile_InstanceRole_AssumeRolePolicy_58D2B4B4: {
+            statement: [
+              {
+                actions: ["sts:AssumeRole"],
+                effect: "Allow",
+                principals: [
+                  {
+                    identifiers: [
+                      "${data.aws_service_principal.aws_svcp_default_region_ec2.name}",
+                    ],
+                    type: "Service",
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        aws_service_principal: {
+          aws_svcp_default_region_ec2: {
+            service_name: "ec2",
+          },
+        },
+      },
+      resource: {
+        aws_iam_instance_profile: {
+          InstanceProfile_9F2F41CB: {
+            name: "123e4567-e89b-12d3MyStackInstanceProfileF6A8DB39",
+            path: "/sample/path/",
+            role: "${aws_iam_role.InstanceProfile_InstanceRole_3FE337A6.name}",
+            tags: {
+              Name: "Test-InstanceProfile",
+            },
+          },
+        },
+        aws_iam_role: {
+          InstanceProfile_InstanceRole_3FE337A6: {
+            assume_role_policy:
+              "${data.aws_iam_policy_document.InstanceProfile_InstanceRole_AssumeRolePolicy_58D2B4B4.json}",
+            name: "123e4567-e89b-12d3MyStackInstanceProfileF6A8DB39-role",
+            tags: {
+              Name: "Test-InstanceProfile",
+            },
+          },
+        },
+      },
+    });
   });
 
   test("instance profile imported by name has an arn", () => {
@@ -210,18 +265,9 @@ describe("IAM instance profiles", () => {
     );
 
     // THEN
-    expect(stack.resolve(instanceProfile.instanceProfileArn)).toStrictEqual({
-      "Fn::Join": [
-        "",
-        [
-          "arn:",
-          { Ref: "AWS::Partition" },
-          ":iam::",
-          { Ref: "AWS::AccountId" },
-          ":instance-profile/path/MyInstanceProfile",
-        ],
-      ],
-    });
+    expect(stack.resolve(instanceProfile.instanceProfileArn)).toStrictEqual(
+      "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:instance-profile/path/MyInstanceProfile",
+    );
   });
 
   test("instance profile imported by arn has a name", () => {
@@ -249,12 +295,10 @@ describe("IAM instance profiles", () => {
     );
 
     // THEN
-    expect(stack.resolve(instanceProfile.instanceProfileName)).toStrictEqual({
-      "Fn::Select": [
-        1,
-        { "Fn::Split": [":instance-profile/", { Ref: "ARN" }] },
-      ],
-    });
+    expect(stack.resolve(instanceProfile.instanceProfileName)).toStrictEqual(
+      // Token.asString({ Ref: ARN }) is rendered as is.
+      '${element(split(":instance-profile/", {"Ref" = "ARN"}), 1)}',
+    );
   });
 
   test("instance profile imported by arn with path", () => {
@@ -325,12 +369,10 @@ describe("IAM instance profiles", () => {
     );
 
     // THEN
-    expect(stack.resolve(instanceProfile.instanceProfileName)).toStrictEqual({
-      "Fn::Select": [
-        1,
-        { "Fn::Split": [":instance-profile/", { Ref: "ARN" }] },
-      ],
-    });
+    expect(stack.resolve(instanceProfile.instanceProfileName)).toStrictEqual(
+      // Token.asString({ Ref: ARN }) is rendered as is.
+      '${element(split(":instance-profile/", {"Ref" = "ARN"}), 1)}',
+    );
   });
 
   test("instance profile imported by arn attribute with path has a name", () => {

@@ -4,7 +4,7 @@ import {
   launchTemplate as tfLaunchTemplate,
   iamInstanceProfile as tfIamInstanceProfile,
 } from "@cdktf/provider-aws";
-import { Annotations, Fn, Lazy, Token } from "cdktf";
+import { Annotations, Lazy, Token } from "cdktf";
 import { Construct } from "constructs";
 import { Connections, IConnectable } from "./connections";
 import { InstanceType } from "./instance-types";

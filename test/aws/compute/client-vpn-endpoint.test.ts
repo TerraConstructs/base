@@ -113,7 +113,7 @@ test("client vpn endpoint", () => {
     },
   );
   Template.expectOutput(stack, "TestOutput").toMatchObject({
-    value: stack.resolve(clientVpnEndpoint.SelfServicePortalUrl),
+    value: stack.resolve(clientVpnEndpoint.selfServicePortalUrl),
   });
 
   template.toHaveResourceWithProperties(

@@ -74,7 +74,7 @@ export class Template {
     options: SynthOptions = {},
   ) {
     const parsed = new Template(stack, options);
-    return expect(Object.values(parsed.resourcesByType(type)));
+    return expect(parsed.resourceTypeArray(type));
   }
 
   /**
@@ -102,7 +102,7 @@ export class Template {
     options: SynthOptions = {},
   ) {
     const parsed = new Template(stack, options);
-    return expect(parsed.resourceTypeArray(type));
+    return expect(parsed.dataSourceTypeArray(type));
   }
 
   /**
@@ -182,6 +182,13 @@ export class Template {
 
   public dataSourcesByType(type: TerraformConstructor): object {
     return this.data ? (this.data[type.tfResourceType] ?? {}) : {};
+  }
+
+  /**
+   * Get an Array of datasources by type, discarding the resource names
+   */
+  public dataSourceTypeArray(type: TerraformConstructor): Array<object> {
+    return Object.values(this.dataSourcesByType(type));
   }
 
   public get output(): object | undefined {

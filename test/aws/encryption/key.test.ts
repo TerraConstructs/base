@@ -1114,6 +1114,10 @@ describe("key", () => {
         tag1: "value1",
         tag2: "value2",
         tag3: "",
+        Name: "Test-MyKey",
+        // Grid keys
+        "grid:EnvironmentName": environmentName,
+        "grid:UUID": gridUUID,
       },
     });
 

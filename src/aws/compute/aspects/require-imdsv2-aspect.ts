@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/aspects/require-imdsv2-aspect.ts
 import { launchTemplate } from "@cdktf/provider-aws";
-import { IAspect, Annotations, Tokenization } from "cdktf";
+import { IAspect, Annotations } from "cdktf";
 import { IConstruct } from "constructs";
 import { AwsStack } from "../../aws-stack";
 import { Instance } from "../instance";
@@ -139,10 +139,11 @@ export class LaunchTemplateRequireImdsv2Aspect extends RequireImdsv2Aspect {
       "Resource",
     ) as launchTemplate.LaunchTemplate;
     const metadataOptions = lt.metadataOptionsInput;
-    if (Tokenization.isResolvable(metadataOptions)) {
-      this.warn(node, "LaunchTemplateData.MetadataOptions is a CDK token.");
-      return;
-    }
+    // // metaDataOptions is ComplexListObject and can never be a token
+    // if (Tokenization.isResolvable(metadataOptions)) {
+    //   this.warn(node, "LaunchTemplateData.MetadataOptions is a CDK token.");
+    //   return;
+    // }
 
     lt.putMetadataOptions({
       ...metadataOptions,

@@ -186,25 +186,24 @@ test("LookupMachineImage default search", () => {
 
   // THEN
   // filters.image-type.0=machine:filters.name.0=bla*:filters.state.0=available:owners.0=amazon:region=testregion
-  Template.dataSources(stack, dataAwsAmi.DataAwsAmi).toMatchObject([
-    {
-      owners: ["amazon"],
-      filter: [
-        {
-          name: "name",
-          values: ["bla*"],
-        },
-        {
-          name: "state",
-          values: ["available"],
-        },
-        {
-          name: "image-type",
-          values: ["machine"],
-        },
-      ],
-    },
-  ]);
+
+  Template.synth(stack).toHaveDataSourceWithProperties(dataAwsAmi.DataAwsAmi, {
+    owners: ["amazon"],
+    filter: [
+      {
+        name: "name",
+        values: ["bla*"],
+      },
+      {
+        name: "state",
+        values: ["available"],
+      },
+      {
+        name: "image-type",
+        values: ["machine"],
+      },
+    ],
+  });
 });
 
 test("LookupMachineImage creates correct type of UserData", () => {
@@ -237,14 +236,12 @@ test("cached lookups of Amazon Linux", () => {
   //   // "${data.aws_ssm_parameter.awsserviceami-amazon-linux-latestamzn-ami-hvm-x86_64-gp2.insecure_value}",
   //   "dummy-value-for-/aws/service/ami-amazon-linux-latest/amzn-ami-hvm-x86_64-gp2",
   // );
-  Template.dataSources(
-    stack,
+  Template.synth(stack).toHaveDataSourceWithProperties(
     dataAwsSsmParameter.DataAwsSsmParameter,
-  ).toMatchObject([
     {
       name: "/aws/service/ami-amazon-linux-latest/amzn-ami-hvm-x86_64-gp2",
     },
-  ]);
+  );
 });
 
 test("cached lookups of Amazon Linux 2", () => {
@@ -260,14 +257,12 @@ test("cached lookups of Amazon Linux 2", () => {
   // expect(ami).toEqual(
   //   "dummy-value-for-/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2",
   // );
-  Template.dataSources(
-    stack,
+  Template.synth(stack).toHaveDataSourceWithProperties(
     dataAwsSsmParameter.DataAwsSsmParameter,
-  ).toMatchObject([
     {
       name: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2",
     },
-  ]);
+  );
 });
 
 test("cached lookups of Amazon Linux 2 with kernel 5.x", () => {
@@ -284,14 +279,12 @@ test("cached lookups of Amazon Linux 2 with kernel 5.x", () => {
   // expect(ami).toEqual(
   //   "dummy-value-for-/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2",
   // );
-  Template.dataSources(
-    stack,
+  Template.synth(stack).toHaveDataSourceWithProperties(
     dataAwsSsmParameter.DataAwsSsmParameter,
-  ).toMatchObject([
     {
       name: "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2",
     },
-  ]);
+  );
 });
 
 test("throw error if storage param is set for Amazon Linux 2022", () => {
@@ -331,14 +324,12 @@ test("cached lookups of Amazon Linux 2022 with kernel 5.x", () => {
   // expect(ami).toEqual(
   //   "dummy-value-for-/aws/service/ami-amazon-linux-latest/al2022-ami-kernel-5.10-x86_64",
   // );
-  Template.dataSources(
-    stack,
+  Template.synth(stack).toHaveDataSourceWithProperties(
     dataAwsSsmParameter.DataAwsSsmParameter,
-  ).toMatchObject([
     {
       name: "/aws/service/ami-amazon-linux-latest/al2022-ami-kernel-5.10-x86_64",
     },
-  ]);
+  );
 });
 
 describe("latest amazon linux", () => {
@@ -347,14 +338,12 @@ describe("latest amazon linux", () => {
     ec2.MachineImage.latestAmazonLinux2().getImage(stack);
 
     // THEN
-    Template.dataSources(
-      stack,
+    Template.synth(stack).toHaveDataSourceWithProperties(
       dataAwsSsmParameter.DataAwsSsmParameter,
-    ).toMatchObject([
       {
         name: "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2",
       },
-    ]);
+    );
     // Template.fromStack(stack).hasParameter("*", {
     //   Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
     //   Default:
@@ -378,14 +367,12 @@ describe("latest amazon linux", () => {
     // expect(ami).toEqual(
     //   "dummy-value-for-/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-pv-arm64-ebs",
     // );
-    Template.dataSources(
-      stack,
+    Template.synth(stack).toHaveDataSourceWithProperties(
       dataAwsSsmParameter.DataAwsSsmParameter,
-    ).toMatchObject([
       {
         name: "/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-pv-arm64-ebs",
       },
-    ]);
+    );
   });
 
   test("latestAmazonLinux2022", () => {
@@ -393,14 +380,12 @@ describe("latest amazon linux", () => {
     ec2.MachineImage.latestAmazonLinux2022().getImage(stack);
 
     // THEN
-    Template.dataSources(
-      stack,
+    Template.synth(stack).toHaveDataSourceWithProperties(
       dataAwsSsmParameter.DataAwsSsmParameter,
-    ).toMatchObject([
       {
         name: "/aws/service/ami-amazon-linux-latest/al2022-ami-kernel-5.15-x86_64",
       },
-    ]);
+    );
     // Template.fromStack(stack).hasParameter("*", {
     //   Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
     //   Default:
@@ -422,14 +407,12 @@ describe("latest amazon linux", () => {
     // expect(ami).toEqual(
     //   "dummy-value-for-/aws/service/ami-amazon-linux-latest/al2022-ami-minimal-kernel-default-arm64",
     // );
-    Template.dataSources(
-      stack,
+    Template.synth(stack).toHaveDataSourceWithProperties(
       dataAwsSsmParameter.DataAwsSsmParameter,
-    ).toMatchObject([
       {
         name: "/aws/service/ami-amazon-linux-latest/al2022-ami-minimal-kernel-default-arm64",
       },
-    ]);
+    );
   });
 
   test("latestAmazonLinux2023", () => {
@@ -437,14 +420,12 @@ describe("latest amazon linux", () => {
     ec2.MachineImage.latestAmazonLinux2023().getImage(stack);
 
     // THEN
-    Template.dataSources(
-      stack,
+    Template.synth(stack).toHaveDataSourceWithProperties(
       dataAwsSsmParameter.DataAwsSsmParameter,
-    ).toMatchObject([
       {
         name: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64",
       },
-    ]);
+    );
     // Template.fromStack(stack).hasParameter("*", {
     //   Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
     //   Default:
@@ -466,14 +447,12 @@ describe("latest amazon linux", () => {
     // expect(ami).toEqual(
     //   "dummy-value-for-/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-default-arm64",
     // );
-    Template.dataSources(
-      stack,
+    Template.synth(stack).toHaveDataSourceWithProperties(
       dataAwsSsmParameter.DataAwsSsmParameter,
-    ).toMatchObject([
       {
         name: "/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-default-arm64",
       },
-    ]);
+    );
   });
 
   test("AmazonLinuxImage with AMAZON_LINUX_2023", () => {
@@ -483,14 +462,12 @@ describe("latest amazon linux", () => {
     }).getImage(stack);
 
     // THEN
-    Template.dataSources(
-      stack,
+    Template.synth(stack).toHaveDataSourceWithProperties(
       dataAwsSsmParameter.DataAwsSsmParameter,
-    ).toMatchObject([
       {
         name: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64",
       },
-    ]);
+    );
     // Template.fromStack(stack).hasParameter("*", {
     //   Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
     //   Default:
@@ -522,9 +499,9 @@ test("throw error if virtualization param is set for Amazon Linux 2023", () => {
 });
 
 function isWindowsUserData(ud: ec2.UserData) {
-  return ud.render().indexOf("powershell") > -1;
+  return ud.content.indexOf("powershell") > -1;
 }
 
 function isLinuxUserData(ud: ec2.UserData) {
-  return ud.render().indexOf("bash") > -1;
+  return ud.content.indexOf("bash") > -1;
 }
