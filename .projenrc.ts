@@ -49,6 +49,7 @@ const project = new cdk.JsiiProject({
     "@cdktf/provider-aws@^19.54.0",
     "@cdktf/provider-time@^10.2.1",
     "@cdktf/provider-tls@10.0.1",
+    "@cdktf/provider-cloudinit@10.0.3",
     "constructs@^10.3.0",
   ],
   devDeps: [
@@ -56,6 +57,7 @@ const project = new cdk.JsiiProject({
     "@cdktf/provider-aws@^19.54.0",
     "@cdktf/provider-time@^10.2.1",
     "@cdktf/provider-tls@10.0.1",
+    "@cdktf/provider-cloudinit@10.0.3",
     "constructs@^10.3.0",
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",

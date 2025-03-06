@@ -6,6 +6,11 @@
       "type": "build"
     },
     {
+      "name": "@cdktf/provider-cloudinit",
+      "version": "10.0.3",
+      "type": "build"
+    },
+    {
       "name": "@cdktf/provider-time",
       "version": "^10.2.1",
       "type": "build"
@@ -148,6 +153,11 @@
     {
       "name": "@cdktf/provider-aws",
       "version": "^19.54.0",
+      "type": "peer"
+    },
+    {
+      "name": "@cdktf/provider-cloudinit",
+      "version": "10.0.3",
       "type": "peer"
     },
     {

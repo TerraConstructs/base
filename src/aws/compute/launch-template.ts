@@ -767,15 +767,6 @@ export class LaunchTemplate
 
     // priority: prop.userData -> userData from machineImage -> undefined
     this.userData = props.userData ?? imageConfig?.userData;
-    const userDataToken = Lazy.stringValue({
-      produce: () => {
-        if (this.userData) {
-          return Fn.base64encode(this.userData.render());
-        }
-        return undefined;
-      },
-    });
-
     this.instanceType = props.instanceType;
 
     let marketOptions: any = undefined;
@@ -897,7 +888,7 @@ export class LaunchTemplate
           : undefined,
       vpcSecurityGroupIds: networkInterfaces ? undefined : securityGroupsToken,
       tagSpecifications: tagsToken,
-      userData: userDataToken,
+      userData: this.userData?.render(this),
       metadataOptions: this.renderMetadataOptions(props),
       networkInterfaces,
 

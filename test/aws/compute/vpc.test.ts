@@ -1919,7 +1919,8 @@ describe("vpc", () => {
         source_dest_check: false,
         credit_specification: { cpu_credits: "unlimited" },
         key_name: "KeyPairName",
-        user_data: '${base64encode("#!/bin/bash\\necho \\"hello world!\\"")}',
+        user_data_base64:
+          "${data.cloudinit_config.TheVPC_PublicSubnet2_NatInstance_UserData_2A75C364.rendered}",
       });
       template.toHaveResourceWithProperties(tfRoute.Route, {
         route_table_id:

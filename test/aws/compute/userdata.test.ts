@@ -1,11 +1,31 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/test/userdata.test.ts
 
-import { Template, Match } from "../../assertions";
-import { Bucket } from "../../aws-s3";
-import { Aws, Stack, CfnResource } from "../../core";
-import * as ec2 from "../lib";
+import { dataCloudinitConfig } from "@cdktf/provider-cloudinit";
+import { Testing } from "cdktf";
+import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../src/aws";
+import * as ec2 from "../../../src/aws/compute";
+import { Bucket } from "../../../src/aws/storage";
+import { Template } from "../../assertions";
+
+const environmentName = "Test";
+const gridUUID = "123e4567-e89b-12d3";
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
+const providerConfig = { region: "us-east-1" };
 
 describe("user data", () => {
+  let stack: AwsStack;
+  beforeEach(() => {
+    stack = new AwsStack(Testing.app(), "TestStack", {
+      environmentName,
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
+  });
+
   test("can create Windows user data", () => {
     // GIVEN
 
@@ -14,7 +34,7 @@ describe("user data", () => {
     userData.addCommands("command1", "command2");
 
     // THEN
-    const rendered = userData.render();
+    const rendered = userData.content;
     expect(rendered).toEqual("<powershell>command1\ncommand2</powershell>");
   });
   test("can create Windows user data with commands on exit", () => {
@@ -26,7 +46,7 @@ describe("user data", () => {
     userData.addOnExitCommands("onexit1", "onexit2");
 
     // THEN
-    const rendered = userData.render();
+    const rendered = userData.content;
     expect(rendered).toEqual(
       "<powershell>trap {\n" +
         '$success=($PSItem.Exception.Message -eq "Success")\n' +
@@ -39,80 +59,91 @@ describe("user data", () => {
         'throw "Success"</powershell>',
     );
   });
-  test("can create Windows with Signal Command", () => {
-    // GIVEN
-    const stack = new Stack();
-    const resource = new ec2.Vpc(stack, "RESOURCE");
-    const userData = ec2.UserData.forWindows();
-    const logicalId = (resource.node.defaultChild as CfnResource).logicalId;
+  // // TODO: Add Support for cfn-signal
+  // test("can create Windows with Signal Command", () => {
+  //   // GIVEN
+  //   const stack = new AwsStack(Testing.app(), "TestStack", {
+  //     environmentName,
+  //     gridUUID,
+  //     providerConfig,
+  //     gridBackendConfig,
+  //   });
+  //   const resource = new ec2.Vpc(stack, "RESOURCE");
+  //   const userData = ec2.UserData.forWindows();
+  //   const logicalId = (resource.node.defaultChild as TerraformResource).fqn;
 
-    // WHEN
-    userData.addSignalOnExitCommand(resource);
-    userData.addCommands("command1");
+  //   // WHEN
+  //   userData.addSignalOnExitCommand(resource);
+  //   userData.addCommands("command1");
 
-    // THEN
-    const rendered = userData.render();
+  //   // THEN
+  //   const rendered = userData.content;
 
-    expect(stack.resolve(logicalId)).toEqual("RESOURCE1989552F");
-    expect(rendered).toEqual(
-      "<powershell>trap {\n" +
-        '$success=($PSItem.Exception.Message -eq "Success")\n' +
-        `cfn-signal --stack Default --resource ${logicalId} --region ${Aws.REGION} --success ($success.ToString().ToLower())\n` +
-        "break\n" +
-        "}\n" +
-        "command1\n" +
-        'throw "Success"</powershell>',
-    );
-  });
-  test("can create Windows with Signal Command and userDataCausesReplacement", () => {
-    // GIVEN
-    const stack = new Stack();
-    const vpc = new ec2.Vpc(stack, "Vpc");
-    const userData = ec2.UserData.forWindows();
-    const resource = new ec2.Instance(stack, "RESOURCE", {
-      vpc,
-      instanceType: ec2.InstanceType.of(
-        ec2.InstanceClass.T2,
-        ec2.InstanceSize.LARGE,
-      ),
-      machineImage: ec2.MachineImage.genericWindows({
-        ["us-east-1"]: "ami-12345678",
-      }),
-      userDataCausesReplacement: true,
-      userData,
-    });
+  //   expect(stack.resolve(logicalId)).toEqual("RESOURCE1989552F");
+  //   expect(rendered).toEqual(
+  //     "<powershell>trap {\n" +
+  //       '$success=($PSItem.Exception.Message -eq "Success")\n' +
+  //       `cfn-signal --stack Default --resource ${logicalId} --region ${Aws.REGION} --success ($success.ToString().ToLower())\n` +
+  //       "break\n" +
+  //       "}\n" +
+  //       "command1\n" +
+  //       'throw "Success"</powershell>',
+  //   );
+  // });
+  // // TODO: Add support for cfn-signal
+  // test("can create Windows with Signal Command and userDataCausesReplacement", () => {
+  //   // GIVEN
+  //   const stack = new AwsStack(Testing.app(), "TestStack", {
+  //     environmentName,
+  //     gridUUID,
+  //     providerConfig,
+  //     gridBackendConfig,
+  //   });
+  //   const vpc = new ec2.Vpc(stack, "Vpc");
+  //   const userData = ec2.UserData.forWindows();
+  //   const resource = new ec2.Instance(stack, "RESOURCE", {
+  //     vpc,
+  //     instanceType: ec2.InstanceType.of(
+  //       ec2.InstanceClass.T2,
+  //       ec2.InstanceSize.LARGE,
+  //     ),
+  //     machineImage: ec2.MachineImage.genericWindows({
+  //       ["us-east-1"]: "ami-12345678",
+  //     }),
+  //     userDataCausesReplacement: true,
+  //     userData,
+  //   });
 
-    const logicalId = (resource.node.defaultChild as CfnResource).logicalId;
+  //   const logicalId = (resource.node.defaultChild as TerraformResource).fqn;
 
-    // WHEN
-    userData.addSignalOnExitCommand(resource);
-    userData.addCommands("command1");
+  //   // WHEN
+  //   userData.addSignalOnExitCommand(resource);
+  //   userData.addCommands("command1");
 
-    // THEN
-    Template.fromStack(stack).templateMatches({
-      Resources: Match.objectLike({
-        RESOURCE1989552Fdfd505305f427919: {
-          Type: "AWS::EC2::Instance",
-        },
-      }),
-    });
-    expect(stack.resolve(logicalId)).toEqual(
-      "RESOURCE1989552Fdfd505305f427919",
-    );
-    const rendered = userData.render();
-    expect(rendered).toEqual(
-      "<powershell>trap {\n" +
-        '$success=($PSItem.Exception.Message -eq "Success")\n' +
-        `cfn-signal --stack Default --resource ${logicalId} --region ${Aws.REGION} --success ($success.ToString().ToLower())\n` +
-        "break\n" +
-        "}\n" +
-        "command1\n" +
-        'throw "Success"</powershell>',
-    );
-  });
+  //   // THEN
+  //   Template.fromStack(stack).templateMatches({
+  //     Resources: Match.objectLike({
+  //       RESOURCE1989552Fdfd505305f427919: {
+  //         Type: "AWS::EC2::Instance",
+  //       },
+  //     }),
+  //   });
+  //   expect(stack.resolve(logicalId)).toEqual(
+  //     "RESOURCE1989552Fdfd505305f427919",
+  //   );
+  //   const rendered = userData.content;
+  //   expect(rendered).toEqual(
+  //     "<powershell>trap {\n" +
+  //       '$success=($PSItem.Exception.Message -eq "Success")\n' +
+  //       `cfn-signal --stack Default --resource ${logicalId} --region ${Aws.REGION} --success ($success.ToString().ToLower())\n` +
+  //       "break\n" +
+  //       "}\n" +
+  //       "command1\n" +
+  //       'throw "Success"</powershell>',
+  //   );
+  // });
   test("can windows userdata download S3 files", () => {
     // GIVEN
-    const stack = new Stack();
     const userData = ec2.UserData.forWindows();
     const bucket = Bucket.fromBucketName(stack, "testBucket", "test");
     const bucket2 = Bucket.fromBucketName(stack, "testBucket2", "test2");
@@ -129,17 +160,16 @@ describe("user data", () => {
     });
 
     // THEN
-    const rendered = userData.render();
+    const rendered = stack.resolve(userData.content);
     expect(rendered).toEqual(
       "<powershell>mkdir (Split-Path -Path 'C:/temp/filename.bat' ) -ea 0\n" +
-        "Read-S3Object -BucketName 'test' -key 'filename.bat' -file 'C:/temp/filename.bat' -ErrorAction Stop\n" +
+        "Read-S3Object -BucketName '${data.aws_s3_bucket.test.bucket}' -key 'filename.bat' -file 'C:/temp/filename.bat' -ErrorAction Stop\n" +
         "mkdir (Split-Path -Path 'c:\\test\\location\\otherScript.bat' ) -ea 0\n" +
-        "Read-S3Object -BucketName 'test2' -key 'filename2.bat' -file 'c:\\test\\location\\otherScript.bat' -ErrorAction Stop</powershell>",
+        "Read-S3Object -BucketName '${data.aws_s3_bucket.test2.bucket}' -key 'filename2.bat' -file 'c:\\test\\location\\otherScript.bat' -ErrorAction Stop</powershell>",
     );
   });
   test("can windows userdata download S3 files with given region", () => {
     // GIVEN
-    const stack = new Stack();
     const userData = ec2.UserData.forWindows();
     const bucket = Bucket.fromBucketName(stack, "testBucket", "test");
     const bucket2 = Bucket.fromBucketName(stack, "testBucket2", "test2");
@@ -158,12 +188,12 @@ describe("user data", () => {
     });
 
     // THEN
-    const rendered = userData.render();
+    const rendered = stack.resolve(userData.content);
     expect(rendered).toEqual(
       "<powershell>mkdir (Split-Path -Path 'C:/temp/filename.bat' ) -ea 0\n" +
-        "Read-S3Object -BucketName 'test' -key 'filename.bat' -file 'C:/temp/filename.bat' -ErrorAction Stop -Region us-east-1\n" +
+        "Read-S3Object -BucketName '${data.aws_s3_bucket.test.bucket}' -key 'filename.bat' -file 'C:/temp/filename.bat' -ErrorAction Stop -Region us-east-1\n" +
         "mkdir (Split-Path -Path 'c:\\test\\location\\otherScript.bat' ) -ea 0\n" +
-        "Read-S3Object -BucketName 'test2' -key 'filename2.bat' -file 'c:\\test\\location\\otherScript.bat' -ErrorAction Stop -Region us-east-1</powershell>",
+        "Read-S3Object -BucketName '${data.aws_s3_bucket.test2.bucket}' -key 'filename2.bat' -file 'c:\\test\\location\\otherScript.bat' -ErrorAction Stop -Region us-east-1</powershell>",
     );
   });
   test("can windows userdata execute files", () => {
@@ -180,7 +210,7 @@ describe("user data", () => {
     });
 
     // THEN
-    const rendered = userData.render();
+    const rendered = userData.content;
     expect(rendered).toEqual(
       "<powershell>&'C:\\test\\filename.bat'\n" +
         "if (!$?) { Write-Error 'Failed to execute the file \"C:\\test\\filename.bat\"' -ErrorAction Stop }\n" +
@@ -193,7 +223,7 @@ describe("user data", () => {
     const userData = ec2.UserData.forWindows({ persist: true });
 
     // THEN
-    const rendered = userData.render();
+    const rendered = userData.content;
     expect(rendered).toEqual(
       "<powershell></powershell><persist>true</persist>",
     );
@@ -206,7 +236,7 @@ describe("user data", () => {
     userData.addCommands("command1", "command2");
 
     // THEN
-    const rendered = userData.render();
+    const rendered = userData.content;
     expect(rendered).toEqual("#!/bin/bash\ncommand1\ncommand2");
   });
   test("can create Linux user data with commands on exit", () => {
@@ -218,7 +248,7 @@ describe("user data", () => {
     userData.addOnExitCommands("onexit1", "onexit2");
 
     // THEN
-    const rendered = userData.render();
+    const rendered = userData.content;
     expect(rendered).toEqual(
       "#!/bin/bash\n" +
         "function exitTrap(){\n" +
@@ -231,79 +261,90 @@ describe("user data", () => {
         "command2",
     );
   });
-  test("can create Linux with Signal Command", () => {
-    // GIVEN
-    const stack = new Stack();
-    const resource = new ec2.Vpc(stack, "RESOURCE");
-    const logicalId = (resource.node.defaultChild as CfnResource).logicalId;
+  // TODO: Add support for cfn-signal
+  // test("can create Linux with Signal Command", () => {
+  //   // GIVEN
+  //   const stack = new AwsStack(Testing.app(), "TestStack", {
+  //     environmentName,
+  //     gridUUID,
+  //     providerConfig,
+  //     gridBackendConfig,
+  //   });
+  //   const resource = new ec2.Vpc(stack, "RESOURCE");
+  //   const logicalId = (resource.node.defaultChild as TerraformResource).fqn;
 
-    // WHEN
-    const userData = ec2.UserData.forLinux();
-    userData.addCommands("command1");
-    userData.addSignalOnExitCommand(resource);
+  //   // WHEN
+  //   const userData = ec2.UserData.forLinux();
+  //   userData.addCommands("command1");
+  //   userData.addSignalOnExitCommand(resource);
 
-    // THEN
-    const rendered = userData.render();
-    expect(stack.resolve(logicalId)).toEqual("RESOURCE1989552F");
-    expect(rendered).toEqual(
-      "#!/bin/bash\n" +
-        "function exitTrap(){\n" +
-        "exitCode=$?\n" +
-        `/opt/aws/bin/cfn-signal --stack Default --resource ${logicalId} --region ${Aws.REGION} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n` +
-        "}\n" +
-        "trap exitTrap EXIT\n" +
-        "command1",
-    );
-  });
-  test("can create Linux with Signal Command and userDataCausesReplacement", () => {
-    // GIVEN
-    const stack = new Stack();
-    const vpc = new ec2.Vpc(stack, "Vpc");
-    const userData = ec2.UserData.forLinux();
-    const resource = new ec2.Instance(stack, "RESOURCE", {
-      vpc,
-      instanceType: ec2.InstanceType.of(
-        ec2.InstanceClass.T2,
-        ec2.InstanceSize.LARGE,
-      ),
-      machineImage: ec2.MachineImage.genericLinux({
-        ["us-east-1"]: "ami-12345678",
-      }),
-      userDataCausesReplacement: true,
-      userData,
-    });
+  //   // THEN
+  //   const rendered = userData.content;
+  //   expect(stack.resolve(logicalId)).toEqual("RESOURCE1989552F");
+  //   expect(rendered).toEqual(
+  //     "#!/bin/bash\n" +
+  //       "function exitTrap(){\n" +
+  //       "exitCode=$?\n" +
+  //       `/opt/aws/bin/cfn-signal --stack Default --resource ${logicalId} --region ${Aws.REGION} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n` +
+  //       "}\n" +
+  //       "trap exitTrap EXIT\n" +
+  //       "command1",
+  //   );
+  // });
+  // // TODO: Add support for cfn-signal
+  // test("can create Linux with Signal Command and userDataCausesReplacement", () => {
+  //   // GIVEN
+  //   const stack = new AwsStack(Testing.app(), "TestStack", {
+  //     environmentName,
+  //     gridUUID,
+  //     providerConfig,
+  //     gridBackendConfig,
+  //   });
+  //   const vpc = new ec2.Vpc(stack, "Vpc");
+  //   const userData = ec2.UserData.forLinux();
+  //   const resource = new ec2.Instance(stack, "RESOURCE", {
+  //     vpc,
+  //     instanceType: ec2.InstanceType.of(
+  //       ec2.InstanceClass.T2,
+  //       ec2.InstanceSize.LARGE,
+  //     ),
+  //     machineImage: ec2.MachineImage.genericLinux({
+  //       ["us-east-1"]: "ami-12345678",
+  //     }),
+  //     userDataCausesReplacement: true,
+  //     userData,
+  //   });
 
-    const logicalId = (resource.node.defaultChild as CfnResource).logicalId;
+  //   const logicalId = (resource.node.defaultChild as TerraformResource).fqn;
 
-    // WHEN
-    userData.addSignalOnExitCommand(resource);
-    userData.addCommands("command1");
+  //   // WHEN
+  //   userData.addSignalOnExitCommand(resource);
+  //   userData.addCommands("command1");
 
-    // THEN
-    Template.fromStack(stack).templateMatches({
-      Resources: Match.objectLike({
-        RESOURCE1989552F74a24ef4fbc89422: {
-          Type: "AWS::EC2::Instance",
-        },
-      }),
-    });
-    expect(stack.resolve(logicalId)).toEqual(
-      "RESOURCE1989552F74a24ef4fbc89422",
-    );
-    const rendered = userData.render();
-    expect(rendered).toEqual(
-      "#!/bin/bash\n" +
-        "function exitTrap(){\n" +
-        "exitCode=$?\n" +
-        `/opt/aws/bin/cfn-signal --stack Default --resource ${logicalId} --region ${Aws.REGION} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n` +
-        "}\n" +
-        "trap exitTrap EXIT\n" +
-        "command1",
-    );
-  });
+  //   // THEN
+  //   Template.fromStack(stack).templateMatches({
+  //     Resources: Match.objectLike({
+  //       RESOURCE1989552F74a24ef4fbc89422: {
+  //         Type: "AWS::EC2::Instance",
+  //       },
+  //     }),
+  //   });
+  //   expect(stack.resolve(logicalId)).toEqual(
+  //     "RESOURCE1989552F74a24ef4fbc89422",
+  //   );
+  //   const rendered = userData.content;
+  //   expect(rendered).toEqual(
+  //     "#!/bin/bash\n" +
+  //       "function exitTrap(){\n" +
+  //       "exitCode=$?\n" +
+  //       `/opt/aws/bin/cfn-signal --stack Default --resource ${logicalId} --region ${Aws.REGION} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n` +
+  //       "}\n" +
+  //       "trap exitTrap EXIT\n" +
+  //       "command1",
+  //   );
+  // });
   test("can linux userdata download S3 files", () => {
     // GIVEN
-    const stack = new Stack();
     const userData = ec2.UserData.forLinux();
     const bucket = Bucket.fromBucketName(stack, "testBucket", "test");
     const bucket2 = Bucket.fromBucketName(stack, "testBucket2", "test2");
@@ -320,18 +361,17 @@ describe("user data", () => {
     });
 
     // THEN
-    const rendered = userData.render();
+    const rendered = stack.resolve(userData.content);
     expect(rendered).toEqual(
       "#!/bin/bash\n" +
         "mkdir -p $(dirname '/tmp/filename.sh')\n" +
-        "aws s3 cp 's3://test/filename.sh' '/tmp/filename.sh'\n" +
+        "aws s3 cp 's3://${data.aws_s3_bucket.test.bucket}/filename.sh' '/tmp/filename.sh'\n" +
         "mkdir -p $(dirname 'c:\\test\\location\\otherScript.sh')\n" +
-        "aws s3 cp 's3://test2/filename2.sh' 'c:\\test\\location\\otherScript.sh'",
+        "aws s3 cp 's3://${data.aws_s3_bucket.test2.bucket}/filename2.sh' 'c:\\test\\location\\otherScript.sh'",
     );
   });
   test("can linux userdata download S3 files from specific region", () => {
     // GIVEN
-    const stack = new Stack();
     const userData = ec2.UserData.forLinux();
     const bucket = Bucket.fromBucketName(stack, "testBucket", "test");
     const bucket2 = Bucket.fromBucketName(stack, "testBucket2", "test2");
@@ -350,13 +390,13 @@ describe("user data", () => {
     });
 
     // THEN
-    const rendered = userData.render();
+    const rendered = stack.resolve(userData.content);
     expect(rendered).toEqual(
       "#!/bin/bash\n" +
         "mkdir -p $(dirname '/tmp/filename.sh')\n" +
-        "aws s3 cp 's3://test/filename.sh' '/tmp/filename.sh' --region us-east-1\n" +
+        "aws s3 cp 's3://${data.aws_s3_bucket.test.bucket}/filename.sh' '/tmp/filename.sh' --region us-east-1\n" +
         "mkdir -p $(dirname 'c:\\test\\location\\otherScript.sh')\n" +
-        "aws s3 cp 's3://test2/filename2.sh' 'c:\\test\\location\\otherScript.sh' --region us-east-1",
+        "aws s3 cp 's3://${data.aws_s3_bucket.test2.bucket}/filename2.sh' 'c:\\test\\location\\otherScript.sh' --region us-east-1",
     );
   });
   test("can linux userdata execute files", () => {
@@ -373,7 +413,7 @@ describe("user data", () => {
     });
 
     // THEN
-    const rendered = userData.render();
+    const rendered = userData.content;
     expect(rendered).toEqual(
       "#!/bin/bash\n" +
         "set -e\n" +
@@ -391,7 +431,7 @@ describe("user data", () => {
     const userData = ec2.UserData.custom("Some\nmultiline\ncontent");
 
     // THEN
-    const rendered = userData.render();
+    const rendered = userData.content;
     expect(rendered).toEqual("Some\nmultiline\ncontent");
   });
   test("Custom user data throws when adding on exit commands", () => {
@@ -402,20 +442,25 @@ describe("user data", () => {
     // THEN
     expect(() => userData.addOnExitCommands("a command goes here")).toThrow();
   });
-  test("Custom user data throws when adding signal command", () => {
-    // GIVEN
-    const stack = new Stack();
-    const resource = new ec2.Vpc(stack, "RESOURCE");
+  // // TODO: Add support for cfn-signal
+  // test("Custom user data throws when adding signal command", () => {
+  //   // GIVEN
+  //   const stack = new AwsStack(Testing.app(), "TestStack", {
+  //     environmentName,
+  //     gridUUID,
+  //     providerConfig,
+  //     gridBackendConfig,
+  //   });
+  //   const resource = new ec2.Vpc(stack, "RESOURCE");
 
-    // WHEN
-    const userData = ec2.UserData.custom("");
+  //   // WHEN
+  //   const userData = ec2.UserData.custom("");
 
-    // THEN
-    expect(() => userData.addSignalOnExitCommand(resource)).toThrow();
-  });
+  //   // THEN
+  //   expect(() => userData.addSignalOnExitCommand(resource)).toThrow();
+  // });
   test("Custom user data throws when downloading file", () => {
     // GIVEN
-    const stack = new Stack();
     const userData = ec2.UserData.custom("");
     const bucket = Bucket.fromBucketName(stack, "testBucket", "test");
     // WHEN
@@ -441,7 +486,6 @@ describe("user data", () => {
 
   test("Linux user rendering multipart headers", () => {
     // GIVEN
-    const stack = new Stack();
     const linuxUserData = ec2.UserData.forLinux();
     linuxUserData.addCommands('echo "Hello world"');
 
@@ -453,45 +497,44 @@ describe("user data", () => {
     );
 
     // THEN
-    expect(stack.resolve(defaultRender1.renderBodyPart())).toEqual([
-      'Content-Type: text/x-shellscript; charset="utf-8"',
-      "Content-Transfer-Encoding: base64",
-      "",
-      { "Fn::Base64": '#!/bin/bash\necho "Hello world"' },
-    ]);
-    expect(stack.resolve(defaultRender2.renderBodyPart())).toEqual([
-      'Content-Type: text/cloud-boothook; charset="utf-8"',
-      "Content-Transfer-Encoding: base64",
-      "",
-      { "Fn::Base64": '#!/bin/bash\necho "Hello world"' },
-    ]);
+    expect(stack.resolve(defaultRender1.renderBodyPart())).toEqual({
+      content: '#!/bin/bash\necho "Hello world"',
+      contentType: 'text/x-shellscript; charset="utf-8"',
+      // tf provider cloudinit hardcodes this value
+      // 'Content-Transfer-Encoding: base64',
+    });
+    expect(stack.resolve(defaultRender2.renderBodyPart())).toEqual({
+      content: '#!/bin/bash\necho "Hello world"',
+      contentType: 'text/cloud-boothook; charset="utf-8"',
+      // tf provider cloudinit hardcodes this value
+      // 'Content-Transfer-Encoding: base64',
+    });
   });
 
   test("Default parts separator used, if not specified", () => {
     // GIVEN
     const multipart = new ec2.MultipartUserData();
+    // render multipart UserData into stack
+    multipart.render(stack);
 
     multipart.addPart(
       ec2.MultipartBody.fromRawBody({
+        content: "foo",
         contentType: "CT",
       }),
     );
 
     // WHEN
-    const out = multipart.render();
-
-    // WHEN
-    expect(out).toEqual(
-      [
-        'Content-Type: multipart/mixed; boundary="+AWS+CDK+User+Data+Separator=="',
-        "MIME-Version: 1.0",
-        "",
-        "--+AWS+CDK+User+Data+Separator==",
-        "Content-Type: CT",
-        "",
-        "--+AWS+CDK+User+Data+Separator==--",
-        "",
-      ].join("\n"),
+    Template.synth(stack).toHaveDataSourceWithProperties(
+      dataCloudinitConfig.DataCloudinitConfig,
+      {
+        part: [
+          {
+            content: "foo",
+            contentType: "CT",
+          },
+        ],
+      },
     );
   });
 
@@ -500,28 +543,28 @@ describe("user data", () => {
     const multipart = new ec2.MultipartUserData({
       partsSeparator: "//",
     });
+    // render multipart UserData into stack
+    multipart.render(stack);
 
     multipart.addPart(
       ec2.MultipartBody.fromRawBody({
+        content: "foo",
         contentType: "CT",
       }),
     );
 
     // WHEN
-    const out = multipart.render();
-
-    // WHEN
-    expect(out).toEqual(
-      [
-        'Content-Type: multipart/mixed; boundary="//"',
-        "MIME-Version: 1.0",
-        "",
-        "--//",
-        "Content-Type: CT",
-        "",
-        "--//--",
-        "",
-      ].join("\n"),
+    Template.synth(stack).toHaveDataSourceWithProperties(
+      dataCloudinitConfig.DataCloudinitConfig,
+      {
+        boundary: "//",
+        part: [
+          {
+            content: "foo",
+            contentType: "CT",
+          },
+        ],
+      },
     );
   });
 
@@ -545,25 +588,35 @@ describe("user data", () => {
     // GIVEN
     // WHEN
     const userData = new ec2.MultipartUserData();
+    // render userData into stack
+    userData.render(stack);
 
     // THEN
     expect(() => userData.addOnExitCommands("a command goes here")).toThrow();
   });
-  test("Multipart user data throws when adding signal command", () => {
-    // GIVEN
-    const stack = new Stack();
-    const resource = new ec2.Vpc(stack, "RESOURCE");
+  // // TODO: Add support for cfn-signal
+  // test("Multipart user data throws when adding signal command", () => {
+  //   // GIVEN
+  //   const stack = new AwsStack(Testing.app(), "TestStack", {
+  //     environmentName,
+  //     gridUUID,
+  //     providerConfig,
+  //     gridBackendConfig,
+  //   });
+  //   const resource = new ec2.Vpc(stack, "RESOURCE");
 
-    // WHEN
-    const userData = new ec2.MultipartUserData();
+  //   // WHEN
+  //   const userData = new ec2.MultipartUserData();
 
-    // THEN
-    expect(() => userData.addSignalOnExitCommand(resource)).toThrow();
-  });
+  //   // THEN
+  //   expect(() => userData.addSignalOnExitCommand(resource)).toThrow();
+  // });
   test("Multipart user data throws when downloading file", () => {
     // GIVEN
-    const stack = new Stack();
     const userData = new ec2.MultipartUserData();
+    // render userData into stack
+    userData.render(stack);
+
     const bucket = Bucket.fromBucketName(stack, "testBucket", "test");
     // WHEN
     // THEN
@@ -578,6 +631,9 @@ describe("user data", () => {
     // GIVEN
     const userData = new ec2.MultipartUserData();
 
+    // render userData into stack
+    userData.render(stack);
+
     // WHEN
     // THEN
     expect(() =>
@@ -589,9 +645,11 @@ describe("user data", () => {
 
   test("can add commands to Multipart user data", () => {
     // GIVEN
-    const stack = new Stack();
     const innerUserData = ec2.UserData.forLinux();
     const userData = new ec2.MultipartUserData();
+
+    // render userData into stack
+    userData.render(stack);
 
     // WHEN
     userData.addUserDataPart(
@@ -603,36 +661,27 @@ describe("user data", () => {
 
     // THEN
     const expectedInner = "#!/bin/bash\ncommand1\ncommand2";
-    const rendered = innerUserData.render();
+    const rendered = innerUserData.content;
     expect(rendered).toEqual(expectedInner);
-    const out = stack.resolve(userData.render());
-    expect(out).toEqual({
-      "Fn::Join": [
-        "",
-        [
-          [
-            'Content-Type: multipart/mixed; boundary="+AWS+CDK+User+Data+Separator=="',
-            "MIME-Version: 1.0",
-            "",
-            "--+AWS+CDK+User+Data+Separator==",
-            'Content-Type: text/x-shellscript; charset="utf-8"',
-            "Content-Transfer-Encoding: base64",
-            "",
-            "",
-          ].join("\n"),
+    Template.synth(stack).toHaveDataSourceWithProperties(
+      dataCloudinitConfig.DataCloudinitConfig,
+      {
+        part: [
           {
-            "Fn::Base64": expectedInner,
+            content: expectedInner,
+            contentType: ec2.MultipartBody.SHELL_SCRIPT,
           },
-          "\n--+AWS+CDK+User+Data+Separator==--\n",
         ],
-      ],
-    });
+      },
+    );
   });
   test("can add commands on exit to Multipart user data", () => {
     // GIVEN
-    const stack = new Stack();
     const innerUserData = ec2.UserData.forLinux();
     const userData = new ec2.MultipartUserData();
+
+    // render userData into stack
+    userData.render(stack);
 
     // WHEN
     userData.addUserDataPart(
@@ -654,89 +703,86 @@ describe("user data", () => {
       "trap exitTrap EXIT\n" +
       "command1\n" +
       "command2";
-    const rendered = stack.resolve(innerUserData.render());
+    const rendered = stack.resolve(innerUserData.content);
     expect(rendered).toEqual(expectedInner);
-    const out = stack.resolve(userData.render());
-    expect(out).toEqual({
-      "Fn::Join": [
-        "",
-        [
-          [
-            'Content-Type: multipart/mixed; boundary="+AWS+CDK+User+Data+Separator=="',
-            "MIME-Version: 1.0",
-            "",
-            "--+AWS+CDK+User+Data+Separator==",
-            'Content-Type: text/x-shellscript; charset="utf-8"',
-            "Content-Transfer-Encoding: base64",
-            "",
-            "",
-          ].join("\n"),
+    Template.synth(stack).toHaveDataSourceWithProperties(
+      dataCloudinitConfig.DataCloudinitConfig,
+      {
+        part: [
           {
-            "Fn::Base64": expectedInner,
+            content: expectedInner,
+            contentType: ec2.MultipartBody.SHELL_SCRIPT,
           },
-          "\n--+AWS+CDK+User+Data+Separator==--\n",
         ],
-      ],
-    });
-  });
-  test("can add Signal Command to Multipart user data", () => {
-    // GIVEN
-    const stack = new Stack();
-    const resource = new ec2.Vpc(stack, "RESOURCE");
-    const innerUserData = ec2.UserData.forLinux();
-    const userData = new ec2.MultipartUserData();
-
-    // WHEN
-    userData.addUserDataPart(
-      innerUserData,
-      ec2.MultipartBody.SHELL_SCRIPT,
-      true,
+      },
     );
-    userData.addCommands("command1");
-    userData.addSignalOnExitCommand(resource);
-
-    // THEN
-    const expectedInner = stack.resolve(
-      "#!/bin/bash\n" +
-        "function exitTrap(){\n" +
-        "exitCode=$?\n" +
-        `/opt/aws/bin/cfn-signal --stack Default --resource RESOURCE1989552F --region ${Aws.REGION} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n` +
-        "}\n" +
-        "trap exitTrap EXIT\n" +
-        "command1",
-    );
-    const rendered = stack.resolve(innerUserData.render());
-    expect(rendered).toEqual(expectedInner);
-    const out = stack.resolve(userData.render());
-    expect(out).toEqual({
-      "Fn::Join": [
-        "",
-        [
-          [
-            'Content-Type: multipart/mixed; boundary="+AWS+CDK+User+Data+Separator=="',
-            "MIME-Version: 1.0",
-            "",
-            "--+AWS+CDK+User+Data+Separator==",
-            'Content-Type: text/x-shellscript; charset="utf-8"',
-            "Content-Transfer-Encoding: base64",
-            "",
-            "",
-          ].join("\n"),
-          {
-            "Fn::Base64": expectedInner,
-          },
-          "\n--+AWS+CDK+User+Data+Separator==--\n",
-        ],
-      ],
-    });
   });
+  // // TODO: Add support for cfn-signal
+  // test("can add Signal Command to Multipart user data", () => {
+  //   // GIVEN
+  //   const stack = new AwsStack(Testing.app(), "TestStack", {
+  //     environmentName,
+  //     gridUUID,
+  //     providerConfig,
+  //     gridBackendConfig,
+  //   });
+  //   const resource = new ec2.Vpc(stack, "RESOURCE");
+  //   const innerUserData = ec2.UserData.forLinux();
+  //   const userData = new ec2.MultipartUserData();
+
+  //   // WHEN
+  //   userData.addUserDataPart(
+  //     innerUserData,
+  //     ec2.MultipartBody.SHELL_SCRIPT,
+  //     true,
+  //   );
+  //   userData.addCommands("command1");
+  //   userData.addSignalOnExitCommand(resource);
+
+  //   // THEN
+  //   const expectedInner = stack.resolve(
+  //     "#!/bin/bash\n" +
+  //       "function exitTrap(){\n" +
+  //       "exitCode=$?\n" +
+  //       `/opt/aws/bin/cfn-signal --stack Default --resource RESOURCE1989552F --region ${Aws.REGION} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n` +
+  //       "}\n" +
+  //       "trap exitTrap EXIT\n" +
+  //       "command1",
+  //   );
+  //   const rendered = stack.resolve(innerUserData.content);
+  //   expect(rendered).toEqual(expectedInner);
+  //   const out = stack.resolve(userData.content);
+  //   expect(out).toEqual({
+  //     "Fn::Join": [
+  //       "",
+  //       [
+  //         [
+  //           'Content-Type: multipart/mixed; boundary="+AWS+CDK+User+Data+Separator=="',
+  //           "MIME-Version: 1.0",
+  //           "",
+  //           "--+AWS+CDK+User+Data+Separator==",
+  //           'Content-Type: text/x-shellscript; charset="utf-8"',
+  //           "Content-Transfer-Encoding: base64",
+  //           "",
+  //           "",
+  //         ].join("\n"),
+  //         {
+  //           "Fn::Base64": expectedInner,
+  //         },
+  //         "\n--+AWS+CDK+User+Data+Separator==--\n",
+  //       ],
+  //     ],
+  //   });
+  // });
   test("can add download S3 files to Multipart user data", () => {
     // GIVEN
-    const stack = new Stack();
     const innerUserData = ec2.UserData.forLinux();
     const userData = new ec2.MultipartUserData();
     const bucket = Bucket.fromBucketName(stack, "testBucket", "test");
     const bucket2 = Bucket.fromBucketName(stack, "testBucket2", "test2");
+
+    // render userData into stack
+    userData.render(stack);
 
     // WHEN
     userData.addUserDataPart(
@@ -755,42 +801,34 @@ describe("user data", () => {
     });
 
     // THEN
-    const expectedInner =
-      "#!/bin/bash\n" +
-      "mkdir -p $(dirname '/tmp/filename.sh')\n" +
-      "aws s3 cp 's3://test/filename.sh' '/tmp/filename.sh'\n" +
-      "mkdir -p $(dirname 'c:\\test\\location\\otherScript.sh')\n" +
-      "aws s3 cp 's3://test2/filename2.sh' 'c:\\test\\location\\otherScript.sh'";
-    const rendered = stack.resolve(innerUserData.render());
+    const expectedInner = [
+      "#!/bin/bash",
+      "mkdir -p $(dirname '/tmp/filename.sh')",
+      "aws s3 cp 's3://${data.aws_s3_bucket.test.bucket}/filename.sh' '/tmp/filename.sh'",
+      "mkdir -p $(dirname 'c:\\test\\location\\otherScript.sh')",
+      "aws s3 cp 's3://${data.aws_s3_bucket.test2.bucket}/filename2.sh' 'c:\\test\\location\\otherScript.sh'",
+    ].join("\n");
+    const rendered = stack.resolve(innerUserData.content);
     expect(rendered).toEqual(expectedInner);
-    const out = stack.resolve(userData.render());
-    expect(out).toEqual({
-      "Fn::Join": [
-        "",
-        [
-          [
-            'Content-Type: multipart/mixed; boundary="+AWS+CDK+User+Data+Separator=="',
-            "MIME-Version: 1.0",
-            "",
-            "--+AWS+CDK+User+Data+Separator==",
-            'Content-Type: text/x-shellscript; charset="utf-8"',
-            "Content-Transfer-Encoding: base64",
-            "",
-            "",
-          ].join("\n"),
+    Template.synth(stack).toHaveDataSourceWithProperties(
+      dataCloudinitConfig.DataCloudinitConfig,
+      {
+        part: [
           {
-            "Fn::Base64": expectedInner,
+            content: expectedInner,
+            contentType: ec2.MultipartBody.SHELL_SCRIPT,
           },
-          "\n--+AWS+CDK+User+Data+Separator==--\n",
         ],
-      ],
-    });
+      },
+    );
   });
   test("can add execute files to Multipart user data", () => {
     // GIVEN
-    const stack = new Stack();
     const innerUserData = ec2.UserData.forLinux();
     const userData = new ec2.MultipartUserData();
+
+    // render userData into stack
+    userData.render(stack);
 
     // WHEN
     userData.addUserDataPart(
@@ -807,37 +845,27 @@ describe("user data", () => {
     });
 
     // THEN
-    const expectedInner =
-      "#!/bin/bash\n" +
-      "set -e\n" +
-      "chmod +x '/tmp/filename.sh'\n" +
-      "'/tmp/filename.sh'\n" +
-      "set -e\n" +
-      "chmod +x '/test/filename2.sh'\n" +
-      "'/test/filename2.sh' arg1 arg2 -arg $variable";
-    const rendered = stack.resolve(innerUserData.render());
+    const expectedInner = [
+      "#!/bin/bash",
+      "set -e",
+      "chmod +x '/tmp/filename.sh'",
+      "'/tmp/filename.sh'",
+      "set -e",
+      "chmod +x '/test/filename2.sh'",
+      "'/test/filename2.sh' arg1 arg2 -arg $variable",
+    ].join("\n");
+    const rendered = stack.resolve(innerUserData.content);
     expect(rendered).toEqual(expectedInner);
-    const out = stack.resolve(userData.render());
-    expect(out).toEqual({
-      "Fn::Join": [
-        "",
-        [
-          [
-            'Content-Type: multipart/mixed; boundary="+AWS+CDK+User+Data+Separator=="',
-            "MIME-Version: 1.0",
-            "",
-            "--+AWS+CDK+User+Data+Separator==",
-            'Content-Type: text/x-shellscript; charset="utf-8"',
-            "Content-Transfer-Encoding: base64",
-            "",
-            "",
-          ].join("\n"),
+    Template.synth(stack).toHaveDataSourceWithProperties(
+      dataCloudinitConfig.DataCloudinitConfig,
+      {
+        part: [
           {
-            "Fn::Base64": expectedInner,
+            content: expectedInner,
+            contentType: ec2.MultipartBody.SHELL_SCRIPT,
           },
-          "\n--+AWS+CDK+User+Data+Separator==--\n",
         ],
-      ],
-    });
+      },
+    );
   });
 });

@@ -1,4 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-stepfunctions/lib/private/intrinstics.ts
+
 export type IntrinsicExpression =
   | StringLiteralExpression
   | PathExpression

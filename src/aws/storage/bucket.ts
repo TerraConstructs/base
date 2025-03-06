@@ -1311,7 +1311,7 @@ export class Bucket extends BucketBase implements IBucket {
     class Import extends BucketBase {
       public readonly resource = new dataAwsS3Bucket.DataAwsS3Bucket(
         scope,
-        "Resource",
+        bucketName!,
         {
           bucket: bucketName!,
         },

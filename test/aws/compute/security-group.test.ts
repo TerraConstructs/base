@@ -245,15 +245,13 @@ describe("security group", () => {
   test("immutable imports do not add rules", () => {
     // WHEN
     const sg = SecurityGroup.fromSecurityGroupId(stack, "SG1", "test-id", {
-      // TODO: Verify snapshot
-      // mutable: false,
+      mutable: false,
     });
     sg.addEgressRule(Peer.anyIpv4(), Port.tcp(86), "This rule was not added");
     sg.addIngressRule(Peer.anyIpv4(), Port.tcp(86), "This rule was not added");
 
-    const template = new Template(stack, { snapshot: true });
+    const template = new Template(stack);
     // THEN
-    // TODO: Verify this snapshot, set mutable to false :up:
     template.expectResources(tfSecurityGroup.SecurityGroup).not.toEqual(
       expect.arrayContaining([
         {

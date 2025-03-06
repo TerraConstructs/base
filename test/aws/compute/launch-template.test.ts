@@ -5,6 +5,7 @@ import {
   iamRole,
   launchTemplate as tfLaunchTemplate,
 } from "@cdktf/provider-aws";
+import { dataCloudinitConfig } from "@cdktf/provider-cloudinit";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { Duration, Expiration } from "../../../src";
@@ -87,7 +88,7 @@ describe("LaunchTemplate", () => {
         ],
         // These are GRID backend specific tags
         tags: {
-          Name: "Test-Template",
+          Name: "MyStack/Template",
           "grid:EnvironmentName": environmentName,
           "grid:UUID": gridUUID,
         },
@@ -280,10 +281,20 @@ describe("LaunchTemplate", () => {
     });
 
     // THEN
-    Template.synth(stack).toHaveResourceWithProperties(
-      tfLaunchTemplate.LaunchTemplate,
+    const synth = Template.synth(stack);
+    synth.toHaveResourceWithProperties(tfLaunchTemplate.LaunchTemplate, {
+      user_data: "${data.cloudinit_config.Template_UserData_2C2180AE.rendered}",
+    });
+    synth.toHaveDataSourceWithProperties(
+      dataCloudinitConfig.DataCloudinitConfig,
       {
-        user_data: '${base64encode("#!/bin/bash\\necho Test")}',
+        base64_encode: true,
+        gzip: true,
+        part: [
+          {
+            content: "#!/bin/bash\necho Test",
+          },
+        ],
       },
     );
     expect(template.userData).toBeDefined();

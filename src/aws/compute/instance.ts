@@ -9,14 +9,12 @@ import {
   Annotations,
   Aspects,
   // AspectPriority,
-  Fn,
   Lazy,
   Token,
 } from "cdktf";
 import { Construct } from "constructs";
 import { Duration } from "../../duration";
 import { IAwsConstruct, AwsConstructBase } from "../aws-construct";
-import { AwsStack } from "../aws-stack";
 // TODO: Use TagManager and tag-aspect instead
 import { Tags } from "../aws-tags";
 // import { Tags } from "../tag-aspect";
@@ -40,7 +38,7 @@ import { ISecurityGroup, SecurityGroup } from "./security-group";
 import { UserData } from "./user-data";
 import { BlockDevice } from "./volume";
 import { IVpc, Subnet, SubnetSelection } from "./vpc";
-import { md5hash } from "../../helpers-internal";
+// import { md5hash } from "../../helpers-internal";
 import * as iam from "../iam";
 
 /**
@@ -195,6 +193,11 @@ export interface InstanceProps {
    *
    * The UserData may still be mutated after creation.
    *
+   * Updates to this field will trigger a stop/start of the EC2 instance by default.
+   *
+   * If userDataCausesReplacement is set then updates to this field will trigger
+   * a destroy and recreate of the EC2 instance.
+   *
    * @default - A UserData object appropriate for the MachineImage's
    * Operating System is created.
    */
@@ -211,10 +214,6 @@ export interface InstanceProps {
    *
    * By default, restarting does not execute the new UserData so you
    * will need a different mechanism to ensure the instance is restarted.
-   *
-   * Setting this to `true` will make the instance's Logical ID depend on the
-   * UserData, which will cause CloudFormation to replace it if the UserData
-   * changes.
    *
    * default - true
    */
@@ -601,9 +600,6 @@ export class Instance extends AwsConstructBase implements IInstance {
     // use delayed evaluation
     const imageConfig = props.machineImage.getImage(this);
     this.userData = props.userData ?? imageConfig.userData;
-    const userDataToken = Lazy.stringValue({
-      produce: () => Fn.base64encode(this.userData.render()),
-    });
     const securityGroupsToken = Lazy.listValue({
       produce: () => this.securityGroups.map((sg) => sg.securityGroupId),
     });
@@ -712,7 +708,9 @@ export class Instance extends AwsConstructBase implements IInstance {
       associatePublicIpAddress: props.associatePublicIpAddress,
       networkInterface: networkInterfaces,
       iamInstanceProfile,
-      userData: userDataToken,
+      userDataBase64: this.userData.render(this),
+      // unlike https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/instance.ts#L652
+      userDataReplaceOnChange: props.userDataCausesReplacement ?? true,
       availabilityZone: subnet.availabilityZone,
       sourceDestCheck: props.sourceDestCheck,
       ebsBlockDevice:
@@ -786,40 +784,6 @@ export class Instance extends AwsConstructBase implements IInstance {
     // if (props.init) {
     //   this.applyCloudFormationInit(props.init, props.initOptions);
     // }
-
-    // Trigger replacement (via new logical ID) on user data change, if specified or cfn-init is being used.
-    //
-    // This is slightly tricky -- we need to resolve the UserData string (in order to get at actual Asset hashes,
-    // instead of the Token stringifications of them ('${Token[1234]}'). However, in the case of CFN Init usage,
-    // a UserData is going to contain the logicalID of the resource itself, which means infinite recursion if we
-    // try to naively resolve. We need a recursion breaker in this.
-    const originalLogicalId = AwsStack.of(this).getLogicalId(this.instance);
-    let recursing = false;
-    this.instance.overrideLogicalId(
-      Lazy.stringValue({
-        produce: (context) => {
-          if (recursing) {
-            return originalLogicalId;
-          }
-          if (!(props.userDataCausesReplacement ?? false)) {
-            //props.initOptions)) {
-            return originalLogicalId;
-          }
-
-          const fragments = new Array<string>();
-          recursing = true;
-          try {
-            fragments.push(
-              JSON.stringify(context.resolve(this.userData.render())),
-            );
-          } finally {
-            recursing = false;
-          }
-          const digest = md5hash(fragments.join("")).slice(0, 16);
-          return `${originalLogicalId}${digest}`;
-        },
-      }),
-    );
 
     if (props.requireImdsv2) {
       Aspects.of(this).add(new InstanceRequireImdsv2Aspect());

@@ -1,18 +1,64 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/user-data.ts
 
+import { dataCloudinitConfig } from "@cdktf/provider-cloudinit";
 import {
-  Fn,
   // TerraformResource
+  IResolvable,
+  Lazy,
 } from "cdktf";
 // import { AwsConstructBase } from "../aws-construct";
 // import { AwsStack } from "../aws-stack";
+import { IConstruct } from "constructs";
+// import { Fn } from "../../terra-func";
 import { IBucket } from "../storage";
 import { OperatingSystemType } from "./machine-image/common";
 
 /**
+ * Common UserData Options
+ */
+export interface UserDataCommon {
+  /**
+   * Specify whether or not to base64 encode the `rendered` output. Cannot be disabled if gzip is `true`.
+   *
+   * NOTE: Instance and LaunchTemplate expect base64 encoded user data
+   *
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/cloudinit/2.3.6/docs/data-sources/config#base64_encode DataCloudinitConfig#base64_encode}
+   * @default true
+   */
+  readonly base64Encode?: boolean | IResolvable;
+  /**
+   * Specify whether or not to gzip the `rendered` output.
+   *
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/cloudinit/2.3.6/docs/data-sources/config#gzip DataCloudinitConfig#gzip}
+   * @default true
+   */
+  readonly gzip?: boolean | IResolvable;
+  /**
+   * `Content-Type` header of this part.
+   *
+   * Some examples of content types:
+   * * `text/x-shellscript; charset="utf-8"` (shell script)
+   * * `text/cloud-boothook; charset="utf-8"` (shell script executed during boot phase)
+   *
+   * For Linux shell scripts use `text/x-shellscript`.
+   *
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/cloudinit/2.3.6/docs/data-sources/config#content_type DataCloudinitConfig#content_type}
+   *
+   * @defaults to `text/plain`
+   */
+  readonly contentType?: string;
+  /**
+   * A filename to report in the header for the part.
+   *
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/cloudinit/2.3.6/docs/data-sources/config#filename DataCloudinitConfig#filename}
+   */
+  readonly filename?: string;
+}
+
+/**
  * Options when constructing UserData for Linux
  */
-export interface LinuxUserDataOptions {
+export interface LinuxUserDataOptions extends UserDataCommon {
   /**
    * Shebang for the UserData script
    *
@@ -24,7 +70,7 @@ export interface LinuxUserDataOptions {
 /**
  * Options when constructing UserData for Windows
  */
-export interface WindowsUserDataOptions {
+export interface WindowsUserDataOptions extends UserDataCommon {
   /**
    * Set to true to set this userdata to persist through an instance reboot; allowing
    * it to run on every instance start.
@@ -125,6 +171,25 @@ export abstract class UserData {
     }
   }
 
+  /** The UserData Content */
+  public abstract readonly content: string;
+  public abstract readonly contentType?: string;
+  public abstract readonly filename?: string;
+
+  protected readonly base64Encode: boolean | IResolvable;
+  protected readonly gzip: boolean | IResolvable;
+
+  constructor(userdataOptions: UserDataCommon = {}) {
+    if (
+      userdataOptions.base64Encode === false &&
+      userdataOptions.gzip === true
+    ) {
+      throw new Error("Cannot disable base64 encoding if gzip is enabled");
+    }
+    this.base64Encode = userdataOptions.base64Encode ?? true;
+    this.gzip = userdataOptions.gzip ?? true;
+  }
+
   /**
    * Add one or more commands to the user data
    */
@@ -138,7 +203,7 @@ export abstract class UserData {
   /**
    * Render the UserData for use in a construct
    */
-  public abstract render(): string;
+  public abstract render(scope: IConstruct): string;
 
   /**
    * Adds commands to download a file from S3
@@ -164,9 +229,15 @@ export abstract class UserData {
 class LinuxUserData extends UserData {
   private readonly lines: string[] = [];
   private readonly onExitLines: string[] = [];
+  private readonly shebang: string;
+  public readonly contentType?: string;
+  public readonly filename?: string;
 
-  constructor(private readonly props: LinuxUserDataOptions = {}) {
+  constructor(props: LinuxUserDataOptions = {}) {
     super();
+    this.shebang = props.shebang ?? "#!/bin/bash";
+    this.contentType = props.contentType;
+    this.filename = props.filename;
   }
 
   public addCommands(...commands: string[]) {
@@ -177,11 +248,27 @@ class LinuxUserData extends UserData {
     this.onExitLines.push(...commands);
   }
 
-  public render(): string {
-    const shebang = this.props.shebang ?? "#!/bin/bash";
-    return Fn.rawString(
-      [shebang, ...this.renderOnExitLines(), ...this.lines].join("\n"),
+  public get content(): string {
+    return [this.shebang, ...this.renderOnExitLines(), ...this.lines].join(
+      "\n",
     );
+  }
+
+  public render(scope: IConstruct): string {
+    return new dataCloudinitConfig.DataCloudinitConfig(scope, "UserData", {
+      base64Encode: this.base64Encode,
+      gzip: this.gzip,
+      // Pass our script as a single part with proper content type.
+      part: [
+        {
+          content: Lazy.stringValue({
+            produce: () => this.content,
+          }),
+          contentType: this.contentType,
+          filename: this.filename,
+        },
+      ],
+    }).rendered;
   }
 
   public addS3DownloadCommand(params: S3DownloadOptions): string {
@@ -236,9 +323,15 @@ class LinuxUserData extends UserData {
 class WindowsUserData extends UserData {
   private readonly lines: string[] = [];
   private readonly onExitLines: string[] = [];
+  public readonly contentType?: string;
+  public readonly filename?: string;
+  private readonly persist: boolean;
 
-  constructor(private readonly props: WindowsUserDataOptions = {}) {
+  constructor(props: WindowsUserDataOptions = {}) {
     super();
+    this.persist = props.persist ?? false;
+    this.contentType = props.contentType;
+    this.filename = props.filename;
   }
 
   public addCommands(...commands: string[]) {
@@ -249,16 +342,31 @@ class WindowsUserData extends UserData {
     this.onExitLines.push(...commands);
   }
 
-  public render(): string {
-    return Fn.rawString(
-      `<powershell>${[
-        ...this.renderOnExitLines(),
-        ...this.lines,
-        ...(this.onExitLines.length > 0 ? ['throw "Success"'] : []),
-      ].join(
-        "\n",
-      )}</powershell>${(this.props.persist ?? false) ? "<persist>true</persist>" : ""}`,
-    );
+  public get content(): string {
+    return `<powershell>${[
+      ...this.renderOnExitLines(),
+      ...this.lines,
+      ...(this.onExitLines.length > 0 ? ['throw "Success"'] : []),
+    ].join(
+      "\n",
+    )}</powershell>${(this.persist ?? false) ? "<persist>true</persist>" : ""}`;
+  }
+
+  public render(scope: IConstruct): string {
+    return new dataCloudinitConfig.DataCloudinitConfig(scope, "UserData", {
+      base64Encode: this.base64Encode,
+      gzip: this.gzip,
+      // Pass our script as a single part with proper content type.
+      part: [
+        {
+          content: Lazy.stringValue({
+            produce: () => this.content,
+          }),
+          contentType: this.contentType,
+          filename: this.filename,
+        },
+      ],
+    }).rendered;
   }
 
   public addS3DownloadCommand(params: S3DownloadOptions): string {
@@ -310,6 +418,8 @@ class WindowsUserData extends UserData {
  */
 class CustomUserData extends UserData {
   private readonly lines: string[] = [];
+  public readonly contentType?: string;
+  public readonly filename?: string;
 
   constructor() {
     super();
@@ -325,8 +435,25 @@ class CustomUserData extends UserData {
     );
   }
 
-  public render(): string {
-    return Fn.rawString(this.lines.join("\n"));
+  public get content(): string {
+    return this.lines.join("\n");
+  }
+
+  public render(scope: IConstruct): string {
+    return new dataCloudinitConfig.DataCloudinitConfig(scope, "UserData", {
+      base64Encode: this.base64Encode,
+      gzip: this.gzip,
+      // Pass our script as a single part with proper content type.
+      part: [
+        {
+          content: Lazy.stringValue({
+            produce: () => this.content,
+          }),
+          contentType: this.contentType,
+          filename: this.filename,
+        },
+      ],
+    }).rendered;
   }
 
   public addS3DownloadCommand(): string {
@@ -348,35 +475,38 @@ class CustomUserData extends UserData {
   }
 }
 
-/**
- * Options when creating `MultipartBody`.
- */
-export interface MultipartBodyOptions {
-  /**
-   * `Content-Type` header of this part.
-   *
-   * Some examples of content types:
-   * * `text/x-shellscript; charset="utf-8"` (shell script)
-   * * `text/cloud-boothook; charset="utf-8"` (shell script executed during boot phase)
-   *
-   * For Linux shell scripts use `text/x-shellscript`.
-   */
-  readonly contentType: string;
+// /**
+//  * Options when creating `MultipartBody`.
+//  */
+// export interface MultipartBodyOptions {
+//   /**
+//    * `Content-Type` header of this part.
+//    *
+//    * Some examples of content types:
+//    * * `text/x-shellscript; charset="utf-8"` (shell script)
+//    * * `text/cloud-boothook; charset="utf-8"` (shell script executed during boot phase)
+//    *
+//    * For Linux shell scripts use `text/x-shellscript`.
+//    */
+//   readonly contentType: string;
 
-  /**
-   * `Content-Transfer-Encoding` header specifying part encoding.
-   *
-   * @default undefined - body is not encoded
-   */
-  readonly transferEncoding?: string;
+//   // terraform provider has this hardcoded
+//   // https://github.com/hashicorp/terraform-provider-cloudinit/blob/v2.3.6/internal/provider/cloudinit_config.go#L180
 
-  /**
-   * The body of message.
-   *
-   * @default undefined - body will not be added to part
-   */
-  readonly body?: string;
-}
+//   // /**
+//   //  * `Content-Transfer-Encoding` header specifying part encoding.
+//   //  *
+//   //  * @default undefined - body is not encoded
+//   //  */
+//   // readonly transferEncoding?: string;
+
+//   /**
+//    * The body of message.
+//    *
+//    * @default undefined - body will not be added to part
+//    */
+//   readonly body?: string;
+// }
 
 /**
  * The base class for all classes which can be used as `MultipartUserData`.
@@ -410,53 +540,42 @@ export abstract class MultipartBody {
   }
 
   /**
-   * Constructs the raw `MultipartBody` using specified body, content type and transfer encoding.
-   *
-   * When transfer encoding is specified (typically as Base64), it's caller responsibility to convert body to
-   * Base64 either by wrapping with `Fn.base64` or by converting it by other converters.
+  * When transfer encoding is specified (typically as Base64), it's caller responsibility to convert body to
+  * Base64 either by wrapping with `Fn.base64` or by converting it by other converters.
+  * /
+
+  /**
+   * Constructs the raw `MultipartBody` using specified body, content type, filename and merge type
    */
-  public static fromRawBody(opts: MultipartBodyOptions): MultipartBody {
+  public static fromRawBody(
+    opts: dataCloudinitConfig.DataCloudinitConfigPart,
+  ): MultipartBody {
     return new MultipartBodyRaw(opts);
   }
 
   public constructor() {}
 
   /**
-   * Render body part as the string.
-   *
-   * Subclasses should not add leading nor trailing new line characters (\r \n)
+   * Render body part
    */
-  public abstract renderBodyPart(): string[];
+  public abstract renderBodyPart(): dataCloudinitConfig.DataCloudinitConfigPart;
 }
 
 /**
  * The raw part of multi-part user data, which can be added to `MultipartUserData`.
  */
 class MultipartBodyRaw extends MultipartBody {
-  public constructor(private readonly props: MultipartBodyOptions) {
+  public constructor(
+    private readonly props: dataCloudinitConfig.DataCloudinitConfigPart,
+  ) {
     super();
   }
 
   /**
-   * Render body part as the string.
+   * Raw return part
    */
-  public renderBodyPart(): string[] {
-    const result: string[] = [];
-
-    result.push(`Content-Type: ${this.props.contentType}`);
-
-    if (this.props.transferEncoding != null) {
-      result.push(`Content-Transfer-Encoding: ${this.props.transferEncoding}`);
-    }
-    // One line free after separator
-    result.push("");
-
-    if (this.props.body != null) {
-      result.push(this.props.body);
-      // The new line added after join will be consumed by encapsulating or closing boundary
-    }
-
-    return result;
+  public renderBodyPart(): dataCloudinitConfig.DataCloudinitConfigPart {
+    return this.props;
   }
 }
 
@@ -476,24 +595,21 @@ class MultipartBodyUserDataWrapper extends MultipartBody {
   }
 
   /**
-   * Render body part as the string.
+   * Render body parts
    */
-  public renderBodyPart(): string[] {
-    const result: string[] = [];
-
-    result.push(`Content-Type: ${this.contentType}`);
-    result.push("Content-Transfer-Encoding: base64");
-    result.push("");
-    result.push(Fn.base64encode(this.userData.render()));
-
-    return result;
+  public renderBodyPart(): dataCloudinitConfig.DataCloudinitConfigPart {
+    return {
+      content: this.userData.content,
+      contentType: this.contentType ?? this.userData.contentType,
+      filename: this.userData.filename,
+    };
   }
 }
 
 /**
  * Options for creating `MultipartUserData`
  */
-export interface MultipartUserDataOptions {
+export interface MultipartUserDataOptions extends UserDataCommon {
   /**
    * The string used to separate parts in multipart user data archive (it's like MIME boundary).
    *
@@ -522,8 +638,14 @@ export class MultipartUserData extends UserData {
 
   private defaultUserData?: UserData;
 
+  public readonly contentType?: string;
+
+  public readonly filename?: string;
+
   constructor(opts?: MultipartUserDataOptions) {
-    super();
+    super(opts);
+    this.contentType = opts?.contentType;
+    this.filename = opts?.filename;
 
     let partsSeparator: string;
 
@@ -588,30 +710,26 @@ export class MultipartUserData extends UserData {
     }
   }
 
-  public render(): string {
-    const boundary = this.opts.partsSeparator;
-    // Now build final MIME archive - there are few changes from MIME message which are accepted by cloud-init:
-    // - MIME RFC uses CRLF to separate lines - cloud-init is fine with LF \n only
-    // Note: new lines matters, matters a lot.
-    var resultArchive = new Array<string>();
-    resultArchive.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
-    resultArchive.push("MIME-Version: 1.0");
+  /**
+   * The content of the default UserData.
+   */
+  public get content(): string {
+    if (this.defaultUserData) {
+      return this.defaultUserData.content;
+    } else {
+      throw new Error(MultipartUserData.USE_PART_ERROR);
+    }
+  }
 
-    // Add new line, the next one will be boundary (encapsulating or closing)
-    // so this line will count into it.
-    resultArchive.push("");
-
-    // Add parts - each part starts with boundary
-    this.parts.forEach((part) => {
-      resultArchive.push(`--${boundary}`);
-      resultArchive.push(...part.renderBodyPart());
-    });
-
-    // Add closing boundary
-    resultArchive.push(`--${boundary}--`);
-    resultArchive.push(""); // Force new line at the end
-
-    return resultArchive.join("\n");
+  public render(scope: IConstruct): string {
+    return new dataCloudinitConfig.DataCloudinitConfig(scope, "UserData", {
+      boundary: this.opts.partsSeparator,
+      base64Encode: this.base64Encode,
+      gzip: this.gzip,
+      part: Lazy.anyValue({
+        produce: () => this.parts.map((p) => p.renderBodyPart()),
+      }),
+    }).rendered;
   }
 
   public addS3DownloadCommand(params: S3DownloadOptions): string {
