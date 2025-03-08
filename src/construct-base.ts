@@ -148,7 +148,7 @@ export abstract class TerraConstructBase
   }
 
   // force usage of node.addDependency instead of passing TerraConstructs via dependsOn
-  // Refering a TerraConstruct by fqn always triggers an error?
+  // Referring a TerraConstruct by fqn always triggers an error?
   public get fqn(): string {
     // try {
     //   return super.fqn;

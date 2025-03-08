@@ -321,19 +321,21 @@ export class ApplicationListener
       port,
       sslPolicy: props.sslPolicy,
       // https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_listener#mutual_authentication
-      mutualAuthentication: props.mutualAuthentication
-        ? {
-            ignoreClientCertificateExpiry:
-              props.mutualAuthentication?.ignoreClientCertificateExpiry,
-            // CFN Default is off
-            // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-elasticloadbalancingv2-listener-mutualauthentication.html#cfn-elasticloadbalancingv2-listener-mutualauthentication-mode
-            mode:
-              props.mutualAuthentication?.mutualAuthenticationMode ??
-              MutualAuthenticationMode.OFF,
-            trustStoreArn:
-              props.mutualAuthentication?.trustStore?.trustStoreArn,
-          }
-        : undefined,
+      mutualAuthentication:
+        props.mutualAuthentication &&
+        Object.keys(props.mutualAuthentication).length > 0
+          ? {
+              ignoreClientCertificateExpiry:
+                props.mutualAuthentication?.ignoreClientCertificateExpiry,
+              // CFN Default is off
+              // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-elasticloadbalancingv2-listener-mutualauthentication.html#cfn-elasticloadbalancingv2-listener-mutualauthentication-mode
+              mode:
+                props.mutualAuthentication?.mutualAuthenticationMode ??
+                MutualAuthenticationMode.OFF,
+              trustStoreArn:
+                props.mutualAuthentication?.trustStore?.trustStoreArn,
+            }
+          : undefined,
     });
 
     this.loadBalancer = props.loadBalancer;

@@ -53,6 +53,12 @@ export enum LbProtocol {
    * Listen to both TCP and UDP on the same port (NLB)
    */
   TCP_UDP = "TCP_UDP",
+
+  // TODO: Missing in the AWS CDK - GENEVE? Used by Gateway Load Balancer?
+  /**
+   * GENEVE (GWLB)
+   */
+  // GENEVE = "GENEVE",
 }
 
 /**

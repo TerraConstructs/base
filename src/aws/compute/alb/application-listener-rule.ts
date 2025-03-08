@@ -254,12 +254,17 @@ export class ApplicationListenerRule extends Construct {
       priority: props.priority,
       condition: Lazy.anyValue({ produce: () => this.renderConditions() }),
       action: Lazy.anyValue({
-        produce: () => (this.action ? this.action.renderRuleActions() : []),
+        produce: () =>
+          this.action
+            ? this.action
+                .renderRuleActions()
+                .map(tfListenerRule.lbListenerRuleActionToTerraform)
+            : [],
       }),
     });
 
     if (props.hostHeader) {
-      this.setCondition("host-header", [props.hostHeader]);
+      this.setCondition("host_header", [props.hostHeader]);
     }
 
     if (hasPathPatterns) {
@@ -271,7 +276,7 @@ export class ApplicationListenerRule extends Construct {
       const pathPattern = props.pathPattern
         ? [props.pathPattern]
         : props.pathPatterns;
-      this.setCondition("path-pattern", pathPattern);
+      this.setCondition("path_pattern", pathPattern);
     }
 
     if (props.action) {
@@ -407,7 +412,7 @@ export class ApplicationListenerRule extends Construct {
   private renderConditions(): any {
     const legacyConditions = Object.entries(this.legacyConditions).map(
       ([field, values]) => {
-        return { field, values };
+        return { [field]: { values } };
       },
     );
     const conditions = this.conditions.map((condition) =>

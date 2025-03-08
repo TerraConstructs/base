@@ -25,3 +25,32 @@ export class LbListenerConfigStructBuilder extends Component {
       .omit("defaultAction");
   }
 }
+
+/**
+ * Aws Provider lb-target-group-attachment without loadBalancerArn, targetGroupArn
+ */
+export class LbTargetGroupAttachmentConfigStructBuilder extends Component {
+  constructor(project: typescript.TypeScriptProject) {
+    super(project);
+    const struct = new ProjenStruct(project, {
+      name: "LbTargetGroupAttachmentConfig",
+      description: "Config for Target Group Attachment without loadBalancerArn",
+      filePath: path.join(
+        project.srcdir,
+        "aws",
+        "compute",
+        "lb-shared",
+        "lb-target-group-attachment-config.generated.ts",
+      ),
+    });
+
+    struct
+      .mixin(
+        Struct.fromFqn(
+          "@cdktf/provider-aws.lbTargetGroupAttachment.LbTargetGroupAttachmentConfig",
+        ),
+      )
+      .omit("loadBalancerArn")
+      .omit("targetGroupArn");
+  }
+}

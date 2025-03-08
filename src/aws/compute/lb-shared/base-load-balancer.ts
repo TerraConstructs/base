@@ -16,6 +16,7 @@ import {
   LoadBalancerAttribute as Attribute,
   lookupBoolAttribute,
   lookupNumberAttribute,
+  lookupStringAttribute,
   // mapTagMapToCxschema,
   // renderAttributes,
 } from "./util";
@@ -369,50 +370,18 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
       xffHeaderProcessingMode: this.lazyStringAttr(
         Attribute.routingHTTPXFFHeaderProcessingMode,
       ),
-      accessLogs: Lazy.anyValue({
-        produce: (): tfLoadBalancer.LbAccessLogs | undefined => {
-          const enabled = lookupBoolAttribute(
-            this.attributes,
-            Attribute.accessLogsS3Enabled,
-          );
-          if (enabled) {
-            const bucket = this.attributes[Attribute.accessLogsS3Bucket];
-            if (!bucket) {
-              throw new Error(
-                "Access logs are enabled, but no bucket was provided.",
-              );
-            }
-            return {
-              enabled,
-              bucket,
-              prefix: this.attributes[Attribute.accessLogsS3Prefix],
-            };
-          }
-          return undefined;
-        },
-      }) as any,
-      connectionLogs: Lazy.anyValue({
-        produce: (): tfLoadBalancer.LbConnectionLogs | undefined => {
-          const enabled = lookupBoolAttribute(
-            this.attributes,
-            Attribute.connectionLogsS3Enabled,
-          );
-          if (enabled) {
-            const bucket = this.attributes[Attribute.connectionLogsS3Bucket];
-            if (!bucket) {
-              throw new Error(
-                "Connection logs are enabled, but no bucket was provided.",
-              );
-            }
-            return {
-              enabled,
-              bucket,
-              prefix: this.attributes[Attribute.connectionLogsS3Prefix],
-            };
-          }
-          return undefined;
-        },
-      }) as any,
+      // // this results in empty `access_logs: {}` which is not valid (bucket is required)
+      // accessLogs: {
+      //   enabled: this.lazyBoolAttr(Attribute.accessLogsS3Enabled),
+      //   bucket: this.lazyStringAttr(Attribute.accessLogsS3Bucket),
+      //   prefix: this.lazyStringAttr(Attribute.accessLogsS3Prefix),
+      // },
+      // // this results in empty `connection_logs: {}` which is not valid (bucket is required)
+      // connectionLogs: {
+      //   enabled: this.lazyBoolAttr(Attribute.connectionLogsS3Enabled),
+      //   bucket: this.lazyStringAttr(Attribute.connectionLogsS3Bucket),
+      //   prefix: this.lazyStringAttr(Attribute.connectionLogsS3Prefix),
+      // },
       //subnetMappings
       // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html#cfn-elasticloadbalancingv2-loadbalancer-subnetmappings
       ...additionalProps,
@@ -466,7 +435,7 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
    * environment-agnostic stacks. See https://docs.aws.amazon.com/cdk/latest/guide/environments.html
    */
   public logAccessLogs(bucket: s3.IBucket, prefix?: string) {
-    prefix = prefix || "";
+    // prefix = prefix; // optional in TF... || "";
     this.setAttribute("access_logs.s3.enabled", "true");
     this.setAttribute("access_logs.s3.bucket", bucket.bucketName.toString());
     this.setAttribute("access_logs.s3.prefix", prefix);
@@ -514,7 +483,7 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
     // make sure the bucket's policy is created before the ALB (see https://github.com/aws/aws-cdk/issues/1633)
     // at the L1 level to avoid creating a circular dependency (see https://github.com/aws/aws-cdk/issues/27528
     // and https://github.com/aws/aws-cdk/issues/27928)
-    const lb = this.node.defaultChild;
+    const lb = this.node.defaultChild as tfLoadBalancer.Lb;
     const bucketPolicy = bucket.policy?.node.defaultChild;
     if (
       lb &&
@@ -524,10 +493,19 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
     ) {
       lb.node.addDependency(bucketPolicy);
     }
+    // TODO: Should putAccessLogs be handled as part of prepareStack (in toTerraform() instead)?
+    // only if lb.accessLogs.internalValue !== undefined? (or based on this.attributes?)
+    lb.putAccessLogs({
+      enabled: this.lazyBoolAttr(Attribute.accessLogsS3Enabled),
+      bucket: this.lazyStringAttr(Attribute.accessLogsS3Bucket),
+      prefix: this.lazyStringAttr(Attribute.accessLogsS3Prefix),
+    });
   }
 
   /**
    * Set a non-standard attribute on the load balancer
+   *
+   * Use the dedicated logAccessLogs() method intead of setAttribute if you want to setup access logging.
    *
    * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#load-balancer-attributes
    */
@@ -542,17 +520,17 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
     this.setAttribute(key, undefined);
   }
 
-  private lazyStringAttr(key: string) {
+  protected lazyStringAttr(key: string) {
     return Lazy.stringValue({
-      produce: () => this.attributes[key],
+      produce: () => lookupStringAttribute(this.attributes, key),
     });
   }
-  private lazyBoolAttr(key: string) {
+  protected lazyBoolAttr(key: string) {
     return Lazy.anyValue({
       produce: () => lookupBoolAttribute(this.attributes, key),
     });
   }
-  private lazyNumberAttr(key: string) {
+  protected lazyNumberAttr(key: string) {
     return Lazy.numberValue({
       produce: () => lookupNumberAttribute(this.attributes, key),
     });

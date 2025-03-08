@@ -200,14 +200,17 @@ export class VpcEndpointService
           values: [privateDnsNameConfiguration.value],
         },
       );
-      new vpcEndpointServicePrivateDnsVerification.VpcEndpointServicePrivateDnsVerification(
-        this,
-        "PrivateDnsVerification",
-        {
-          serviceId: this.endpointService.id,
-          dependsOn: [verificationRecord],
-        },
-      );
+      const endpointVerification =
+        new vpcEndpointServicePrivateDnsVerification.VpcEndpointServicePrivateDnsVerification(
+          this,
+          "PrivateDnsVerification",
+          {
+            serviceId: this.endpointService.id,
+            // verificationRecord is not a TerraformResource, must use addDependency
+            // dependsOn: [verificationRecord],
+          },
+        );
+      endpointVerification.node.addDependency(verificationRecord);
     }
 
     if (this.allowedPrincipals.length > 0) {

@@ -114,13 +114,13 @@ export class ListenerAction implements IListenerAction {
    */
   public static fixedResponse(
     statusCode: number,
-    options: FixedResponseOptions,
+    options: FixedResponseOptions = {},
   ): ListenerAction {
     return new ListenerAction({
       type: "fixed-response",
       fixedResponse: {
         statusCode: Tokenization.stringifyNumber(statusCode),
-        contentType: options.contentType,
+        contentType: options.contentType ?? "text/plain",
         messageBody: options.messageBody,
       },
     });
@@ -321,7 +321,7 @@ export interface FixedResponseOptions {
    *
    * Valid Values: text/plain | text/css | text/html | application/javascript | application/json
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   // TODO: Automatically determine content type?
   // * @default - Automatically determined

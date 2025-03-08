@@ -3,7 +3,7 @@
 /**
  * Type of load balancer
  */
-export declare enum LoadBalancerType {
+export enum LoadBalancerType {
   /**
    * Network load balancer
    */
@@ -21,7 +21,7 @@ export declare enum LoadBalancerType {
 /**
  * The protocol for connections from clients to the load balancer
  */
-export declare enum LoadBalancerListenerProtocol {
+export enum LoadBalancerListenerProtocol {
   /**
    * HTTP protocol
    */

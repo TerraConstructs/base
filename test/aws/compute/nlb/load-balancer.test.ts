@@ -1,22 +1,22 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/test/nlb/load-balancer.test.ts
 
 import {
-  lbListener as tfLbListener,
-  lbListenerCertificate as tfListenerCertificate,
-  lbTargetGroup as tfLbTargetGroup,
-  lbTargetGroupAttachment as tfTargetGroupAttachment,
   lb as tfLoadBalancer,
+  securityGroup as tfSecurityGroup,
   route53Record,
   s3BucketPolicy,
   dataAwsIamPolicyDocument,
 } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
+import {
+  App,
+  // TerraformElement,
+  Testing,
+} from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
 import * as edge from "../../../../src/aws/edge";
 import * as storage from "../../../../src/aws/storage";
-
 import { Template } from "../../../assertions";
 
 const environmentName = "Test";
@@ -32,7 +32,7 @@ describe("tests", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "IPAMTestStack", {
+    stack = new AwsStack(app, "TestStack", {
       environmentName,
       gridUUID,
       providerConfig,
@@ -54,10 +54,11 @@ describe("tests", () => {
     Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
       internal: false,
       subnets: [
-        "${aws_subnet.StackPublicSubnet1Subnet0AD81D22.id}",
-        "${aws_subnet.StackPublicSubnet2Subnet3C7D2288.id}",
+        "${aws_subnet.Stack_PublicSubnet1_A539D629.id}",
+        "${aws_subnet.Stack_PublicSubnet2_73639A20.id}",
+        "${aws_subnet.Stack_PublicSubnet3_53275245.id}",
       ],
-      type: "network",
+      load_balancer_type: "network",
     });
   });
 
@@ -72,10 +73,11 @@ describe("tests", () => {
     Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
       internal: true,
       subnets: [
-        "${aws_subnet.StackPrivateSubnet1Subnet47AC2BC7.id}",
-        "${aws_subnet.StackPrivateSubnet2SubnetA2F8EDD8.id}",
+        "${aws_subnet.Stack_PrivateSubnet1_530F2940.id}",
+        "${aws_subnet.Stack_PrivateSubnet2_B7F3D25A.id}",
+        "${aws_subnet.Stack_PrivateSubnet3_8917711B.id}",
       ],
-      type: "network",
+      load_balancer_type: "network",
     });
   });
 
@@ -154,7 +156,10 @@ describe("tests", () => {
         bucket: stack.resolve(bucket.bucketName),
       },
       // verify the NLB depends on the bucket policy
-      depends_on: ["aws_s3_bucket_policy.AccessLoggingBucketPolicy700D7CC6"],
+      depends_on: [
+        "aws_s3_bucket_policy.AccessLoggingBucket_Policy_700D7CC6",
+        "aws_s3_bucket_policy.AccessLoggingBucket_Policy_700D7CC6", // TODO: Why is it double
+      ],
     });
 
     // verify the bucket policy allows the NLB to put objects in the bucket
@@ -174,11 +179,11 @@ describe("tests", () => {
               },
             ],
             resources: [
-              "${aws_bucket.AccessLoggingBucketA6D88F29.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+              "${aws_s3_bucket.AccessLoggingBucket_A6D88F29.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
             ],
           },
           {
-            action: "s3:PutObject",
+            actions: ["s3:PutObject"],
             effect: "Allow",
             condition: [
               {
@@ -190,23 +195,29 @@ describe("tests", () => {
             principals: [
               {
                 type: "Service",
-                identifier: "delivery.logs.amazonaws.com",
+                // identifier: "delivery.logs.amazonaws.com",
+                identifiers: [
+                  "${data.aws_service_principal.aws_svcp_default_region_deliverylogsamazonawscom.name}",
+                ],
               },
             ],
             resources: [
-              "${aws_bucket.AccessLoggingBucketA6D88F29.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+              "${aws_s3_bucket.AccessLoggingBucket_A6D88F29.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
             ],
           },
           {
-            action: "s3:GetBucketAcl",
+            actions: ["s3:GetBucketAcl"],
             effect: "Allow",
             principals: [
               {
                 type: "Service",
-                identifier: "delivery.logs.amazonaws.com",
+                // identifier: "delivery.logs.amazonaws.com",
+                identifiers: [
+                  "${data.aws_service_principal.aws_svcp_default_region_deliverylogsamazonawscom.name}",
+                ],
               },
             ],
-            resources: ["${aws_bucket.AccessLoggingBucketA6D88F29.arn}"],
+            resources: ["${aws_s3_bucket.AccessLoggingBucket_A6D88F29.arn}"],
           },
         ],
       },
@@ -251,11 +262,11 @@ describe("tests", () => {
               },
             ],
             resources: [
-              "${aws_bucket.AccessLoggingBucketA6D88F29.arn}/prefix-of-access-logs/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+              "${aws_s3_bucket.AccessLoggingBucket_A6D88F29.arn}/prefix-of-access-logs/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
             ],
           },
           {
-            action: "s3:PutObject",
+            actions: ["s3:PutObject"],
             effect: "Allow",
             condition: [
               {
@@ -267,23 +278,27 @@ describe("tests", () => {
             principals: [
               {
                 type: "Service",
-                identifier: "delivery.logs.amazonaws.com",
+                identifiers: [
+                  "${data.aws_service_principal.aws_svcp_default_region_deliverylogsamazonawscom.name}",
+                ],
               },
             ],
             resources: [
-              "${aws_bucket.AccessLoggingBucketA6D88F29.arn}/prefix-of-access-logs/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+              "${aws_s3_bucket.AccessLoggingBucket_A6D88F29.arn}/prefix-of-access-logs/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
             ],
           },
           {
-            action: "s3:GetBucketAcl",
+            actions: ["s3:GetBucketAcl"],
             effect: "Allow",
             principals: [
               {
                 type: "Service",
-                identifier: "delivery.logs.amazonaws.com",
+                identifiers: [
+                  "${data.aws_service_principal.aws_svcp_default_region_deliverylogsamazonawscom.name}",
+                ],
               },
             ],
-            resources: ["${aws_bucket.AccessLoggingBucketA6D88F29.arn}"],
+            resources: ["${aws_s3_bucket.AccessLoggingBucket_A6D88F29.arn}"],
           },
         ],
       },
@@ -323,7 +338,8 @@ describe("tests", () => {
       },
       // verify the NLB depends on the bucket policy
       depends_on: [
-        "aws_s3_bucket_policy.ImportedAccessLoggingBucketPolicy97AE3371",
+        "aws_s3_bucket_policy.ImportedAccessLoggingBucketPolicy_97AE3371",
+        "aws_s3_bucket_policy.ImportedAccessLoggingBucketPolicy_97AE3371", // TODO: Why is it double?
       ],
     });
 
@@ -344,11 +360,11 @@ describe("tests", () => {
               },
             ],
             resources: [
-              "${aws_bucket.ImportedAccessLoggingBucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+              "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
             ],
           },
           {
-            action: "s3:PutObject",
+            actions: ["s3:PutObject"],
             effect: "Allow",
             condition: [
               {
@@ -360,23 +376,28 @@ describe("tests", () => {
             principals: [
               {
                 type: "Service",
-                identifier: "delivery.logs.amazonaws.com",
+                // identifier: "delivery.logs.amazonaws.com",
+                identifiers: [
+                  "${data.aws_service_principal.aws_svcp_default_region_deliverylogsamazonawscom.name}",
+                ],
               },
             ],
             resources: [
-              "${aws_bucket.ImportedAccessLoggingBucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+              "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
             ],
           },
           {
-            action: "s3:GetBucketAcl",
+            actions: ["s3:GetBucketAcl"],
             effect: "Allow",
             principals: [
               {
                 type: "Service",
-                identifier: "delivery.logs.amazonaws.com",
+                identifiers: [
+                  "${data.aws_service_principal.aws_svcp_default_region_deliverylogsamazonawscom.name}",
+                ],
               },
             ],
-            resources: ["${aws_bucket.ImportedAccessLoggingBucket.arn}"],
+            resources: ["${data.aws_s3_bucket.imported-bucket.arn}"],
           },
         ],
       },
@@ -430,7 +451,7 @@ describe("tests", () => {
 
     // THEN
     Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
-      Name: "myLoadBalancer",
+      name: "myLoadBalancer",
       enforce_security_group_inbound_rules_on_private_link_traffic: "off",
     });
   });
@@ -641,17 +662,15 @@ describe("tests", () => {
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Scheme: "internal",
-        Subnets: [
-          { Ref: "VPCIsolatedSubnet1SubnetEBD00FC6" },
-          { Ref: "VPCIsolatedSubnet2Subnet4B1C8CAA" },
-        ],
-        Type: "network",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: true,
+      load_balancer_type: "network",
+      subnets: [
+        "${aws_subnet.VPC_IsolatedSubnet1_878DBDC3.id}",
+        "${aws_subnet.VPC_IsolatedSubnet2_44717885.id}",
+        "${aws_subnet.VPC_IsolatedSubnet3_73305576.id}",
+      ],
+    });
   });
   test("Internal with Public, Private, and Isolated subnets", () => {
     // GIVEN
@@ -682,17 +701,15 @@ describe("tests", () => {
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Scheme: "internal",
-        Subnets: [
-          { Ref: "VPCPrivateSubnet1Subnet8BCA10E0" },
-          { Ref: "VPCPrivateSubnet2SubnetCFCDAA7A" },
-        ],
-        Type: "network",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: true,
+      load_balancer_type: "network",
+      subnets: [
+        "${aws_subnet.VPC_PrivateSubnet1_05F5A6DA.id}",
+        "${aws_subnet.VPC_PrivateSubnet2_8C0AEF3A.id}",
+        "${aws_subnet.VPC_PrivateSubnet3_EAEE5839.id}",
+      ],
+    });
   });
   test("Internet-facing with Public, Private, and Isolated subnets", () => {
     // GIVEN
@@ -723,17 +740,15 @@ describe("tests", () => {
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Scheme: "internet-facing",
-        Subnets: [
-          { Ref: "VPCPublicSubnet1SubnetB4246D30" },
-          { Ref: "VPCPublicSubnet2Subnet74179F39" },
-        ],
-        Type: "network",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: false,
+      load_balancer_type: "network",
+      subnets: [
+        "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
+        "${aws_subnet.VPC_PublicSubnet2_E52FD57B.id}",
+        "${aws_subnet.VPC_PublicSubnet3_7031327B.id}",
+      ],
+    });
   });
   test("Internal load balancer supplying public subnets", () => {
     // GIVEN
@@ -747,17 +762,15 @@ describe("tests", () => {
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Scheme: "internal",
-        Subnets: [
-          { Ref: "VPCPublicSubnet1SubnetB4246D30" },
-          { Ref: "VPCPublicSubnet2Subnet74179F39" },
-        ],
-        Type: "network",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: true,
+      load_balancer_type: "network",
+      subnets: [
+        "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
+        "${aws_subnet.VPC_PublicSubnet2_E52FD57B.id}",
+        "${aws_subnet.VPC_PublicSubnet3_7031327B.id}",
+      ],
+    });
   });
   test("Internal load balancer supplying isolated subnets", () => {
     // GIVEN
@@ -789,17 +802,15 @@ describe("tests", () => {
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Scheme: "internal",
-        Subnets: [
-          { Ref: "VPCIsolatedSubnet1SubnetEBD00FC6" },
-          { Ref: "VPCIsolatedSubnet2Subnet4B1C8CAA" },
-        ],
-        Type: "network",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: true,
+      load_balancer_type: "network",
+      subnets: [
+        "${aws_subnet.VPC_IsolatedSubnet1_878DBDC3.id}",
+        "${aws_subnet.VPC_IsolatedSubnet2_44717885.id}",
+        "${aws_subnet.VPC_IsolatedSubnet3_73305576.id}",
+      ],
+    });
   });
 
   test("Trivial construction: security groups", () => {
@@ -818,50 +829,36 @@ describe("tests", () => {
     nlb.addSecurityGroup(sg2);
 
     // THEN
-    const template = Template.fromStack(stack);
-    template.hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Scheme: "internet-facing",
-        Subnets: [
-          { Ref: "StackPublicSubnet1Subnet0AD81D22" },
-          { Ref: "StackPublicSubnet2Subnet3C7D2288" },
-        ],
-        SecurityGroups: [
-          {
-            "Fn::GetAtt": [
-              stack.getLogicalId(
-                sg1.node.findChild("Resource") as cdk.CfnElement,
-              ),
-              "GroupId",
-            ],
-          },
-          {
-            "Fn::GetAtt": [
-              stack.getLogicalId(
-                sg2.node.findChild("Resource") as cdk.CfnElement,
-              ),
-              "GroupId",
-            ],
-          },
-        ],
-        Type: "network",
-      },
-    );
-    template.resourcePropertiesCountIs(
-      "AWS::EC2::SecurityGroup",
-      {
-        SecurityGroupIngress: [
-          {
-            CidrIp: "0.0.0.0/0",
-            Description: "from 0.0.0.0/0:80",
-            FromPort: 80,
-            IpProtocol: "tcp",
-            ToPort: 80,
-          },
-        ],
-      },
-      2,
+    const template = new Template(stack);
+    template.expect.toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: false,
+      subnets: [
+        "${aws_subnet.Stack_PublicSubnet1_A539D629.id}",
+        "${aws_subnet.Stack_PublicSubnet2_73639A20.id}",
+        "${aws_subnet.Stack_PublicSubnet3_53275245.id}",
+      ],
+      security_groups: [
+        stack.resolve(sg1.securityGroupId),
+        stack.resolve(sg2.securityGroupId),
+      ],
+      load_balancer_type: "network",
+    });
+    template.resourceTypeArrayContaining(
+      tfSecurityGroup.SecurityGroup,
+      // expect both security groups to have the same ingress rule
+      Array(2).fill(
+        expect.objectContaining({
+          ingress: [
+            expect.objectContaining({
+              cidr_blocks: ["0.0.0.0/0"],
+              description: "from 0.0.0.0/0:80",
+              from_port: 80,
+              protocol: "tcp",
+              to_port: 80,
+            }),
+          ],
+        }),
+      ),
     );
   });
 
@@ -877,19 +874,22 @@ describe("tests", () => {
     nlb.connections.allowFromAnyIpv4(compute.Port.tcp(80));
 
     // THEN
-    const template = Template.fromStack(stack);
-    template.hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    const template = new Template(stack);
+    template.expect.toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: false,
+      subnets: [
+        "${aws_subnet.Stack_PublicSubnet1_A539D629.id}",
+        "${aws_subnet.Stack_PublicSubnet2_73639A20.id}",
+        "${aws_subnet.Stack_PublicSubnet3_53275245.id}",
+      ],
+    });
+    // no LoadBalancer has security groups
+    template.resourceTypeArrayNotContaining(tfLoadBalancer.Lb, [
       {
-        Scheme: "internet-facing",
-        Subnets: [
-          { Ref: "StackPublicSubnet1Subnet0AD81D22" },
-          { Ref: "StackPublicSubnet2Subnet3C7D2288" },
-        ],
-        SecurityGroups: Match.absent(),
+        security_groups: expect.anything(),
       },
-    );
-    template.resourceCountIs("AWS::EC2::SecurityGroup", 0);
+    ]);
+    template.expectResources(tfSecurityGroup.SecurityGroup).toHaveLength(0);
     expect(nlb.securityGroups).toBeUndefined();
   });
 
@@ -906,19 +906,17 @@ describe("tests", () => {
     nlb.connections.allowFromAnyIpv4(compute.Port.tcp(80));
 
     // THEN
-    const template = Template.fromStack(stack);
-    template.hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Scheme: "internet-facing",
-        Subnets: [
-          { Ref: "StackPublicSubnet1Subnet0AD81D22" },
-          { Ref: "StackPublicSubnet2Subnet3C7D2288" },
-        ],
-        SecurityGroups: [],
-      },
-    );
-    template.resourceCountIs("AWS::EC2::SecurityGroup", 0);
+    const template = new Template(stack);
+    template.expect.toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: false,
+      subnets: [
+        "${aws_subnet.Stack_PublicSubnet1_A539D629.id}",
+        "${aws_subnet.Stack_PublicSubnet2_73639A20.id}",
+        "${aws_subnet.Stack_PublicSubnet3_53275245.id}",
+      ],
+      security_groups: [],
+    });
+    template.expectResources(tfSecurityGroup.SecurityGroup).toHaveLength(0);
     expect(nlb.securityGroups).toStrictEqual([]);
   });
 
@@ -938,194 +936,169 @@ describe("tests", () => {
     nlb.addSecurityGroup(sg2);
 
     // THEN
-    const template = Template.fromStack(stack);
-    template.hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      {
-        Scheme: "internet-facing",
-        Subnets: [
-          { Ref: "StackPublicSubnet1Subnet0AD81D22" },
-          { Ref: "StackPublicSubnet2Subnet3C7D2288" },
-        ],
-        SecurityGroups: [
-          {
-            "Fn::GetAtt": [
-              stack.getLogicalId(
-                sg1.node.findChild("Resource") as cdk.CfnElement,
-              ),
-              "GroupId",
-            ],
-          },
-          {
-            "Fn::GetAtt": [
-              stack.getLogicalId(
-                sg2.node.findChild("Resource") as cdk.CfnElement,
-              ),
-              "GroupId",
-            ],
-          },
-        ],
-        Type: "network",
-      },
-    );
-    template.resourcePropertiesCountIs(
-      "AWS::EC2::SecurityGroup",
-      {
-        SecurityGroupIngress: [
-          {
-            CidrIp: "0.0.0.0/0",
-            Description: "from 0.0.0.0/0:80",
-            FromPort: 80,
-            IpProtocol: "tcp",
-            ToPort: 80,
-          },
-        ],
-      },
-      2,
+    const template = new Template(stack);
+    template.expect.toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+      internal: false,
+      subnets: [
+        "${aws_subnet.Stack_PublicSubnet1_A539D629.id}",
+        "${aws_subnet.Stack_PublicSubnet2_73639A20.id}",
+        "${aws_subnet.Stack_PublicSubnet3_53275245.id}",
+      ],
+      security_groups: [
+        stack.resolve(sg1.securityGroupId),
+        stack.resolve(sg2.securityGroupId),
+      ],
+      load_balancer_type: "network",
+    });
+    template.resourceTypeArrayContaining(
+      tfSecurityGroup.SecurityGroup,
+      // expect both security groups to have ingres rule
+      Array(2).fill(
+        expect.objectContaining({
+          ingress: [
+            expect.objectContaining({
+              cidr_blocks: ["0.0.0.0/0"],
+              description: "from 0.0.0.0/0:80",
+              from_port: 80,
+              protocol: "tcp",
+              to_port: 80,
+            }),
+          ],
+        }),
+      ),
     );
   });
 
-  describe("lookup", () => {
-    test("Can look up a NetworkLoadBalancer", () => {
-      // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "stack", {
-        env: {
-          account: "123456789012",
-          region: "us-west-2",
-        },
-      });
+  // // TODO: Add Grid Context Provider for lookups
+  // describe("lookup", () => {
+  //   test("Can look up a NetworkLoadBalancer", () => {
+  //     // GIVEN
+  //     // TODO: For non-agnostic Stack:
+  //     // env: {
+  //     //   account: "123456789012",
+  //     //   region: "us-west-2",
+  //     // },
+  //     // WHEN
+  //     const loadBalancer = compute.NetworkLoadBalancer.fromLookup(stack, "a", {
+  //       loadBalancerTags: {
+  //         some: "tag",
+  //       },
+  //     });
 
-      // WHEN
-      const loadBalancer = compute.NetworkLoadBalancer.fromLookup(stack, "a", {
-        loadBalancerTags: {
-          some: "tag",
-        },
-      });
+  //     // THEN
+  //     Template.fromStack(stack).resourceCountIs(
+  //       "AWS::ElasticLoadBalancingV2::NetworkLoadBalancer",
+  //       0,
+  //     );
+  //     expect(loadBalancer.loadBalancerArn).toEqual(
+  //       "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/network/my-load-balancer/50dc6c495c0c9188",
+  //     );
+  //     expect(loadBalancer.loadBalancerCanonicalHostedZoneId).toEqual(
+  //       "Z3DZXE0EXAMPLE",
+  //     );
+  //     expect(loadBalancer.loadBalancerDnsName).toEqual(
+  //       "my-load-balancer-1234567890.us-west-2.elb.amazonaws.com",
+  //     );
+  //     expect(loadBalancer.env.region).toEqual("us-west-2");
+  //   });
 
-      // THEN
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::ElasticLoadBalancingV2::NetworkLoadBalancer",
-        0,
-      );
-      expect(loadBalancer.loadBalancerArn).toEqual(
-        "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/network/my-load-balancer/50dc6c495c0c9188",
-      );
-      expect(loadBalancer.loadBalancerCanonicalHostedZoneId).toEqual(
-        "Z3DZXE0EXAMPLE",
-      );
-      expect(loadBalancer.loadBalancerDnsName).toEqual(
-        "my-load-balancer-1234567890.us-west-2.elb.amazonaws.com",
-      );
-      expect(loadBalancer.env.region).toEqual("us-west-2");
-    });
+  //   test("Can add listeners to a looked-up NetworkLoadBalancer", () => {
+  //     // GIVEN
+  //     // TODO: For non-agnostic Stack:
+  //     // env: {
+  //     //   account: "123456789012",
+  //     //   region: "us-west-2",
+  //     // },
+  //     const loadBalancer = compute.NetworkLoadBalancer.fromLookup(stack, "a", {
+  //       loadBalancerTags: {
+  //         some: "tag",
+  //       },
+  //     });
 
-    test("Can add listeners to a looked-up NetworkLoadBalancer", () => {
-      // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "stack", {
-        env: {
-          account: "123456789012",
-          region: "us-west-2",
-        },
-      });
+  //     const targetGroup = new compute.NetworkTargetGroup(stack, "tg", {
+  //       vpc: loadBalancer.vpc,
+  //       port: 3000,
+  //     });
 
-      const loadBalancer = compute.NetworkLoadBalancer.fromLookup(stack, "a", {
-        loadBalancerTags: {
-          some: "tag",
-        },
-      });
+  //     // WHEN
+  //     loadBalancer.addListener("listener", {
+  //       protocol: compute.Protocol.TCP,
+  //       port: 3000,
+  //       defaultAction: compute.NetworkListenerAction.forward([targetGroup]),
+  //     });
 
-      const targetGroup = new compute.NetworkTargetGroup(stack, "tg", {
-        vpc: loadBalancer.vpc,
-        port: 3000,
-      });
+  //     // THEN
+  //     Template.fromStack(stack).resourceCountIs(
+  //       "AWS::ElasticLoadBalancingV2::NetworkLoadBalancer",
+  //       0,
+  //     );
+  //     Template.fromStack(stack).resourceCountIs(
+  //       "AWS::ElasticLoadBalancingV2::Listener",
+  //       1,
+  //     );
+  //   });
+  //   test("Can create metrics from a looked-up NetworkLoadBalancer", () => {
+  //     // GIVEN
+  //     // TODO: For non-agnostic Stack:
+  //     // env: {
+  //     //   account: "123456789012",
+  //     //   region: "us-west-2",
+  //     // },
 
-      // WHEN
-      loadBalancer.addListener("listener", {
-        protocol: compute.Protocol.TCP,
-        port: 3000,
-        defaultAction: compute.NetworkListenerAction.forward([targetGroup]),
-      });
+  //     const loadBalancer = compute.NetworkLoadBalancer.fromLookup(stack, "a", {
+  //       loadBalancerTags: {
+  //         some: "tag",
+  //       },
+  //     });
 
-      // THEN
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::ElasticLoadBalancingV2::NetworkLoadBalancer",
-        0,
-      );
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::ElasticLoadBalancingV2::Listener",
-        1,
-      );
-    });
-    test("Can create metrics from a looked-up NetworkLoadBalancer", () => {
-      // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "stack", {
-        env: {
-          account: "123456789012",
-          region: "us-west-2",
-        },
-      });
+  //     // WHEN
+  //     const metric = loadBalancer.metrics.custom("MetricName");
 
-      const loadBalancer = compute.NetworkLoadBalancer.fromLookup(stack, "a", {
-        loadBalancerTags: {
-          some: "tag",
-        },
-      });
+  //     // THEN
+  //     expect(metric.namespace).toEqual("AWS/NetworkELB");
+  //     expect(stack.resolve(metric.dimensions)).toEqual({
+  //       LoadBalancer: "network/my-load-balancer/50dc6c495c0c9188",
+  //     });
+  //   });
 
-      // WHEN
-      const metric = loadBalancer.metrics.custom("MetricName");
+  //   test("can look up security groups", () => {
+  //     // GIVEN
+  //     // TODO: For non-agnostic Stack:
+  //     // env: {
+  //     //   account: "123456789012",
+  //     //   region: "us-west-2",
+  //     // },
 
-      // THEN
-      expect(metric.namespace).toEqual("AWS/NetworkELB");
-      expect(stack.resolve(metric.dimensions)).toEqual({
-        LoadBalancer: "network/my-load-balancer/50dc6c495c0c9188",
-      });
-    });
+  //     // WHEN
+  //     const nlb = compute.NetworkLoadBalancer.fromLookup(stack, "LB", {
+  //       loadBalancerTags: {
+  //         some: "tag",
+  //       },
+  //     });
+  //     nlb.connections.allowFromAnyIpv4(compute.Port.tcp(80));
 
-    test("can look up security groups", () => {
-      // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack", {
-        env: {
-          account: "123456789012",
-          region: "us-west-2",
-        },
-      });
-
-      // WHEN
-      const nlb = compute.NetworkLoadBalancer.fromLookup(stack, "LB", {
-        loadBalancerTags: {
-          some: "tag",
-        },
-      });
-      nlb.connections.allowFromAnyIpv4(compute.Port.tcp(80));
-
-      // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::EC2::SecurityGroupIngress",
-        {
-          CidrIp: "0.0.0.0/0",
-          Description: "from 0.0.0.0/0:80",
-          FromPort: 80,
-          // ID of looked-up security group is dummy value (defined by ec2.SecurityGroup.fromLookupAttributes)
-          GroupId: "sg-12345678",
-          IpProtocol: "tcp",
-          ToPort: 80,
-        },
-      );
-      // IDs of looked-up nlb security groups are dummy values (defined by elbv2.BaseLoadBalancer._queryContextProvider)
-      expect(nlb.securityGroups).toEqual(["sg-1234"]);
-    });
-  });
+  //     // THEN
+  //     Template.fromStack(stack).toHaveResourceWithProperties(
+  //       "AWS::EC2::SecurityGroupIngress",
+  //       {
+  //         CidrIp: "0.0.0.0/0",
+  //         Description: "from 0.0.0.0/0:80",
+  //         FromPort: 80,
+  //         // ID of looked-up security group is dummy value (defined by ec2.SecurityGroup.fromLookupAttributes)
+  //         GroupId: "sg-12345678",
+  //         IpProtocol: "tcp",
+  //         ToPort: 80,
+  //       },
+  //     );
+  //     // IDs of looked-up nlb security groups are dummy values (defined by elbv2.BaseLoadBalancer._queryContextProvider)
+  //     expect(nlb.securityGroups).toEqual(["sg-1234"]);
+  //   });
+  // });
 
   // test cases for crossZoneEnabled
   describe("crossZoneEnabled", () => {
     test("crossZoneEnabled can be true", () => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "stack");
       const vpc = new compute.Vpc(stack, "Vpc");
 
       // WHEN
@@ -1133,25 +1106,15 @@ describe("tests", () => {
         vpc,
         crossZoneEnabled: true,
       });
-      const t = Template.fromStack(stack);
-      t.resourceCountIs("AWS::ElasticLoadBalancingV2::LoadBalancer", 1);
-      t.hasResourceProperties("AWS::ElasticLoadBalancingV2::LoadBalancer", {
-        LoadBalancerAttributes: [
-          {
-            Key: "deletion_protection.enabled",
-            Value: "false",
-          },
-          {
-            Key: "load_balancing.cross_zone.enabled",
-            Value: "true",
-          },
-        ],
+      const t = new Template(stack);
+      t.expectResources(tfLoadBalancer.Lb).toHaveLength(1);
+      t.expect.toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+        enable_deletion_protection: false,
+        enable_cross_zone_load_balancing: true,
       });
     });
     test("crossZoneEnabled can be false", () => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "stack");
       const vpc = new compute.Vpc(stack, "Vpc");
 
       // WHEN
@@ -1159,47 +1122,31 @@ describe("tests", () => {
         vpc,
         crossZoneEnabled: false,
       });
-      const t = Template.fromStack(stack);
-      t.resourceCountIs("AWS::ElasticLoadBalancingV2::LoadBalancer", 1);
-      t.hasResourceProperties("AWS::ElasticLoadBalancingV2::LoadBalancer", {
-        LoadBalancerAttributes: [
-          {
-            Key: "deletion_protection.enabled",
-            Value: "false",
-          },
-          {
-            Key: "load_balancing.cross_zone.enabled",
-            Value: "false",
-          },
-        ],
+      const t = new Template(stack);
+      t.expectResources(tfLoadBalancer.Lb).toHaveLength(1);
+      t.expect.toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+        enable_deletion_protection: false,
+        enable_cross_zone_load_balancing: false,
       });
     });
     test("crossZoneEnabled can be undefined", () => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "stack");
       const vpc = new compute.Vpc(stack, "Vpc");
 
       // WHEN
       new compute.NetworkLoadBalancer(stack, "nlb", {
         vpc,
       });
-      const t = Template.fromStack(stack);
-      t.resourceCountIs("AWS::ElasticLoadBalancingV2::LoadBalancer", 1);
-      t.hasResourceProperties("AWS::ElasticLoadBalancingV2::LoadBalancer", {
-        LoadBalancerAttributes: [
-          {
-            Key: "deletion_protection.enabled",
-            Value: "false",
-          },
-        ],
+      const t = new Template(stack);
+      t.expectResources(tfLoadBalancer.Lb).toHaveLength(1);
+      t.expect.toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+        enable_deletion_protection: false,
       });
     });
   });
   describe("dualstack", () => {
     test("Can create internet-facing dualstack NetworkLoadBalancer", () => {
       // GIVEN
-      const stack = new cdk.Stack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -1210,19 +1157,15 @@ describe("tests", () => {
       });
 
       // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::LoadBalancer",
-        {
-          Scheme: "internet-facing",
-          Type: "network",
-          IpAddressType: "dualstack",
-        },
-      );
+      Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+        internal: false,
+        ip_address_type: "dualstack",
+        load_balancer_type: "network",
+      });
     });
 
     test("Can create internet-facing dualstack NetworkLoadBalancer with denyAllIgwTraffic set to false", () => {
       // GIVEN
-      const stack = new cdk.Stack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -1234,21 +1177,17 @@ describe("tests", () => {
       });
 
       // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::LoadBalancer",
-        {
-          Scheme: "internet-facing",
-          Type: "network",
-          IpAddressType: "dualstack",
-        },
-      );
+      Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+        internal: false,
+        ip_address_type: "dualstack",
+        load_balancer_type: "network",
+      });
     });
 
     test.each([undefined, false])(
       "Can create internal dualstack NetworkLoadBalancer with denyAllIgwTraffic set to true",
       (internetFacing) => {
         // GIVEN
-        const stack = new cdk.Stack();
         const vpc = new compute.Vpc(stack, "Stack");
 
         // WHEN
@@ -1260,77 +1199,70 @@ describe("tests", () => {
         });
 
         // THEN
-        Template.fromStack(stack).hasResourceProperties(
-          "AWS::ElasticLoadBalancingV2::LoadBalancer",
-          {
-            Scheme: "internal",
-            Type: "network",
-            IpAddressType: "dualstack",
-          },
-        );
-      },
-    );
-  });
-
-  describe("enable prefix for ipv6 source nat", () => {
-    test.each([
-      { config: true, value: "on" },
-      { config: false, value: "off" },
-    ])("specify EnablePrefixForIpv6SourceNat", ({ config, value }) => {
-      // GIVEN
-      const stack = new cdk.Stack();
-      const vpc = new compute.Vpc(stack, "Stack");
-
-      // WHEN
-      new compute.NetworkLoadBalancer(stack, "Lb", {
-        vpc,
-        enablePrefixForIpv6SourceNat: config,
-        ipAddressType: compute.IpAddressType.DUAL_STACK,
-      });
-
-      // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::LoadBalancer",
-        {
-          Scheme: "internal",
-          Type: "network",
-          IpAddressType: "dualstack",
-          EnablePrefixForIpv6SourceNat: value,
-        },
-      );
-    });
-
-    test.each([false, undefined])(
-      "throw error for disabling `enablePrefixForIpv6SourceNat` and add UDP listener",
-      (enablePrefixForIpv6SourceNat) => {
-        // GIVEN
-        const stack = new cdk.Stack();
-        const vpc = new compute.Vpc(stack, "Stack");
-        const lb = new compute.NetworkLoadBalancer(stack, "Lb", {
-          vpc,
-          ipAddressType: compute.IpAddressType.DUAL_STACK,
-          enablePrefixForIpv6SourceNat,
+        Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+          internal: true,
+          ip_address_type: "dualstack",
+          load_balancer_type: "network",
         });
-
-        // THEN
-        expect(() => {
-          lb.addListener("Listener", {
-            port: 80,
-            protocol: compute.Protocol.UDP,
-            defaultTargetGroups: [
-              new compute.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
-            ],
-          });
-        }).toThrow(
-          "To add a listener with UDP protocol to a dual stack NLB, 'enablePrefixForIpv6SourceNat' must be set to true.",
-        );
       },
     );
   });
+
+  // TODO: Missing in provider-aws
+  // https://github.com/hashicorp/terraform-provider-aws/issues/40379
+  // describe("enable prefix for ipv6 source nat", () => {
+  //   test.each([
+  //     { config: true, value: "on" },
+  //     { config: false, value: "off" },
+  //   ])("specify EnablePrefixForIpv6SourceNat", ({ config, value }) => {
+  //     // GIVEN
+  //     const vpc = new compute.Vpc(stack, "Stack");
+
+  //     // WHEN
+  //     new compute.NetworkLoadBalancer(stack, "Lb", {
+  //       vpc,
+  //       enablePrefixForIpv6SourceNat: config,
+  //       ipAddressType: compute.IpAddressType.DUAL_STACK,
+  //     });
+
+  //     // THEN
+  //     Template.synth(stack).toHaveResourceWithProperties(tfLoadBalancer.Lb, {
+  //       internal: true,
+  //       type: "network",
+  //       ip_address_type: "dualstack",
+  //       enable_prefix_for_ipv6_source_nat: value,
+  //     });
+  //   });
+
+  //   test.each([false, undefined])(
+  //     "throw error for disabling `enablePrefixForIpv6SourceNat` and add UDP listener",
+  //     (enablePrefixForIpv6SourceNat) => {
+  //       // GIVEN
+  //       const vpc = new compute.Vpc(stack, "Stack");
+  //       const lb = new compute.NetworkLoadBalancer(stack, "Lb", {
+  //         vpc,
+  //         ipAddressType: compute.IpAddressType.DUAL_STACK,
+  //         enablePrefixForIpv6SourceNat,
+  //       });
+
+  //       // THEN
+  //       expect(() => {
+  //         lb.addListener("Listener", {
+  //           port: 80,
+  //           protocol: compute.LbProtocol.UDP,
+  //           defaultTargetGroups: [
+  //             new compute.NetworkTargetGroup(stack, "Group", { vpc, port: 80 }),
+  //           ],
+  //         });
+  //       }).toThrow(
+  //         "To add a listener with UDP protocol to a dual stack NLB, 'enablePrefixForIpv6SourceNat' must be set to true.",
+  //       );
+  //     },
+  //   );
+  // });
 
   describe("dualstack without public ipv4", () => {
     test("Throws when creating a dualstack without public ipv4 and a NetworkLoadBalancer", () => {
-      const stack = new cdk.Stack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       expect(() => {

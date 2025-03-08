@@ -29,6 +29,7 @@ import {
   determineProtocolAndPort,
   parseLoadBalancerFullName,
   parseTargetGroupFullName,
+  NO_LOADBALANCER_ARNS,
 } from "../lb-shared/util";
 import { Port } from "../port";
 
@@ -808,7 +809,7 @@ class ImportedApplicationTargetGroup
     props: TargetGroupAttributes,
   ) {
     super(scope, id, props);
-    if (this.loadBalancerArns != Token.asString(Token.nullValue)) {
+    if (this.loadBalancerArns != NO_LOADBALANCER_ARNS) {
       const targetGroupFullName = parseTargetGroupFullName(this.targetGroupArn);
       const firstLoadBalancerFullName = parseLoadBalancerFullName(
         this.loadBalancerArns,

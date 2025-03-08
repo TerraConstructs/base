@@ -1,5 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/alb/application-load-balancer.ts
 
+import { lb as tfLoadBalancer } from "@cdktf/provider-aws";
 import { TerraformResource, Lazy } from "cdktf";
 import { Construct } from "constructs";
 import {
@@ -32,7 +33,10 @@ import {
   ApplicationProtocol,
   DesyncMitigationMode,
 } from "../lb-shared/enums";
-import { parseLoadBalancerFullName } from "../lb-shared/util";
+import {
+  parseLoadBalancerFullName,
+  LoadBalancerAttribute as Attribute,
+} from "../lb-shared/util";
 import { ISecurityGroup, SecurityGroup } from "../security-group";
 import {
   IVpc,
@@ -367,19 +371,18 @@ export class ApplicationLoadBalancer
    * environment-agnostic stacks. See https://docs.aws.amazon.com/cdk/latest/guide/environments.html
    */
   public logAccessLogs(bucket: s3.IBucket, prefix?: string) {
+    // TODO: Why does this override BaseLoadBalancer.putAccessLogs?
     /**
      * KMS key encryption is not supported on Access Log bucket for ALB, the bucket must use Amazon S3-managed keys (SSE-S3).
      * See https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html#bucket-permissions-troubleshooting
      */
+    if (bucket.encryptionKey) {
+      throw new Error(
+        "Encryption key detected. Bucket encryption using KMS keys is unsupported",
+      );
+    }
 
-    // TODO: Re-add encryption
-    // if (bucket.encryptionKey) {
-    //   throw new Error(
-    //     "Encryption key detected. Bucket encryption using KMS keys is unsupported",
-    //   );
-    // }
-
-    prefix = prefix || "";
+    // prefix = prefix; // prefix is optional in TF || "";
     this.setAttribute("access_logs.s3.enabled", "true");
     this.setAttribute("access_logs.s3.bucket", bucket.bucketName.toString());
     this.setAttribute("access_logs.s3.prefix", prefix);
@@ -427,7 +430,7 @@ export class ApplicationLoadBalancer
     // make sure the bucket's policy is created before the ALB (see https://github.com/aws/aws-cdk/issues/1633)
     // at the L1 level to avoid creating a circular dependency (see https://github.com/aws/aws-cdk/issues/27528
     // and https://github.com/aws/aws-cdk/issues/27928)
-    const lb = this.node.defaultChild;
+    const lb = this.node.defaultChild as tfLoadBalancer.Lb | undefined;
     const bucketPolicy = bucket.policy?.node.defaultChild;
     if (
       lb &&
@@ -437,6 +440,13 @@ export class ApplicationLoadBalancer
     ) {
       lb.node.addDependency(bucketPolicy);
     }
+    // TODO: Should putAccessLogs be handled as part of prepareStack (in toTerraform() instead)?
+    // only if lb.accessLogs.internalValue !== undefined? (or based on this.attributes?)
+    lb?.putAccessLogs({
+      enabled: this.lazyBoolAttr(Attribute.accessLogsS3Enabled),
+      bucket: this.lazyStringAttr(Attribute.accessLogsS3Bucket),
+      prefix: this.lazyStringAttr(Attribute.accessLogsS3Prefix),
+    });
   }
 
   /**
@@ -448,16 +458,15 @@ export class ApplicationLoadBalancer
    * @see https://docs.aws.amazon.com/cdk/latest/guide/environments.html
    */
   public logConnectionLogs(bucket: s3.IBucket, prefix?: string) {
-    // TODO: Re-add encryption
-    // /**
-    //  * KMS key encryption is not supported on Connection Log bucket for ALB, the bucket must use Amazon S3-managed keys (SSE-S3).
-    //  * See https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-connection-logging.html#bucket-permissions-troubleshooting-connection
-    //  */
-    // if (bucket.encryptionKey) {
-    //   throw new Error(
-    //     "Encryption key detected. Bucket encryption using KMS keys is unsupported",
-    //   );
-    // }
+    /**
+     * KMS key encryption is not supported on Connection Log bucket for ALB, the bucket must use Amazon S3-managed keys (SSE-S3).
+     * See https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-connection-logging.html#bucket-permissions-troubleshooting-connection
+     */
+    if (bucket.encryptionKey) {
+      throw new Error(
+        "Encryption key detected. Bucket encryption using KMS keys is unsupported",
+      );
+    }
 
     prefix = prefix || "";
     this.setAttribute("connection_logs.s3.enabled", "true");
@@ -512,7 +521,7 @@ export class ApplicationLoadBalancer
     // make sure the bucket's policy is created before the ALB (see https://github.com/aws/aws-cdk/issues/1633)
     // at the L1 level to avoid creating a circular dependency (see https://github.com/aws/aws-cdk/issues/27528
     // and https://github.com/aws/aws-cdk/issues/27928)
-    const lb = this.node.defaultChild;
+    const lb = this.node.defaultChild as tfLoadBalancer.Lb | undefined;
     const bucketPolicy = bucket.policy?.node.defaultChild;
     if (
       lb &&
@@ -522,6 +531,13 @@ export class ApplicationLoadBalancer
     ) {
       lb.node.addDependency(bucketPolicy);
     }
+    // TODO: Should putConnectionLogs be handled as part of prepareStack (in toTerraform() instead)?
+    // only if lb.connectionLogs.internalValue !== undefined? (or based on this.attributes?)
+    lb?.putConnectionLogs({
+      enabled: this.lazyBoolAttr(Attribute.connectionLogsS3Enabled),
+      bucket: this.lazyStringAttr(Attribute.connectionLogsS3Bucket),
+      prefix: this.lazyStringAttr(Attribute.connectionLogsS3Prefix),
+    });
   }
 
   /**

@@ -98,6 +98,11 @@ export * from "./nlb/network-load-balancer";
 export * from "./nlb/network-target-group";
 export * from "./nlb/network-listener-action";
 
+// elasticloadbalancingv2-targets
+export * as lbtargets from "./lb-targets";
+
+// temp export, required by base types
+export * from "./lb-shared/grid-lookup-types";
 export * from "./lb-shared/base-listener";
 export * from "./lb-shared/base-load-balancer";
 export * from "./lb-shared/base-target-group";
@@ -106,6 +111,7 @@ export * from "./lb-shared/load-balancer-targets";
 export * from "./lb-shared/listener-certificate";
 export * from "./lb-shared/listener-action";
 export * from "./lb-shared/lb-listener-config.generated";
+export * from "./lb-shared/lb-target-group-attachment-config.generated";
 
 export * as sources from "./event-sources";
 export * as destinations from "./function-destinations";

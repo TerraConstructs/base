@@ -13,6 +13,7 @@ import {
 } from "constructs";
 import { IVpc } from "../vpc";
 import { LbProtocol, TargetType } from "./enums";
+import { LbTargetGroupAttachmentConfig } from "./lb-target-group-attachment-config.generated";
 import {
   Attributes,
   lookupStringAttribute,
@@ -22,7 +23,11 @@ import {
 } from "./util";
 import { Duration } from "../../../duration";
 import { ArnFormat } from "../../arn";
-import { AwsConstructBase, AwsConstructProps } from "../../aws-construct";
+import {
+  AwsConstructBase,
+  AwsConstructProps,
+  // IAwsConstruct,
+} from "../../aws-construct";
 
 /**
  * The IP address type of targets registered with a target group
@@ -313,8 +318,7 @@ export abstract class TargetGroupBase
   /**
    * The JSON objects returned by the directly registered members of this target group
    */
-  private readonly targetsJson =
-    new Array<tfTargetGroupAttachment.LbTargetGroupAttachmentConfig>();
+  private readonly targetsJson = new Array<LbTargetGroupAttachmentConfig>();
 
   /**
    * The target group VPC
@@ -324,10 +328,27 @@ export abstract class TargetGroupBase
   private vpc?: IVpc;
 
   /**
+   * The protocol version to use
+   *
+   * Only applicable when protocol is HTTP or HTTPS. The protocol version.
+   *
+   * Specify GRPC to send requests to targets using gRPC.
+   * Specify HTTP2 to send requests to targets using HTTP/2.
+   *
+   * The default is HTTP1, which sends requests to targets using HTTP/1.1
+   *
+   * @default "HTTP1"
+   */
+  private readonly protocolVersion?: string;
+
+  /**
    * The target group resource
    */
   public readonly resource: tfTargetGroup.LbTargetGroup;
 
+  /**
+   * @param additionalProps healthCheck, stickiness, targetGroupHealth are controlled by methods and ignored
+   */
   constructor(
     scope: Construct,
     id: string,
@@ -340,6 +361,7 @@ export abstract class TargetGroupBase
       baseProps.targetGroupName ||
       this.stack.uniqueResourceName(this, {
         prefix: this.gridUUID,
+        allowedSpecialCharacters: "-",
         maxLength: 32,
       });
 
@@ -389,168 +411,83 @@ export abstract class TargetGroupBase
         Attribute.loadBalancingAlgorithmAnomalyMitigation,
       ),
       slowStart: this.lazyNumberAttr(Attribute.slowStartDurationSeconds),
-      stickiness: Lazy.anyValue({
-        produce: (): tfTargetGroup.LbTargetGroupStickiness | undefined => {
-          // possible values for ALB are `lb_cookie` or `app_cookie`
-          // only possible value for NLB is `source_ip`
-          // possible values for GWLB are `source_ip_dest_ip` or `source_ip_dest_ip_proto`
-          const type = lookupStringAttribute(
-            this.attributes,
-            Attribute.stickinessType,
-          );
-          const stickiness: Partial<tfTargetGroup.LbTargetGroupStickiness> = {
-            enabled: lookupBoolAttribute(
-              this.attributes,
-              Attribute.stickinessEnabled,
-            ),
-            type,
-            cookieDuration:
-              type === "lb_cookie" || type === "app_cookie"
-                ? lookupNumberAttribute(
-                    this.attributes,
-                    `stickiness.${type}.duration_seconds`,
-                  )
-                : undefined,
-            // app_cookie attributes
-            cookieName: lookupStringAttribute(
-              this.attributes,
-              Attribute.stickinessAppCookieCookieName,
-            ),
-          };
-          const hasValues = Object.values(stickiness).some(
-            (value) => value !== undefined,
-          );
-          if (!hasValues) return undefined;
-          // tf requires type to be set
-          if (!type) throw new Error("stickiness.type is required");
-          return stickiness as tfTargetGroup.LbTargetGroupStickiness;
-        },
-      }) as any,
-      targetGroupHealth: Lazy.anyValue({
-        produce: ():
-          | tfTargetGroup.LbTargetGroupTargetGroupHealth
-          | undefined => {
-          const dnsFailover: tfTargetGroup.LbTargetGroupTargetGroupHealthDnsFailover =
-            {
-              minimumHealthyTargetsCount: lookupStringAttribute(
-                this.attributes,
-                Attribute.targetGroupHealthDNSFailoverMinimumHealthyTargetsCount,
-              ),
-              minimumHealthyTargetsPercentage: lookupStringAttribute(
-                this.attributes,
-                Attribute.targetGroupHealthDNSFailoverMinimumHealthyTargetsPercentage,
-              ),
-            };
-          const unhealthyStateRouting: tfTargetGroup.LbTargetGroupTargetGroupHealthUnhealthyStateRouting =
-            {
-              minimumHealthyTargetsCount: lookupNumberAttribute(
-                this.attributes,
-                Attribute.targetGroupHealthUnhealthyStateRoutingMinimumHealthyTargetsCount,
-              ),
-              minimumHealthyTargetsPercentage: lookupStringAttribute(
-                this.attributes,
-                Attribute.targetGroupHealthUnhealthyStateRoutingMinimumHealthyTargetsPercentage,
-              ),
-            };
-          const targetGroupHealth: tfTargetGroup.LbTargetGroupTargetGroupHealth =
-            {
-              dnsFailover: Object.values(dnsFailover).some(
-                (value) => value !== undefined,
-              )
-                ? dnsFailover
-                : undefined,
-              unhealthyStateRouting: Object.values(unhealthyStateRouting).some(
-                (value) => value !== undefined,
-              )
-                ? unhealthyStateRouting
-                : undefined,
-            };
-          return Object.values(targetGroupHealth).some(
-            (value) => value !== undefined,
-          )
-            ? targetGroupHealth
-            : undefined;
-        },
-      }) as any,
+      // stickiness is set in toTerraform as it could be empty object
+      // it is ComplexObject - doesn't work with IResolvable
+      // stickiness: Lazy.anyValue({ ... }),
+      // target_group_health is set in toTerraform as it could be empty object
+      // it is ComplexObject - doesn't work with IResolvable
+      // targetGroupHealth: Lazy.anyValue({ ... }),
       preserveClientIp: this.lazyStringAttr(Attribute.preserveClientIPEnabled),
       proxyProtocolV2: this.lazyBoolAttr(Attribute.proxyProtocolV2Enabled),
       lambdaMultiValueHeadersEnabled: this.lazyBoolAttr(
         Attribute.lambdaMultiValueHeadersEnabled,
       ),
-      targetHealthState: Lazy.anyValue({
-        produce: ():
-          | tfTargetGroup.LbTargetGroupTargetHealthState[]
-          | undefined => {
-          const enableUnhealthyConnectionTermination =
-            lookupBoolAttribute(
+      targetHealthState: Lazy.anyValue(
+        {
+          produce: () => {
+            const result =
+              new Array<tfTargetGroup.LbTargetGroupTargetHealthState>();
+            const unhealthyDrainingInterval = lookupNumberAttribute(
+              this.attributes,
+              Attribute.targetHealthStateUnhealthyDrainingIntervalSeconds,
+            );
+            const enableUnhealthyConnectionTermination = lookupBoolAttribute(
               this.attributes,
               Attribute.targetHealthStateUnhealthyConnectionTerminationEnabled,
-            ) ?? true;
-          const targetHealthState: tfTargetGroup.LbTargetGroupTargetHealthState =
-            {
-              enableUnhealthyConnectionTermination,
-              unhealthyDrainingInterval: lookupNumberAttribute(
-                this.attributes,
-                Attribute.targetHealthStateUnhealthyDrainingIntervalSeconds,
-              ),
-            };
-          const hasValues = Object.values(targetHealthState).some(
-            (value) => value !== undefined,
-          );
-          if (!hasValues) return undefined;
-          return [targetHealthState];
+            );
+            if (
+              unhealthyDrainingInterval !== undefined ||
+              enableUnhealthyConnectionTermination !== undefined
+            ) {
+              result.push({
+                enableUnhealthyConnectionTermination:
+                  enableUnhealthyConnectionTermination ?? true,
+                unhealthyDrainingInterval,
+              });
+            }
+            return result;
+          },
         },
-      }),
-      targetFailover: Lazy.anyValue({
-        produce: ():
-          | tfTargetGroup.LbTargetGroupTargetFailover[]
-          | undefined => {
-          const targetFailover: Partial<tfTargetGroup.LbTargetGroupTargetFailover> =
-            {
-              onUnhealthy: lookupStringAttribute(
-                this.attributes,
-                Attribute.targetFailoverOnUnhealthy,
-              ),
-              onDeregistration: lookupStringAttribute(
-                this.attributes,
-                Attribute.targetFailoverOnDeregistration,
-              ),
-            };
-          return Object.values(targetFailover).some(
-            (value) => value !== undefined,
-          )
-            ? [targetFailover as tfTargetGroup.LbTargetGroupTargetFailover]
-            : undefined;
+        { omitEmptyArray: true },
+      ),
+      targetFailover: Lazy.anyValue(
+        {
+          produce: ():
+            | tfTargetGroup.LbTargetGroupTargetFailover[]
+            | undefined => {
+            const result =
+              new Array<tfTargetGroup.LbTargetGroupTargetFailover>();
+            const onUnhealthy = lookupStringAttribute(
+              this.attributes,
+              Attribute.targetFailoverOnUnhealthy,
+            );
+            const onDeregistration = lookupStringAttribute(
+              this.attributes,
+              Attribute.targetFailoverOnDeregistration,
+            );
+            // throw error if either is defined without the other
+            if (
+              (onUnhealthy !== undefined && onDeregistration === undefined) ||
+              (onUnhealthy === undefined && onDeregistration !== undefined)
+            ) {
+              throw new Error(
+                "target_failover.on_unhealthy and target_failover.on_deregistration must be defined together",
+              );
+            }
+            if (onUnhealthy !== undefined && onDeregistration !== undefined) {
+              result.push({
+                onUnhealthy,
+                onDeregistration,
+              });
+            }
+            return result;
+          },
         },
-      }),
-      healthCheck: Lazy.anyValue({
-        produce: (): tfTargetGroup.LbTargetGroupHealthCheck | undefined => {
-          let matcher = this.healthCheck?.healthyHttpCodes;
-          if (
-            additionalProps?.protocolVersion === "GRPC" &&
-            this.healthCheck?.healthyGrpcCodes !== undefined
-          ) {
-            matcher = this.healthCheck.healthyGrpcCodes;
-          }
-          const healthCheckConfig = {
-            enabled: this.healthCheck?.enabled,
-            interval: this.healthCheck?.interval?.toSeconds(),
-            path: this.healthCheck?.path,
-            port: this.healthCheck?.port,
-            protocol: this.healthCheck?.protocol,
-            timeout: this.healthCheck?.timeout?.toSeconds(),
-            healthyThreshold: this.healthCheck?.healthyThresholdCount,
-            unhealthyThreshold: this.healthCheck?.unhealthyThresholdCount,
-            matcher,
-          };
-
-          return Object.values(healthCheckConfig).some(
-            (value) => value !== undefined,
-          )
-            ? healthCheckConfig
-            : undefined;
-        },
-      }) as any,
+        { omitEmptyArray: true },
+      ),
+      // health_check is set in toTerraform as it could be empty object
+      // it is ComplexObject - doesn't work with IResolvable
+      // healthCheck: Lazy.anyValue({ ...}),
       ipAddressType: baseProps.ipAddressType,
 
       ...additionalProps,
@@ -566,6 +503,7 @@ export abstract class TargetGroupBase
     this.loadBalancerArns = this.resource.loadBalancerArns.toString();
     this.targetGroupName = this.resource.name;
     this.defaultPort = additionalProps.port ?? 80; // TODO: This is bug in AWSCDK as it can be undefined.
+    this.protocolVersion = additionalProps?.protocolVersion;
 
     this.node.addValidation({ validate: () => this.validateHealthCheck() });
     this.node.addValidation({ validate: () => this.validateTargetGroup() });
@@ -633,7 +571,7 @@ export abstract class TargetGroupBase
     }
 
     // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html#cfn-elasticloadbalancingv2-targetgroup-name
-    const targetGroupName = this.resource.name;
+    const targetGroupName = this.resource.nameInput;
     if (!Token.isUnresolved(targetGroupName) && targetGroupName !== undefined) {
       if (targetGroupName.length > 32) {
         ret.push(
@@ -702,6 +640,125 @@ export abstract class TargetGroupBase
     //   { omitEmptyArray: true },
     // ),
 
+    // put putStickiness if attributes are set
+    const stickinessEnabled = lookupBoolAttribute(
+      this.attributes,
+      Attribute.stickinessEnabled,
+    );
+    const stickinessAppCookieDuration = lookupNumberAttribute(
+      this.attributes,
+      Attribute.stickinessAppCookieDurationSeconds,
+    );
+    const stickinessLBCookieDuration = lookupNumberAttribute(
+      this.attributes,
+      Attribute.stickinessLBCookieDurationSeconds,
+    );
+    const stickinessCookieName = lookupStringAttribute(
+      this.attributes,
+      Attribute.stickinessAppCookieCookieName,
+    );
+    if (
+      (stickinessEnabled !== undefined && stickinessEnabled !== false) ||
+      stickinessAppCookieDuration !== undefined ||
+      stickinessLBCookieDuration !== undefined ||
+      stickinessCookieName !== undefined
+    ) {
+      // possible values for ALB are `lb_cookie` or `app_cookie`
+      // only possible value for NLB is `source_ip`
+      // possible values for GWLB are `source_ip_dest_ip` or `source_ip_dest_ip_proto`
+      const type = lookupStringAttribute(
+        this.attributes,
+        Attribute.stickinessType,
+      );
+      // tf requires type to be set
+      if (!type)
+        throw new Error(
+          "stickiness.type is required if any stickiness attribute is set",
+        );
+      this.resource.putStickiness({
+        type,
+        enabled: lookupBoolAttribute(
+          this.attributes,
+          Attribute.stickinessEnabled,
+        ),
+        cookieDuration:
+          type === "lb_cookie"
+            ? stickinessLBCookieDuration
+            : stickinessAppCookieDuration,
+        // app_cookie attributes
+        cookieName: lookupStringAttribute(
+          this.attributes,
+          Attribute.stickinessAppCookieCookieName,
+        ),
+      });
+    }
+
+    /**
+     * The HTTP or gRPC codes to use when checking for a successful response from a target.
+     * The `health_check.protocol` must be one of HTTP or HTTPS or the `target_type` must be lambda.
+     * Values can be comma-separated individual values (e.g., "200,202") or a range of
+     * values (e.g., "200-299").
+     *
+     * - For gRPC-based target groups (i.e., the protocol is one of HTTP or HTTPS and the
+     *   `protocol_version` is GRPC), values can be between 0 and 99. The default is 12.
+     * - When used with an Application Load Balancer (i.e., the protocol is one of HTTP
+     *   or HTTPS and the `protocol_version` is not GRPC), values can be between 200 and 499.
+     *   The default is 200.
+     * - When used with a Network Load Balancer (i.e., the protocol is one of TCP, TCP_UDP, UDP, or TLS),
+     *   values can be between 200 and 599. The default is 200-399.
+     * - When the target_type is lambda, values can be between 200 and 499. The default is 200.
+     *
+     * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/resources/lb_target_group#matcher-1 LbTargetGroup#matcher}
+     */
+    let matcher = this.healthCheck?.healthyHttpCodes;
+    if (
+      this.protocolVersion === "GRPC" &&
+      this.healthCheck?.healthyGrpcCodes !== undefined
+    ) {
+      matcher = this.healthCheck.healthyGrpcCodes;
+    }
+
+    // put HealthCheck if attributes are set
+    this.resource.putHealthCheck({
+      enabled: this.healthCheck?.enabled,
+      interval: this.healthCheck?.interval?.toSeconds(),
+      path: this.healthCheck?.path,
+      port: this.healthCheck?.port,
+      protocol: this.healthCheck?.protocol,
+      timeout: this.healthCheck?.timeout?.toSeconds(),
+      healthyThreshold: this.healthCheck?.healthyThresholdCount,
+      unhealthyThreshold: this.healthCheck?.unhealthyThresholdCount,
+      matcher,
+    });
+
+    // put targetGroupHealth if attributes are set
+    const dnsFailover: tfTargetGroup.LbTargetGroupTargetGroupHealthDnsFailover =
+      {
+        minimumHealthyTargetsCount: lookupStringAttribute(
+          this.attributes,
+          Attribute.targetGroupHealthDNSFailoverMinimumHealthyTargetsCount,
+        ),
+        minimumHealthyTargetsPercentage: lookupStringAttribute(
+          this.attributes,
+          Attribute.targetGroupHealthDNSFailoverMinimumHealthyTargetsPercentage,
+        ),
+      };
+    const unhealthyStateRouting: tfTargetGroup.LbTargetGroupTargetGroupHealthUnhealthyStateRouting =
+      {
+        minimumHealthyTargetsCount: lookupNumberAttribute(
+          this.attributes,
+          Attribute.targetGroupHealthUnhealthyStateRoutingMinimumHealthyTargetsCount,
+        ),
+        minimumHealthyTargetsPercentage: lookupStringAttribute(
+          this.attributes,
+          Attribute.targetGroupHealthUnhealthyStateRoutingMinimumHealthyTargetsPercentage,
+        ),
+      };
+    this.resource.putTargetGroupHealth({
+      dnsFailover, // TODO: should be undefined if all object keys are undefined
+      unhealthyStateRouting, // TODO: should be undefined if all object keys are undefined
+    });
+
     // add lbTargetGroupAttachment resource for each target
     for (let i = 0; i < this.targetsJson.length; i++) {
       const id = `Attachment${i}`;
@@ -753,6 +810,7 @@ export interface TargetGroupImportProps extends TargetGroupAttributes {}
  * A target group
  */
 export interface ITargetGroup extends IConstruct {
+  // TODO: Extend IAwsConstruct instead?
   /**
    * The name of the target group
    */
@@ -788,7 +846,7 @@ export interface LoadBalancerTargetProps {
    *
    * May be omitted if the target is going to register itself later.
    */
-  readonly targetJson?: any;
+  readonly targetJson?: LbTargetGroupAttachmentConfig;
 }
 
 /**

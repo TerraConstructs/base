@@ -9,6 +9,7 @@ import {
   PolicyDocumentStatementStructBuilder,
   PolicyDocumentConfigStructBuilder,
   LbListenerConfigStructBuilder,
+  LbTargetGroupAttachmentConfigStructBuilder,
 } from "./projenrc";
 
 // set strict node version compatible with webcontainers.io
@@ -155,5 +156,6 @@ new S3BucketCorsConfigurationConfigStructBuilder(project);
 new S3BucketLifecycleConfigurationRuleStructBuilder(project);
 new SqsQueueConfigStructBuilder(project);
 new LbListenerConfigStructBuilder(project);
+new LbTargetGroupAttachmentConfigStructBuilder(project);
 
 project.synth();

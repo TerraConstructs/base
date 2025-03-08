@@ -1,5 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/alb/conditions.ts
 
+import { lbListenerRule as tfLbListenerRule } from "@cdktf/provider-aws";
+
 /**
  * ListenerCondition providers definition.
  */
@@ -93,12 +95,11 @@ class HostHeaderListenerCondition extends ListenerCondition {
   }
 
   public renderRawCondition(): any {
-    return {
-      field: "host-header",
-      hostHeaderConfig: {
+    return tfLbListenerRule.lbListenerRuleConditionToTerraform({
+      hostHeader: {
         values: this.values,
       },
-    };
+    });
   }
 }
 
@@ -114,13 +115,12 @@ class HttpHeaderListenerCondition extends ListenerCondition {
   }
 
   public renderRawCondition(): any {
-    return {
-      field: "http-header",
-      httpHeaderConfig: {
+    return tfLbListenerRule.lbListenerRuleConditionToTerraform({
+      httpHeader: {
         httpHeaderName: this.name,
         values: this.values,
       },
-    };
+    });
   }
 }
 
@@ -133,12 +133,11 @@ class HttpRequestMethodListenerCondition extends ListenerCondition {
   }
 
   public renderRawCondition(): any {
-    return {
-      field: "http-request-method",
-      httpRequestMethodConfig: {
+    return tfLbListenerRule.lbListenerRuleConditionToTerraform({
+      httpRequestMethod: {
         values: this.values,
       },
-    };
+    });
   }
 }
 
@@ -154,12 +153,11 @@ class PathPatternListenerCondition extends ListenerCondition {
   }
 
   public renderRawCondition(): any {
-    return {
-      field: "path-pattern",
-      pathPatternConfig: {
+    return tfLbListenerRule.lbListenerRuleConditionToTerraform({
+      pathPattern: {
         values: this.values,
       },
-    };
+    });
   }
 }
 
@@ -172,12 +170,9 @@ class QueryStringListenerCondition extends ListenerCondition {
   }
 
   public renderRawCondition(): any {
-    return {
-      field: "query-string",
-      queryStringConfig: {
-        values: this.values,
-      },
-    };
+    return tfLbListenerRule.lbListenerRuleConditionToTerraform({
+      queryString: this.values,
+    });
   }
 }
 
@@ -190,11 +185,10 @@ class SourceIpListenerCondition extends ListenerCondition {
   }
 
   public renderRawCondition(): any {
-    return {
-      field: "source-ip",
-      sourceIpConfig: {
+    return tfLbListenerRule.lbListenerRuleConditionToTerraform({
+      sourceIp: {
         values: this.values,
       },
-    };
+    });
   }
 }

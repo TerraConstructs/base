@@ -449,6 +449,11 @@ export interface IBucket extends IAwsConstruct {
   readonly public?: boolean;
 
   /**
+   * Optional KMS encryption key associated with this bucket.
+   */
+  readonly encryptionKey?: kms.IKey;
+
+  /**
    * The resource policy associated with this bucket.
    *
    * If `autoCreatePolicy` is true, a `BucketPolicy` will be created upon the
@@ -1311,7 +1316,7 @@ export class Bucket extends BucketBase implements IBucket {
     class Import extends BucketBase {
       public readonly resource = new dataAwsS3Bucket.DataAwsS3Bucket(
         scope,
-        bucketName!,
+        bucketName!, // make id is unique
         {
           bucket: bucketName!,
         },
@@ -1657,7 +1662,10 @@ export class Bucket extends BucketBase implements IBucket {
       new s3BucketServerSideEncryptionConfiguration.S3BucketServerSideEncryptionConfigurationA(
         this,
         "Encryption",
-        bucketEncryption,
+        {
+          bucket: this.resource.bucket,
+          ...bucketEncryption,
+        },
       );
     }
   }
@@ -1683,7 +1691,10 @@ export class Bucket extends BucketBase implements IBucket {
    * | S3_MANAGED       | k                   | e                      | ERROR!                          | ERROR!                       |
    */
   private parseEncryption(props: BucketProps): {
-    bucketEncryption?: s3BucketServerSideEncryptionConfiguration.S3BucketServerSideEncryptionConfigurationAConfig;
+    bucketEncryption?: Omit<
+      s3BucketServerSideEncryptionConfiguration.S3BucketServerSideEncryptionConfigurationAConfig,
+      "bucket"
+    >;
     encryptionKey?: kms.IKey;
   } {
     // default based on whether encryptionKey is specified
@@ -1726,10 +1737,9 @@ export class Bucket extends BucketBase implements IBucket {
           description: `Created by ${this.node.path}`,
           enableKeyRotation: true,
         });
-
-      const bucketEncryption: s3BucketServerSideEncryptionConfiguration.S3BucketServerSideEncryptionConfigurationAConfig =
-        {
-          bucket: this.resource.id,
+      return {
+        encryptionKey,
+        bucketEncryption: {
           // (Optional) Account ID of the expected bucket owner.
           // expectedBucketOwner
           rule: [
@@ -1741,14 +1751,13 @@ export class Bucket extends BucketBase implements IBucket {
               },
             },
           ],
-        };
-      return { encryptionKey, bucketEncryption };
+        },
+      };
     }
 
     if (encryptionType === BucketEncryption.S3_MANAGED) {
-      const bucketEncryption: s3BucketServerSideEncryptionConfiguration.S3BucketServerSideEncryptionConfigurationAConfig =
-        {
-          bucket: this.resource.id,
+      return {
+        bucketEncryption: {
           // (Optional) Account ID of the expected bucket owner.
           // expectedBucketOwner
           rule: [
@@ -1757,24 +1766,23 @@ export class Bucket extends BucketBase implements IBucket {
               applyServerSideEncryptionByDefault: { sseAlgorithm: "AES256" },
             },
           ],
-        };
-
-      return { bucketEncryption };
+        },
+      };
     }
 
     if (encryptionType === BucketEncryption.KMS_MANAGED) {
-      const bucketEncryption: s3BucketServerSideEncryptionConfiguration.S3BucketServerSideEncryptionConfigurationAConfig =
-        {
-          bucket: this.resource.id,
+      return {
+        bucketEncryption: {
           // (Optional) Account ID of the expected bucket owner.
+          // expectedBucketOwner
           rule: [
             {
               bucketKeyEnabled: props.bucketKeyEnabled,
               applyServerSideEncryptionByDefault: { sseAlgorithm: "aws:kms" },
             },
           ],
-        };
-      return { bucketEncryption };
+        },
+      };
     }
 
     if (encryptionType === BucketEncryption.DSSE) {
@@ -1783,11 +1791,11 @@ export class Bucket extends BucketBase implements IBucket {
         new kms.Key(this, "Key", {
           description: `Created by ${this.node.path}`,
         });
-
-      const bucketEncryption: s3BucketServerSideEncryptionConfiguration.S3BucketServerSideEncryptionConfigurationAConfig =
-        {
-          bucket: this.resource.id,
+      return {
+        encryptionKey,
+        bucketEncryption: {
           // (Optional) Account ID of the expected bucket owner.
+          // expectedBucketOwner
           rule: [
             {
               bucketKeyEnabled: props.bucketKeyEnabled,
@@ -1797,15 +1805,15 @@ export class Bucket extends BucketBase implements IBucket {
               },
             },
           ],
-        };
-      return { encryptionKey, bucketEncryption };
+        },
+      };
     }
 
     if (encryptionType === BucketEncryption.DSSE_MANAGED) {
-      const bucketEncryption: s3BucketServerSideEncryptionConfiguration.S3BucketServerSideEncryptionConfigurationAConfig =
-        {
-          bucket: this.resource.id,
+      return {
+        bucketEncryption: {
           // (Optional) Account ID of the expected bucket owner.
+          // expectedBucketOwner
           rule: [
             {
               bucketKeyEnabled: props.bucketKeyEnabled,
@@ -1814,8 +1822,8 @@ export class Bucket extends BucketBase implements IBucket {
               },
             },
           ],
-        };
-      return { bucketEncryption };
+        },
+      };
     }
 
     throw new Error(`Unexpected 'encryptionType': ${encryptionType}`);

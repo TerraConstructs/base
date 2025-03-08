@@ -60,7 +60,7 @@ export class InstanceTarget
   private attach(_targetGroup: ITargetGroup): LoadBalancerTargetProps {
     return {
       targetType: TargetType.INSTANCE,
-      targetJson: { id: this.instanceId, port: this.port },
+      targetJson: { targetId: this.instanceId, port: this.port },
     };
   }
 }
@@ -76,7 +76,7 @@ export class InstanceTarget
  * If you register a target of this type, you are responsible for making
  * sure the load balancer's security group can send packets to the IP address.
  *
- * @deprecated Use IpTarget from the aws-cdk-lib/aws-elasticloadbalancingv2-targets package instead.
+ * @deprecated Use IpTarget from the compute/lb-targets package instead.
  */
 export class IpTarget
   implements IApplicationLoadBalancerTarget, INetworkLoadBalancerTarget
@@ -137,7 +137,7 @@ export class IpTarget
     return {
       targetType: TargetType.IP,
       targetJson: {
-        id: this.ipAddress,
+        targetId: this.ipAddress,
         port: this.port,
         availabilityZone: this.availabilityZone,
       },

@@ -131,8 +131,16 @@ export interface ExecuteFileOptions {
   readonly arguments?: string;
 }
 
+// TODO: Support Content Transfer Encoding
+// https://stackoverflow.com/questions/25710599/content-transfer-encoding-7bit-or-8-bit
+
 /**
  * Instance User Data
+ *
+ * resource: data_cloudinit_config
+ *
+ * This is limited to 7bit encoding
+ * ref open issue: https://github.com/hashicorp/terraform-provider-cloudinit/pull/170
  */
 export abstract class UserData {
   /**
@@ -542,6 +550,8 @@ export abstract class MultipartBody {
   /**
   * When transfer encoding is specified (typically as Base64), it's caller responsibility to convert body to
   * Base64 either by wrapping with `Fn.base64` or by converting it by other converters.
+  *
+  * Note: https://github.com/hashicorp/terraform-provider-cloudinit/pull/170
   * /
 
   /**

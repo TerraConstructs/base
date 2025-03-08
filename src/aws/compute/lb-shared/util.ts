@@ -7,6 +7,8 @@ import { Arn, ArnFormat } from "../../arn";
 
 export type Attributes = { [key: string]: string | undefined };
 
+export const NO_LOADBALANCER_ARNS = "NO_LOADBALANCER_ARNS";
+
 /**
  * Render an attribute dict to a list of { key, value } pairs
  */

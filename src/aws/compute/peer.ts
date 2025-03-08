@@ -181,7 +181,7 @@ class CidrIPv6 implements IPeer {
   public toIngressRuleConfig(): any {
     return {
       cidrIpv6: this.cidrIpv6,
-      pv6CidrBlocks: [this.cidrIpv6],
+      ipv6CidrBlocks: [this.cidrIpv6],
     };
   }
   /**

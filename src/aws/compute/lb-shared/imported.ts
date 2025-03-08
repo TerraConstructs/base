@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/shared/imported.ts
 
-import { Token } from "cdktf";
 import { Construct, DependencyGroup, IDependable } from "constructs";
 import { ITargetGroup, TargetGroupImportProps } from "./base-target-group";
+import { NO_LOADBALANCER_ARNS } from "./util";
 import { ArnFormat } from "../../arn";
 import { AwsStack } from "../../aws-stack";
 
@@ -40,7 +40,6 @@ export abstract class ImportedTargetGroupBase
     this.targetGroupName = AwsStack.ofAwsConstruct(scope)
       .splitArn(props.targetGroupArn, ArnFormat.SLASH_RESOURCE_NAME)
       .resourceName!.split("/")[0];
-    this.loadBalancerArns =
-      props.loadBalancerArns || Token.asString(Token.nullValue);
+    this.loadBalancerArns = props.loadBalancerArns || NO_LOADBALANCER_ARNS;
   }
 }

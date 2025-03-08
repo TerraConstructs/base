@@ -256,7 +256,10 @@ export abstract class BaseListener
       ),
       ...additionalProps,
       defaultAction: Lazy.anyValue({
-        produce: () => this.defaultAction?.renderActions() ?? [],
+        produce: (): tfListener.LbListenerDefaultAction[] => {
+          const rendered = this.defaultAction?.renderActions() ?? [];
+          return rendered.map(tfListener.lbListenerDefaultActionToTerraform);
+        },
       }),
       // listenerAttributes: Lazy.anyValue(
       //   { produce: () => renderAttributes(this.attributes) },

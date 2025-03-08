@@ -1,161 +1,165 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/test/nlb/target-group.test.ts
 
-import { Match, Template } from "../../../assertions";
-import * as cloudwatch from "../../../aws-cloudwatch";
-import * as ec2 from "../../../aws-ec2";
-import * as cdk from "../../../core";
-import * as elbv2 from "../../lib";
+import {
+  lb as tfLoadBalancer,
+  securityGroup as tfSecurityGroup,
+  lbTargetGroup as tfLbTargetGroup,
+} from "@cdktf/provider-aws";
+import {
+  App,
+  TerraformOutput,
+  // TerraformElement,
+  Testing,
+} from "cdktf";
+import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../../src/aws/aws-stack";
+import * as cloudwatch from "../../../../src/aws/cloudwatch";
+import * as ec2 from "../../../../src/aws/compute";
+import { Duration } from "../../../../src/duration";
+import { Fn } from "../../../../src/terra-func";
+import { Template } from "../../../assertions";
+
+const environmentName = "Test";
+const gridUUID = "123e4567-e89b-12d3";
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
+const providerConfig = { region: "us-east-1" };
 
 describe("tests", () => {
+  let app: App;
+  let stack: AwsStack;
+
+  beforeEach(() => {
+    app = Testing.app();
+    stack = new AwsStack(app, "TestStack", {
+      environmentName,
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
+  });
   test("Enable proxy protocol v2 attribute for target group", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Vpc");
 
     // WHEN
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       proxyProtocolV2: true,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbTargetGroup.LbTargetGroup,
       {
-        TargetGroupAttributes: [
-          {
-            Key: "proxy_protocol_v2.enabled",
-            Value: "true",
-          },
-        ],
+        proxy_protocol_v2: true,
       },
     );
   });
 
   test("Enable preserve_client_ip attribute for target group", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Vpc");
 
     // WHEN
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       preserveClientIp: true,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbTargetGroup.LbTargetGroup,
       {
-        TargetGroupAttributes: [
-          {
-            Key: "preserve_client_ip.enabled",
-            Value: "true",
-          },
-        ],
+        preserve_client_ip: "true",
       },
     );
   });
 
   test("Disable proxy protocol v2 for attribute target group", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Vpc");
 
     // WHEN
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       proxyProtocolV2: false,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbTargetGroup.LbTargetGroup,
       {
-        TargetGroupAttributes: [
-          {
-            Key: "proxy_protocol_v2.enabled",
-            Value: "false",
-          },
-        ],
+        proxy_protocol_v2: false,
       },
     );
   });
 
   test("Disable preserve_client_ip attribute for target group", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Vpc");
 
     // WHEN
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       preserveClientIp: false,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbTargetGroup.LbTargetGroup,
       {
-        TargetGroupAttributes: [
-          {
-            Key: "preserve_client_ip.enabled",
-            Value: "false",
-          },
-        ],
+        preserve_client_ip: "false",
       },
     );
   });
 
   test("Configure protocols for target group", () => {
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Vpc");
 
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
-      protocol: elbv2.Protocol.UDP,
+      protocol: ec2.LbProtocol.UDP,
     });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbTargetGroup.LbTargetGroup,
       {
-        Protocol: "UDP",
+        protocol: "UDP",
       },
     );
   });
 
   test("Target group defaults to TCP", () => {
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Vpc");
 
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
     });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbTargetGroup.LbTargetGroup,
       {
-        Protocol: "TCP",
+        protocol: "TCP",
       },
     );
   });
 
   test("Throws error for invalid health check interval", () => {
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, "Stack");
     const vpc = new ec2.Vpc(stack, "Vpc");
 
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       healthCheck: {
-        interval: cdk.Duration.seconds(3),
+        interval: Duration.seconds(3),
       },
     });
 
@@ -167,16 +171,14 @@ describe("tests", () => {
   });
 
   test("Throws error for health check interval less than timeout", () => {
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, "Stack");
     const vpc = new ec2.Vpc(stack, "Vpc");
 
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       healthCheck: {
-        interval: cdk.Duration.seconds(10),
-        timeout: cdk.Duration.seconds(20),
+        interval: Duration.seconds(10),
+        timeout: Duration.seconds(20),
       },
     });
 
@@ -188,38 +190,35 @@ describe("tests", () => {
   });
 
   test.each([
-    elbv2.TargetGroupIpAddressType.IPV4,
-    elbv2.TargetGroupIpAddressType.IPV6,
+    ec2.TargetGroupIpAddressType.IPV4,
+    ec2.TargetGroupIpAddressType.IPV6,
   ])("configure IP address type %s", (ipAddressType) => {
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Vpc");
 
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       ipAddressType,
     });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbTargetGroup.LbTargetGroup,
       {
-        IpAddressType: ipAddressType,
+        ip_address_type: ipAddressType,
       },
     );
   });
 
   // for backwards compatibility these can be equal, see discussion in https://github.com/aws/aws-cdk/pull/26031
   test("No error for health check interval == timeout", () => {
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, "Stack");
     const vpc = new ec2.Vpc(stack, "Vpc");
 
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       healthCheck: {
-        interval: cdk.Duration.seconds(10),
-        timeout: cdk.Duration.seconds(10),
+        interval: Duration.seconds(10),
+        timeout: Duration.seconds(10),
       },
     });
 
@@ -230,12 +229,10 @@ describe("tests", () => {
 
   test("targetGroupName unallowed: more than 32 characters", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app);
     const vpc = new ec2.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       targetGroupName: "a".repeat(33),
@@ -251,12 +248,10 @@ describe("tests", () => {
 
   test("targetGroupName unallowed: starts with hyphen", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app);
     const vpc = new ec2.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       targetGroupName: "-myTargetGroup",
@@ -272,12 +267,10 @@ describe("tests", () => {
 
   test("targetGroupName unallowed: ends with hyphen", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app);
     const vpc = new ec2.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       targetGroupName: "myTargetGroup-",
@@ -293,12 +286,10 @@ describe("tests", () => {
 
   test("targetGroupName unallowed: unallowed characters", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app);
     const vpc = new ec2.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       targetGroupName: "my target group",
@@ -314,66 +305,52 @@ describe("tests", () => {
 
   test("Disable deregistration_delay.connection_termination.enabled attribute for target group", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Vpc");
 
     // WHEN
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       connectionTermination: false,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbTargetGroup.LbTargetGroup,
       {
-        TargetGroupAttributes: [
-          {
-            Key: "deregistration_delay.connection_termination.enabled",
-            Value: "false",
-          },
-        ],
+        connection_termination: false,
       },
     );
   });
 
   test("Enable deregistration_delay.connection_termination.enabled attribute for target group", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Vpc");
 
     // WHEN
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       connectionTermination: true,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLbTargetGroup.LbTargetGroup,
       {
-        TargetGroupAttributes: [
-          {
-            Key: "deregistration_delay.connection_termination.enabled",
-            Value: "true",
-          },
-        ],
+        connection_termination: true,
       },
     );
   });
 
-  test.each([elbv2.Protocol.UDP, elbv2.Protocol.TCP_UDP, elbv2.Protocol.TLS])(
+  test.each([ec2.LbProtocol.UDP, ec2.LbProtocol.TCP_UDP, ec2.LbProtocol.TLS])(
     "Throws validation error, when `healthCheck` has `protocol` set to %s",
     (protocol) => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
 
       // WHEN
-      new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      new ec2.NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
         healthCheck: {
@@ -390,14 +367,12 @@ describe("tests", () => {
     },
   );
 
-  test.each([elbv2.Protocol.UDP, elbv2.Protocol.TCP_UDP, elbv2.Protocol.TLS])(
+  test.each([ec2.LbProtocol.UDP, ec2.LbProtocol.TCP_UDP, ec2.LbProtocol.TLS])(
     "Throws validation error, when `configureHealthCheck()` has `protocol` set to %s",
     (protocol) => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
-      const tg = new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      const tg = new ec2.NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
       });
@@ -416,16 +391,14 @@ describe("tests", () => {
     },
   );
 
-  test.each([elbv2.Protocol.HTTP, elbv2.Protocol.HTTPS, elbv2.Protocol.TCP])(
+  test.each([ec2.LbProtocol.HTTP, ec2.LbProtocol.HTTPS, ec2.LbProtocol.TCP])(
     "Does not throw validation error, when `healthCheck` has `protocol` set to %s",
     (protocol) => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
 
       // WHEN
-      new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      new ec2.NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
         healthCheck: {
@@ -440,14 +413,12 @@ describe("tests", () => {
     },
   );
 
-  test.each([elbv2.Protocol.HTTP, elbv2.Protocol.HTTPS, elbv2.Protocol.TCP])(
+  test.each([ec2.LbProtocol.HTTP, ec2.LbProtocol.HTTPS, ec2.LbProtocol.TCP])(
     "Does not throw validation error, when `configureHealthCheck()` has `protocol` set to %s",
     (protocol) => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
-      const tg = new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      const tg = new ec2.NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
       });
@@ -464,21 +435,19 @@ describe("tests", () => {
     },
   );
 
-  test.each([elbv2.Protocol.TCP, elbv2.Protocol.HTTPS])(
+  test.each([ec2.LbProtocol.TCP, ec2.LbProtocol.HTTPS])(
     "Does not throw a validation error, when `healthCheck` has `protocol` set to %s and `interval` is equal to `timeout`",
     (protocol) => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
 
       // WHEN
-      new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      new ec2.NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
         healthCheck: {
-          interval: cdk.Duration.seconds(10),
-          timeout: cdk.Duration.seconds(10),
+          interval: Duration.seconds(10),
+          timeout: Duration.seconds(10),
           protocol: protocol,
         },
       });
@@ -490,22 +459,20 @@ describe("tests", () => {
     },
   );
 
-  test.each([elbv2.Protocol.TCP, elbv2.Protocol.HTTPS])(
+  test.each([ec2.LbProtocol.TCP, ec2.LbProtocol.HTTPS])(
     "Does not throw a validation error, when `configureHealthCheck()` has `protocol` set to %s and `interval` is equal to `timeout`",
     (protocol) => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
-      const tg = new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      const tg = new ec2.NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
       });
 
       // WHEN
       tg.configureHealthCheck({
-        interval: cdk.Duration.seconds(10),
-        timeout: cdk.Duration.seconds(10),
+        interval: Duration.seconds(10),
+        timeout: Duration.seconds(10),
         protocol: protocol,
       });
 
@@ -516,16 +483,14 @@ describe("tests", () => {
     },
   );
 
-  test.each([elbv2.Protocol.UDP, elbv2.Protocol.TCP_UDP, elbv2.Protocol.TLS])(
+  test.each([ec2.LbProtocol.UDP, ec2.LbProtocol.TCP_UDP, ec2.LbProtocol.TLS])(
     "Throws validation error,`healthCheck` has `protocol` set to %s and `path` is provided",
     (protocol) => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
 
       // WHEN
-      new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      new ec2.NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
         healthCheck: {
@@ -543,14 +508,12 @@ describe("tests", () => {
     },
   );
 
-  test.each([elbv2.Protocol.UDP, elbv2.Protocol.TCP_UDP, elbv2.Protocol.TLS])(
+  test.each([ec2.LbProtocol.UDP, ec2.LbProtocol.TCP_UDP, ec2.LbProtocol.TLS])(
     "Throws validation error, when `configureHealthCheck()` has `protocol` set to %s and  `path` is provided",
     (protocol) => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
-      const tg = new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      const tg = new ec2.NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
       });
@@ -570,16 +533,14 @@ describe("tests", () => {
     },
   );
 
-  test.each([elbv2.Protocol.HTTP, elbv2.Protocol.HTTPS])(
+  test.each([ec2.LbProtocol.HTTP, ec2.LbProtocol.HTTPS])(
     "Does not throw validation error, when `healthCheck` has `protocol` set to %s and `path` is provided",
     (protocol) => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
 
       // WHEN
-      new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      new ec2.NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
         healthCheck: {
@@ -595,14 +556,12 @@ describe("tests", () => {
     },
   );
 
-  test.each([elbv2.Protocol.HTTP, elbv2.Protocol.HTTPS])(
+  test.each([ec2.LbProtocol.HTTP, ec2.LbProtocol.HTTPS])(
     "Does not throw validation error, when `configureHealthCheck()` has `protocol` set to %s and `path` is provided",
     (protocol) => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
-      const tg = new elbv2.NetworkTargetGroup(stack, "TargetGroup", {
+      const tg = new ec2.NetworkTargetGroup(stack, "TargetGroup", {
         vpc,
         port: 80,
       });
@@ -621,15 +580,13 @@ describe("tests", () => {
   );
 
   test("Throws error for invalid health check healthy threshold", () => {
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, "Stack");
     const vpc = new ec2.Vpc(stack, "Vpc");
 
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       healthCheck: {
-        protocol: elbv2.Protocol.TCP,
+        protocol: ec2.LbProtocol.TCP,
         healthyThresholdCount: 11,
       },
     });
@@ -642,15 +599,13 @@ describe("tests", () => {
   });
 
   test("Throws error for invalid health check unhealthy threshold", () => {
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, "Stack");
     const vpc = new ec2.Vpc(stack, "Vpc");
 
-    new elbv2.NetworkTargetGroup(stack, "Group", {
+    new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
       healthCheck: {
-        protocol: elbv2.Protocol.TCP,
+        protocol: ec2.LbProtocol.TCP,
         unhealthyThresholdCount: 1,
       },
     });
@@ -664,14 +619,13 @@ describe("tests", () => {
 
   test("Exercise metrics", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.NetworkLoadBalancer(stack, "LB", { vpc });
-    const listener = new elbv2.NetworkListener(stack, "Listener", {
+    const lb = new ec2.NetworkLoadBalancer(stack, "LB", { vpc });
+    const listener = new ec2.NetworkListener(stack, "Listener", {
       loadBalancer: lb,
       port: 80,
     });
-    const targetGroup = new elbv2.NetworkTargetGroup(stack, "Group", {
+    const targetGroup = new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
     });
@@ -687,36 +641,29 @@ describe("tests", () => {
     // Ideally, this would just be a GetAtt of the LB name, but the target group
     // doesn't have a direct reference to the LB, and instead builds up the LB name
     // from the listener ARN.
-    const splitListenerName = {
-      "Fn::Split": ["/", { Ref: "Listener828B0E81" }],
-    };
-    const loadBalancerNameFromListener = {
-      "Fn::Join": [
-        "",
-        [
-          { "Fn::Select": [1, splitListenerName] },
-          "/",
-          { "Fn::Select": [2, splitListenerName] },
-          "/",
-          { "Fn::Select": [3, splitListenerName] },
-        ],
-      ],
-    };
+    const splitListenerName =
+      'split("/", aws_lb_listener.Listener_828B0E81.arn)';
+    const loadBalancerNameFromListener = [
+      `\${element(${splitListenerName}, 1)}`,
+      `\${element(${splitListenerName}, 2)}`,
+      `\${element(${splitListenerName}, 3)}`,
+    ].join("/");
 
     for (const metric of metrics) {
       expect(metric.namespace).toEqual("AWS/NetworkELB");
       expect(stack.resolve(metric.dimensions)).toEqual({
         LoadBalancer: loadBalancerNameFromListener,
-        TargetGroup: { "Fn::GetAtt": ["GroupC77FDACD", "TargetGroupFullName"] },
+        // TODO: why 0?
+        TargetGroup:
+          '${element(split("/", element(split(":", aws_lb_target_group.Group_C77FDACD.arn), 5)), 0)}',
       });
     }
   });
 
   test("Metrics requires a listener to be present", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const targetGroup = new elbv2.NetworkTargetGroup(stack, "Group", {
+    const targetGroup = new ec2.NetworkTargetGroup(stack, "Group", {
       vpc,
       port: 80,
     });
@@ -732,11 +679,8 @@ describe("tests", () => {
 
   test("imported targetGroup has targetGroupName", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, "Stack");
-
     // WHEN
-    const importedTg = elbv2.NetworkTargetGroup.fromTargetGroupAttributes(
+    const importedTg = ec2.NetworkTargetGroup.fromTargetGroupAttributes(
       stack,
       "importedTg",
       {
@@ -751,62 +695,41 @@ describe("tests", () => {
 
   test("imported targetGroup with imported ARN has targetGroupName", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, "Stack");
 
     // WHEN
-    const importedTgArn = cdk.Fn.importValue("ImportTargetGroupArn");
-    const importedTg = elbv2.ApplicationTargetGroup.fromTargetGroupAttributes(
+    const importedTgArn = Fn.importValue(stack, "ImportTargetGroupArn");
+    const importedTg = ec2.ApplicationTargetGroup.fromTargetGroupAttributes(
       stack,
       "importedTg",
       {
         targetGroupArn: importedTgArn,
       },
     );
-    new cdk.CfnOutput(stack, "TargetGroupOutput", {
+    new TerraformOutput(stack, "TargetGroupOutput", {
       value: importedTg.targetGroupName,
     });
 
     // THEN
-    Template.fromStack(stack).hasOutput("TargetGroupOutput", {
-      Value: {
-        "Fn::Select": [
-          // myNlbTargetGroup
-          1,
-          {
-            "Fn::Split": [
-              // [targetgroup, myNlbTargetGroup, 73e2d6bc24d8a067]
-              "/",
-              {
-                "Fn::Select": [
-                  // targetgroup/myNlbTargetGroup/73e2d6bc24d8a067
-                  5,
-                  {
-                    "Fn::Split": [
-                      // [arn, aws, elasticloadbalancing, us-west-2, 123456789012, targetgroup/myNlbTargetGroup/73e2d6bc24d8a067]
-                      ":",
-                      {
-                        // arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/myNlbTargetGroup/73e2d6bc24d8a067
-                        "Fn::ImportValue": "ImportTargetGroupArn",
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
+    const template = new Template(stack);
+    expect(template.outputByName("TargetGroupOutput")).toMatchObject({
+      value:
+        // arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/myNlbTargetGroup/73e2d6bc24d8a067
+        // --> split(":", var.ImportTargetGroupArn)
+        // [arn, aws, elasticloadbalancing, us-west-2, 123456789012, targetgroup/myNlbTargetGroup/73e2d6bc24d8a067]
+        // --> element(...., 5)
+        // targetgroup/myNlbTargetGroup/73e2d6bc24d8a067
+        // --> split("/", ....)
+        // [targetgroup, myNlbTargetGroup, 73e2d6bc24d8a067]
+        // --> element(...., 1)
+        // myNlbTargetGroup
+        '${element(split("/", element(split(":", var.ImportTargetGroupArn), 5)), 1)}',
     });
   });
 
   test("imported targetGroup has metrics", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, "Stack");
-
     // WHEN
-    const targetGroup = elbv2.NetworkTargetGroup.fromTargetGroupAttributes(
+    const targetGroup = ec2.NetworkTargetGroup.fromTargetGroupAttributes(
       stack,
       "importedTg",
       {
@@ -829,11 +752,8 @@ describe("tests", () => {
 
   test("imported targetGroup without load balancer cannot have metrics", () => {
     // GIVEN
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, "Stack");
-
     // WHEN
-    const targetGroup = elbv2.NetworkTargetGroup.fromTargetGroupAttributes(
+    const targetGroup = ec2.NetworkTargetGroup.fromTargetGroupAttributes(
       stack,
       "importedTg",
       {
@@ -851,26 +771,19 @@ describe("tests", () => {
       "crossZoneEnabled can be %s",
       (crossZoneEnabled) => {
         // GIVEN
-        const app = new cdk.App();
-        const stack = new cdk.Stack(app, "Stack");
         const vpc = new ec2.Vpc(stack, "VPC", {});
 
         // WHEN
-        new elbv2.NetworkTargetGroup(stack, "LB", {
+        new ec2.NetworkTargetGroup(stack, "LB", {
           crossZoneEnabled,
           vpc,
           port: 80,
         });
 
-        Template.fromStack(stack).hasResourceProperties(
-          "AWS::ElasticLoadBalancingV2::TargetGroup",
+        Template.synth(stack).toHaveResourceWithProperties(
+          tfLbTargetGroup.LbTargetGroup,
           {
-            TargetGroupAttributes: [
-              {
-                Key: "load_balancing.cross_zone.enabled",
-                Value: `${crossZoneEnabled}`,
-              },
-            ],
+            load_balancing_cross_zone_enabled: crossZoneEnabled.toString(),
           },
         );
       },
@@ -878,20 +791,18 @@ describe("tests", () => {
 
     test("load_balancing.cross_zone.enabled is not set when crossZoneEnabled is not specified", () => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
 
       // WHEN
-      new elbv2.NetworkTargetGroup(stack, "LB", {
+      new ec2.NetworkTargetGroup(stack, "LB", {
         vpc,
         port: 80,
       });
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::TargetGroup",
+      Template.synth(stack).not.toHaveResourceWithProperties(
+        tfLbTargetGroup.LbTargetGroup,
         {
-          TargetGroupAttributes: Match.absent(),
+          enable_cross_zone_load_balancing: expect.anything(),
         },
       );
     });

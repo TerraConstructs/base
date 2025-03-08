@@ -1,71 +1,96 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/test/alb/listener.test.ts
 
-import { describeDeprecated, testDeprecated } from "@aws-cdk/cdk-build-tools";
+import {
+  lbListener as tfListener,
+  lbListenerRule as tfListenerRule,
+  lbTargetGroup as tfTargetGroup,
+  lbTargetGroupAttachment as tfTargetGroupAttachment,
+  securityGroup as tfSecurityGroup,
+  lbListenerCertificate as tfListenerCertificate,
+  vpcSecurityGroupIngressRule as tfVpcSecurityGroupIngressRule,
+  vpcSecurityGroupEgressRule as tfVpcSecurityGroupEgressRule,
+} from "@cdktf/provider-aws";
+import {
+  App,
+  TerraformResource,
+  TerraformVariable,
+  // TerraformElement,
+  Testing,
+} from "cdktf";
+import "cdktf/lib/testing/adapters/jest";
 import * as constructs from "constructs";
-import { Match, Template } from "../../../assertions";
-import * as acm from "../../../aws-certificatemanager";
-import { Metric } from "../../../aws-cloudwatch";
-import * as ec2 from "../../../aws-ec2";
-import * as s3 from "../../../aws-s3";
-import * as cdk from "../../../core";
-import { SecretValue } from "../../../core";
-import * as cxapi from "../../../cx-api";
-import * as elbv2 from "../../lib";
-import { FakeSelfRegisteringTarget } from "../helpers";
+import { AwsStack } from "../../../../src/aws";
+import { Metric } from "../../../../src/aws/cloudwatch";
+import * as ec2 from "../../../../src/aws/compute";
+import * as acm from "../../../../src/aws/edge";
+import * as s3 from "../../../../src/aws/storage";
+import { Duration } from "../../../../src/duration";
+import { Template } from "../../../assertions";
+import { FakeSelfRegisteringTarget } from "../lb-helpers";
+
+const environmentName = "Test";
+const gridUUID = "123e4567-e89b-12d3";
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
+const providerConfig = { region: "us-east-1" };
 
 describe("tests", () => {
+  let app: App;
+  let stack: AwsStack;
+
+  beforeEach(() => {
+    app = Testing.app();
+    stack = new AwsStack(app, "TestStack", {
+      environmentName,
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
+  });
   test("Listener guesses protocol from port", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     lb.addListener("Listener", {
       port: 443,
       certificates: [importedCertificate(stack)],
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        Protocol: "HTTPS",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      protocol: "HTTPS",
+    });
   });
 
   test("Listener guesses port from protocol", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     lb.addListener("Listener", {
-      protocol: elbv2.ApplicationProtocol.HTTP,
+      protocol: ec2.ApplicationProtocol.HTTP,
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        Port: 80,
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      port: 80,
+    });
   });
 
   test("Listener default to open - IPv4", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const loadBalancer = new elbv2.ApplicationLoadBalancer(stack, "LB", {
+    const loadBalancer = new ec2.ApplicationLoadBalancer(stack, "LB", {
       vpc,
     });
 
@@ -73,156 +98,161 @@ describe("tests", () => {
     loadBalancer.addListener("MyListener", {
       port: 80,
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::EC2::SecurityGroup", {
-      SecurityGroupIngress: [
-        {
-          Description: "Allow from anyone on port 80",
-          CidrIp: "0.0.0.0/0",
-          FromPort: 80,
-          IpProtocol: "tcp",
-          ToPort: 80,
-        },
-      ],
-    });
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfSecurityGroup.SecurityGroup,
+      {
+        ingress: [
+          expect.objectContaining({
+            description: "Allow from anyone on port 80",
+            protocol: "tcp",
+            cidr_blocks: ["0.0.0.0/0"],
+            from_port: 80,
+            to_port: 80,
+          }),
+        ],
+      },
+    );
   });
 
   test("Listener default to open - IPv4 and IPv6 (dual stack)", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const loadBalancer = new elbv2.ApplicationLoadBalancer(stack, "LB", {
+    const loadBalancer = new ec2.ApplicationLoadBalancer(stack, "LB", {
       vpc,
-      ipAddressType: elbv2.IpAddressType.DUAL_STACK,
+      ipAddressType: ec2.IpAddressType.DUAL_STACK,
     });
 
     // WHEN
     loadBalancer.addListener("MyListener", {
       port: 80,
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::EC2::SecurityGroup", {
-      SecurityGroupIngress: [
-        {
-          Description: "Allow from anyone on port 80",
-          CidrIp: "0.0.0.0/0",
-          FromPort: 80,
-          IpProtocol: "tcp",
-          ToPort: 80,
-        },
-        {
-          Description: "Allow from anyone on port 80",
-          CidrIpv6: "::/0",
-          FromPort: 80,
-          IpProtocol: "tcp",
-          ToPort: 80,
-        },
-      ],
-    });
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfSecurityGroup.SecurityGroup,
+      {
+        ingress: [
+          expect.objectContaining({
+            description: "Allow from anyone on port 80",
+            protocol: "tcp",
+            cidr_blocks: ["0.0.0.0/0"],
+            from_port: 80,
+            to_port: 80,
+          }),
+          expect.objectContaining({
+            description: "Allow from anyone on port 80",
+            protocol: "tcp",
+            ipv6_cidr_blocks: ["::/0"],
+            from_port: 80,
+            to_port: 80,
+          }),
+        ],
+      },
+    );
   });
 
+  // TerraConstructs - feature flag always enabled
   test("Listener default to open - IPv6 (dual stack without public IPv4) with feature flag enabled", () => {
     // GIVEN
-    const app = new cdk.App({
-      context: {
-        [cxapi.ALB_DUALSTACK_WITHOUT_PUBLIC_IPV4_SECURITY_GROUP_RULES_DEFAULT]:
-          true,
-      },
-    });
-    const stack = new cdk.Stack(app);
     const vpc = new ec2.Vpc(stack, "Stack");
-    const loadBalancer = new elbv2.ApplicationLoadBalancer(stack, "LB", {
+    const loadBalancer = new ec2.ApplicationLoadBalancer(stack, "LB", {
       vpc,
       internetFacing: true,
-      ipAddressType: elbv2.IpAddressType.DUAL_STACK_WITHOUT_PUBLIC_IPV4,
+      ipAddressType: ec2.IpAddressType.DUAL_STACK_WITHOUT_PUBLIC_IPV4,
     });
 
     // WHEN
     loadBalancer.addListener("MyListener", {
       port: 80,
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::EC2::SecurityGroup", {
-      SecurityGroupIngress: [
-        {
-          Description: "Allow from anyone on port 80",
-          CidrIp: "0.0.0.0/0",
-          FromPort: 80,
-          IpProtocol: "tcp",
-          ToPort: 80,
-        },
-        {
-          Description: "Allow from anyone on port 80",
-          CidrIpv6: "::/0",
-          FromPort: 80,
-          IpProtocol: "tcp",
-          ToPort: 80,
-        },
-      ],
-    });
-  });
-
-  test("Listener default to open - IPv6 (dual stack without public IPv4) with feature flag disabled", () => {
-    // GIVEN
-    const app = new cdk.App({
-      context: {
-        [cxapi.ALB_DUALSTACK_WITHOUT_PUBLIC_IPV4_SECURITY_GROUP_RULES_DEFAULT]:
-          false,
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfSecurityGroup.SecurityGroup,
+      {
+        ingress: [
+          expect.objectContaining({
+            description: "Allow from anyone on port 80",
+            protocol: "tcp",
+            cidr_blocks: ["0.0.0.0/0"],
+            from_port: 80,
+            to_port: 80,
+          }),
+          expect.objectContaining({
+            description: "Allow from anyone on port 80",
+            protocol: "tcp",
+            ipv6_cidr_blocks: ["::/0"],
+            from_port: 80,
+            to_port: 80,
+          }),
+        ],
       },
-    });
-    const stack = new cdk.Stack(app);
-    const vpc = new ec2.Vpc(stack, "Stack");
-    const loadBalancer = new elbv2.ApplicationLoadBalancer(stack, "LB", {
-      vpc,
-      internetFacing: true,
-      ipAddressType: elbv2.IpAddressType.DUAL_STACK_WITHOUT_PUBLIC_IPV4,
-    });
-
-    // WHEN
-    loadBalancer.addListener("MyListener", {
-      port: 80,
-      defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
-      ],
-    });
-
-    // THEN
-    Template.fromStack(stack).hasResourceProperties("AWS::EC2::SecurityGroup", {
-      SecurityGroupIngress: [
-        {
-          Description: "Allow from anyone on port 80",
-          CidrIp: "0.0.0.0/0",
-          FromPort: 80,
-          IpProtocol: "tcp",
-          ToPort: 80,
-        },
-      ],
-    });
+    );
   });
+
+  // // TerraConstructs don't have feature flag - always enabled
+  // test("Listener default to open - IPv6 (dual stack without public IPv4) with feature flag disabled", () => {
+  //   // GIVEN
+  //   const app = new cdk.App({
+  //     context: {
+  //       [cxapi.ALB_DUALSTACK_WITHOUT_PUBLIC_IPV4_SECURITY_GROUP_RULES_DEFAULT]:
+  //         false,
+  //     },
+  //   });
+  //   const stack = new cdk.Stack(app);
+  //   const vpc = new ec2.Vpc(stack, "Stack");
+  //   const loadBalancer = new ec2.ApplicationLoadBalancer(stack, "LB", {
+  //     vpc,
+  //     internetFacing: true,
+  //     ipAddressType: ec2.IpAddressType.DUAL_STACK_WITHOUT_PUBLIC_IPV4,
+  //   });
+
+  //   // WHEN
+  //   loadBalancer.addListener("MyListener", {
+  //     port: 80,
+  //     defaultTargetGroups: [
+  //       new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+  //     ],
+  //   });
+
+  //   // THEN
+  //   Template.synth(stack).toHaveResourceWithProperties(
+  //     tfSecurityGroup.SecurityGroup,
+  //     {
+  //       SecurityGroupIngress: [
+  //         {
+  //           Description: "Allow from anyone on port 80",
+  //           CidrIp: "0.0.0.0/0",
+  //           FromPort: 80,
+  //           IpProtocol: "tcp",
+  //           ToPort: 80,
+  //         },
+  //       ],
+  //     },
+  //   );
+  // });
 
   test("HTTPS listener requires certificate", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     const listener = lb.addListener("Listener", {
       port: 443,
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
@@ -235,45 +265,40 @@ describe("tests", () => {
 
   test("HTTPS listener can add certificate after construction", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     const listener = lb.addListener("Listener", {
       port: 443,
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     listener.addCertificates("Certs", [importedCertificate(stack, "cert")]);
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        Certificates: [{ CertificateArn: "cert" }],
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      certificate_arn: "cert",
+    });
   });
 
   test("HTTPS listener can add more than two certificates", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     const listener = lb.addListener("Listener", {
       port: 443,
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
       certificates: [
-        elbv2.ListenerCertificate.fromArn("cert1"),
-        elbv2.ListenerCertificate.fromArn("cert2"),
-        elbv2.ListenerCertificate.fromArn("cert3"),
+        ec2.ListenerCertificate.fromArn("cert1"),
+        ec2.ListenerCertificate.fromArn("cert2"),
+        ec2.ListenerCertificate.fromArn("cert3"),
       ],
     });
 
@@ -284,77 +309,72 @@ describe("tests", () => {
     ).not.toBeDefined();
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfListener.LbListener, {
+      certificate_arn: "cert1",
+    });
+
+    template.toHaveResourceWithProperties(
+      tfListenerCertificate.LbListenerCertificate,
       {
-        Certificates: [{ CertificateArn: "cert1" }],
+        certificate_arn: "cert2",
       },
     );
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+    template.toHaveResourceWithProperties(
+      tfListenerCertificate.LbListenerCertificate,
       {
-        Certificates: [{ CertificateArn: "cert2" }],
-      },
-    );
-
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerCertificate",
-      {
-        Certificates: [{ CertificateArn: "cert3" }],
+        certificate_arn: "cert3",
       },
     );
   });
 
   test("Can configure targetType on TargetGroups", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
-      targetType: elbv2.TargetType.IP,
+      targetType: ec2.TargetType.IP,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfTargetGroup.LbTargetGroup,
       {
-        TargetType: "ip",
+        target_type: "ip",
       },
     );
   });
 
   test("Can configure name on TargetGroups", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
       targetGroupName: "foo",
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfTargetGroup.LbTargetGroup,
       {
-        Name: "foo",
+        name: "foo",
       },
     );
   });
 
   test("Can add target groups with and without conditions", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", { port: 80 });
-    const group = new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    const group = new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
     });
@@ -365,50 +385,45 @@ describe("tests", () => {
     });
     listener.addTargetGroups("WithPath", {
       priority: 10,
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
+      conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
       targetGroups: [group],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        DefaultActions: [
-          {
-            TargetGroupArn: { Ref: "TargetGroup3D7CD9B8" },
-            Type: "forward",
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfListener.LbListener, {
+      default_action: [
+        {
+          target_group_arn: stack.resolve(group.targetGroupArn),
+          type: "forward",
+        },
+      ],
+    });
+    template.toHaveResourceWithProperties(tfListenerRule.LbListenerRule, {
+      priority: 10,
+      condition: [
+        {
+          path_pattern: {
+            values: ["/hello"],
           },
-        ],
-      },
-    );
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
-      {
-        Priority: 10,
-        Conditions: [
-          {
-            Field: "path-pattern",
-            PathPatternConfig: { Values: ["/hello"] },
-          },
-        ],
-        Actions: [
-          {
-            TargetGroupArn: { Ref: "TargetGroup3D7CD9B8" },
-            Type: "forward",
-          },
-        ],
-      },
-    );
+        },
+      ],
+      action: [
+        {
+          target_group_arn: stack.resolve(group.targetGroupArn),
+          type: "forward",
+        },
+      ],
+    });
   });
 
   test("bind is called for all next targets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", { port: 80 });
     const fake = new FakeSelfRegisteringTarget(stack, "FakeTG", vpc);
-    const group = new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    const group = new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
       targets: [fake],
@@ -416,11 +431,11 @@ describe("tests", () => {
 
     // WHEN
     listener.addAction("first-action", {
-      action: elbv2.ListenerAction.authenticateOidc({
-        next: elbv2.ListenerAction.forward([group]),
+      action: ec2.ListenerAction.authenticateOidc({
+        next: ec2.ListenerAction.forward([group]),
         issuer: "dummy",
         clientId: "dummy",
-        clientSecret: SecretValue.unsafePlainText("dummy"),
+        clientSecret: "dummy", // SecretValue.unsafePlainText("dummy"),
         tokenEndpoint: "dummy",
         userInfoEndpoint: "dummy",
         authorizationEndpoint: "dummy",
@@ -428,146 +443,167 @@ describe("tests", () => {
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::EC2::SecurityGroupIngress",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
-        IpProtocol: "tcp",
-        Description: "Load balancer to target",
-        FromPort: 80,
-        ToPort: 80,
-        GroupId: {
-          "Fn::GetAtt": ["FakeTGSG50E257DF", "GroupId"],
-        },
-        SourceSecurityGroupId: {
-          "Fn::GetAtt": ["LBSecurityGroup8A41EA2B", "GroupId"],
+        ip_protocol: "tcp",
+        description: "Load balancer to target",
+        from_port: 80,
+        to_port: 80,
+        security_group_id: "${aws_security_group.FakeTG_SG_50E257DF.id}",
+        // "Fn::GetAtt": ["FakeTGSG50E257DF", "GroupId"],
+        referenced_security_group_id:
+          "${aws_security_group.LB_SecurityGroup_8A41EA2B.id}",
+        // "Fn::GetAtt": ["LBSecurityGroup8A41EA2B", "GroupId"],
+        tags: {
+          Name: "Test-SG",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3",
         },
       },
     );
   });
 
-  testDeprecated(
-    "Can implicitly create target groups with and without conditions",
-    () => {
-      // GIVEN
-      const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "Stack");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
-      const listener = lb.addListener("Listener", { port: 80 });
-
-      // WHEN
-      listener.addTargets("Targets", {
-        port: 80,
-        targets: [new elbv2.InstanceTarget("i-12345")],
-      });
-      listener.addTargets("WithPath", {
-        priority: 10,
-        conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
-        port: 80,
-        targets: [new elbv2.InstanceTarget("i-5678")],
-      });
-
-      // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::Listener",
-        {
-          DefaultActions: [
-            {
-              TargetGroupArn: { Ref: "LBListenerTargetsGroup76EF81E8" },
-              Type: "forward",
-            },
-          ],
-        },
-      );
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::TargetGroup",
-        {
-          VpcId: { Ref: "Stack8A423254" },
-          Port: 80,
-          Protocol: "HTTP",
-          Targets: [{ Id: "i-12345" }],
-        },
-      );
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::ListenerRule",
-        {
-          Actions: [
-            {
-              TargetGroupArn: { Ref: "LBListenerWithPathGroupE889F9E5" },
-              Type: "forward",
-            },
-          ],
-        },
-      );
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::TargetGroup",
-        {
-          VpcId: { Ref: "Stack8A423254" },
-          Port: 80,
-          Protocol: "HTTP",
-          Targets: [{ Id: "i-5678" }],
-        },
-      );
-    },
-  );
-
-  testDeprecated("Add certificate to constructed listener", () => {
+  // deprecated
+  test("Can implicitly create target groups with and without conditions", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const listener = lb.addListener("Listener", { port: 80 });
+
+    // WHEN
+    listener.addTargets("Targets", {
+      port: 80,
+      targets: [new ec2.InstanceTarget("i-12345")],
+    });
+    listener.addTargets("WithPath", {
+      priority: 10,
+      conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
+      port: 80,
+      targets: [new ec2.InstanceTarget("i-5678")],
+    });
+
+    // THEN
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfListener.LbListener, {
+      default_action: [
+        {
+          target_group_arn:
+            "${aws_lb_target_group.LB_Listener_TargetsGroup_76EF81E8.arn}",
+          type: "forward",
+        },
+      ],
+    });
+    template.toHaveResourceWithProperties(tfTargetGroup.LbTargetGroup, {
+      name: expect.stringContaining("Targets"),
+      vpc_id: stack.resolve(vpc.vpcId),
+      port: 80,
+      protocol: "HTTP",
+      target_type: "instance",
+      // Targets: [{ Id: "i-12345" }],
+    });
+    template.toHaveResourceWithProperties(
+      tfTargetGroupAttachment.LbTargetGroupAttachment,
+      {
+        target_group_arn:
+          "${aws_lb_target_group.LB_Listener_TargetsGroup_76EF81E8.arn}",
+        target_id: "i-12345",
+      },
+    );
+    // conditional rule
+    template.toHaveResourceWithProperties(tfListenerRule.LbListenerRule, {
+      priority: 10,
+      action: [
+        {
+          target_group_arn:
+            "${aws_lb_target_group.LB_Listener_WithPathGroup_E889F9E5.arn}",
+          type: "forward",
+        },
+      ],
+      condition: [
+        {
+          path_pattern: {
+            values: ["/hello"],
+          },
+        },
+      ],
+    });
+    template.toHaveResourceWithProperties(tfTargetGroup.LbTargetGroup, {
+      name: expect.stringContaining("Path"),
+      vpc_id: stack.resolve(vpc.vpcId),
+      port: 80,
+      protocol: "HTTP",
+      target_type: "instance",
+      // Targets: [{ Id: "i-5678" }],
+    });
+    template.toHaveResourceWithProperties(
+      tfTargetGroupAttachment.LbTargetGroupAttachment,
+      {
+        target_group_arn:
+          "${aws_lb_target_group.LB_Listener_WithPathGroup_E889F9E5.arn}",
+        target_id: "i-5678",
+      },
+    );
+  });
+
+  // deprecated
+  test("Add certificate to constructed listener", () => {
+    // GIVEN
+    const vpc = new ec2.Vpc(stack, "Stack");
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", { port: 443 });
 
     // WHEN
     listener.addCertificates("Certs", [importedCertificate(stack, "cert")]);
     listener.addTargets("Targets", {
       port: 8080,
-      targets: [new elbv2.IpTarget("1.2.3.4")],
+      targets: [new ec2.IpTarget("1.2.3.4")],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        Certificates: [{ CertificateArn: "cert" }],
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      certificate_arn: "cert",
+    });
   });
 
   test("Add certificate to imported listener", () => {
     // GIVEN
-    const stack2 = new cdk.Stack();
-    const listener2 =
-      elbv2.ApplicationListener.fromApplicationListenerAttributes(
-        stack2,
-        "Listener",
-        {
-          listenerArn: "listener-arn",
-          defaultPort: 443,
-          securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
-            stack2,
-            "SG",
-            "security-group-id",
-          ),
-        },
-      );
+    const stack2 = new AwsStack(app, "TestStack2", {
+      environmentName, // TODO: should be different stack for test
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
+    const listener2 = ec2.ApplicationListener.fromApplicationListenerAttributes(
+      stack2,
+      "Listener",
+      {
+        listenerArn: "listener-arn",
+        defaultPort: 443,
+        securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
+          stack2,
+          "SG",
+          "security-group-id",
+        ),
+      },
+    );
 
     // WHEN
     listener2.addCertificates("Certs", [importedCertificate(stack2, "cert")]);
 
     // THEN
-    Template.fromStack(stack2).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+    Template.synth(stack2).toHaveResourceWithProperties(
+      tfListenerCertificate.LbListenerCertificate,
       {
-        Certificates: [{ CertificateArn: "cert" }],
+        certificate_arn: "cert",
       },
     );
   });
 
   test("Enable alb stickiness for targets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", { port: 80 });
 
     // WHEN
@@ -575,35 +611,25 @@ describe("tests", () => {
       port: 80,
       targets: [new FakeSelfRegisteringTarget(stack, "Target", vpc)],
     });
-    group.enableCookieStickiness(cdk.Duration.hours(1));
+    group.enableCookieStickiness(Duration.hours(1));
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfTargetGroup.LbTargetGroup,
       {
-        TargetGroupAttributes: [
-          {
-            Key: "stickiness.enabled",
-            Value: "true",
-          },
-          {
-            Key: "stickiness.type",
-            Value: "lb_cookie",
-          },
-          {
-            Key: "stickiness.lb_cookie.duration_seconds",
-            Value: "3600",
-          },
-        ],
+        stickiness: {
+          enabled: true,
+          type: "lb_cookie",
+          cookie_duration: 3600,
+        },
       },
     );
   });
 
   test("Enable app stickiness for targets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", { port: 80 });
 
     // WHEN
@@ -611,39 +637,26 @@ describe("tests", () => {
       port: 80,
       targets: [new FakeSelfRegisteringTarget(stack, "Target", vpc)],
     });
-    group.enableCookieStickiness(cdk.Duration.hours(1), "MyDeliciousCookie");
+    group.enableCookieStickiness(Duration.hours(1), "MyDeliciousCookie");
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfTargetGroup.LbTargetGroup,
       {
-        TargetGroupAttributes: [
-          {
-            Key: "stickiness.enabled",
-            Value: "true",
-          },
-          {
-            Key: "stickiness.type",
-            Value: "app_cookie",
-          },
-          {
-            Key: "stickiness.app_cookie.cookie_name",
-            Value: "MyDeliciousCookie",
-          },
-          {
-            Key: "stickiness.app_cookie.duration_seconds",
-            Value: "3600",
-          },
-        ],
+        stickiness: {
+          enabled: true,
+          type: "app_cookie",
+          cookie_name: "MyDeliciousCookie",
+          cookie_duration: 3600,
+        },
       },
     );
   });
 
   test("Enable health check for targets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", { port: 80 });
 
     // WHEN
@@ -653,28 +666,29 @@ describe("tests", () => {
     });
     group.configureHealthCheck({
       unhealthyThresholdCount: 3,
-      timeout: cdk.Duration.seconds(30),
-      interval: cdk.Duration.seconds(60),
+      timeout: Duration.seconds(30),
+      interval: Duration.seconds(60),
       path: "/test",
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfTargetGroup.LbTargetGroup,
       {
-        UnhealthyThresholdCount: 3,
-        HealthCheckIntervalSeconds: 60,
-        HealthCheckPath: "/test",
-        HealthCheckTimeoutSeconds: 30,
+        health_check: {
+          interval: 60,
+          path: "/test",
+          timeout: 30,
+          unhealthy_threshold: 3,
+        },
       },
     );
   });
 
   test("validation error if invalid health check protocol", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", { port: 80 });
 
     // WHEN
@@ -685,10 +699,10 @@ describe("tests", () => {
 
     group.configureHealthCheck({
       unhealthyThresholdCount: 3,
-      timeout: cdk.Duration.seconds(30),
-      interval: cdk.Duration.seconds(60),
+      timeout: Duration.seconds(30),
+      interval: Duration.seconds(60),
       path: "/test",
-      protocol: elbv2.Protocol.TCP,
+      protocol: ec2.LbProtocol.TCP,
     });
 
     // THEN
@@ -700,9 +714,8 @@ describe("tests", () => {
 
   test("adding targets passes in provided protocol version", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", {
       port: 443,
       certificates: [importedCertificate(stack, "arn:someCert")],
@@ -711,37 +724,35 @@ describe("tests", () => {
     // WHEN
     listener.addTargets("Group", {
       port: 443,
-      protocolVersion: elbv2.ApplicationProtocolVersion.GRPC,
+      protocolVersion: ec2.ApplicationProtocolVersion.GRPC,
       targets: [new FakeSelfRegisteringTarget(stack, "Target", vpc)],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfTargetGroup.LbTargetGroup,
       {
-        ProtocolVersion: "GRPC",
+        protocol_version: "GRPC",
       },
     );
   });
 
   test("Can call addTargetGroups on imported listener", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const listener =
-      elbv2.ApplicationListener.fromApplicationListenerAttributes(
-        stack,
-        "Listener",
-        {
-          listenerArn: "ieks",
-          securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
-            stack,
-            "SG",
-            "sg-12345",
-          ),
-        },
-      );
-    const group = new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    const listener = ec2.ApplicationListener.fromApplicationListenerAttributes(
+      stack,
+      "Listener",
+      {
+        listenerArn: "ieks",
+        securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
+          stack,
+          "SG",
+          "sg-12345",
+        ),
+      },
+    );
+    const group = new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
     });
@@ -749,20 +760,20 @@ describe("tests", () => {
     // WHEN
     listener.addTargetGroups("Gruuup", {
       priority: 30,
-      conditions: [elbv2.ListenerCondition.hostHeaders(["example.com"])],
+      conditions: [ec2.ListenerCondition.hostHeaders(["example.com"])],
       targetGroups: [group],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfListenerRule.LbListenerRule,
       {
-        ListenerArn: "ieks",
-        Priority: 30,
-        Actions: [
+        listener_arn: "ieks",
+        priority: 30,
+        action: [
           {
-            TargetGroupArn: { Ref: "TargetGroup3D7CD9B8" },
-            Type: "forward",
+            target_group_arn: stack.resolve(group.targetGroupArn),
+            type: "forward",
           },
         ],
       },
@@ -771,22 +782,20 @@ describe("tests", () => {
 
   test("Can call addTargetGroups on imported listener with conditions prop", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const listener =
-      elbv2.ApplicationListener.fromApplicationListenerAttributes(
-        stack,
-        "Listener",
-        {
-          listenerArn: "ieks",
-          securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
-            stack,
-            "SG",
-            "sg-12345",
-          ),
-        },
-      );
-    const group = new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    const listener = ec2.ApplicationListener.fromApplicationListenerAttributes(
+      stack,
+      "Listener",
+      {
+        listenerArn: "ieks",
+        securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
+          stack,
+          "SG",
+          "sg-12345",
+        ),
+      },
+    );
+    const group = new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
     });
@@ -794,20 +803,20 @@ describe("tests", () => {
     // WHEN
     listener.addTargetGroups("Gruuup", {
       priority: 30,
-      conditions: [elbv2.ListenerCondition.hostHeaders(["example.com"])],
+      conditions: [ec2.ListenerCondition.hostHeaders(["example.com"])],
       targetGroups: [group],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfListenerRule.LbListenerRule,
       {
-        ListenerArn: "ieks",
-        Priority: 30,
-        Actions: [
+        listener_arn: "ieks",
+        priority: 30,
+        action: [
           {
-            TargetGroupArn: { Ref: "TargetGroup3D7CD9B8" },
-            Type: "forward",
+            target_group_arn: stack.resolve(group.targetGroupArn),
+            type: "forward",
           },
         ],
       },
@@ -816,14 +825,13 @@ describe("tests", () => {
 
   test("Can depend on eventual listener via TargetGroup", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const loadBalancer = new elbv2.ApplicationLoadBalancer(
+    const loadBalancer = new ec2.ApplicationLoadBalancer(
       stack,
       "LoadBalancer",
       { vpc },
     );
-    const group = new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    const group = new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
     });
@@ -837,24 +845,22 @@ describe("tests", () => {
     });
 
     // THEN
-    Template.fromStack(stack).templateMatches(
-      Match.objectLike({
-        Resources: {
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        test_resource: {
           SomeResource: {
-            Type: "Test::Resource",
-            DependsOn: ["LoadBalancerListenerE1A099B9"],
+            depends_on: ["aws_lb_listener.LoadBalancer_Listener_E1A099B9"],
           },
         },
-      }),
-    );
+      },
+    });
   });
 
   test("Exercise metrics", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
-    const group = new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const group = new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
     });
@@ -866,7 +872,7 @@ describe("tests", () => {
     // WHEN
     const metrics = new Array<Metric>();
     metrics.push(
-      group.metrics.httpCodeTarget(elbv2.HttpCodeTarget.TARGET_3XX_COUNT),
+      group.metrics.httpCodeTarget(ec2.HttpCodeTarget.TARGET_3XX_COUNT),
     );
     metrics.push(group.metrics.ipv6RequestCount());
     metrics.push(group.metrics.unhealthyHostCount());
@@ -878,42 +884,35 @@ describe("tests", () => {
 
     for (const metric of metrics) {
       expect(metric.namespace).toEqual("AWS/ApplicationELB");
-      const loadBalancerArn = { Ref: "LBSomeListenerCA01F1A0" };
+      const loadBalancerArn = "aws_lb_listener.LB_SomeListener_CA01F1A0.arn";
 
       expect(stack.resolve(metric.dimensions)).toEqual({
-        TargetGroup: {
-          "Fn::GetAtt": ["TargetGroup3D7CD9B8", "TargetGroupFullName"],
-        },
-        LoadBalancer: {
-          "Fn::Join": [
-            "",
-            [
-              { "Fn::Select": [1, { "Fn::Split": ["/", loadBalancerArn] }] },
-              "/",
-              { "Fn::Select": [2, { "Fn::Split": ["/", loadBalancerArn] }] },
-              "/",
-              { "Fn::Select": [3, { "Fn::Split": ["/", loadBalancerArn] }] },
-            ],
-          ],
-        },
+        TargetGroup:
+          // TODO: is ARN correct here? or should be Name?
+          // "Fn::GetAtt": ["TargetGroup3D7CD9B8", "TargetGroupFullName"],
+          '${element(split("/", element(split(":", aws_lb_target_group.TargetGroup_3D7CD9B8.arn), 5)), 0)}',
+        LoadBalancer: [
+          `\${element(split("/", ${loadBalancerArn}), 1)}`,
+          `\${element(split("/", ${loadBalancerArn}), 2)}`,
+          `\${element(split("/", ${loadBalancerArn}), 3)}`,
+        ].join("/"),
       });
     }
   });
 
   test("Can add dependency on ListenerRule via TargetGroup", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const loadBalancer = new elbv2.ApplicationLoadBalancer(
+    const loadBalancer = new ec2.ApplicationLoadBalancer(
       stack,
       "LoadBalancer",
       { vpc },
     );
-    const group1 = new elbv2.ApplicationTargetGroup(stack, "TargetGroup1", {
+    const group1 = new ec2.ApplicationTargetGroup(stack, "TargetGroup1", {
       vpc,
       port: 80,
     });
-    const group2 = new elbv2.ApplicationTargetGroup(stack, "TargetGroup2", {
+    const group2 = new ec2.ApplicationTargetGroup(stack, "TargetGroup2", {
       vpc,
       port: 80,
     });
@@ -926,29 +925,29 @@ describe("tests", () => {
     new ResourceWithLBDependency(stack, "SomeResource", group2);
 
     listener.addTargetGroups("SecondGroup", {
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/bla"])],
+      conditions: [ec2.ListenerCondition.pathPatterns(["/bla"])],
       priority: 10,
       targetGroups: [group2],
     });
 
     // THEN
-    Template.fromStack(stack).templateMatches(
-      Match.objectLike({
-        Resources: {
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        test_resource: {
           SomeResource: {
-            Type: "Test::Resource",
-            DependsOn: ["LoadBalancerListenerSecondGroupRuleF5FDC196"],
+            depends_on: [
+              "aws_lb_listener_rule.LoadBalancer_Listener_SecondGroupRule_F5FDC196",
+            ],
           },
         },
-      }),
-    );
+      },
+    });
   });
 
   test("Can add fixed responses", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
       vpc,
     });
     const listener = lb.addListener("Listener", {
@@ -957,43 +956,49 @@ describe("tests", () => {
 
     // WHEN
     listener.addAction("Default", {
-      action: elbv2.ListenerAction.fixedResponse(404, {
+      action: ec2.ListenerAction.fixedResponse(404, {
         contentType: "text/plain",
         messageBody: "Not Found",
       }),
     });
     listener.addAction("Hello", {
-      action: elbv2.ListenerAction.fixedResponse(503),
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
+      action: ec2.ListenerAction.fixedResponse(503, {
+        // TODO: Automatically determine content type?
+        // * @default - Automatically determined
+        // Required in elbv2 - CreateRule - API Call
+        // https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_FixedResponseActionConfig.html
+        // Optional in CloudFormation resource
+        // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-elasticloadbalancingv2-listener-fixedresponseconfig.html#cfn-elasticloadbalancingv2-listener-fixedresponseconfig-contenttype
+        contentType: "text/plain",
+      }),
+      conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
       priority: 10,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        DefaultActions: [
-          {
-            FixedResponseConfig: {
-              ContentType: "text/plain",
-              MessageBody: "Not Found",
-              StatusCode: "404",
-            },
-            Type: "fixed-response",
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      default_action: [
+        {
+          fixed_response: {
+            content_type: "text/plain",
+            message_body: "Not Found",
+            status_code: "404",
           },
-        ],
-      },
-    );
+          type: "fixed-response",
+        },
+      ],
+    });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfListenerRule.LbListenerRule,
       {
-        Actions: [
+        action: [
           {
-            FixedResponseConfig: {
-              StatusCode: "503",
+            fixed_response: {
+              content_type: "text/plain", // required for TF
+              status_code: "503",
             },
-            Type: "fixed-response",
+            type: "fixed-response",
           },
         ],
       },
@@ -1002,10 +1007,8 @@ describe("tests", () => {
 
   test("imported listener only need securityGroup and listenerArn as attributes", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-
     const importedListener =
-      elbv2.ApplicationListener.fromApplicationListenerAttributes(
+      ec2.ApplicationListener.fromApplicationListenerAttributes(
         stack,
         "listener",
         {
@@ -1022,22 +1025,32 @@ describe("tests", () => {
         },
       );
     importedListener.addAction("Hello", {
-      action: elbv2.ListenerAction.fixedResponse(503),
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
+      action: ec2.ListenerAction.fixedResponse(503, {
+        contentType: "text/plain",
+      }),
+      conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
       priority: 10,
     });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfListenerRule.LbListenerRule,
       {
-        ListenerArn: "listener-arn",
-        Priority: 10,
-        Actions: [
+        listener_arn: "listener-arn",
+        priority: 10,
+        action: [
           {
-            FixedResponseConfig: {
-              StatusCode: "503",
+            fixed_response: {
+              content_type: "text/plain", // required for TF
+              status_code: "503",
             },
-            Type: "fixed-response",
+            type: "fixed-response",
+          },
+        ],
+        condition: [
+          {
+            path_pattern: {
+              values: ["/hello"],
+            },
           },
         ],
       },
@@ -1046,10 +1059,14 @@ describe("tests", () => {
 
   test("Can add actions to an imported listener", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const stack2 = new cdk.Stack();
+    const stack2 = new AwsStack(app, "TestStack2", {
+      environmentName, // TODO: should be different stack for test
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
     const vpc = new ec2.Vpc(stack, "VPC");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
       vpc,
     });
     const listener = lb.addListener("Listener", {
@@ -1058,14 +1075,14 @@ describe("tests", () => {
 
     // WHEN
     listener.addAction("Default", {
-      action: elbv2.ListenerAction.fixedResponse(404, {
+      action: ec2.ListenerAction.fixedResponse(404, {
         contentType: "text/plain",
         messageBody: "Not Found",
       }),
     });
 
     const importedListener =
-      elbv2.ApplicationListener.fromApplicationListenerAttributes(
+      ec2.ApplicationListener.fromApplicationListenerAttributes(
         stack2,
         "listener",
         {
@@ -1082,39 +1099,39 @@ describe("tests", () => {
         },
       );
     importedListener.addAction("Hello", {
-      action: elbv2.ListenerAction.fixedResponse(503),
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
+      action: ec2.ListenerAction.fixedResponse(503, {
+        contentType: "text/plain",
+      }),
+      conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
       priority: 10,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        DefaultActions: [
-          {
-            FixedResponseConfig: {
-              ContentType: "text/plain",
-              MessageBody: "Not Found",
-              StatusCode: "404",
-            },
-            Type: "fixed-response",
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      default_action: [
+        {
+          fixed_response: {
+            content_type: "text/plain",
+            message_body: "Not Found",
+            status_code: "404",
           },
-        ],
-      },
-    );
+          type: "fixed-response",
+        },
+      ],
+    });
 
-    Template.fromStack(stack2).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
+    Template.synth(stack2).toHaveResourceWithProperties(
+      tfListenerRule.LbListenerRule,
       {
-        ListenerArn: "listener-arn",
-        Priority: 10,
-        Actions: [
+        listener_arn: "listener-arn",
+        priority: 10,
+        action: [
           {
-            FixedResponseConfig: {
-              StatusCode: "503",
+            fixed_response: {
+              content_type: "text/plain", // required for TF
+              status_code: "503",
             },
-            Type: "fixed-response",
+            type: "fixed-response",
           },
         ],
       },
@@ -1122,11 +1139,10 @@ describe("tests", () => {
   });
 
   test("actions added to an imported listener must have a priority", () => {
-    // GIVEN
-    const stack = new cdk.Stack();
+    // GIVE
 
     const importedListener =
-      elbv2.ApplicationListener.fromApplicationListenerAttributes(
+      ec2.ApplicationListener.fromApplicationListenerAttributes(
         stack,
         "listener",
         {
@@ -1144,18 +1160,20 @@ describe("tests", () => {
       );
     expect(() => {
       importedListener.addAction("Hello", {
-        action: elbv2.ListenerAction.fixedResponse(503),
+        action: ec2.ListenerAction.fixedResponse(503, {
+          contentType: "text/plain",
+        }),
       });
     }).toThrow(
       /priority must be set for actions added to an imported listener/,
     );
   });
 
-  testDeprecated("Can add redirect responses", () => {
+  // deprecated
+  test("Can add redirect responses", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
       vpc,
     });
     const listener = lb.addListener("Listener", {
@@ -1170,38 +1188,35 @@ describe("tests", () => {
     });
     listener.addRedirectResponse("Hello", {
       priority: 10,
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
+      conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
       path: "/new/#{path}",
       statusCode: "HTTP_302",
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        DefaultActions: [
-          {
-            RedirectConfig: {
-              Port: "443",
-              Protocol: "HTTPS",
-              StatusCode: "HTTP_301",
-            },
-            Type: "redirect",
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      default_action: [
+        {
+          redirect: {
+            port: "443",
+            protocol: "HTTPS",
+            status_code: "HTTP_301",
           },
-        ],
-      },
-    );
+          type: "redirect",
+        },
+      ],
+    });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfListenerRule.LbListenerRule,
       {
-        Actions: [
+        action: [
           {
-            RedirectConfig: {
-              Path: "/new/#{path}",
-              StatusCode: "HTTP_302",
+            redirect: {
+              path: "/new/#{path}",
+              status_code: "HTTP_302",
             },
-            Type: "redirect",
+            type: "redirect",
           },
         ],
       },
@@ -1210,9 +1225,8 @@ describe("tests", () => {
 
   test("Can add simple redirect responses", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
       vpc,
     });
 
@@ -1220,31 +1234,27 @@ describe("tests", () => {
     lb.addRedirect();
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        Port: 80,
-        Protocol: "HTTP",
-        DefaultActions: [
-          {
-            RedirectConfig: {
-              Port: "443",
-              Protocol: "HTTPS",
-              StatusCode: "HTTP_301",
-            },
-            Type: "redirect",
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      port: 80,
+      protocol: "HTTP",
+      default_action: [
+        {
+          redirect: {
+            port: "443",
+            protocol: "HTTPS",
+            status_code: "HTTP_301",
           },
-        ],
-      },
-    );
+          type: "redirect",
+        },
+      ],
+    });
   });
 
   test("Can supress default ingress rules on a simple redirect response", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
 
-    const loadBalancer = new elbv2.ApplicationLoadBalancer(stack, "LB", {
+    const loadBalancer = new ec2.ApplicationLoadBalancer(stack, "LB", {
       vpc,
     });
 
@@ -1252,34 +1262,35 @@ describe("tests", () => {
     loadBalancer.addRedirect({ open: false });
 
     // THEN
-    const matchingGroups = Template.fromStack(stack).findResources(
-      "AWS::EC2::SecurityGroup",
-      {
-        SecurityGroupIngress: [
-          {
-            CidrIp: "0.0.0.0/0",
-            Description: "Allow from anyone on port 80",
-            IpProtocol: "tcp",
-          },
+    const template = new Template(stack);
+    // expect(Object.keys(matchingGroups).length).toBe(0);
+    template.resourceTypeArrayNotContaining(tfSecurityGroup.SecurityGroup, [
+      expect.objectContaining({
+        ingress: [
+          expect.objectContaining({
+            cidr_blocks: ["0.0.0.0/0"],
+            description: "Allow from anyone on port 80",
+            protocol: "tcp",
+            from_port: 80,
+            to_port: 80,
+          }),
         ],
-      },
-    );
-    expect(Object.keys(matchingGroups).length).toBe(0);
+      }),
+    ]);
   });
 
   test("Can add simple redirect responses with custom values", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
       vpc,
     });
 
     // WHEN
     const listener = lb.addRedirect({
-      sourceProtocol: elbv2.ApplicationProtocol.HTTPS,
+      sourceProtocol: ec2.ApplicationProtocol.HTTPS,
       sourcePort: 8443,
-      targetProtocol: elbv2.ApplicationProtocol.HTTP,
+      targetProtocol: ec2.ApplicationProtocol.HTTP,
       targetPort: 8080,
     });
     listener.addCertificates("ListenerCertificateX", [
@@ -1287,60 +1298,48 @@ describe("tests", () => {
     ]);
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        Port: 8443,
-        Protocol: "HTTPS",
-        DefaultActions: [
-          {
-            RedirectConfig: {
-              Port: "8080",
-              Protocol: "HTTP",
-              StatusCode: "HTTP_301",
-            },
-            Type: "redirect",
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      certificate_arn: "cert3",
+      port: 8443,
+      protocol: "HTTPS",
+      default_action: [
+        {
+          redirect: {
+            port: "8080",
+            protocol: "HTTP",
+            status_code: "HTTP_301",
           },
-        ],
-      },
-    );
+          type: "redirect",
+        },
+      ],
+    });
   });
 
   test("Can configure deregistration_delay for targets", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
 
     // WHEN
-    new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
-      deregistrationDelay: cdk.Duration.seconds(30),
+      deregistrationDelay: Duration.seconds(30),
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfTargetGroup.LbTargetGroup,
       {
-        TargetGroupAttributes: [
-          {
-            Key: "deregistration_delay.timeout_seconds",
-            Value: "30",
-          },
-          {
-            Key: "stickiness.enabled",
-            Value: "false",
-          },
-        ],
+        deregistration_delay: "30",
+        // TODO: missing stickiness.enabled: false
       },
     );
   });
 
   test("Custom Load balancer algorithm type", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
     const listener = lb.addListener("Listener", { port: 80 });
 
     // WHEN
@@ -1348,33 +1347,26 @@ describe("tests", () => {
       port: 80,
       targets: [new FakeSelfRegisteringTarget(stack, "Target", vpc)],
       loadBalancingAlgorithmType:
-        elbv2.TargetGroupLoadBalancingAlgorithmType.LEAST_OUTSTANDING_REQUESTS,
+        ec2.TargetGroupLoadBalancingAlgorithmType.LEAST_OUTSTANDING_REQUESTS,
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::TargetGroup",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfTargetGroup.LbTargetGroup,
       {
-        TargetGroupAttributes: [
-          {
-            Key: "stickiness.enabled",
-            Value: "false",
-          },
-          {
-            Key: "load_balancing.algorithm.type",
-            Value: "least_outstanding_requests",
-          },
-        ],
+        load_balancing_algorithm_type: "least_outstanding_requests",
+        // TODO: missing stickiness.enabled: false
       },
     );
   });
 
-  describeDeprecated("Throws with bad fixed responses", () => {
+  // deprecated
+  describe("Throws with bad fixed responses", () => {
+    // deprecated
     test("status code", () => {
       // GIVEN
-      const stack = new cdk.Stack();
       const vpc = new ec2.Vpc(stack, "VPC");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
         vpc,
       });
       const listener = lb.addListener("Listener", {
@@ -1389,11 +1381,11 @@ describe("tests", () => {
       ).toThrow(/`statusCode`/);
     });
 
+    // deprecated
     test("message body", () => {
       // GIVEN
-      const stack = new cdk.Stack();
       const vpc = new ec2.Vpc(stack, "VPC");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
         vpc,
       });
       const listener = lb.addListener("Listener", {
@@ -1410,12 +1402,13 @@ describe("tests", () => {
     });
   });
 
-  describeDeprecated("Throws with bad redirect responses", () => {
+  // deprecated
+  describe("Throws with bad redirect responses", () => {
+    // deprecated
     test("status code", () => {
       // GIVEN
-      const stack = new cdk.Stack();
       const vpc = new ec2.Vpc(stack, "VPC");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
         vpc,
       });
       const listener = lb.addListener("Listener", {
@@ -1430,11 +1423,11 @@ describe("tests", () => {
       ).toThrow(/`statusCode`/);
     });
 
+    // deprecated
     test("protocol", () => {
       // GIVEN
-      const stack = new cdk.Stack();
       const vpc = new ec2.Vpc(stack, "VPC");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
         vpc,
       });
       const listener = lb.addListener("Listener", {
@@ -1453,9 +1446,8 @@ describe("tests", () => {
 
   test("Throws when specifying both target groups and an action", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
       vpc,
     });
     const listener = lb.addListener("Listener", {
@@ -1465,13 +1457,15 @@ describe("tests", () => {
     // THEN
     expect(
       () =>
-        new elbv2.ApplicationListenerRule(stack, "Rule", {
-          action: elbv2.ListenerAction.fixedResponse(500),
+        new ec2.ApplicationListenerRule(stack, "Rule", {
+          action: ec2.ListenerAction.fixedResponse(500, {
+            contentType: "text/plain",
+          }),
           listener,
           priority: 10,
-          conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
+          conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
           targetGroups: [
-            new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+            new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
               vpc,
               port: 80,
             }),
@@ -1482,9 +1476,8 @@ describe("tests", () => {
 
   test("Throws when specifying priority 0", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
       vpc,
     });
     const listener = lb.addListener("Listener", {
@@ -1494,20 +1487,21 @@ describe("tests", () => {
     // THEN
     expect(
       () =>
-        new elbv2.ApplicationListenerRule(stack, "Rule", {
-          action: elbv2.ListenerAction.fixedResponse(500),
+        new ec2.ApplicationListenerRule(stack, "Rule", {
+          action: ec2.ListenerAction.fixedResponse(500, {
+            contentType: "text/plain",
+          }),
           listener,
           priority: 0,
-          conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
+          conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
         }),
     ).toThrow("Priority must have value greater than or equal to 1");
   });
 
   test("Accepts unresolved priority", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "VPC");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
       vpc,
     });
     const listener = lb.addListener("Listener", {
@@ -1517,12 +1511,12 @@ describe("tests", () => {
     // THEN
     expect(
       () =>
-        new elbv2.ApplicationListenerRule(stack, "Rule", {
+        new ec2.ApplicationListenerRule(stack, "Rule", {
           listener,
-          priority: new cdk.CfnParameter(stack, "PriorityParam", {
+          priority: new TerraformVariable(stack, "PriorityParam", {
             type: "Number",
-          }).valueAsNumber,
-          conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
+          }).numberValue,
+          conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
           fixedResponse: {
             statusCode: "500",
           },
@@ -1530,99 +1524,94 @@ describe("tests", () => {
     ).not.toThrow("Priority must have value greater than or equal to 1");
   });
 
-  testDeprecated(
-    "Throws when specifying both target groups and redirect response",
-    () => {
-      // GIVEN
-      const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "VPC");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LoadBalancer", {
-        vpc,
-      });
-      const listener = lb.addListener("Listener", {
-        port: 80,
-      });
+  // deprecated
+  test("Throws when specifying both target groups and redirect response", () => {
+    // GIVEN
+    const vpc = new ec2.Vpc(stack, "VPC");
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
+      vpc,
+    });
+    const listener = lb.addListener("Listener", {
+      port: 80,
+    });
 
-      // THEN
-      expect(
-        () =>
-          new elbv2.ApplicationListenerRule(stack, "Rule", {
-            listener,
-            priority: 10,
-            conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
-            targetGroups: [
-              new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
-                vpc,
-                port: 80,
-              }),
-            ],
-            redirectResponse: {
-              statusCode: "HTTP_301",
-            },
-          }),
-      ).toThrow(/'targetGroups,redirectResponse'.*/);
+    // THEN
+    expect(
+      () =>
+        new ec2.ApplicationListenerRule(stack, "Rule", {
+          listener,
+          priority: 10,
+          conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
+          targetGroups: [
+            new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
+              vpc,
+              port: 80,
+            }),
+          ],
+          redirectResponse: {
+            statusCode: "HTTP_301",
+          },
+        }),
+    ).toThrow(/'targetGroups,redirectResponse'.*/);
 
-      expect(
-        () =>
-          new elbv2.ApplicationListenerRule(stack, "Rule2", {
-            listener,
-            priority: 10,
-            conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
-            targetGroups: [
-              new elbv2.ApplicationTargetGroup(stack, "TargetGroup2", {
-                vpc,
-                port: 80,
-              }),
-            ],
-            fixedResponse: {
-              statusCode: "500",
-            },
-            redirectResponse: {
-              statusCode: "HTTP_301",
-            },
-          }),
-      ).toThrow(/'targetGroups,fixedResponse,redirectResponse'.*/);
-    },
-  );
+    expect(
+      () =>
+        new ec2.ApplicationListenerRule(stack, "Rule2", {
+          listener,
+          priority: 10,
+          conditions: [ec2.ListenerCondition.pathPatterns(["/hello"])],
+          targetGroups: [
+            new ec2.ApplicationTargetGroup(stack, "TargetGroup2", {
+              vpc,
+              port: 80,
+            }),
+          ],
+          fixedResponse: {
+            statusCode: "500",
+          },
+          redirectResponse: {
+            statusCode: "HTTP_301",
+          },
+        }),
+    ).toThrow(/'targetGroups,fixedResponse,redirectResponse'.*/);
+  });
 
   test("Imported listener with imported security group and allowAllOutbound set to false", () => {
     // GIVEN
-    const stack = new cdk.Stack();
-    const listener =
-      elbv2.ApplicationListener.fromApplicationListenerAttributes(
-        stack,
-        "Listener",
-        {
-          listenerArn: "listener-arn",
-          defaultPort: 443,
-          securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
-            stack,
-            "SG",
-            "security-group-id",
-            {
-              allowAllOutbound: false,
-            },
-          ),
-        },
-      );
+    const listener = ec2.ApplicationListener.fromApplicationListenerAttributes(
+      stack,
+      "Listener",
+      {
+        listenerArn: "listener-arn",
+        defaultPort: 443,
+        securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
+          stack,
+          "SG",
+          "security-group-id",
+          {
+            allowAllOutbound: false,
+          },
+        ),
+      },
+    );
 
     // WHEN
     listener.connections.allowToAnyIpv4(ec2.Port.tcp(443));
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::EC2::SecurityGroupEgress",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
       {
-        GroupId: "security-group-id",
+        security_group_id: "security-group-id",
+        description: "to 0.0.0.0/0:443",
       },
     );
   });
 
   test("Can pass multiple certificate arns to application listener constructor", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     lb.addListener("Listener", {
@@ -1632,108 +1621,97 @@ describe("tests", () => {
         importedCertificate(stack, "cert2"),
       ],
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        Protocol: "HTTPS",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      certificate_arn: "cert1",
+      protocol: "HTTPS",
+    });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfListenerCertificate.LbListenerCertificate,
       {
-        Certificates: [{ CertificateArn: "cert2" }],
+        certificate_arn: "cert2",
       },
     );
   });
 
   test("Can use certificate wrapper class", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     lb.addListener("Listener", {
       port: 443,
       certificates: [
-        elbv2.ListenerCertificate.fromArn("cert1"),
-        elbv2.ListenerCertificate.fromArn("cert2"),
+        ec2.ListenerCertificate.fromArn("cert1"),
+        ec2.ListenerCertificate.fromArn("cert2"),
       ],
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::Listener",
-      {
-        Protocol: "HTTPS",
-      },
-    );
+    Template.synth(stack).toHaveResourceWithProperties(tfListener.LbListener, {
+      certificate_arn: "cert1",
+      protocol: "HTTPS",
+    });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfListenerCertificate.LbListenerCertificate,
       {
-        Certificates: [{ CertificateArn: "cert2" }],
+        certificate_arn: "cert2",
       },
     );
   });
 
-  testDeprecated(
-    "Can add additional certificates via addCertificateArns to application listener",
-    () => {
-      // GIVEN
-      const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "Stack");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+  // deprecated
+  test("Can add additional certificates via addCertificateArns to application listener", () => {
+    // GIVEN
+    const vpc = new ec2.Vpc(stack, "Stack");
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
-      // WHEN
-      const listener = lb.addListener("Listener", {
-        port: 443,
-        certificateArns: ["cert1", "cert2"],
-        defaultTargetGroups: [
-          new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
-        ],
-      });
+    // WHEN
+    const listener = lb.addListener("Listener", {
+      port: 443,
+      certificateArns: ["cert1", "cert2"],
+      defaultTargetGroups: [
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+      ],
+    });
 
-      listener.addCertificateArns("ListenerCertificateX", ["cert3"]);
+    listener.addCertificateArns("ListenerCertificateX", ["cert3"]);
 
-      // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::Listener",
-        {
-          Protocol: "HTTPS",
-        },
-      );
+    // THEN
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfListener.LbListener, {
+      protocol: "HTTPS",
+    });
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::ListenerCertificate",
-        {
-          Certificates: [{ CertificateArn: "cert2" }],
-        },
-      );
+    template.toHaveResourceWithProperties(
+      tfListenerCertificate.LbListenerCertificate,
+      {
+        certificate_arn: "cert2",
+      },
+    );
 
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::ListenerCertificate",
-        {
-          Certificates: [{ CertificateArn: "cert3" }],
-        },
-      );
-    },
-  );
+    template.toHaveResourceWithProperties(
+      tfListenerCertificate.LbListenerCertificate,
+      {
+        certificate_arn: "cert3",
+      },
+    );
+  });
 
   test("Can add multiple path patterns to listener rule", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     const listener = lb.addListener("Listener", {
@@ -1743,78 +1721,75 @@ describe("tests", () => {
         importedCertificate(stack, "cert2"),
       ],
       defaultTargetGroups: [
-        new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
       ],
     });
 
     listener.addTargets("Target1", {
       priority: 10,
       conditions: [
-        elbv2.ListenerCondition.pathPatterns(["/test/path/1", "/test/path/2"]),
+        ec2.ListenerCondition.pathPatterns(["/test/path/1", "/test/path/2"]),
       ],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfListenerRule.LbListenerRule,
       {
-        Priority: 10,
-        Conditions: [
+        priority: 10,
+        condition: [
           {
-            Field: "path-pattern",
-            PathPatternConfig: { Values: ["/test/path/1", "/test/path/2"] },
+            path_pattern: {
+              values: ["/test/path/1", "/test/path/2"],
+            },
           },
         ],
       },
     );
   });
 
-  testDeprecated(
-    "Cannot add pathPattern and pathPatterns to listener rule",
-    () => {
-      // GIVEN
-      const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "Stack");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+  // deprecated
+  test("Cannot add pathPattern and pathPatterns to listener rule", () => {
+    // GIVEN
+    const vpc = new ec2.Vpc(stack, "Stack");
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
-      // WHEN
-      const listener = lb.addListener("Listener", {
-        port: 443,
-        certificates: [
-          importedCertificate(stack, "cert1"),
-          importedCertificate(stack, "cert2"),
-        ],
-        defaultTargetGroups: [
-          new elbv2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
-        ],
-      });
+    // WHEN
+    const listener = lb.addListener("Listener", {
+      port: 443,
+      certificates: [
+        importedCertificate(stack, "cert1"),
+        importedCertificate(stack, "cert2"),
+      ],
+      defaultTargetGroups: [
+        new ec2.ApplicationTargetGroup(stack, "Group", { vpc, port: 80 }),
+      ],
+    });
 
-      // THEN
-      expect(() =>
-        listener.addTargets("Target1", {
-          priority: 10,
-          pathPatterns: ["/test/path/1", "/test/path/2"],
-          pathPattern: "/test/path/3",
-        }),
-      ).toThrow(
-        "Both `pathPatterns` and `pathPattern` are specified, specify only one",
-      );
-    },
-  );
+    // THEN
+    expect(() =>
+      listener.addTargets("Target1", {
+        priority: 10,
+        pathPatterns: ["/test/path/1", "/test/path/2"],
+        pathPattern: "/test/path/3",
+      }),
+    ).toThrow(
+      "Both `pathPatterns` and `pathPattern` are specified, specify only one",
+    );
+  });
 
   test("Add additional condition to listener rule", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
-    const group1 = new elbv2.ApplicationTargetGroup(stack, "Group1", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const group1 = new ec2.ApplicationTargetGroup(stack, "Group1", {
       vpc,
       port: 80,
     });
-    const group2 = new elbv2.ApplicationTargetGroup(stack, "Group2", {
+    const group2 = new ec2.ApplicationTargetGroup(stack, "Group2", {
       vpc,
       port: 81,
-      protocol: elbv2.ApplicationProtocol.HTTP,
+      protocol: ec2.ApplicationProtocol.HTTP,
     });
 
     // WHEN
@@ -1826,8 +1801,8 @@ describe("tests", () => {
     listener.addTargetGroups("TargetGroup1", {
       priority: 10,
       conditions: [
-        elbv2.ListenerCondition.hostHeaders(["app.test"]),
-        elbv2.ListenerCondition.httpHeader("Accept", [
+        ec2.ListenerCondition.hostHeaders(["app.test"]),
+        ec2.ListenerCondition.httpHeader("Accept", [
           "application/vnd.myapp.v2+json",
         ]),
       ],
@@ -1835,67 +1810,58 @@ describe("tests", () => {
     });
     listener.addTargetGroups("TargetGroup2", {
       priority: 20,
-      conditions: [elbv2.ListenerCondition.hostHeaders(["app.test"])],
+      conditions: [ec2.ListenerCondition.hostHeaders(["app.test"])],
       targetGroups: [group2],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
-      {
-        Priority: 10,
-        Conditions: [
-          {
-            Field: "host-header",
-            HostHeaderConfig: {
-              Values: ["app.test"],
-            },
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfListenerRule.LbListenerRule, {
+      priority: 10,
+      condition: [
+        {
+          host_header: {
+            values: ["app.test"],
           },
-          {
-            Field: "http-header",
-            HttpHeaderConfig: {
-              HttpHeaderName: "Accept",
-              Values: ["application/vnd.myapp.v2+json"],
-            },
+        },
+        {
+          http_header: {
+            http_header_name: "Accept",
+            values: ["application/vnd.myapp.v2+json"],
           },
-        ],
-      },
-    );
+        },
+      ],
+    });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
-      {
-        Priority: 20,
-        Conditions: [
-          {
-            Field: "host-header",
-            HostHeaderConfig: {
-              Values: ["app.test"],
-            },
+    template.toHaveResourceWithProperties(tfListenerRule.LbListenerRule, {
+      priority: 20,
+      condition: [
+        {
+          host_header: {
+            values: ["app.test"],
           },
-        ],
-      },
-    );
+        },
+      ],
+    });
   });
 
   test("Add multiple additonal condition to listener rule", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
-    const group1 = new elbv2.ApplicationTargetGroup(stack, "Group1", {
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const group1 = new ec2.ApplicationTargetGroup(stack, "Group1", {
       vpc,
       port: 80,
     });
-    const group2 = new elbv2.ApplicationTargetGroup(stack, "Group2", {
+    const group2 = new ec2.ApplicationTargetGroup(stack, "Group2", {
       vpc,
       port: 81,
-      protocol: elbv2.ApplicationProtocol.HTTP,
+      protocol: ec2.ApplicationProtocol.HTTP,
     });
-    const group3 = new elbv2.ApplicationTargetGroup(stack, "Group3", {
+    const group3 = new ec2.ApplicationTargetGroup(stack, "Group3", {
       vpc,
       port: 82,
-      protocol: elbv2.ApplicationProtocol.HTTP,
+      protocol: ec2.ApplicationProtocol.HTTP,
     });
 
     // WHEN
@@ -1907,9 +1873,9 @@ describe("tests", () => {
     listener.addTargetGroups("TargetGroup1", {
       priority: 10,
       conditions: [
-        elbv2.ListenerCondition.hostHeaders(["app.test"]),
-        elbv2.ListenerCondition.sourceIps(["192.0.2.0/24"]),
-        elbv2.ListenerCondition.queryStrings([
+        ec2.ListenerCondition.hostHeaders(["app.test"]),
+        ec2.ListenerCondition.sourceIps(["192.0.2.0/24"]),
+        ec2.ListenerCondition.queryStrings([
           { key: "version", value: "2" },
           { value: "foo*" },
         ]),
@@ -1919,8 +1885,8 @@ describe("tests", () => {
     listener.addTargetGroups("TargetGroup2", {
       priority: 20,
       conditions: [
-        elbv2.ListenerCondition.hostHeaders(["app.test"]),
-        elbv2.ListenerCondition.httpHeader("Accept", [
+        ec2.ListenerCondition.hostHeaders(["app.test"]),
+        ec2.ListenerCondition.httpHeader("Accept", [
           "application/vnd.myapp.v2+json",
         ]),
       ],
@@ -1929,8 +1895,8 @@ describe("tests", () => {
     listener.addTargetGroups("TargetGroup3", {
       priority: 30,
       conditions: [
-        elbv2.ListenerCondition.hostHeaders(["app.test"]),
-        elbv2.ListenerCondition.httpRequestMethods([
+        ec2.ListenerCondition.hostHeaders(["app.test"]),
+        ec2.ListenerCondition.httpRequestMethods([
           "PUT",
           "COPY",
           "LOCK",
@@ -1945,107 +1911,141 @@ describe("tests", () => {
     });
     listener.addTargetGroups("TargetGroup4", {
       priority: 40,
-      conditions: [elbv2.ListenerCondition.hostHeaders(["app.test"])],
+      conditions: [ec2.ListenerCondition.hostHeaders(["app.test"])],
       targetGroups: [group3],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
-      {
-        Priority: 10,
-        Conditions: [
-          {
-            Field: "host-header",
-            HostHeaderConfig: {
-              Values: ["app.test"],
-            },
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(tfListenerRule.LbListenerRule, {
+      priority: 10,
+      condition: [
+        {
+          host_header: {
+            values: ["app.test"],
           },
-          {
-            Field: "source-ip",
-            SourceIpConfig: {
-              Values: ["192.0.2.0/24"],
-            },
+        },
+        {
+          source_ip: {
+            values: ["192.0.2.0/24"],
           },
-          {
-            Field: "query-string",
-            QueryStringConfig: {
-              Values: [
-                {
-                  Key: "version",
-                  Value: "2",
-                },
-                {
-                  Value: "foo*",
-                },
-              ],
+        },
+        {
+          query_string: [
+            {
+              key: "version",
+              value: "2",
             },
-          },
-        ],
-      },
-    );
+            {
+              value: "foo*",
+            },
+          ],
+        },
+      ],
+    });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
-      {
-        Priority: 20,
-        Conditions: [
-          {
-            Field: "host-header",
-            HostHeaderConfig: {
-              Values: ["app.test"],
-            },
+    template.toHaveResourceWithProperties(tfListenerRule.LbListenerRule, {
+      priority: 20,
+      condition: [
+        {
+          host_header: {
+            values: ["app.test"],
           },
-          {
-            Field: "http-header",
-            HttpHeaderConfig: {
-              HttpHeaderName: "Accept",
-              Values: ["application/vnd.myapp.v2+json"],
-            },
+        },
+        {
+          http_header: {
+            http_header_name: "Accept",
+            values: ["application/vnd.myapp.v2+json"],
           },
-        ],
-      },
-    );
+        },
+      ],
+    });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
-      {
-        Priority: 30,
-        Conditions: [
-          {
-            Field: "host-header",
-            HostHeaderConfig: {
-              Values: ["app.test"],
-            },
+    template.toHaveResourceWithProperties(tfListenerRule.LbListenerRule, {
+      priority: 30,
+      condition: [
+        {
+          host_header: {
+            values: ["app.test"],
           },
-          {
-            Field: "http-request-method",
-            HttpRequestMethodConfig: {
-              Values: [
-                "PUT",
-                "COPY",
-                "LOCK",
-                "MKCOL",
-                "MOVE",
-                "PROPFIND",
-                "PROPPATCH",
-                "UNLOCK",
-              ],
-            },
+        },
+        {
+          http_request_method: {
+            values: [
+              "PUT",
+              "COPY",
+              "LOCK",
+              "MKCOL",
+              "MOVE",
+              "PROPFIND",
+              "PROPPATCH",
+              "UNLOCK",
+            ],
           },
-        ],
-      },
-    );
+        },
+      ],
+    });
 
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
+    template.toHaveResourceWithProperties(tfListenerRule.LbListenerRule, {
+      priority: 40,
+      condition: [
+        {
+          host_header: {
+            values: ["app.test"],
+          },
+        },
+      ],
+    });
+  });
+
+  // deprecated
+  test("Can exist together legacy style conditions and modern style conditions", () => {
+    // GIVEN
+    const vpc = new ec2.Vpc(stack, "Stack");
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const group1 = new ec2.ApplicationTargetGroup(stack, "Group1", {
+      vpc,
+      port: 80,
+    });
+    const group2 = new ec2.ApplicationTargetGroup(stack, "Group2", {
+      vpc,
+      port: 81,
+      protocol: ec2.ApplicationProtocol.HTTP,
+    });
+
+    // WHEN
+    const listener = lb.addListener("Listener", {
+      port: 443,
+      certificates: [importedCertificate(stack, "cert1")],
+      defaultTargetGroups: [group2],
+    });
+    listener.addTargetGroups("TargetGroup1", {
+      hostHeader: "app.test",
+      pathPattern: "/test",
+      conditions: [ec2.ListenerCondition.sourceIps(["192.0.2.0/24"])],
+      priority: 10,
+      targetGroups: [group1],
+    });
+
+    // THEN
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfListenerRule.LbListenerRule,
       {
-        Priority: 40,
-        Conditions: [
+        priority: 10,
+        condition: [
           {
-            Field: "host-header",
-            HostHeaderConfig: {
-              Values: ["app.test"],
+            host_header: {
+              values: ["app.test"],
+            },
+          },
+          {
+            path_pattern: {
+              values: ["/test"],
+            },
+          },
+          {
+            source_ip: {
+              values: ["192.0.2.0/24"],
             },
           },
         ],
@@ -2053,319 +2053,253 @@ describe("tests", () => {
     );
   });
 
-  testDeprecated(
-    "Can exist together legacy style conditions and modern style conditions",
-    () => {
-      // GIVEN
-      const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "Stack");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
-      const group1 = new elbv2.ApplicationTargetGroup(stack, "Group1", {
-        vpc,
-        port: 80,
-      });
-      const group2 = new elbv2.ApplicationTargetGroup(stack, "Group2", {
-        vpc,
-        port: 81,
-        protocol: elbv2.ApplicationProtocol.HTTP,
-      });
-
-      // WHEN
-      const listener = lb.addListener("Listener", {
-        port: 443,
-        certificates: [importedCertificate(stack, "cert1")],
-        defaultTargetGroups: [group2],
-      });
-      listener.addTargetGroups("TargetGroup1", {
-        hostHeader: "app.test",
-        pathPattern: "/test",
-        conditions: [elbv2.ListenerCondition.sourceIps(["192.0.2.0/24"])],
-        priority: 10,
-        targetGroups: [group1],
-      });
-
-      // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::ListenerRule",
-        {
-          Priority: 10,
-          Conditions: [
-            {
-              Field: "host-header",
-              Values: ["app.test"],
-            },
-            {
-              Field: "path-pattern",
-              Values: ["/test"],
-            },
-            {
-              Field: "source-ip",
-              SourceIpConfig: {
-                Values: ["192.0.2.0/24"],
-              },
-            },
-          ],
-        },
-      );
-    },
-  );
-
   test("Add condition to imported application listener", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const group = new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    const group = new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
     });
-    const listener =
-      elbv2.ApplicationListener.fromApplicationListenerAttributes(
-        stack,
-        "Listener",
-        {
-          listenerArn: "listener-arn",
-          defaultPort: 443,
-          securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
-            stack,
-            "SG",
-            "security-group-id",
-          ),
-        },
-      );
+    const listener = ec2.ApplicationListener.fromApplicationListenerAttributes(
+      stack,
+      "Listener",
+      {
+        listenerArn: "listener-arn",
+        defaultPort: 443,
+        securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
+          stack,
+          "SG",
+          "security-group-id",
+        ),
+      },
+    );
 
     // WHEN
     listener.addTargetGroups("OtherTG", {
       targetGroups: [group],
       priority: 1,
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/path1", "/path2"])],
+      conditions: [ec2.ListenerCondition.pathPatterns(["/path1", "/path2"])],
     });
 
     // THEN
-    Template.fromStack(stack).hasResourceProperties(
-      "AWS::ElasticLoadBalancingV2::ListenerRule",
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfListenerRule.LbListenerRule,
       {
-        Priority: 1,
-        Conditions: [
+        priority: 1,
+        condition: [
           {
-            Field: "path-pattern",
-            PathPatternConfig: { Values: ["/path1", "/path2"] },
+            path_pattern: {
+              values: ["/path1", "/path2"],
+            },
           },
         ],
       },
     );
   });
 
-  testDeprecated(
-    "not allowed to combine action specifiers when instantiating a Rule directly",
-    () => {
-      // GIVEN
-      const stack = new cdk.Stack();
-      const vpc = new ec2.Vpc(stack, "Stack");
-      const group = new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
-        vpc,
-        port: 80,
-      });
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
-      const listener = lb.addListener("Listener", { port: 80 });
-
-      const baseProps = {
-        listener,
-        priority: 1,
-        pathPatterns: ["/path1", "/path2"],
-      };
-
-      // WHEN
-      expect(() => {
-        new elbv2.ApplicationListenerRule(stack, "Rule1", {
-          ...baseProps,
-          fixedResponse: { statusCode: "200" },
-          action: elbv2.ListenerAction.fixedResponse(200),
-        });
-      }).toThrow(/specify only one/);
-
-      expect(() => {
-        new elbv2.ApplicationListenerRule(stack, "Rule2", {
-          ...baseProps,
-          targetGroups: [group],
-          action: elbv2.ListenerAction.fixedResponse(200),
-        });
-      }).toThrow(/specify only one/);
-    },
-  );
-
-  test("not allowed to specify defaultTargetGroups and defaultAction together", () => {
+  // deprecated
+  test("not allowed to combine action specifiers when instantiating a Rule directly", () => {
     // GIVEN
-    const stack = new cdk.Stack();
     const vpc = new ec2.Vpc(stack, "Stack");
-    const group = new elbv2.ApplicationTargetGroup(stack, "TargetGroup", {
+    const group = new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
       vpc,
       port: 80,
     });
-    const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
+    const listener = lb.addListener("Listener", { port: 80 });
+
+    const baseProps = {
+      listener,
+      priority: 1,
+      pathPatterns: ["/path1", "/path2"],
+    };
+
+    // WHEN
+    expect(() => {
+      new ec2.ApplicationListenerRule(stack, "Rule1", {
+        ...baseProps,
+        fixedResponse: { statusCode: "200" },
+        action: ec2.ListenerAction.fixedResponse(200, {
+          contentType: "text/plain",
+        }),
+      });
+    }).toThrow(/specify only one/);
+
+    expect(() => {
+      new ec2.ApplicationListenerRule(stack, "Rule2", {
+        ...baseProps,
+        targetGroups: [group],
+        action: ec2.ListenerAction.fixedResponse(200, {
+          contentType: "text/plain",
+        }),
+      });
+    }).toThrow(/specify only one/);
+  });
+
+  test("not allowed to specify defaultTargetGroups and defaultAction together", () => {
+    // GIVEN
+    const vpc = new ec2.Vpc(stack, "Stack");
+    const group = new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
+      vpc,
+      port: 80,
+    });
+    const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
     // WHEN
     expect(() => {
       lb.addListener("Listener1", {
         port: 80,
         defaultTargetGroups: [group],
-        defaultAction: elbv2.ListenerAction.fixedResponse(200),
+        defaultAction: ec2.ListenerAction.fixedResponse(200, {
+          contentType: "text/plain",
+        }),
       });
     }).toThrow(/Specify at most one/);
   });
 
-  describe("Rule suffix for logicalId", () => {
-    const identifierToken = "SuperMagicToken";
-    interface TestCase {
-      readonly removeSuffix?: boolean;
-      readonly expectedLogicalId: string;
-    }
-    const nonDefaultTestCases: TestCase[] = [
-      { removeSuffix: true, expectedLogicalId: identifierToken },
-      { removeSuffix: false, expectedLogicalId: identifierToken + "Rule" },
-    ];
-    test.each<TestCase>([
-      // Default is consistent, which means it has the `Rule` suffix. This means no change from legacy behavior
-      { removeSuffix: undefined, expectedLogicalId: identifierToken + "Rule" },
-      ...nonDefaultTestCases,
-    ])("addAction %s", ({ removeSuffix, expectedLogicalId }) => {
-      // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "TestStack", {
-        env: { account: "123456789012", region: "us-east-1" },
-      });
-      const vpc = new ec2.Vpc(stack, "Stack");
-      const targetGroup = new elbv2.ApplicationTargetGroup(
-        stack,
-        "TargetGroup",
-        { vpc, port: 80 },
-      );
-      const listener = elbv2.ApplicationListener.fromLookup(stack, "a", {
-        loadBalancerTags: {
-          some: "tag",
-        },
-      });
+  // TODO: Add support for Grid Loookup
+  // describe("Rule suffix for logicalId", () => {
+  //   const identifierToken = "SuperMagicToken";
+  //   interface TestCase {
+  //     readonly removeSuffix?: boolean;
+  //     readonly expectedLogicalId: string;
+  //   }
+  //   const nonDefaultTestCases: TestCase[] = [
+  //     { removeSuffix: true, expectedLogicalId: identifierToken },
+  //     { removeSuffix: false, expectedLogicalId: identifierToken + "Rule" },
+  //   ];
+  //   test.each<TestCase>([
+  //     // Default is consistent, which means it has the `Rule` suffix. This means no change from legacy behavior
+  //     { removeSuffix: undefined, expectedLogicalId: identifierToken + "Rule" },
+  //     ...nonDefaultTestCases,
+  //   ])("addAction %s", ({ removeSuffix, expectedLogicalId }) => {
+  //     // GIVEN
+  //     const app = new cdk.App();
+  //     const stack = new cdk.Stack(app, "TestStack", {
+  //       env: { account: "123456789012", region: "us-east-1" },
+  //     });
+  //     const vpc = new ec2.Vpc(stack, "Stack");
+  //     const targetGroup = new ec2.ApplicationTargetGroup(stack, "TargetGroup", {
+  //       vpc,
+  //       port: 80,
+  //     });
+  //     const listener = ec2.ApplicationListener.fromLookup(stack, "a", {
+  //       loadBalancerTags: {
+  //         some: "tag",
+  //       },
+  //     });
 
-      // WHEN
-      listener.addAction(identifierToken, {
-        action: elbv2.ListenerAction.weightedForward([
-          { targetGroup, weight: 1 },
-        ]),
-        conditions: [elbv2.ListenerCondition.pathPatterns(["/fake"])],
-        priority: 42,
-        removeSuffix,
-      });
+  //     // WHEN
+  //     listener.addAction(identifierToken, {
+  //       action: ec2.ListenerAction.weightedForward([
+  //         { targetGroup, weight: 1 },
+  //       ]),
+  //       conditions: [ec2.ListenerCondition.pathPatterns(["/fake"])],
+  //       priority: 42,
+  //       removeSuffix,
+  //     });
 
-      // THEN
-      const applicationListenerRule = listener.node.children.find((v) =>
-        v.hasOwnProperty("conditions"),
-      );
-      expect(applicationListenerRule).toBeDefined();
-      expect(applicationListenerRule!.node.id).toBe(expectedLogicalId);
-    });
-  });
+  //     // THEN
+  //     const applicationListenerRule = listener.node.children.find((v) =>
+  //       v.hasOwnProperty("conditions"),
+  //     );
+  //     expect(applicationListenerRule).toBeDefined();
+  //     expect(applicationListenerRule!.node.id).toBe(expectedLogicalId);
+  //   });
+  // });
 
-  describe("lookup", () => {
-    test("Can look up an ApplicationListener", () => {
-      // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "stack", {
-        env: {
-          account: "123456789012",
-          region: "us-west-2",
-        },
-      });
-
-      // WHEN
-      const listener = elbv2.ApplicationListener.fromLookup(stack, "a", {
-        loadBalancerTags: {
-          some: "tag",
-        },
-      });
-
-      // THEN
-      Template.fromStack(stack).resourceCountIs(
-        "AWS::ElasticLoadBalancingV2::Listener",
-        0,
-      );
-      expect(listener.listenerArn).toEqual(
-        "arn:aws:elasticloadbalancing:us-west-2:123456789012:listener/application/my-load-balancer/50dc6c495c0c9188/f2f7dc8efc522ab2",
-      );
-      expect(listener.connections.securityGroups[0].securityGroupId).toEqual(
-        "sg-12345678",
-      );
-    });
-
-    test("Can add rules to a looked-up ApplicationListener", () => {
-      // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "stack", {
-        env: {
-          account: "123456789012",
-          region: "us-west-2",
-        },
-      });
-
-      const listener = elbv2.ApplicationListener.fromLookup(stack, "a", {
-        loadBalancerTags: {
-          some: "tag",
-        },
-      });
-
-      // WHEN
-      new elbv2.ApplicationListenerRule(stack, "rule", {
-        listener,
-        conditions: [elbv2.ListenerCondition.hostHeaders(["example.com"])],
-        action: elbv2.ListenerAction.fixedResponse(200),
-        priority: 5,
-      });
-
-      // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::ListenerRule",
-        {
-          Priority: 5,
-        },
-      );
-    });
-
-    test("Can add certificates to a looked-up ApplicationListener", () => {
-      // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "stack", {
-        env: {
-          account: "123456789012",
-          region: "us-west-2",
-        },
-      });
-
-      const listener = elbv2.ApplicationListener.fromLookup(stack, "a", {
-        loadBalancerTags: {
-          some: "tag",
-        },
-      });
-
-      // WHEN
-      listener.addCertificates("certs", [
-        importedCertificate(stack, "arn:something"),
-      ]);
-
-      // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::ListenerCertificate",
-        {
-          Certificates: [{ CertificateArn: "arn:something" }],
-        },
-      );
-    });
-  });
+  // describe("lookup", () => {
+  // TODO: Add support for Grid Loookup
+  // test("Can look up an ApplicationListener", () => {
+  //   // GIVEN
+  //   const app = new cdk.App();
+  //   const stack = new cdk.Stack(app, "stack", {
+  //     env: {
+  //       account: "123456789012",
+  //       region: "us-west-2",
+  //     },
+  //   });
+  //   // WHEN
+  //   const listener = ec2.ApplicationListener.fromLookup(stack, "a", {
+  //     loadBalancerTags: {
+  //       some: "tag",
+  //     },
+  //   });
+  //   // THEN
+  //   Template.fromStack(stack).resourceCountIs(tfListener.LbListener, 0);
+  //   expect(listener.listenerArn).toEqual(
+  //     "arn:aws:elasticloadbalancing:us-west-2:123456789012:listener/application/my-load-balancer/50dc6c495c0c9188/f2f7dc8efc522ab2",
+  //   );
+  //   expect(listener.connections.securityGroups[0].securityGroupId).toEqual(
+  //     "sg-12345678",
+  //   );
+  // });
+  // // TODO: Add support for Grid Loookup
+  // test("Can add rules to a looked-up ApplicationListener", () => {
+  //   // GIVEN
+  //   const app = new cdk.App();
+  //   const stack = new cdk.Stack(app, "stack", {
+  //     env: {
+  //       account: "123456789012",
+  //       region: "us-west-2",
+  //     },
+  //   });
+  //   const listener = ec2.ApplicationListener.fromLookup(stack, "a", {
+  //     loadBalancerTags: {
+  //       some: "tag",
+  //     },
+  //   });
+  //   // WHEN
+  //   new ec2.ApplicationListenerRule(stack, "rule", {
+  //     listener,
+  //     conditions: [ec2.ListenerCondition.hostHeaders(["example.com"])],
+  //     action: ec2.ListenerAction.fixedResponse(200, {
+  //       contentType: "text/plain",
+  //     }),
+  //     priority: 5,
+  //   });
+  //   // THEN
+  //   Template.synth(stack).toHaveResourceWithProperties(
+  //     tfListenerRule.LbListenerRule,
+  //     {
+  //       Priority: 5,
+  //     },
+  //   );
+  // });
+  // // TODO: Add support for Grid Loookup
+  //   test("Can add certificates to a looked-up ApplicationListener", () => {
+  //     // GIVEN
+  //     const app = new cdk.App();
+  //     const stack = new cdk.Stack(app, "stack", {
+  //       env: {
+  //         account: "123456789012",
+  //         region: "us-west-2",
+  //       },
+  //     });
+  //     const listener = ec2.ApplicationListener.fromLookup(stack, "a", {
+  //       loadBalancerTags: {
+  //         some: "tag",
+  //       },
+  //     });
+  //     // WHEN
+  //     listener.addCertificates("certs", [
+  //       importedCertificate(stack, "arn:something"),
+  //     ]);
+  //     // THEN
+  //     Template.synth(stack).toHaveResourceWithProperties(
+  //       tfListenerCertificate.LbListenerCertificate,
+  //       {
+  //         Certificates: [{ CertificateArn: "arn:something" }],
+  //       },
+  //     );
+  //   });
+  // });
 
   describe("weighted_random algorithm test", () => {
     test("Can add targets with weight_random algorithm and anomaly mitigation enabled", () => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
       const listener = lb.addListener("Listener", { port: 80 });
 
       // WHEN
@@ -2373,38 +2307,25 @@ describe("tests", () => {
         port: 80,
         targets: [new FakeSelfRegisteringTarget(stack, "Target", vpc)],
         loadBalancingAlgorithmType:
-          elbv2.TargetGroupLoadBalancingAlgorithmType.WEIGHTED_RANDOM,
+          ec2.TargetGroupLoadBalancingAlgorithmType.WEIGHTED_RANDOM,
         enableAnomalyMitigation: true,
       });
 
       // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::TargetGroup",
+      Template.synth(stack).toHaveResourceWithProperties(
+        tfTargetGroup.LbTargetGroup,
         {
-          TargetGroupAttributes: [
-            {
-              Key: "stickiness.enabled",
-              Value: "false",
-            },
-            {
-              Key: "load_balancing.algorithm.type",
-              Value: "weighted_random",
-            },
-            {
-              Key: "load_balancing.algorithm.anomaly_mitigation",
-              Value: "on",
-            },
-          ],
+          load_balancing_algorithm_type: "weighted_random",
+          load_balancing_anomaly_mitigation: "on",
+          // TODO: missing stickiness.enabled: false
         },
       );
     });
 
     test("Can add targets with weight_random algorithm and anomaly mitigation disabled", () => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
       const listener = lb.addListener("Listener", { port: 80 });
 
       // WHEN
@@ -2412,38 +2333,25 @@ describe("tests", () => {
         port: 80,
         targets: [new FakeSelfRegisteringTarget(stack, "Target", vpc)],
         loadBalancingAlgorithmType:
-          elbv2.TargetGroupLoadBalancingAlgorithmType.WEIGHTED_RANDOM,
+          ec2.TargetGroupLoadBalancingAlgorithmType.WEIGHTED_RANDOM,
         enableAnomalyMitigation: false,
       });
 
       // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::TargetGroup",
+      Template.synth(stack).toHaveResourceWithProperties(
+        tfTargetGroup.LbTargetGroup,
         {
-          TargetGroupAttributes: [
-            {
-              Key: "stickiness.enabled",
-              Value: "false",
-            },
-            {
-              Key: "load_balancing.algorithm.type",
-              Value: "weighted_random",
-            },
-            {
-              Key: "load_balancing.algorithm.anomaly_mitigation",
-              Value: "off",
-            },
-          ],
+          load_balancing_algorithm_type: "weighted_random",
+          load_balancing_anomaly_mitigation: "off",
+          // TODO: missing stickiness.enabled: false
         },
       );
     });
 
     test("Throws an error when adding targets with weight_random algorithm and slow start setting enabled.", () => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
       const listener = lb.addListener("Listener", { port: 80 });
 
       // WHEN
@@ -2452,8 +2360,8 @@ describe("tests", () => {
           port: 80,
           targets: [new FakeSelfRegisteringTarget(stack, "Target", vpc)],
           loadBalancingAlgorithmType:
-            elbv2.TargetGroupLoadBalancingAlgorithmType.WEIGHTED_RANDOM,
-          slowStart: cdk.Duration.seconds(60),
+            ec2.TargetGroupLoadBalancingAlgorithmType.WEIGHTED_RANDOM,
+          slowStart: Duration.seconds(60),
         }),
       ).toThrow(
         "The weighted random routing algorithm can not be used with slow start mode.",
@@ -2462,10 +2370,8 @@ describe("tests", () => {
 
     test("Throws an error when adding targets with anomaly mitigation enabled and an algorithm other than weight_random.", () => {
       // GIVEN
-      const app = new cdk.App();
-      const stack = new cdk.Stack(app, "Stack");
       const vpc = new ec2.Vpc(stack, "VPC", {});
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
       const listener = lb.addListener("Listener", { port: 80 });
 
       // WHEN
@@ -2474,7 +2380,7 @@ describe("tests", () => {
           port: 80,
           targets: [new FakeSelfRegisteringTarget(stack, "Target", vpc)],
           loadBalancingAlgorithmType:
-            elbv2.TargetGroupLoadBalancingAlgorithmType.ROUND_ROBIN,
+            ec2.TargetGroupLoadBalancingAlgorithmType.ROUND_ROBIN,
           enableAnomalyMitigation: true,
         }),
       ).toThrow(
@@ -2486,74 +2392,72 @@ describe("tests", () => {
   describe("Mutual Authentication", () => {
     test("Mutual Authentication settings with all properties when mutualAuthenticationMode is verify", () => {
       // GIVEN
-      const stack = new cdk.Stack();
       const vpc = new ec2.Vpc(stack, "Stack");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
       const bucket = new s3.Bucket(stack, "Bucket");
 
-      const trustStore = new elbv2.TrustStore(stack, "TrustStore", {
+      const trustStore = new ec2.TrustStore(stack, "TrustStore", {
         bucket,
         key: "dummy.pem",
       });
 
       // WHEN
       lb.addListener("Listener", {
-        protocol: elbv2.ApplicationProtocol.HTTPS,
+        protocol: ec2.ApplicationProtocol.HTTPS,
         certificates: [importedCertificate(stack)],
         mutualAuthentication: {
           ignoreClientCertificateExpiry: true,
-          mutualAuthenticationMode: elbv2.MutualAuthenticationMode.VERIFY,
+          mutualAuthenticationMode: ec2.MutualAuthenticationMode.VERIFY,
           trustStore,
         },
-        defaultAction: elbv2.ListenerAction.fixedResponse(200, {
+        defaultAction: ec2.ListenerAction.fixedResponse(200, {
           contentType: "text/plain",
           messageBody: "Success mTLS",
         }),
       });
 
       // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::Listener",
+      Template.synth(stack).toHaveResourceWithProperties(
+        tfListener.LbListener,
         {
-          MutualAuthentication: {
-            IgnoreClientCertificateExpiry: true,
-            Mode: "verify",
-            TrustStoreArn: stack.resolve(trustStore.trustStoreArn),
+          mutual_authentication: {
+            ignore_client_certificate_expiry: true,
+            mode: "verify",
+            trust_store_arn: stack.resolve(trustStore.trustStoreArn),
           },
         },
       );
     });
 
     test.each([
-      elbv2.MutualAuthenticationMode.OFF,
-      elbv2.MutualAuthenticationMode.PASS_THROUGH,
+      ec2.MutualAuthenticationMode.OFF,
+      ec2.MutualAuthenticationMode.PASS_THROUGH,
     ])(
       "Mutual Authentication settings with all properties when mutualAuthenticationMode is %s",
       (mutualAuthenticationMode) => {
         // GIVEN
-        const stack = new cdk.Stack();
         const vpc = new ec2.Vpc(stack, "Stack");
-        const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+        const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
         // WHEN
         lb.addListener("Listener", {
-          protocol: elbv2.ApplicationProtocol.HTTPS,
+          protocol: ec2.ApplicationProtocol.HTTPS,
           certificates: [importedCertificate(stack)],
           mutualAuthentication: {
             mutualAuthenticationMode,
           },
-          defaultAction: elbv2.ListenerAction.fixedResponse(200, {
+          defaultAction: ec2.ListenerAction.fixedResponse(200, {
             contentType: "text/plain",
             messageBody: "Success mTLS",
           }),
         });
 
         // THEN
-        Template.fromStack(stack).hasResourceProperties(
-          "AWS::ElasticLoadBalancingV2::Listener",
+        Template.synth(stack).toHaveResourceWithProperties(
+          tfListener.LbListener,
           {
-            MutualAuthentication: {
-              Mode: mutualAuthenticationMode,
+            mutual_authentication: {
+              mode: mutualAuthenticationMode,
             },
           },
         );
@@ -2562,50 +2466,44 @@ describe("tests", () => {
 
     test("Mutual Authentication settings without all properties", () => {
       // GIVEN
-      const stack = new cdk.Stack();
       const vpc = new ec2.Vpc(stack, "Stack");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
       // WHEN
       lb.addListener("Listener", {
-        protocol: elbv2.ApplicationProtocol.HTTPS,
+        protocol: ec2.ApplicationProtocol.HTTPS,
         certificates: [importedCertificate(stack)],
         mutualAuthentication: {},
-        defaultAction: elbv2.ListenerAction.fixedResponse(200, {
+        defaultAction: ec2.ListenerAction.fixedResponse(200, {
           contentType: "text/plain",
           messageBody: "Success mTLS",
         }),
       });
 
       // THEN
-      Template.fromStack(stack).hasResourceProperties(
-        "AWS::ElasticLoadBalancingV2::Listener",
+      Template.synth(stack).not.toHaveResourceWithProperties(
+        tfListener.LbListener,
         {
-          MutualAuthentication: {
-            IgnoreClientCertificateExpiry: Match.absent(),
-            Mode: Match.absent(),
-            TrustStoreArn: Match.absent(),
-          },
+          mutual_authentication: expect.anything(),
         },
       );
     });
 
     test("Throw an error when mode is verify without TrustStore", () => {
       // GIVEN
-      const stack = new cdk.Stack();
       const vpc = new ec2.Vpc(stack, "Stack");
-      const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+      const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
       // WHEN
       expect(() => {
         lb.addListener("Listener", {
-          protocol: elbv2.ApplicationProtocol.HTTPS,
+          protocol: ec2.ApplicationProtocol.HTTPS,
           certificates: [importedCertificate(stack)],
           mutualAuthentication: {
             ignoreClientCertificateExpiry: true,
-            mutualAuthenticationMode: elbv2.MutualAuthenticationMode.VERIFY,
+            mutualAuthenticationMode: ec2.MutualAuthenticationMode.VERIFY,
           },
-          defaultAction: elbv2.ListenerAction.fixedResponse(200, {
+          defaultAction: ec2.ListenerAction.fixedResponse(200, {
             contentType: "text/plain",
             messageBody: "Success mTLS",
           }),
@@ -2614,18 +2512,17 @@ describe("tests", () => {
     });
 
     test.each([
-      elbv2.MutualAuthenticationMode.OFF,
-      elbv2.MutualAuthenticationMode.PASS_THROUGH,
+      ec2.MutualAuthenticationMode.OFF,
+      ec2.MutualAuthenticationMode.PASS_THROUGH,
     ])(
       "Throw an error when mode is %s with trustStore",
       (mutualAuthenticationMode) => {
         // GIVEN
-        const stack = new cdk.Stack();
         const vpc = new ec2.Vpc(stack, "Stack");
-        const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+        const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
         const bucket = new s3.Bucket(stack, "Bucket");
 
-        const trustStore = new elbv2.TrustStore(stack, "TrustStore", {
+        const trustStore = new ec2.TrustStore(stack, "TrustStore", {
           bucket,
           key: "dummy.pem",
         });
@@ -2633,13 +2530,13 @@ describe("tests", () => {
         // WHEN
         expect(() => {
           lb.addListener("Listener", {
-            protocol: elbv2.ApplicationProtocol.HTTPS,
+            protocol: ec2.ApplicationProtocol.HTTPS,
             certificates: [importedCertificate(stack)],
             mutualAuthentication: {
               mutualAuthenticationMode,
               trustStore,
             },
-            defaultAction: elbv2.ListenerAction.fixedResponse(200, {
+            defaultAction: ec2.ListenerAction.fixedResponse(200, {
               contentType: "text/plain",
               messageBody: "Success mTLS",
             }),
@@ -2651,26 +2548,25 @@ describe("tests", () => {
     );
 
     test.each([
-      elbv2.MutualAuthenticationMode.OFF,
-      elbv2.MutualAuthenticationMode.PASS_THROUGH,
+      ec2.MutualAuthenticationMode.OFF,
+      ec2.MutualAuthenticationMode.PASS_THROUGH,
     ])(
       "Throw an error when mode is %s with ignoreClientCertificateExpiry",
       (mutualAuthenticationMode) => {
         // GIVEN
-        const stack = new cdk.Stack();
         const vpc = new ec2.Vpc(stack, "Stack");
-        const lb = new elbv2.ApplicationLoadBalancer(stack, "LB", { vpc });
+        const lb = new ec2.ApplicationLoadBalancer(stack, "LB", { vpc });
 
         // WHEN
         expect(() => {
           lb.addListener("Listener", {
-            protocol: elbv2.ApplicationProtocol.HTTPS,
+            protocol: ec2.ApplicationProtocol.HTTPS,
             certificates: [importedCertificate(stack)],
             mutualAuthentication: {
               mutualAuthenticationMode,
               ignoreClientCertificateExpiry: true,
             },
-            defaultAction: elbv2.ListenerAction.fixedResponse(200, {
+            defaultAction: ec2.ListenerAction.fixedResponse(200, {
               contentType: "text/plain",
               messageBody: "Success mTLS",
             }),
@@ -2683,22 +2579,22 @@ describe("tests", () => {
   });
 });
 
-class ResourceWithLBDependency extends cdk.CfnResource {
+class ResourceWithLBDependency extends TerraformResource {
   constructor(
     scope: constructs.Construct,
     id: string,
-    targetGroup: elbv2.ITargetGroup,
+    targetGroup: ec2.ITargetGroup,
   ) {
-    super(scope, id, { type: "Test::Resource" });
+    super(scope, id, { terraformResourceType: "test_resource" });
     this.node.addDependency(targetGroup.loadBalancerAttached);
   }
 }
 
 function importedCertificate(
-  stack: cdk.Stack,
+  stack: AwsStack,
   certificateArn = "arn:aws:certificatemanager:123456789012:testregion:certificate/fd0b8392-3c0e-4704-81b6-8edf8612c852",
 ) {
-  return acm.Certificate.fromCertificateArn(
+  return acm.PublicCertificate.fromCertificateArn(
     stack,
     certificateArn,
     certificateArn,

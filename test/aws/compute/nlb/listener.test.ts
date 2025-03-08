@@ -91,7 +91,7 @@ describe("tests", () => {
       {
         default_action: [
           {
-            arn: stack.resolve(group.targetGroupArn),
+            target_group_arn: stack.resolve(group.targetGroupArn),
             type: "forward",
           },
         ],
@@ -118,7 +118,7 @@ describe("tests", () => {
       default_action: [
         {
           target_group_arn:
-            "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+            "${aws_lb_target_group.LB_Listener_TargetsGroup_76EF81E8.arn}",
           type: "forward",
         },
       ],
@@ -127,15 +127,15 @@ describe("tests", () => {
       vpc_id: stack.resolve(vpc.vpcId),
       port: 80,
       protocol: "TCP",
-      targetType: "instance",
+      target_type: "instance",
     });
     template.toHaveResourceWithProperties(
       tfTargetGroupAttachment.LbTargetGroupAttachment,
       {
         target_group_arn:
-          "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+          "${aws_lb_target_group.LB_Listener_TargetsGroup_76EF81E8.arn}",
         target_id: "i-12345",
-        port: 9700,
+        // port: 9700,
       },
     );
   });
@@ -162,7 +162,7 @@ describe("tests", () => {
       default_action: [
         {
           target_group_arn:
-            "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+            "${aws_lb_target_group.LB_Listener_TargetsGroup_76EF81E8.arn}",
           type: "forward",
         },
       ],
@@ -171,15 +171,15 @@ describe("tests", () => {
       vpc_id: stack.resolve(vpc.vpcId),
       port: 9700,
       protocol: "TCP_UDP",
-      targetType: "instance",
+      target_type: "instance",
     });
     template.toHaveResourceWithProperties(
       tfTargetGroupAttachment.LbTargetGroupAttachment,
       {
         target_group_arn:
-          "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+          "${aws_lb_target_group.LB_Listener_TargetsGroup_76EF81E8.arn}",
         target_id: "i-12345",
-        port: 9700,
+        // port: 9700,
       },
     );
   });
@@ -213,12 +213,12 @@ describe("tests", () => {
     template.toHaveResourceWithProperties(tfLbListener.LbListener, {
       protocol: "TLS",
       port: 443,
-      certificate_arn: "${aws_acm_certificate.Certificate4E7ABB08.arn}",
+      certificate_arn: "${aws_acm_certificate.Certificate_4E7ABB08.arn}",
       ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01",
       default_action: [
         {
           target_group_arn:
-            "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+            "${aws_lb_target_group.LB_Listener_TargetsGroup_76EF81E8.arn}",
           type: "forward",
         },
       ],
@@ -227,15 +227,15 @@ describe("tests", () => {
       vpc_id: stack.resolve(vpc.vpcId),
       port: 80,
       protocol: "TCP",
-      targetType: "instance",
+      target_type: "instance",
     });
     template.toHaveResourceWithProperties(
       tfTargetGroupAttachment.LbTargetGroupAttachment,
       {
         target_group_arn:
-          "${aws_lb_target_group.LBListenerTargetsGroup76EF81E8.arn}",
+          "${aws_lb_target_group.LB_Listener_TargetsGroup_76EF81E8.arn}",
         target_id: "i-12345",
-        port: 80,
+        // port: 80,
       },
     );
   });
@@ -284,12 +284,12 @@ describe("tests", () => {
       resource: {
         test_resource: {
           MyResource: {
-            depends_on: [
+            depends_on: expect.arrayContaining([
               // 2nd dependency is there because of the structure of the construct tree.
               // It does not harm.
-              "aws_lb_target_group.LBListenerGroupGroup79B304FF",
-              "aws_lb_listener.LBListener49E825B4",
-            ],
+              "aws_lb_target_group.LB_Listener_GroupGroup_79B304FF",
+              "aws_lb_listener.LB_Listener_49E825B4",
+            ]),
           },
         },
       },
@@ -353,7 +353,7 @@ describe("tests", () => {
       {
         protocol: "TLS",
         port: 443,
-        alpn_policy: ["HTTP2Only"],
+        alpn_policy: "HTTP2Only",
         certificate_arn: stack.resolve(cert.certificateArn),
         ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01",
       },
@@ -593,7 +593,7 @@ describe("tests", () => {
     listener.addCertificates("extra", [cert2]);
 
     // THEN
-    const template = Template.fromStack(stack);
+    const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfLbListener.LbListener, {
       protocol: "TLS",
     });

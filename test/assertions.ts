@@ -176,6 +176,26 @@ export class Template {
     return expect(this.resourceTypeArray(type));
   }
 
+  public resourceCountIs(type: TerraformConstructor, count: number): void {
+    return this.expectResources(type).toHaveLength(count);
+  }
+
+  public resourceTypeArrayContaining(
+    type: TerraformConstructor,
+    object: any,
+  ): void {
+    return this.expectResources(type).toEqual(expect.arrayContaining(object));
+  }
+
+  public resourceTypeArrayNotContaining(
+    type: TerraformConstructor,
+    object: any,
+  ): void {
+    return this.expectResources(type).not.toEqual(
+      expect.arrayContaining(object),
+    );
+  }
+
   public get data(): object | undefined {
     return this.template.data;
   }

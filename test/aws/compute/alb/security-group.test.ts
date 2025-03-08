@@ -1,11 +1,23 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/test/alb/security-group.test.ts
 
-import { testDeprecated } from "@aws-cdk/cdk-build-tools";
+import {
+  securityGroup as tfSecurityGroup,
+  vpcSecurityGroupIngressRule as tfVpcSecurityGroupIngressRule,
+  vpcSecurityGroupEgressRule as tfVpcSecurityGroupEgressRule,
+} from "@cdktf/provider-aws";
+import { App, Testing } from "cdktf";
+import "cdktf/lib/testing/adapters/jest";
+import { AwsStack } from "../../../../src/aws";
+import * as compute from "../../../../src/aws/compute";
 import { Template } from "../../../assertions";
-import * as ec2 from "../../../aws-ec2";
-import * as cdk from "../../../core";
-import * as elbv2 from "../../lib";
-import { FakeSelfRegisteringTarget } from "../helpers";
+import { FakeSelfRegisteringTarget } from "../lb-helpers";
+
+const environmentName = "Test";
+const gridUUID = "123e4567-e89b-12d3";
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
+const providerConfig = { region: "us-east-1" };
 
 describe("tests", () => {
   test("security groups are automatically opened bidi for default rule", () => {
@@ -49,9 +61,9 @@ describe("tests", () => {
 
     fixture.listener.addTargetGroups("Rule", {
       priority: 10,
-      conditions: [elbv2.ListenerCondition.hostHeaders(["example.com"])],
+      conditions: [compute.ListenerCondition.hostHeaders(["example.com"])],
       targetGroups: [
-        new elbv2.ApplicationTargetGroup(fixture.stack, "TargetGroup2", {
+        new compute.ApplicationTargetGroup(fixture.stack, "TargetGroup2", {
           vpc: fixture.vpc,
           port: 8008,
           targets: [target2],
@@ -73,7 +85,7 @@ describe("tests", () => {
     );
 
     // WHEN
-    const group = new elbv2.ApplicationTargetGroup(
+    const group = new compute.ApplicationTargetGroup(
       fixture.stack,
       "TargetGroup",
       {
@@ -88,7 +100,7 @@ describe("tests", () => {
     });
     fixture.listener.addTargetGroups("WithPath", {
       priority: 10,
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/hello"])],
+      conditions: [compute.ListenerCondition.pathPatterns(["/hello"])],
       targetGroups: [group],
     });
 
@@ -99,7 +111,7 @@ describe("tests", () => {
   test("same result if target is added to group after assigning to listener", () => {
     // GIVEN
     const fixture = new TestFixture();
-    const group = new elbv2.ApplicationTargetGroup(
+    const group = new compute.ApplicationTargetGroup(
       fixture.stack,
       "TargetGroup",
       {
@@ -127,7 +139,7 @@ describe("tests", () => {
     // GIVEN
     const fixture = new TestFixture(true);
 
-    const parentGroup = new elbv2.ApplicationTargetGroup(
+    const parentGroup = new compute.ApplicationTargetGroup(
       fixture.stack,
       "TargetGroup",
       {
@@ -144,10 +156,15 @@ describe("tests", () => {
       targetGroups: [parentGroup],
     });
 
-    const childStack = new cdk.Stack(fixture.app, "childStack");
+    const childStack = new AwsStack(fixture.app, "childStack", {
+      environmentName,
+      gridUUID, // should be different
+      providerConfig,
+      gridBackendConfig,
+    });
 
     // WHEN
-    const childGroup = new elbv2.ApplicationTargetGroup(
+    const childGroup = new compute.ApplicationTargetGroup(
       childStack,
       "TargetGroup",
       {
@@ -160,11 +177,11 @@ describe("tests", () => {
       },
     );
 
-    new elbv2.ApplicationListenerRule(childStack, "ListenerRule", {
+    new compute.ApplicationListenerRule(childStack, "ListenerRule", {
       listener: fixture.listener,
       targetGroups: [childGroup],
       priority: 100,
-      conditions: [elbv2.ListenerCondition.hostHeaders(["www.foo.com"])],
+      conditions: [compute.ListenerCondition.hostHeaders(["www.foo.com"])],
     });
 
     // THEN
@@ -175,9 +192,14 @@ describe("tests", () => {
   test("SG peering works on exported/imported load balancer", () => {
     // GIVEN
     const fixture = new TestFixture(false);
-    const stack2 = new cdk.Stack(fixture.app, "stack2");
-    const vpc2 = new ec2.Vpc(stack2, "VPC");
-    const group = new elbv2.ApplicationTargetGroup(stack2, "TargetGroup", {
+    const stack2 = new AwsStack(fixture.app, "stack2", {
+      environmentName,
+      gridUUID, // should be different
+      providerConfig,
+      gridBackendConfig,
+    });
+    const vpc2 = new compute.Vpc(stack2, "VPC");
+    const group = new compute.ApplicationTargetGroup(stack2, "TargetGroup", {
       // We're assuming the 2nd VPC is peered to the 1st, or something.
       vpc: vpc2,
       port: 8008,
@@ -186,7 +208,7 @@ describe("tests", () => {
 
     // WHEN
     const lb2 =
-      elbv2.ApplicationLoadBalancer.fromApplicationLoadBalancerAttributes(
+      compute.ApplicationLoadBalancer.fromApplicationLoadBalancerAttributes(
         stack2,
         "LB",
         {
@@ -206,9 +228,14 @@ describe("tests", () => {
   test("SG peering works on exported/imported listener", () => {
     // GIVEN
     const fixture = new TestFixture();
-    const stack2 = new cdk.Stack(fixture.app, "stack2");
-    const vpc2 = new ec2.Vpc(stack2, "VPC");
-    const group = new elbv2.ApplicationTargetGroup(stack2, "TargetGroup", {
+    const stack2 = new AwsStack(fixture.app, "stack2", {
+      environmentName,
+      gridUUID, // should be different
+      providerConfig,
+      gridBackendConfig,
+    });
+    const vpc2 = new compute.Vpc(stack2, "VPC");
+    const group = new compute.ApplicationTargetGroup(stack2, "TargetGroup", {
       // We're assuming the 2nd VPC is peered to the 1st, or something.
       vpc: vpc2,
       port: 8008,
@@ -217,14 +244,14 @@ describe("tests", () => {
     fixture.listener.addTargets("default", { port: 80 });
 
     // WHEN
-    const securityGroup = ec2.SecurityGroup.fromSecurityGroupId(
+    const securityGroup = compute.SecurityGroup.fromSecurityGroupId(
       stack2,
       "SecurityGroup",
       fixture.listener.connections.securityGroups[0].securityGroupId,
       { allowAllOutbound: false },
     );
     const listener2 =
-      elbv2.ApplicationListener.fromApplicationListenerAttributes(
+      compute.ApplicationListener.fromApplicationListenerAttributes(
         stack2,
         "YetAnotherListener",
         {
@@ -236,7 +263,7 @@ describe("tests", () => {
     listener2.addTargetGroups("Default", {
       // Must be a non-default target
       priority: 10,
-      conditions: [elbv2.ListenerCondition.hostHeaders(["example.com"])],
+      conditions: [compute.ListenerCondition.hostHeaders(["example.com"])],
       targetGroups: [group],
     });
 
@@ -244,12 +271,13 @@ describe("tests", () => {
     expectedImportedSGRules(stack2);
   });
 
-  testDeprecated("default port peering works on constructed listener", () => {
+  // DEPRECATED
+  test("default port peering works on constructed listener", () => {
     // GIVEN
     const fixture = new TestFixture();
     fixture.listener.addTargets("Default", {
       port: 8080,
-      targets: [new elbv2.InstanceTarget("i-12345")],
+      targets: [new compute.InstanceTarget("i-12345")],
     });
 
     // WHEN
@@ -258,17 +286,17 @@ describe("tests", () => {
     );
 
     // THEN
-    Template.fromStack(fixture.stack).hasResourceProperties(
-      "AWS::EC2::SecurityGroup",
+    Template.synth(fixture.stack).toHaveResourceWithProperties(
+      tfSecurityGroup.SecurityGroup,
       {
-        SecurityGroupIngress: [
-          {
-            CidrIp: "0.0.0.0/0",
-            Description: "Open to the world",
-            FromPort: 80,
-            IpProtocol: "tcp",
-            ToPort: 80,
-          },
+        ingress: [
+          expect.objectContaining({
+            cidr_blocks: ["0.0.0.0/0"],
+            description: "Open to the world",
+            protocol: "tcp",
+            from_port: 80,
+            to_port: 80,
+          }),
         ],
       },
     );
@@ -276,8 +304,13 @@ describe("tests", () => {
 
   test("default port peering works on imported listener", () => {
     // GIVEN
-    const stack2 = new cdk.Stack();
-    const securityGroup = ec2.SecurityGroup.fromSecurityGroupId(
+    const stack2 = new AwsStack(Testing.app(), "stack2", {
+      environmentName,
+      gridUUID, // should be different
+      providerConfig,
+      gridBackendConfig,
+    });
+    const securityGroup = compute.SecurityGroup.fromSecurityGroupId(
       stack2,
       "SecurityGroup",
       "imported-security-group-id",
@@ -285,7 +318,7 @@ describe("tests", () => {
 
     // WHEN
     const listener2 =
-      elbv2.ApplicationListener.fromApplicationListenerAttributes(
+      compute.ApplicationListener.fromApplicationListenerAttributes(
         stack2,
         "YetAnotherListener",
         {
@@ -297,77 +330,78 @@ describe("tests", () => {
     listener2.connections.allowDefaultPortFromAnyIpv4("Open to the world");
 
     // THEN
-    Template.fromStack(stack2).hasResourceProperties(
-      "AWS::EC2::SecurityGroupIngress",
+    Template.synth(stack2).toHaveResourceWithProperties(
+      tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
       {
-        CidrIp: "0.0.0.0/0",
-        Description: "Open to the world",
-        IpProtocol: "tcp",
-        FromPort: 8080,
-        ToPort: 8080,
-        GroupId: "imported-security-group-id",
+        cidr_ipv4: "0.0.0.0/0",
+        description: "Open to the world",
+        ip_protocol: "tcp",
+        from_port: 8080,
+        to_port: 8080,
+        security_group_id: "imported-security-group-id",
       },
     );
   });
 });
 
-const LB_SECURITY_GROUP = {
-  "Fn::GetAtt": ["LBSecurityGroup8A41EA2B", "GroupId"],
-};
-const IMPORTED_LB_SECURITY_GROUP = {
-  "Fn::ImportValue":
-    "Stack:ExportsOutputFnGetAttLBSecurityGroup8A41EA2BGroupId851EE1F6",
-};
+const LB_SECURITY_GROUP = "${aws_security_group.LB_SecurityGroup_8A41EA2B.id}";
+const IMPORTED_LB_SECURITY_GROUP =
+  "${data.terraform_remote_state.cross-stack-reference-input-Stack.outputs.cross-stack-output-aws_security_groupLB_SecurityGroup_8A41EA2Bid}";
 
-function expectSameStackSGRules(stack: cdk.Stack) {
+function expectSameStackSGRules(stack: AwsStack) {
   expectSGRules(stack, LB_SECURITY_GROUP);
 }
 
-function expectedImportedSGRules(stack: cdk.Stack) {
+function expectedImportedSGRules(stack: AwsStack) {
   expectSGRules(stack, IMPORTED_LB_SECURITY_GROUP);
 }
 
-function expectSGRules(stack: cdk.Stack, lbGroup: any) {
-  Template.fromStack(stack).hasResourceProperties(
-    "AWS::EC2::SecurityGroupEgress",
+function expectSGRules(stack: AwsStack, lbGroup: string) {
+  const t = new Template(stack);
+  t.expect.toHaveResourceWithProperties(
+    tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
     {
-      GroupId: lbGroup,
-      IpProtocol: "tcp",
-      Description: "Load balancer to target",
-      DestinationSecurityGroupId: {
-        "Fn::GetAtt": ["TargetSGDB98152D", "GroupId"],
-      },
-      FromPort: 8008,
-      ToPort: 8008,
+      security_group_id: lbGroup,
+      ip_protocol: "tcp",
+      description: "Load balancer to target",
+      referenced_security_group_id:
+        "${aws_security_group.Target_SG_DB98152D.id}",
+      from_port: 8008,
+      to_port: 8008,
     },
   );
-  Template.fromStack(stack).hasResourceProperties(
-    "AWS::EC2::SecurityGroupIngress",
+  t.expect.toHaveResourceWithProperties(
+    tfVpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
     {
-      IpProtocol: "tcp",
-      Description: "Load balancer to target",
-      FromPort: 8008,
-      GroupId: { "Fn::GetAtt": ["TargetSGDB98152D", "GroupId"] },
-      SourceSecurityGroupId: lbGroup,
-      ToPort: 8008,
+      security_group_id: "${aws_security_group.Target_SG_DB98152D.id}",
+      ip_protocol: "tcp",
+      description: "Load balancer to target",
+      referenced_security_group_id: lbGroup,
+      from_port: 8008,
+      to_port: 8008,
     },
   );
 }
 
 class TestFixture {
-  public readonly app: cdk.App;
-  public readonly stack: cdk.Stack;
-  public readonly vpc: ec2.Vpc;
-  public readonly lb: elbv2.ApplicationLoadBalancer;
-  public readonly _listener: elbv2.ApplicationListener | undefined;
+  public readonly app: App;
+  public readonly stack: AwsStack;
+  public readonly vpc: compute.Vpc;
+  public readonly lb: compute.ApplicationLoadBalancer;
+  public readonly _listener: compute.ApplicationListener | undefined;
 
   constructor(createListener?: boolean) {
-    this.app = new cdk.App();
-    this.stack = new cdk.Stack(this.app, "Stack");
-    this.vpc = new ec2.Vpc(this.stack, "VPC", {
+    this.app = Testing.app();
+    this.stack = new AwsStack(this.app, "Stack", {
+      environmentName,
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
+    this.vpc = new compute.Vpc(this.stack, "VPC", {
       maxAzs: 2,
     });
-    this.lb = new elbv2.ApplicationLoadBalancer(this.stack, "LB", {
+    this.lb = new compute.ApplicationLoadBalancer(this.stack, "LB", {
       vpc: this.vpc,
     });
 
@@ -380,7 +414,7 @@ class TestFixture {
     }
   }
 
-  public get listener(): elbv2.ApplicationListener {
+  public get listener(): compute.ApplicationListener {
     if (this._listener === undefined) {
       throw new Error("Did not create a listener");
     }
