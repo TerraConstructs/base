@@ -9,6 +9,7 @@ import {
 } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
 import { StateGraph } from "./state-graph";
+// import { StatesMetrics } from "./stepfunctions-canned-metrics.generated";
 import { IChainable } from "./types";
 import { Duration } from "../../duration";
 import * as iam from "../iam";

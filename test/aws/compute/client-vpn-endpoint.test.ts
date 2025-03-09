@@ -58,27 +58,24 @@ test("client vpn endpoint", () => {
     outputName: "TestOutput",
   });
 
-  const template = Template.synth(stack);
-  template.toHaveResourceWithProperties(
+  const t = new Template(stack);
+  t.expect.toHaveResourceWithProperties(
     ec2ClientVpnEndpoint.Ec2ClientVpnEndpoint,
     {
       authentication_options: [
         {
-          mutual_authentication: {
-            client_root_certificate_chain_arn: "client-certificate-arn",
-          },
+          root_certificate_chain_arn: "client-certificate-arn",
           type: "certificate-authentication",
         },
         {
-          federated_authentication: {
-            saml_provider_arn: stack.resolve(samlProvider.samlProviderArn),
-          },
+          saml_provider_arn: "${aws_iam_saml_provider.Provider_2281708E.arn}",
           type: "federated-authentication",
         },
       ],
       client_cidr_block: "10.100.0.0/16",
       connection_log_options: {
-        cloudwatch_log_group: "VpcEndpointLogGroup96A18897",
+        cloudwatch_log_group:
+          "${aws_cloudwatch_log_group.Vpc_Endpoint_LogGroup_96A18897.name}",
         enabled: true,
       },
       server_certificate_arn: "server-certificate-arn",
@@ -87,39 +84,56 @@ test("client vpn endpoint", () => {
         lambda_function_arn: "function-arn",
       },
       dns_servers: ["8.8.8.8", "8.8.4.4"],
-      security_group_ids: ["VpcEndpointSecurityGroup7B25EFDC.GroupId"],
+      security_group_ids: [
+        "${aws_security_group.Vpc_Endpoint_SecurityGroup_7B25EFDC.id}",
+      ],
       vpc_id: stack.resolve(vpc.vpcId),
     },
   );
 
-  Template.resources(
-    stack,
+  t.resourceCountIs(
     ec2ClientVpnNetworkAssociation.Ec2ClientVpnNetworkAssociation,
-  ).toHaveLength(2);
+    3,
+  );
 
-  template.toHaveResourceWithProperties(
+  t.expect.toHaveResourceWithProperties(
     ec2ClientVpnNetworkAssociation.Ec2ClientVpnNetworkAssociation,
     {
-      client_vpn_endpoint_id: "VpcEndpoint6FF034F6",
-      subnet_id: "VpcPrivateSubnet1Subnet536B997A",
+      client_vpn_endpoint_id:
+        "${aws_ec2_client_vpn_endpoint.Vpc_Endpoint_6FF034F6.id}",
+      subnet_id: "${aws_subnet.Vpc_PrivateSubnet1_F6513F49.id}",
+    },
+  );
+  t.expect.toHaveResourceWithProperties(
+    ec2ClientVpnNetworkAssociation.Ec2ClientVpnNetworkAssociation,
+    {
+      client_vpn_endpoint_id:
+        "${aws_ec2_client_vpn_endpoint.Vpc_Endpoint_6FF034F6.id}",
+      subnet_id: "${aws_subnet.Vpc_PrivateSubnet3_FD86EE1D.id}",
+    },
+  );
+  t.expect.toHaveResourceWithProperties(
+    ec2ClientVpnNetworkAssociation.Ec2ClientVpnNetworkAssociation,
+    {
+      client_vpn_endpoint_id:
+        "${aws_ec2_client_vpn_endpoint.Vpc_Endpoint_6FF034F6.id}",
+      subnet_id: "${aws_subnet.Vpc_PrivateSubnet1_F6513F49.id}",
     },
   );
 
-  template.toHaveResourceWithProperties(
-    ec2ClientVpnNetworkAssociation.Ec2ClientVpnNetworkAssociation,
-    {
-      client_vpn_endpoint_id: "VpcEndpoint6FF034F6",
-      subnet_id: "VpcPrivateSubnet2Subnet3788AAA1",
+  expect(t.outputByName("TestOutput")).toMatchObject({
+    value: {
+      clientVpnEndpointId: stack.resolve(clientVpnEndpoint.endpointId),
+      selfServicePortalUrl: stack.resolve(
+        clientVpnEndpoint.selfServicePortalUrl,
+      ),
     },
-  );
-  Template.expectOutput(stack, "TestOutput").toMatchObject({
-    value: stack.resolve(clientVpnEndpoint.selfServicePortalUrl),
   });
 
-  template.toHaveResourceWithProperties(
+  t.expect.toHaveResourceWithProperties(
     ec2ClientVpnAuthorizationRule.Ec2ClientVpnAuthorizationRule,
     {
-      client_vpn_endpoint_id: "VpcEndpoint6FF034F6",
+      client_vpn_endpoint_id: stack.resolve(clientVpnEndpoint.endpointId),
       target_network_cidr: stack.resolve(vpc.vpcCidrBlock),
       authorize_all_groups: true,
     },
@@ -140,7 +154,10 @@ test("client vpn endpoint with custom security groups", () => {
   Template.synth(stack).toHaveResourceWithProperties(
     ec2ClientVpnEndpoint.Ec2ClientVpnEndpoint,
     {
-      security_group_ids: ["SG1BA065B6E.GroupId", "SG20CE3219C.GroupId"],
+      security_group_ids: [
+        "${aws_security_group.SG1_BA065B6E.id}",
+        "${aws_security_group.SG2_0CE3219C.id}",
+      ],
     },
   );
 });
@@ -161,8 +178,9 @@ test("client vpn endpoint with custom logging", () => {
     ec2ClientVpnEndpoint.Ec2ClientVpnEndpoint,
     {
       connection_log_options: {
-        cloudwatch_log_group: "LogGroupF5B46931",
-        cloudwatch_log_stream: "LogGroupLogStream245D76D6",
+        cloudwatch_log_group: stack.resolve(logGroup.logGroupName),
+        cloudwatch_log_stream:
+          "${aws_cloudwatch_log_stream.LogGroup_LogStream_245D76D6.name}",
         enabled: true,
       },
     },
@@ -208,10 +226,11 @@ test("client vpn endpoint with custom authorization rules", () => {
   Template.synth(stack).toHaveResourceWithProperties(
     ec2ClientVpnAuthorizationRule.Ec2ClientVpnAuthorizationRule,
     {
-      client_vpn_endpoint_id: "VpcEndpoint6FF034F6",
-      target_network_cidr: "10.0.10.0/32",
       access_group_id: "group-id",
       authorize_all_groups: false,
+      client_vpn_endpoint_id:
+        "${aws_ec2_client_vpn_endpoint.Vpc_Endpoint_6FF034F6.id}",
+      target_network_cidr: "10.0.10.0/32",
     },
   );
 });
@@ -236,8 +255,9 @@ test("client vpn endpoint with custom route", () => {
       destination_cidr_block: "10.100.0.0/16",
       target_vpc_subnet_id: "local",
       depends_on: [
-        "VpcEndpointAssociation06B066321",
-        "VpcEndpointAssociation12B51A67F",
+        "aws_ec2_client_vpn_network_association.Vpc_Endpoint_Association0_6B066321",
+        "aws_ec2_client_vpn_network_association.Vpc_Endpoint_Association1_2B51A67F",
+        "aws_ec2_client_vpn_network_association.Vpc_Endpoint_Association2_32E0750F",
       ],
     },
   );

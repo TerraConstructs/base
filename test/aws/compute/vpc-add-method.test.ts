@@ -129,9 +129,11 @@ describe("Vpc V2 with full control", () => {
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
       connectivity_type: "private",
-      private_ip_address: "10.0.0.42",
+      private_ip: "10.0.0.42",
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
   });
 
@@ -146,10 +148,12 @@ describe("Vpc V2 with full control", () => {
     // NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
       connectivity_type: "private",
-      private_ip_address: "10.0.0.42",
+      private_ip: "10.0.0.42",
       secondary_private_ip_addresses: ["10.0.1.0/28", "10.0.2.0/28"],
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
   });
 
@@ -164,10 +168,12 @@ describe("Vpc V2 with full control", () => {
     // NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
       connectivity_type: "private",
-      private_ip_address: "10.0.0.42",
+      private_ip: "10.0.0.42",
       secondary_private_ip_address_count: 2,
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
   });
 
@@ -179,11 +185,15 @@ describe("Vpc V2 with full control", () => {
     // NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
     // EIP should be created when not provided
     template.toHaveResourceWithProperties(tfEip.Eip, {
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
   });
 
@@ -198,7 +208,9 @@ describe("Vpc V2 with full control", () => {
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
     // EIP should be in stack
     template.toHaveResourceWithProperties(tfEip.Eip, {
@@ -216,14 +228,22 @@ describe("Vpc V2 with full control", () => {
     const template = Template.synth(stack);
     // NAT Gateway should be in stack
     template.toHaveResourceWithProperties(tfNatGateway.NatGateway, {
+      allocation_id: "${aws_eip.TestVpc_NATGateway_EIP_718631E7.allocation_id}",
       connectivity_type: "public",
-      max_drain_duration_seconds: 2001,
+      timeouts: {
+        // max_drain_duration_seconds: 2001,
+        delete: "2001",
+      },
       subnet_id: stack.resolve(mySubnet.subnetId),
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
     // EIP should be created when not provided
     template.toHaveResourceWithProperties(tfEip.Eip, {
-      depends_on: ["TestSubnetRouteTableAssociationFE267B30"],
+      depends_on: [
+        "aws_route_table_association.TestSubnet_RouteTableAssociation_FE267B30",
+      ],
     });
   });
 
@@ -256,7 +276,7 @@ describe("Vpc V2 with full control", () => {
       tfInternetGatewayAttachment.InternetGatewayAttachment,
       {
         internet_gateway_id:
-          "TestVpcNoSubnetInternetGatewayIGWC957CF52.InternetGatewayId",
+          "${aws_internet_gateway.TestVpcNoSubnet_InternetGateway_IGW_C957CF52.id}",
         vpc_id: stack.resolve(vpc2.vpcId),
       },
     );
@@ -269,8 +289,9 @@ describe("Vpc V2 with full control", () => {
     // Internet Gateway should be in stack
     template.toHaveResource(tfInternetGateway.InternetGateway);
     template.toHaveResourceWithProperties(tfRoute.Route, {
-      gateway_id: "TestVpcNoSubnetInternetGatewayIGWC957CF52.InternetGatewayId",
-      route_table_id: "TestSubnetRouteTable5AF4379E,RouteTableId",
+      gateway_id:
+        "${aws_internet_gateway.TestVpc_InternetGateway_IGW_4C825874.id}",
+      route_table_id: "${aws_route_table.TestSubnet_RouteTable_5AF4379E.id}",
       destination_cidr_block: "0.0.0.0/0",
     });
   });
@@ -279,9 +300,17 @@ describe("Vpc V2 with full control", () => {
     myVpc.addInternetGateway();
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfRoute.Route, {
-      gateway_id: "TestVpcNoSubnetInternetGatewayIGWC957CF52.InternetGatewayId",
-      route_table_id: "TestSubnetRouteTable5AF4379E,RouteTableId",
+      gateway_id:
+        "${aws_internet_gateway.TestVpc_InternetGateway_IGW_4C825874.id}",
+      route_table_id: "${aws_route_table.TestSubnet_RouteTable_5AF4379E.id}",
       destination_ipv6_cidr_block: "::/0",
+    });
+    // both ipv4 and ipv6 routes should be present
+    template.toHaveResourceWithProperties(tfRoute.Route, {
+      gateway_id:
+        "${aws_internet_gateway.TestVpc_InternetGateway_IGW_4C825874.id}",
+      route_table_id: "${aws_route_table.TestSubnet_RouteTable_5AF4379E.id}",
+      destination_cidr_block: "0.0.0.0/0",
     });
   });
 
@@ -300,15 +329,17 @@ describe("Vpc V2 with full control", () => {
     const template = Template.synth(stack);
     //Route for custom IPv4 destination
     template.toHaveResourceWithProperties(tfRoute.Route, {
-      gateway_id: "TestVpcNoSubnetInternetGatewayIGWC957CF52.InternetGatewayId",
-      route_table_id: "TestSubnetRouteTable5AF4379E,RouteTableId",
+      gateway_id:
+        "${aws_internet_gateway.TestVpc_InternetGateway_IGW_4C825874.id}",
+      route_table_id: "${aws_route_table.TestSubnet_RouteTable_5AF4379E.id}",
       destination_cidr_block: "203.0.113.25",
     });
     //Route for custom IPv6 destination
     template.toHaveResourceWithProperties(tfRoute.Route, {
-      gateway_id: "TestVpcNoSubnetInternetGatewayIGWC957CF52.InternetGatewayId",
-      route_table_id: "TestSubnetRouteTable5AF4379E,RouteTableId",
-      DestinationIpv6CidrBlock: "2001:db8::/48",
+      gateway_id:
+        "${aws_internet_gateway.TestVpc_InternetGateway_IGW_4C825874.id}",
+      route_table_id: "${aws_route_table.TestSubnet_RouteTable_5AF4379E.id}",
+      destination_ipv6_cidr_block: "2001:db8::/48",
     });
   });
 
@@ -317,8 +348,9 @@ describe("Vpc V2 with full control", () => {
     const vpnGw = myVpc.enableVpnGatewayV2({
       type: VpnConnectionType.IPSEC_1,
     });
-    Template.fromStack(stack).toHaveResource(tfVpnGateway.VpnGateway);
-    Template.synth(stack).toHaveResourceWithProperties(
+    const t = new Template(stack);
+    t.expect.toHaveResource(tfVpnGateway.VpnGateway);
+    t.expect.toHaveResourceWithProperties(
       tfVpnGatewayAttachment.VpnGatewayAttachment,
       {
         vpn_gateway_id: stack.resolve(vpnGw.routerTargetId),
@@ -332,7 +364,7 @@ describe("Vpc V2 with full control", () => {
       type: VpnConnectionType.IPSEC_1,
     });
     Template.synth(stack).toHaveResourceWithProperties(
-      tfVpnGateway.VpnGateway,
+      tfVpnGatewayAttachment.VpnGatewayAttachment,
       {
         // Type: "ipsec.1",
         vpc_id: stack.resolve(myVpc.vpcId),
@@ -349,7 +381,7 @@ describe("Vpc V2 with full control", () => {
       vpnGatewayRoutePropagation.VpnGatewayRoutePropagation,
       {
         vpn_gateway_id: stack.resolve(vpnGw.routerTargetId),
-        route_table_ids: ["TestSubnetRouteTable5AF4379E.RouteTableId"],
+        route_table_id: "${aws_route_table.TestSubnet_RouteTable_5AF4379E.id}",
       },
     );
   });
@@ -384,7 +416,7 @@ describe("Vpc V2 with full control", () => {
             principals: [
               {
                 identifiers: [
-                  "${data.aws_service_principal.aws_svcp_default_region_logs.name}",
+                  "arn:${data.aws_partition.Partitition.partition}:iam::123456789012:root",
                 ],
                 type: "AWS",
               },
@@ -423,7 +455,7 @@ describe("Vpc V2 with full control", () => {
       {
         vpc_id: stack.resolve(myVpc.vpcId),
         peer_vpc_id: stack.resolve(acceptorVpc.vpcId),
-        peer_owner_id: "AWS::AccountId",
+        peer_owner_id: "${data.aws_caller_identity.CallerIdentity.account_id}",
         peer_region: providerConfig.region,
       },
     );

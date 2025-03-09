@@ -4,6 +4,7 @@ import { Construct } from "constructs";
 // import { CustomerManagedEncryptionConfiguration } from "./customer-managed-key-encryption-configuration";
 // import { EncryptionConfiguration } from "./encryption-configuration";
 // import { buildEncryptionConfiguration } from "./private/util";
+// import { StatesMetrics } from "./stepfunctions-canned-metrics.generated";
 import {
   // Arn,
   ArnFormat,

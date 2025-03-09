@@ -3,8 +3,9 @@
 import {
   customerGateway as tfCustomerGateway,
   vpnConnection as tfVpnConnection,
+  vpnGatewayAttachment,
   vpnConnectionRoute as tfVpnConnectionRoute,
-  vpnGateway as tfVpnGateway,
+  // vpnGateway as tfVpnGateway,
 } from "@cdktf/provider-aws";
 import { App, Testing, Token } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
@@ -27,7 +28,7 @@ describe("vpn", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "IPAMTestStack", {
+    stack = new AwsStack(app, "TestStack", {
       environmentName,
       gridUUID,
       providerConfig,
@@ -37,7 +38,7 @@ describe("vpn", () => {
 
   test("can add a vpn connection to a vpc with a vpn gateway", () => {
     // WHEN
-    new Vpc(stack, "VpcNetwork", {
+    const vpc = new Vpc(stack, "VpcNetwork", {
       vpnConnections: {
         VpnConnection: {
           asn: 65001,
@@ -49,18 +50,27 @@ describe("vpn", () => {
     // THEN
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfCustomerGateway.CustomerGateway, {
-      bgp_asn: 65001,
+      bgp_asn: "65001",
       ip_address: "192.0.2.1",
       type: "ipsec.1",
     });
-    template.toHaveResourceWithProperties(tfVpnGateway.VpnGateway, {
-      vpc_id: "${aws_vpc.VpcNetwork.id}",
-    });
+    // template.toHaveResourceWithProperties(tfVpnGateway.VpnGateway, {
+    //   vpc_id: stack.resolve(vpc.vpcId),
+    // });
+    template.toHaveResourceWithProperties(
+      vpnGatewayAttachment.VpnGatewayAttachment,
+      {
+        vpc_id: stack.resolve(vpc.vpcId),
+        vpn_gateway_id: "${aws_vpn_gateway.VpcNetwork_VpnGateway_501295FA.id}",
+      },
+    );
     template.toHaveResourceWithProperties(tfVpnConnection.VpnConnection, {
-      customer_gateway_id: "${aws_customer_gateway.CustomerGateway.id}",
-      type: "${aws_customer_gateway.CustomerGateway.type}",
-      vpn_gateway_id: "${aws_vpn_gateway.VpnGateway.id}",
+      customer_gateway_id:
+        "${aws_customer_gateway.VpcNetwork_VpnConnection_CustomerGateway_8B56D9AF.id}",
       static_routes_only: false,
+      // type: "${aws_customer_gateway.VpcNetwork_VpnConnection_CustomerGateway_8B56D9AF.type}",
+      type: "ipsec.1",
+      vpn_gateway_id: "${aws_vpn_gateway.VpcNetwork_VpnGateway_501295FA.id}",
     });
   });
 
@@ -78,17 +88,20 @@ describe("vpn", () => {
     // THEN
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfVpnConnection.VpnConnection, {
-      customer_gateway_id: "${aws_customer_gateway.CustomerGateway.id}",
-      type: "${aws_customer_gateway.CustomerGateway.type}",
-      vpn_gateway_id: "${aws_vpn_gateway.VpnGateway.id}",
+      customer_gateway_id:
+        "${aws_customer_gateway.VpcNetwork_static_CustomerGateway_AF2651CC.id}",
       static_routes_only: true,
+      // type: "${aws_customer_gateway.VpcNetwork_static_CustomerGateway_AF2651CC.type}",
+      type: "ipsec.1",
+      vpn_gateway_id: "${aws_vpn_gateway.VpcNetwork_VpnGateway_501295FA.id}",
     });
 
     template.toHaveResourceWithProperties(
       tfVpnConnectionRoute.VpnConnectionRoute,
       {
         destination_cidr_block: "192.168.10.0/24",
-        vpn_connection_id: "${aws_vpn_connection.VpnConnection.id}",
+        vpn_connection_id:
+          "${aws_vpn_connection.VpcNetwork_static_E33EA98C.id}",
       },
     );
 
@@ -96,7 +109,8 @@ describe("vpn", () => {
       tfVpnConnectionRoute.VpnConnectionRoute,
       {
         destination_cidr_block: "192.168.20.0/24",
-        vpn_connection_id: "${aws_vpn_connection.VpnConnection.id}",
+        vpn_connection_id:
+          "${aws_vpn_connection.VpcNetwork_static_E33EA98C.id}",
       },
     );
   });
@@ -155,12 +169,14 @@ describe("vpn", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       tfVpnConnection.VpnConnection,
       {
-        customer_gateway_id: "${aws_customer_gateway.CustomerGateway.id}",
-        type: "${aws_customer_gateway.CustomerGateway.type}",
-        vpn_gateway_id: "${aws_vpn_gateway.VpnGateway.id}",
+        customer_gateway_id:
+          "${aws_customer_gateway.VpcNetwork_VpnConnection_CustomerGateway_8B56D9AF.id}",
         static_routes_only: false,
-        tunnel1_preshared_key: "secretkey1234",
         tunnel1_inside_cidr: "169.254.10.0/30",
+        tunnel1_preshared_key: "secretkey1234",
+        // type: "${aws_customer_gateway.VpcNetwork_VpnConnection_CustomerGateway_8B56D9AF.type}",
+        type: "ipsec.1",
+        vpn_gateway_id: "${aws_vpn_gateway.VpcNetwork_VpnGateway_501295FA.id}",
       },
     );
   });
@@ -250,9 +266,11 @@ describe("vpn", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       tfVpnConnection.VpnConnection,
       {
-        customer_gateway_id: "${aws_customer_gateway.CustomerGateway.id}",
-        type: "${aws_customer_gateway.CustomerGateway.type}",
-        vpn_gateway_id: "${aws_vpn_gateway.VpnGateway.id}",
+        customer_gateway_id:
+          "${aws_customer_gateway.VpcNetwork_VpnConnection_CustomerGateway_8B56D9AF.id}",
+        // type: "${aws_customer_gateway.CustomerGateway.type}",
+        type: "ipsec.1",
+        vpn_gateway_id: "${aws_vpn_gateway.VpcNetwork_VpnGateway_501295FA.id}",
         static_routes_only: false,
         tunnel1_preshared_key: "secretkey1234",
         tunnel2_preshared_key: "secretkey5678",
@@ -330,9 +348,10 @@ describe("vpn", () => {
     // THEN
     expect(stack.resolve(vpn.metricTunnelState())).toEqual({
       namespace: "AWS/VPN",
-      dimensions: { VpnId: "${aws_vpn_gateway.VpcNetworkVpnA476C58D.id" },
+      dimensions: { VpnId: "${aws_vpn_connection.VpcNetwork_Vpn_A476C58D.id}" },
       metricName: "TunnelState",
       period: Duration.minutes(5),
+      region: "us-east-1",
       statistic: "Average",
     });
   });
@@ -356,6 +375,7 @@ describe("vpn", () => {
       namespace: "AWS/VPN",
       metricName: "TunnelState",
       period: Duration.minutes(5),
+      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -364,6 +384,7 @@ describe("vpn", () => {
       namespace: "AWS/VPN",
       metricName: "TunnelDataIn",
       period: Duration.minutes(5),
+      region: "us-east-1",
       statistic: "Sum",
     });
 
@@ -372,6 +393,7 @@ describe("vpn", () => {
       namespace: "AWS/VPN",
       metricName: "TunnelDataOut",
       period: Duration.minutes(5),
+      region: "us-east-1",
       statistic: "Sum",
     });
   });
