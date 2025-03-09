@@ -488,6 +488,7 @@ export interface VolumeProps extends AwsConstructProps {
   readonly encryptionKey?: IKey;
 
   // TODO: Support for autoEnableIo
+  // https://github.com/hashicorp/terraform-provider-aws/issues/34110
   // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-volume.html#cfn-ec2-volume-autoenableio
   // /**
   //  * Indicates whether the volume is auto-enabled for I/O operations. By default, Amazon EBS disables I/O to the volume from attached EC2

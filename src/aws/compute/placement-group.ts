@@ -220,7 +220,7 @@ export class PlacementGroup
 
     this.partitions = props.partitions;
     this.spreadLevel = props.spreadLevel;
-    this.strategy = props.strategy ?? PlacementGroupStrategy.CLUSTER;
+    this.strategy = props?.strategy;
 
     if (this.partitions && props.strategy) {
       if (props.strategy !== PlacementGroupStrategy.PARTITION) {
@@ -236,7 +236,7 @@ export class PlacementGroup
       if (!props.strategy) {
         this.strategy = PlacementGroupStrategy.SPREAD;
       }
-      if (props.strategy !== PlacementGroupStrategy.SPREAD) {
+      if (this.strategy !== PlacementGroupStrategy.SPREAD) {
         throw new Error(
           `PlacementGroup '${id}' can only specify 'spreadLevel' with the 'SPREAD' strategy`,
         );
@@ -247,7 +247,7 @@ export class PlacementGroup
       name: placementGroupName,
       partitionCount: this.partitions,
       spreadLevel: this.spreadLevel,
-      strategy: this.strategy,
+      strategy: this.strategy ?? PlacementGroupStrategy.CLUSTER,
     });
 
     // TODO: use environment-sensitive token for resource's "ARN" attribute?

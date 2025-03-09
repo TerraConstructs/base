@@ -877,7 +877,7 @@ function testRulesAreInlined(
       // WHEN
       new SecurityGroup(stack, "SG1", props);
 
-      const template = new Template(stack, { snapshot: true });
+      const template = new Template(stack);
       template.expect.toHaveResourceWithProperties(
         tfSecurityGroup.SecurityGroup,
         {
@@ -1553,7 +1553,7 @@ function testRulesAreNotInlined(
       const sg = new SecurityGroup(stack, "SG1", props);
       sg.addIngressRule(Peer.anyIpv4(), Port.tcp(86), "An external Rule");
 
-      const template = new Template(stack, { snapshot: true });
+      const template = new Template(stack);
       template.expect.toHaveResourceWithProperties(
         tfSecurityGroup.SecurityGroup,
         {

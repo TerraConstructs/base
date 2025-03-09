@@ -148,6 +148,10 @@ export class Template {
     return expect(this.raw);
   }
 
+  public toMatchObject(o: object): void {
+    return expect(this.template).toMatchObject(o);
+  }
+
   public get resource(): object | undefined {
     return this.template.resource;
   }
