@@ -361,13 +361,15 @@ export class Port {
    */
   public static allTraffic() {
     /**
-     * If you select a protocol of -1 (semantically equivalent to all, which is not a valid value here),
-     * you must specify a from_port and to_port equal to 0.
+     * The IP protocol name or number. Use -1 to specify all protocols.
+     *
+     * Note that if ip_protocol is set to -1, it translates to all protocols,
+     * all port ranges, and from_port and to_port values should not be defined.
      */
     return new Port({
       protocol: Protocol.ALL,
-      fromPort: 0,
-      toPort: 0,
+      // fromPort: -1,
+      // toPort: -1,
       stringRepresentation: "ALL TRAFFIC",
     });
   }

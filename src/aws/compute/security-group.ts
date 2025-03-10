@@ -776,8 +776,9 @@ export class SecurityGroup extends SecurityGroupBase {
    * Add a direct ingress rule
    */
   private addDirectIngressRule(rule: securityGroup.SecurityGroupIngress) {
-    if (!this.hasIngressRule(rule)) {
-      this.directIngressRules.push(rule);
+    let r = normalizeDirectRule(rule);
+    if (!this.hasIngressRule(r)) {
+      this.directIngressRules.push(r);
     }
   }
 
@@ -794,8 +795,9 @@ export class SecurityGroup extends SecurityGroupBase {
    * Add a direct egress rule
    */
   private addDirectEgressRule(rule: securityGroup.SecurityGroupEgress) {
-    if (!this.hasEgressRule(rule)) {
-      this.directEgressRules.push(rule);
+    let r = normalizeDirectRule(rule);
+    if (!this.hasEgressRule(r)) {
+      this.directEgressRules.push(r);
     }
   }
 
@@ -863,6 +865,25 @@ export class SecurityGroup extends SecurityGroupBase {
       }
     }
   }
+}
+
+/**
+ * Fix up a direct rule to have fromPort/toPort defined
+ */
+function normalizeDirectRule(
+  rule: securityGroup.SecurityGroupEgress | securityGroup.SecurityGroupIngress,
+): securityGroup.SecurityGroupEgress | securityGroup.SecurityGroupIngress {
+  // Unlike security_group_(in|e)gress_rule, TF Security Group direct rules
+  // can't have fromPort/toPort undefined.
+  // refs:
+  // - https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/resources/vpc_security_group_egress_rule#ip_protocol-1
+  //   vs
+  // - https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/resources/security_group#protocol-1
+  return {
+    ...rule,
+    fromPort: rule.fromPort ?? 0,
+    toPort: rule.toPort ?? 0,
+  };
 }
 
 /**

@@ -1211,9 +1211,14 @@ function testRulesAreNotInlined(
           security_group_id: stack.resolve(sg.securityGroupId),
           cidr_ipv4: "0.0.0.0/0",
           description: "Allow all outbound traffic by default",
-          from_port: 0,
           ip_protocol: "-1",
-          to_port: 0,
+        },
+      );
+      template.expect.not.toHaveResourceWithProperties(
+        tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        {
+          from_port: expect.anything(),
+          to_port: expect.anything(),
         },
       );
       template
@@ -1256,9 +1261,14 @@ function testRulesAreNotInlined(
           security_group_id: stack.resolve(sg.securityGroupId),
           cidr_ipv4: "0.0.0.0/0",
           description: "Allow all outbound traffic by default",
-          from_port: 0,
           ip_protocol: "-1",
-          to_port: 0,
+        },
+      );
+      template.expect.not.toHaveResourceWithProperties(
+        tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        {
+          from_port: expect.anything(),
+          to_port: expect.anything(),
         },
       );
 
@@ -1301,9 +1311,14 @@ function testRulesAreNotInlined(
           security_group_id: stack.resolve(sg.securityGroupId),
           cidr_ipv4: "0.0.0.0/0",
           description: "Allow all outbound traffic by default",
-          from_port: 0,
           ip_protocol: "-1",
-          to_port: 0,
+        },
+      );
+      template.expect.not.toHaveResourceWithProperties(
+        tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        {
+          from_port: expect.anything(),
+          to_port: expect.anything(),
         },
       );
 
@@ -1368,9 +1383,14 @@ function testRulesAreNotInlined(
           security_group_id: stack.resolve(sg.securityGroupId),
           cidr_ipv4: "0.0.0.0/0",
           description: "Allow all outbound traffic by default",
-          from_port: 0,
           ip_protocol: "-1",
-          to_port: 0,
+        },
+      );
+      template.not.toHaveResourceWithProperties(
+        tfVpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+        {
+          from_port: expect.anything(),
+          to_port: expect.anything(),
         },
       );
     });
@@ -1475,9 +1495,7 @@ function testRulesAreNotInlined(
           security_group_id: stack.resolve(sg.securityGroupId),
           cidr_ipv4: "0.0.0.0/0",
           description: "Allow all outbound traffic by default",
-          from_port: 0,
           ip_protocol: "-1",
-          to_port: 0,
         },
       );
       // TODO: Verify the egress rule has not been added

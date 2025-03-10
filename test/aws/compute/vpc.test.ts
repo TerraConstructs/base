@@ -2159,7 +2159,6 @@ describe("vpc", () => {
         expect.arrayContaining([
           expect.objectContaining({
             egress: [
-              // TODO: Does Terraform error if other properties are set to `null` ?
               expect.objectContaining({
                 cidr_blocks: ["0.0.0.0/0"],
                 description: "Allow all outbound traffic by default",
