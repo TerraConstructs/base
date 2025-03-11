@@ -42,12 +42,16 @@ export interface ITerraConstruct extends IConstruct {
   readonly outputs: Record<string, any>;
 }
 
-type TaggableConstruct = IConstruct & {
+// TODO: this is aws specific, should be moved to aws module
+export type TaggableConstruct = TerraformResource & {
   tags?: { [key: string]: string };
   tagsInput?: { [key: string]: string };
 };
 
-function isTaggableConstruct(x: IConstruct): x is TaggableConstruct {
+// TODO: this is aws specific, should be moved to aws module
+export function isTaggableTerraformResource(
+  x: IConstruct,
+): x is TaggableConstruct {
   return (
     TerraformResource.isTerraformResource(x) && "tags" in x && "tagsInput" in x
   );
@@ -59,9 +63,10 @@ const GRID_TAG_PREFIX = "grid";
 export class GridTags implements IAspect {
   constructor(private tagsToAdd: Record<string, string>) {}
   visit(node: IConstruct) {
-    if (isTaggableConstruct(node)) {
+    if (isTaggableTerraformResource(node)) {
       // https://developer.hashicorp.com/terraform/cdktf/concepts/aspects
       const currentTags = node.tagsInput || {};
+      // TODO: Bug - tagsToAdd are overwritten by currenTags
       node.tags = { ...this.tagsToAdd, ...currentTags };
     }
   }
@@ -143,7 +148,7 @@ export abstract class TerraConstructBase
   }
 
   // force usage of node.addDependency instead of passing TerraConstructs via dependsOn
-  // Refering a TerraConstruct by fqn always triggers an error?
+  // Referring a TerraConstruct by fqn always triggers an error?
   public get fqn(): string {
     // try {
     //   return super.fqn;

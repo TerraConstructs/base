@@ -1,7 +1,7 @@
 import { TerraformResource } from "cdktf";
 import { Construct } from "constructs";
 import * as storage from "..";
-import { AwsStack } from "../..";
+import { AwsStack } from "../../aws-stack";
 import { IFunction } from "../../compute";
 import * as iam from "../../iam";
 

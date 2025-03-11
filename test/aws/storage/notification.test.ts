@@ -1,6 +1,8 @@
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { storage, AwsStack, iam } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws/aws-stack";
+import * as iam from "../../../src/aws/iam";
+import * as storage from "../../../src/aws/storage";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";

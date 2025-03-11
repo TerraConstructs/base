@@ -57,7 +57,7 @@ exports[`Environment Should synth and match SnapShot 1`] = `
       "network_PublicSubnet0_Eip_7B2FE34D": {
         "domain": "vpc",
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 0)}-nat-gateway",
+          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}-nat-gateway",
           "grid:EnvironmentName": "Test",
           "grid:UUID": "123e4567-e89b-12d3"
         }
@@ -65,7 +65,7 @@ exports[`Environment Should synth and match SnapShot 1`] = `
       "network_PublicSubnet1_Eip_47D86D3A": {
         "domain": "vpc",
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 1)}-nat-gateway",
+          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}-nat-gateway",
           "grid:EnvironmentName": "Test",
           "grid:UUID": "123e4567-e89b-12d3"
         }
@@ -86,7 +86,7 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "allocation_id": "\${aws_eip.network_PublicSubnet0_Eip_7B2FE34D.id}",
         "subnet_id": "\${aws_subnet.network_PublicSubnet0_118EDD7D.id}",
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 0)}-nat-gateway",
+          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}-nat-gateway",
           "grid:EnvironmentName": "Test",
           "grid:UUID": "123e4567-e89b-12d3"
         }
@@ -95,7 +95,7 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "allocation_id": "\${aws_eip.network_PublicSubnet1_Eip_47D86D3A.id}",
         "subnet_id": "\${aws_subnet.network_PublicSubnet1_759DE9E6.id}",
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 1)}-nat-gateway",
+          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}-nat-gateway",
           "grid:EnvironmentName": "Test",
           "grid:UUID": "123e4567-e89b-12d3"
         }
@@ -121,7 +121,7 @@ exports[`Environment Should synth and match SnapShot 1`] = `
           }
         ],
         "tags": {
-          "Name": "Test-network-private-route-table-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 0)}",
+          "Name": "Test-network-private-route-table-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
           "aws-cdk:subnet-name": "Public",
           "aws-cdk:subnet-type": "Public",
           "grid:EnvironmentName": "Test",
@@ -149,7 +149,7 @@ exports[`Environment Should synth and match SnapShot 1`] = `
           }
         ],
         "tags": {
-          "Name": "Test-network-private-route-table-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 1)}",
+          "Name": "Test-network-private-route-table-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
           "aws-cdk:subnet-name": "Public",
           "aws-cdk:subnet-type": "Public",
           "grid:EnvironmentName": "Test",
@@ -191,11 +191,11 @@ exports[`Environment Should synth and match SnapShot 1`] = `
     },
     "aws_subnet": {
       "network_DataSubnet0_26F830AE": {
-        "availability_zone": "\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 0)}",
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 2), 2, 0)}",
         "map_public_ip_on_launch": false,
         "tags": {
-          "Name": "Test-network-data-subnet-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 0)}",
+          "Name": "Test-network-data-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
           "aws-cdk:subnet-name": "Data",
           "aws-cdk:subnet-type": "Isolated",
           "grid:EnvironmentName": "Test",
@@ -204,11 +204,11 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
       },
       "network_DataSubnet1_0A85069C": {
-        "availability_zone": "\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 1)}",
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 2), 2, 1)}",
         "map_public_ip_on_launch": false,
         "tags": {
-          "Name": "Test-network-data-subnet-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 1)}",
+          "Name": "Test-network-data-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
           "aws-cdk:subnet-name": "Data",
           "aws-cdk:subnet-type": "Isolated",
           "grid:EnvironmentName": "Test",
@@ -217,11 +217,11 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
       },
       "network_PrivateSubnet0_4BC47064": {
-        "availability_zone": "\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 0)}",
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 1), 2, 0)}",
         "map_public_ip_on_launch": false,
         "tags": {
-          "Name": "Test-network-private-subnet-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 0)}",
+          "Name": "Test-network-private-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
           "aws-cdk:subnet-name": "Private",
           "aws-cdk:subnet-type": "Private",
           "grid:EnvironmentName": "Test",
@@ -231,11 +231,11 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
       },
       "network_PrivateSubnet1_EEFFD3F4": {
-        "availability_zone": "\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 1)}",
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 1), 2, 1)}",
         "map_public_ip_on_launch": false,
         "tags": {
-          "Name": "Test-network-private-subnet-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 1)}",
+          "Name": "Test-network-private-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
           "aws-cdk:subnet-name": "Private",
           "aws-cdk:subnet-type": "Private",
           "grid:EnvironmentName": "Test",
@@ -245,22 +245,22 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
       },
       "network_PublicSubnet0_118EDD7D": {
-        "availability_zone": "\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 0)}",
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 0), 2, 0)}",
         "map_public_ip_on_launch": true,
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 0)}",
+          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
           "grid:EnvironmentName": "Test",
           "grid:UUID": "123e4567-e89b-12d3"
         },
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
       },
       "network_PublicSubnet1_759DE9E6": {
-        "availability_zone": "\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 1)}",
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 0), 2, 1)}",
         "map_public_ip_on_launch": true,
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(slice(data.aws_availability_zones.AvailabilityZones.names, 0, 2), 1)}",
+          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
           "grid:EnvironmentName": "Test",
           "grid:UUID": "123e4567-e89b-12d3"
         },
@@ -284,7 +284,7 @@ exports[`Environment Should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.68.0"
+        "version": "5.88.0"
       }
     }
   }

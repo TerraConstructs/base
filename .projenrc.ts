@@ -8,6 +8,8 @@ import {
   SqsQueueConfigStructBuilder,
   PolicyDocumentStatementStructBuilder,
   PolicyDocumentConfigStructBuilder,
+  LbListenerConfigStructBuilder,
+  LbTargetGroupAttachmentConfigStructBuilder,
 } from "./projenrc";
 
 // set strict node version compatible with webcontainers.io
@@ -22,13 +24,19 @@ const project = new cdk.JsiiProject({
   repositoryUrl: "https://github.com/TerraConstructs/base",
   keywords: ["terraconstructs"],
   defaultReleaseBranch: "main",
-  typescriptVersion: "~5.4",
-  jsiiVersion: "~5.4",
+  typescriptVersion: "~5.7",
+  jsiiVersion: "~5.7",
   packageManager: javascript.NodePackageManager.PNPM,
   pnpmVersion: "9",
   projenrcTs: true,
   prettier: true,
   eslint: true,
+  tsconfig: {
+    compilerOptions: {
+      target: "ES2020",
+      lib: ["es2020"],
+    },
+  },
 
   // release config
   release: true,
@@ -39,14 +47,18 @@ const project = new cdk.JsiiProject({
   // cdktf construct lib config
   peerDeps: [
     "cdktf@^0.20.8",
-    "@cdktf/provider-aws@^19.34.0",
+    "@cdktf/provider-aws@^19.54.0",
     "@cdktf/provider-time@^10.2.1",
+    "@cdktf/provider-tls@10.0.1",
+    "@cdktf/provider-cloudinit@10.0.3",
     "constructs@^10.3.0",
   ],
   devDeps: [
     "cdktf@^0.20.8",
-    "@cdktf/provider-aws@^19.34.0",
+    "@cdktf/provider-aws@^19.54.0",
     "@cdktf/provider-time@^10.2.1",
+    "@cdktf/provider-tls@10.0.1",
+    "@cdktf/provider-cloudinit@10.0.3",
     "constructs@^10.3.0",
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
@@ -89,6 +101,15 @@ const project = new cdk.JsiiProject({
   jestOptions: {
     jestConfig: {
       setupFilesAfterEnv: ["<rootDir>/setup.js"],
+      // Jest is resource greedy so this shouldn't be more than 50%
+      maxWorkers: "50%",
+      testEnvironment: "node",
+    },
+  },
+  tsJestOptions: {
+    transformOptions: {
+      // Skips type checking, speeds up tests significantly
+      isolatedModules: true,
     },
   },
 
@@ -102,15 +123,17 @@ const project = new cdk.JsiiProject({
   autoMerge: false,
 });
 
+project.prettier?.addIgnorePattern("*.generated.ts");
+
 project.gitignore.exclude(".env");
 
 // exclude the integration tests from the npm package
 project.addPackageIgnore("/integ/");
 project.tsconfigDev?.addInclude("integ/**/*.ts");
 
-// Limit workers and disable coverage for faster test runs
+// Temp disable coverage for faster test runs
 project.testTask.updateStep(0, {
-  exec: "jest --passWithNoTests --updateSnapshot --maxWorkers=4 --coverage=false",
+  exec: "jest --passWithNoTests --updateSnapshot --coverage=false",
   receiveArgs: true,
 });
 
@@ -132,5 +155,7 @@ new S3BucketWebsiteConfigurationConfigStructBuilder(project);
 new S3BucketCorsConfigurationConfigStructBuilder(project);
 new S3BucketLifecycleConfigurationRuleStructBuilder(project);
 new SqsQueueConfigStructBuilder(project);
+new LbListenerConfigStructBuilder(project);
+new LbTargetGroupAttachmentConfigStructBuilder(project);
 
 project.synth();

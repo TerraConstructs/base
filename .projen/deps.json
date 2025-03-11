@@ -2,12 +2,22 @@
   "dependencies": [
     {
       "name": "@cdktf/provider-aws",
-      "version": "^19.34.0",
+      "version": "^19.54.0",
+      "type": "build"
+    },
+    {
+      "name": "@cdktf/provider-cloudinit",
+      "version": "10.0.3",
       "type": "build"
     },
     {
       "name": "@cdktf/provider-time",
       "version": "^10.2.1",
+      "type": "build"
+    },
+    {
+      "name": "@cdktf/provider-tls",
+      "version": "10.0.1",
       "type": "build"
     },
     {
@@ -29,7 +39,7 @@
     },
     {
       "name": "@types/node",
-      "version": "ts5.4",
+      "version": "ts5.7",
       "type": "build"
     },
     {
@@ -97,12 +107,12 @@
     },
     {
       "name": "jsii-rosetta",
-      "version": "~5.4",
+      "version": "~5.7",
       "type": "build"
     },
     {
       "name": "jsii",
-      "version": "~5.4",
+      "version": "~5.7",
       "type": "build"
     },
     {
@@ -123,7 +133,7 @@
     },
     {
       "name": "typescript",
-      "version": "~5.4",
+      "version": "~5.7",
       "type": "build"
     },
     {
@@ -142,12 +152,22 @@
     },
     {
       "name": "@cdktf/provider-aws",
-      "version": "^19.34.0",
+      "version": "^19.54.0",
+      "type": "peer"
+    },
+    {
+      "name": "@cdktf/provider-cloudinit",
+      "version": "10.0.3",
       "type": "peer"
     },
     {
       "name": "@cdktf/provider-time",
       "version": "^10.2.1",
+      "type": "peer"
+    },
+    {
+      "name": "@cdktf/provider-tls",
+      "version": "10.0.1",
       "type": "peer"
     },
     {

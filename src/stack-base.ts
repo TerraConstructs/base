@@ -121,11 +121,11 @@ export interface IStack extends IConstruct {
   resolve(obj: any, preparing?: boolean): any;
   uniqueResourceName(
     tfElement: TerraformElement | Node,
-    options: UniqueResourceNameOptions,
+    options?: UniqueResourceNameOptions,
   ): string;
   uniqueResourceNamePrefix(
     tfElement: TerraformElement | Node,
-    options: UniqueResourceNamePrefixOptions,
+    options?: UniqueResourceNamePrefixOptions,
   ): string;
   // toJsonString(obj: any, space?: number): string;
 }
@@ -168,35 +168,6 @@ export abstract class StackBase extends TerraformStack implements IStack {
    * @returns a unique resource name based on the construct path
    */
   public static uniqueId(construct: IConstruct | Node) {
-    return StackBase.uniqueResourceName(construct, {
-      maxLength: 255,
-      // avoid https://github.com/aws/aws-cdk/issues/6421
-      allowedSpecialCharacters: "_-",
-    });
-  }
-
-  /**
-   * Returns a unique identifier for a construct based
-   * on its path within a TerraformStack.
-   *
-   * Throws if no TerraformStack is found within it's construct path.
-   *
-   * This function finds the id of the parent stack (non-nested)
-   * to the construct, and the ids of the components in the construct path.
-   *
-   * The user can define allowed special characters, a separator between the elements,
-   * and the maximum length of the resource name. The name includes a human readable portion rendered
-   * from the path components, with or without user defined separators, and a hash suffix.
-   * If the resource name is longer than the maximum length, it is trimmed in the middle.
-   *
-   * @param construct The construct
-   * @param options Options for defining the unique resource name
-   * @returns a unique resource name based on the construct path
-   */
-  private static uniqueResourceName(
-    construct: IConstruct | Node,
-    options: UniqueResourceNameOptions,
-  ) {
     const node = Construct.isConstruct(construct) ? construct.node : construct;
     const stack = node.scopes
       .reverse()
@@ -213,7 +184,11 @@ export abstract class StackBase extends TerraformStack implements IStack {
       .slice(specIndex)
       .map((component) => component.node.id);
 
-    return makeUniqueResourceName(componentsPath, options);
+    return makeUniqueResourceName(componentsPath, {
+      maxLength: 255,
+      // avoid https://github.com/aws/aws-cdk/issues/6421
+      allowedSpecialCharacters: "_-",
+    });
   }
 
   /**
@@ -264,7 +239,7 @@ export abstract class StackBase extends TerraformStack implements IStack {
    */
   public uniqueResourceName(
     tfElement: TerraformElement | Node,
-    options: UniqueResourceNameOptions,
+    options: UniqueResourceNameOptions = {},
   ): string {
     const node = Construct.isConstruct(tfElement) ? tfElement.node : tfElement;
     const stack = TerraformElement.isTerraformElement(tfElement)
@@ -296,7 +271,7 @@ export abstract class StackBase extends TerraformStack implements IStack {
    */
   public uniqueResourceNamePrefix(
     tfElement: TerraformElement | Node,
-    options: UniqueResourceNamePrefixOptions,
+    options: UniqueResourceNamePrefixOptions = {},
   ): string {
     const node = Construct.isConstruct(tfElement) ? tfElement.node : tfElement;
     const stack = TerraformElement.isTerraformElement(tfElement)

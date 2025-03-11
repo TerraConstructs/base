@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-cloudwatch/lib/private/env-tokens.ts
 
 import { Token, IResolvable, IResolveContext } from "cdktf";
-import { AwsStack } from "../../";
+import { AwsStack } from "../../aws-stack";
 
 /**
  * Make a Token that renders to given region if used in a different stack, otherwise undefined

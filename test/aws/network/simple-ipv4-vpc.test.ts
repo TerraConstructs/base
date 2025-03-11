@@ -1,6 +1,7 @@
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { network, AwsStack } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws/aws-stack";
+import * as network from "../../../src/aws/network";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";

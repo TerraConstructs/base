@@ -1,4 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.154.1/packages/aws-cdk-lib/core/lib/size.ts
+
 import { Token } from "cdktf";
 
 /**

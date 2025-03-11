@@ -28,6 +28,6 @@ export function flatMap<T, U>(xs: T[], fn: (x: T, i: number) => U[]): U[] {
 /**
  * Flatten a list of lists into a list of elements
  */
-export function flatten<T>(xs: T[][]): T[] {
+export function flatten<A>(xs: A[][]): A[] {
   return Array.prototype.concat.apply([], xs);
 }

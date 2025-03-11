@@ -1,17 +1,17 @@
 import { sfnStateMachine } from "@cdktf/provider-aws";
 import { Token, IResolvable } from "cdktf";
 import { Construct } from "constructs";
+import { Arn, ArnFormat } from "../arn";
 import {
   AwsConstructBase,
   IAwsConstruct,
   AwsConstructProps,
-  AwsStack,
-  Arn,
-  ArnFormat,
-} from "..";
+} from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { StateGraph } from "./state-graph";
+// import { StatesMetrics } from "./stepfunctions-canned-metrics.generated";
 import { IChainable } from "./types";
-import { Duration } from "../../";
+import { Duration } from "../../duration";
 import * as iam from "../iam";
 
 /**

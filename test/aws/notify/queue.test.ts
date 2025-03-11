@@ -1,7 +1,8 @@
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { Duration } from "../../../src/";
-import { notify, AwsStack } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws/aws-stack";
+import * as notify from "../../../src/aws/notify";
+import { Duration } from "../../../src/duration";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";

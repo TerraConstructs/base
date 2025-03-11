@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-cloudwatch/lib/widget.ts
 import { Construct } from "constructs";
-import { AwsStack } from "../";
+import { AwsStack } from "../aws-stack";
 import { IMetric } from "./metric-types";
 
 /**

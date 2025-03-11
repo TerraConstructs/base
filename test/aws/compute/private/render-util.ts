@@ -1,6 +1,8 @@
 import { Testing } from "cdktf";
 import { TerraformConstructor } from "cdktf/lib/testing/matchers";
-import { compute, AwsStack } from "../../../../src/aws";
+import { AwsStack } from "../../../../src/aws/aws-stack";
+import { StateGraph } from "../../../../src/aws/compute/state-graph";
+import { IChainable } from "../../../../src/aws/compute/types";
 
 /**
  * Renders a state machine definition
@@ -8,13 +10,13 @@ import { compute, AwsStack } from "../../../../src/aws";
  * @param stack AwsStack for the state machine
  * @param definition state machine definition
  */
-export function render(stack: AwsStack, definition: compute.IChainable) {
+export function render(stack: AwsStack, definition: IChainable) {
   return stack.resolve(
-    new compute.StateGraph(definition.startState, "Test Graph").toGraphJson(),
+    new StateGraph(definition.startState, "Test Graph").toGraphJson(),
   );
 }
 
-export function renderGraph(definition: compute.IChainable) {
+export function renderGraph(definition: IChainable) {
   const stack = new AwsStack(Testing.app(), `TestStack`, {
     environmentName: "Test",
     gridUUID: "123e4567-e89b-12d3",

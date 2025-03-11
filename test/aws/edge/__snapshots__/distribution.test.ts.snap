@@ -147,7 +147,7 @@ exports[`Distribution Should support multiple origins and cache behaviors 1`] = 
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.68.0"
+        "version": "5.88.0"
       }
     }
   }
@@ -279,7 +279,7 @@ exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.68.0"
+        "version": "5.88.0"
       }
     }
   }
@@ -390,7 +390,7 @@ exports[`Distribution Should synth with websiteConfig and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.68.0"
+        "version": "5.88.0"
       }
     }
   }

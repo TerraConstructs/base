@@ -4,7 +4,7 @@ import { cloudwatchLogMetricFilter } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import { ILogGroup, MetricFilterOptions } from "./log-group";
 import { Metric, MetricOptions } from "./metric";
-import { AwsConstructBase, AwsConstructProps } from "../";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 
 /**
  * Properties for a MetricFilter

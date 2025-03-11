@@ -7,6 +7,7 @@ import {
   AwsConstructBase,
   AwsConstructProps,
 } from "../";
+import * as ec2 from "../compute";
 import { INetwork } from "../network";
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-route53/lib/hosted-zone.ts
@@ -46,6 +47,16 @@ export interface CommonDnsZoneProps extends AwsConstructProps {
  */
 export interface DnsZoneProps extends CommonDnsZoneProps {
   /**
+   * A VPC that you want to associate with this hosted zone. When you specify
+   * this property, a private hosted zone will be created.
+   *
+   * You can associate additional VPCs to this private zone using `addVpc(vpc)`.
+   *
+   * @default public (no VPCs associated)
+   */
+  readonly vpcs?: ec2.IVpc[];
+
+  /**
    * Networks that you want to associate with this hosted zone. When you specify
    * this property, a private hosted zone will be created.
    *
@@ -55,6 +66,7 @@ export interface DnsZoneProps extends CommonDnsZoneProps {
    * You can associate additional networks to this private zone using `addNetwork(network)`.
    *
    * @default public (no networks associated)
+   * @deprecated use `vpcs` instead
    */
   readonly networks?: INetwork[];
 
@@ -219,9 +231,9 @@ export class DnsZone extends AwsConstructBase implements IDnsZone {
   public readonly primaryNameServer: string;
 
   /**
-   * Networks to which this hosted zone will be added
+   * VPCs to which this hosted zone will be added
    */
-  protected readonly networks = new Array<route53Zone.Route53ZoneVpc>();
+  protected readonly vpcs = new Array<route53Zone.Route53ZoneVpc>();
 
   protected readonly resource: route53Zone.Route53Zone;
 
@@ -241,11 +253,9 @@ export class DnsZone extends AwsConstructBase implements IDnsZone {
       comment: props.comment,
       vpc: Lazy.anyValue({
         produce: () =>
-          this.networks.length === 0
+          this.vpcs.length === 0
             ? undefined
-            : this.networks.map((n) =>
-                route53Zone.route53ZoneVpcToTerraform(n),
-              ),
+            : this.vpcs.map((n) => route53Zone.route53ZoneVpcToTerraform(n)),
       }),
     });
 
@@ -259,6 +269,10 @@ export class DnsZone extends AwsConstructBase implements IDnsZone {
       this.addNetwork(vpc);
     }
 
+    for (const vpc of props.vpcs || []) {
+      this.addVpc(vpc);
+    }
+
     this._outputs = {
       zoneId: this.zoneId,
       zoneName: this.zoneName,
@@ -268,15 +282,28 @@ export class DnsZone extends AwsConstructBase implements IDnsZone {
   }
 
   /**
+   * Add another VPC to this private hosted zone.
+   *
+   * @param vpc the other VPC to add.
+   */
+  public addVpc(vpc: ec2.IVpc) {
+    this.vpcs.push({
+      vpcId: vpc.vpcId,
+      vpcRegion: vpc.env.region,
+    });
+  }
+
+  /**
    * Add another Network to this private hosted zone.
    *
    * This conflicts with the `delegationSetId` and any
    * `aws_route53_zone_association` created outside this spec.
    *
    * @param network the other Network to add.
+   * @deprecated use addVpc instead
    */
   public addNetwork(network: INetwork) {
-    this.networks.push({
+    this.vpcs.push({
       vpcId: network.vpcId,
       vpcRegion: network.env.region ?? AwsStack.ofAwsConstruct(network).region,
     });

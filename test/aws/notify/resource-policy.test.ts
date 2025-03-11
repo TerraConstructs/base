@@ -6,7 +6,7 @@ import {
 } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsStack } from "../../../src/aws";
+import { AwsStack } from "../../../src/aws/aws-stack";
 import * as iam from "../../../src/aws/iam";
 import { Stream } from "../../../src/aws/notify/kinesis-stream";
 import { ResourcePolicy } from "../../../src/aws/notify/resource-policy";
