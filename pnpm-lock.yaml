@@ -11,6 +11,9 @@ importers:
       change-case:
         specifier: ^4.1.1
         version: 4.1.2
+      corepack:
+        specifier: ^0.32.0
+        version: 0.32.0
       esbuild-wasm:
         specifier: ^0.23.1
         version: 0.23.1
@@ -984,6 +987,11 @@ packages:
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
+
+  corepack@0.32.0:
+    resolution: {integrity: sha512-KhahVUFy7xL8OTty/ToY646hXMQhih8rnvUkA9/qnk/u4QUF2+SbQneX/zZnDxG1NiABFm5ojZCWnIv93oyhhQ==}
+    engines: {node: ^18.17.1 || ^20.10.0 || >=22.11.0}
+    hasBin: true
 
   create-jest@29.7.0:
     resolution: {integrity: sha512-Adz2bdH0Vq3F53KEMJOoftQFutWCukm6J24wbPWRO4k1kMY7gS7ds/uoJkNuV8wDCtWWnuwGcJwpWcih+zEW1Q==}
@@ -4158,7 +4166,13 @@ snapshots:
 
   core-util-is@1.0.3: {}
 
+<<<<<<< Updated upstream
   create-jest@29.7.0(@types/node@22.13.9)(ts-node@10.9.2(@types/node@22.13.9)(typescript@5.7.3)):
+=======
+  corepack@0.32.0: {}
+
+  create-jest@29.7.0(@types/node@22.13.8)(ts-node@10.9.2(@types/node@22.13.8)(typescript@5.7.3)):
+>>>>>>> Stashed changes
     dependencies:
       '@jest/types': 29.6.3
       chalk: 4.1.2
