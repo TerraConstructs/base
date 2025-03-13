@@ -1,13 +1,13 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-sns/lib/subscribtion.ts
 
-import { Construct } from 'constructs';
-import { snsTopicSubscription } from '@cdktf/provider-aws';
-import { DeliveryPolicy } from './delivery-policy';
-import { SubscriptionFilter } from './subscription-filter';
-import { ITopic } from './topic-base';
-import * as iam from '../iam';
-import { IQueue } from '../notify';
-import { AwsConstructBase } from '../aws-construct';
+import { Construct } from "constructs";
+import { snsTopicSubscription } from "@cdktf/provider-aws";
+import { DeliveryPolicy } from "./delivery-policy";
+import { SubscriptionFilter } from "./subscription-filter";
+import { ITopic } from "./topic-base";
+import * as iam from "../iam";
+import { IQueue } from ".";
+import { AwsConstructBase } from "../aws-construct";
 
 export interface SubscriptionOutputs {
   /**
@@ -24,9 +24,9 @@ export interface SubscriptionOutputs {
  * Options for creating a new subscription
  */
 export interface SubscriptionOptions {
-    /** Strongly typed outputs */
-    readonly subscriptionOutputs: SubscriptionOutputs;
-  
+  /** Strongly typed outputs */
+  readonly subscriptionOutputs: SubscriptionOutputs;
+
   /**
    * What type of subscription to add.
    */
@@ -53,7 +53,7 @@ export interface SubscriptionOptions {
    *
    * @default - all messages are delivered
    */
-  readonly filterPolicy? : { [attribute: string]: SubscriptionFilter };
+  readonly filterPolicy?: { [attribute: string]: SubscriptionFilter };
 
   /**
    * The filter policy that is applied on the message body.
@@ -61,7 +61,9 @@ export interface SubscriptionOptions {
    *
    * @default - all messages are delivered
    */
-  readonly filterPolicyWithMessageBody?: { [attribute: string]: FilterOrPolicy };
+  readonly filterPolicyWithMessageBody?: {
+    [attribute: string]: FilterOrPolicy;
+  };
 
   /**
    * The region where the topic resides, in the case of cross-region subscriptions
@@ -120,47 +122,64 @@ export class Subscription extends AwsConstructBase {
 
   private readonly filterPolicy?: { [attribute: string]: any[] };
 
-  private readonly filterPolicyWithMessageBody? : {[attribute: string]: FilterOrPolicy };
+  private readonly filterPolicyWithMessageBody?: {
+    [attribute: string]: FilterOrPolicy;
+  };
 
   constructor(scope: Construct, id: string, props: SubscriptionProps) {
     super(scope, id);
 
-    if (props.rawMessageDelivery &&
+    if (
+      props.rawMessageDelivery &&
       [
         SubscriptionProtocol.HTTP,
         SubscriptionProtocol.HTTPS,
         SubscriptionProtocol.SQS,
         SubscriptionProtocol.FIREHOSE,
-      ]
-        .indexOf(props.protocol) < 0) {
-      throw new Error('Raw message delivery can only be enabled for HTTP, HTTPS, SQS, and Firehose subscriptions.');
+      ].indexOf(props.protocol) < 0
+    ) {
+      throw new Error(
+        "Raw message delivery can only be enabled for HTTP, HTTPS, SQS, and Firehose subscriptions.",
+      );
     }
 
     if (props.filterPolicy) {
       if (Object.keys(props.filterPolicy).length > 5) {
-        throw new Error('A filter policy can have a maximum of 5 attribute names.');
+        throw new Error(
+          "A filter policy can have a maximum of 5 attribute names.",
+        );
       }
 
-      this.filterPolicy = Object.entries(props.filterPolicy)
-        .reduce(
-          (acc, [k, v]) => ({ ...acc, [k]: v.conditions }),
-          {},
-        );
+      this.filterPolicy = Object.entries(props.filterPolicy).reduce(
+        (acc, [k, v]) => ({ ...acc, [k]: v.conditions }),
+        {},
+      );
 
       let total = 1;
-      Object.values(this.filterPolicy).forEach(filter => { total *= filter.length; });
+      Object.values(this.filterPolicy).forEach((filter) => {
+        total *= filter.length;
+      });
       if (total > 150) {
-        throw new Error(`The total combination of values (${total}) must not exceed 150.`);
+        throw new Error(
+          `The total combination of values (${total}) must not exceed 150.`,
+        );
       }
     } else if (props.filterPolicyWithMessageBody) {
       if (Object.keys(props.filterPolicyWithMessageBody).length > 5) {
-        throw new Error('A filter policy can have a maximum of 5 attribute names.');
+        throw new Error(
+          "A filter policy can have a maximum of 5 attribute names.",
+        );
       }
       this.filterPolicyWithMessageBody = props.filterPolicyWithMessageBody;
     }
 
-    if (props.protocol === SubscriptionProtocol.FIREHOSE && !props.subscriptionRoleArn) {
-      throw new Error('Subscription role arn is required field for subscriptions with a firehose protocol.');
+    if (
+      props.protocol === SubscriptionProtocol.FIREHOSE &&
+      !props.subscriptionRoleArn
+    ) {
+      throw new Error(
+        "Subscription role arn is required field for subscriptions with a firehose protocol.",
+      );
     }
 
     // Format filter policy
@@ -169,35 +188,54 @@ export class Subscription extends AwsConstructBase {
       : this.filterPolicy;
 
     this.deadLetterQueue = this.buildDeadLetterQueue(props);
-    
-    const subscription = new snsTopicSubscription.SnsTopicSubscription(this, 'Resource', {
-      endpoint: props.endpoint,
-      protocol: props.protocol,
-      topicArn: props.topic.topicArn,
-      rawMessageDelivery: props.rawMessageDelivery,
-      filterPolicy: filterPolicy ? JSON.stringify(filterPolicy) : undefined,
-      filterPolicyScope: this.filterPolicyWithMessageBody ? 'MessageBody' : undefined,
-      redrivePolicy: this.buildDeadLetterConfig(this.deadLetterQueue) ? 
-        JSON.stringify(this.buildDeadLetterConfig(this.deadLetterQueue)) : undefined,
-      subscriptionRoleArn: props.subscriptionRoleArn,
-      deliveryPolicy: props.deliveryPolicy ? 
-        JSON.stringify(this.renderDeliveryPolicy(props.deliveryPolicy, props.protocol)) : undefined,
-    });
-    
+
+    const subscription = new snsTopicSubscription.SnsTopicSubscription(
+      this,
+      "Resource",
+      {
+        endpoint: props.endpoint,
+        protocol: props.protocol,
+        topicArn: props.topic.topicArn,
+        rawMessageDelivery: props.rawMessageDelivery,
+        filterPolicy: filterPolicy ? JSON.stringify(filterPolicy) : undefined,
+        filterPolicyScope: this.filterPolicyWithMessageBody
+          ? "MessageBody"
+          : undefined,
+        redrivePolicy: this.buildDeadLetterConfig(this.deadLetterQueue)
+          ? JSON.stringify(this.buildDeadLetterConfig(this.deadLetterQueue))
+          : undefined,
+        subscriptionRoleArn: props.subscriptionRoleArn,
+        deliveryPolicy: props.deliveryPolicy
+          ? JSON.stringify(
+              this.renderDeliveryPolicy(props.deliveryPolicy, props.protocol),
+            )
+          : undefined,
+      },
+    );
+
     // Set the subscription outputs
     const subscriptionOutputs: SubscriptionOutputs = {
       subscriptionArn: subscription.arn,
       subscriptionName: subscription.id,
     };
-    
-    Object.defineProperty(this, 'subscriptionOutputs', {
+
+    Object.defineProperty(this, "subscriptionOutputs", {
       get: () => subscriptionOutputs,
     });
   }
 
-  private renderDeliveryPolicy(deliveryPolicy: DeliveryPolicy, protocol: SubscriptionProtocol): any {
-    if (![SubscriptionProtocol.HTTP, SubscriptionProtocol.HTTPS].includes(protocol)) {
-      throw new Error(`Delivery policy is only supported for HTTP and HTTPS subscriptions, got: ${protocol}`);
+  private renderDeliveryPolicy(
+    deliveryPolicy: DeliveryPolicy,
+    protocol: SubscriptionProtocol,
+  ): any {
+    if (
+      ![SubscriptionProtocol.HTTP, SubscriptionProtocol.HTTPS].includes(
+        protocol,
+      )
+    ) {
+      throw new Error(
+        `Delivery policy is only supported for HTTP and HTTPS subscriptions, got: ${protocol}`,
+      );
     }
     const { healthyRetryPolicy, throttlePolicy } = deliveryPolicy;
     if (healthyRetryPolicy) {
@@ -206,66 +244,126 @@ export class Subscription extends AwsConstructBase {
       const maxDelayTarget = healthyRetryPolicy.maxDelayTarget;
       if (minDelayTarget !== undefined) {
         if (minDelayTarget.toMilliseconds() % 1000 !== 0) {
-          throw new Error(`minDelayTarget must be a whole number of seconds, got: ${minDelayTarget}`);
+          throw new Error(
+            `minDelayTarget must be a whole number of seconds, got: ${minDelayTarget}`,
+          );
         }
         const minDelayTargetSecs = minDelayTarget.toSeconds();
-        if (minDelayTargetSecs < 1 || minDelayTargetSecs > delayTargetLimitSecs) {
-          throw new Error(`minDelayTarget must be between 1 and ${delayTargetLimitSecs} seconds inclusive, got: ${minDelayTargetSecs}s`);
+        if (
+          minDelayTargetSecs < 1 ||
+          minDelayTargetSecs > delayTargetLimitSecs
+        ) {
+          throw new Error(
+            `minDelayTarget must be between 1 and ${delayTargetLimitSecs} seconds inclusive, got: ${minDelayTargetSecs}s`,
+          );
         }
       }
       if (maxDelayTarget !== undefined) {
         if (maxDelayTarget.toMilliseconds() % 1000 !== 0) {
-          throw new Error(`maxDelayTarget must be a whole number of seconds, got: ${maxDelayTarget}`);
+          throw new Error(
+            `maxDelayTarget must be a whole number of seconds, got: ${maxDelayTarget}`,
+          );
         }
         const maxDelayTargetSecs = maxDelayTarget.toSeconds();
-        if (maxDelayTargetSecs < 1 || maxDelayTargetSecs > delayTargetLimitSecs) {
-          throw new Error(`maxDelayTarget must be between 1 and ${delayTargetLimitSecs} seconds inclusive, got: ${maxDelayTargetSecs}s`);
+        if (
+          maxDelayTargetSecs < 1 ||
+          maxDelayTargetSecs > delayTargetLimitSecs
+        ) {
+          throw new Error(
+            `maxDelayTarget must be between 1 and ${delayTargetLimitSecs} seconds inclusive, got: ${maxDelayTargetSecs}s`,
+          );
         }
-        if ((minDelayTarget !== undefined) && minDelayTarget.toSeconds() > maxDelayTargetSecs) {
-          throw new Error('minDelayTarget must not exceed maxDelayTarget');
+        if (
+          minDelayTarget !== undefined &&
+          minDelayTarget.toSeconds() > maxDelayTargetSecs
+        ) {
+          throw new Error("minDelayTarget must not exceed maxDelayTarget");
         }
       }
 
       const numRetriesLimit = 100;
-      if (healthyRetryPolicy.numRetries && (healthyRetryPolicy.numRetries < 0 || healthyRetryPolicy.numRetries > numRetriesLimit)) {
-        throw new Error(`numRetries must be between 0 and ${numRetriesLimit} inclusive, got: ${healthyRetryPolicy.numRetries}`);
+      if (
+        healthyRetryPolicy.numRetries &&
+        (healthyRetryPolicy.numRetries < 0 ||
+          healthyRetryPolicy.numRetries > numRetriesLimit)
+      ) {
+        throw new Error(
+          `numRetries must be between 0 and ${numRetriesLimit} inclusive, got: ${healthyRetryPolicy.numRetries}`,
+        );
       }
-      const { numNoDelayRetries, numMinDelayRetries, numMaxDelayRetries } = healthyRetryPolicy;
-      if (numNoDelayRetries && (numNoDelayRetries < 0 || !Number.isInteger(numNoDelayRetries))) {
-        throw new Error(`numNoDelayRetries must be an integer zero or greater, got: ${numNoDelayRetries}`);
+      const { numNoDelayRetries, numMinDelayRetries, numMaxDelayRetries } =
+        healthyRetryPolicy;
+      if (
+        numNoDelayRetries &&
+        (numNoDelayRetries < 0 || !Number.isInteger(numNoDelayRetries))
+      ) {
+        throw new Error(
+          `numNoDelayRetries must be an integer zero or greater, got: ${numNoDelayRetries}`,
+        );
       }
-      if (numMinDelayRetries && (numMinDelayRetries < 0 || !Number.isInteger(numMinDelayRetries))) {
-        throw new Error(`numMinDelayRetries must be an integer zero or greater, got: ${numMinDelayRetries}`);
+      if (
+        numMinDelayRetries &&
+        (numMinDelayRetries < 0 || !Number.isInteger(numMinDelayRetries))
+      ) {
+        throw new Error(
+          `numMinDelayRetries must be an integer zero or greater, got: ${numMinDelayRetries}`,
+        );
       }
-      if (numMaxDelayRetries && (numMaxDelayRetries < 0 || !Number.isInteger(numMaxDelayRetries))) {
-        throw new Error(`numMaxDelayRetries must be an integer zero or greater, got: ${numMaxDelayRetries}`);
+      if (
+        numMaxDelayRetries &&
+        (numMaxDelayRetries < 0 || !Number.isInteger(numMaxDelayRetries))
+      ) {
+        throw new Error(
+          `numMaxDelayRetries must be an integer zero or greater, got: ${numMaxDelayRetries}`,
+        );
       }
     }
     if (throttlePolicy) {
       const maxReceivesPerSecond = throttlePolicy.maxReceivesPerSecond;
-      if (maxReceivesPerSecond !== undefined && (maxReceivesPerSecond < 1 || !Number.isInteger(maxReceivesPerSecond))) {
-        throw new Error(`maxReceivesPerSecond must be an integer greater than zero, got: ${maxReceivesPerSecond}`);
+      if (
+        maxReceivesPerSecond !== undefined &&
+        (maxReceivesPerSecond < 1 || !Number.isInteger(maxReceivesPerSecond))
+      ) {
+        throw new Error(
+          `maxReceivesPerSecond must be an integer greater than zero, got: ${maxReceivesPerSecond}`,
+        );
       }
     }
     return {
-      healthyRetryPolicy: healthyRetryPolicy ? {
-        // minDelayTarget, maxDelayTarget and numRetries are (empirically) mandatory when healthyRetryPolicy is specified,
-        // but for user-friendliness we allow them to be undefined and set them here instead.
-        // The defaults we use here are the same used in the event healthyRetryPolicy is not specified, see https://docs.aws.amazon.com/sns/latest/dg/creating-delivery-policy.html.
-        minDelayTarget: (healthyRetryPolicy.minDelayTarget === undefined) ? 20 : healthyRetryPolicy.minDelayTarget.toSeconds(),
-        maxDelayTarget: (healthyRetryPolicy.maxDelayTarget === undefined) ? 20 : healthyRetryPolicy.maxDelayTarget.toSeconds(),
-        numRetries: (healthyRetryPolicy.numRetries === undefined) ? 3: healthyRetryPolicy.numRetries,
-        numNoDelayRetries: healthyRetryPolicy.numNoDelayRetries,
-        numMinDelayRetries: healthyRetryPolicy.numMinDelayRetries,
-        numMaxDelayRetries: healthyRetryPolicy.numMaxDelayRetries,
-        backoffFunction: healthyRetryPolicy.backoffFunction,
-      }: undefined,
-      throttlePolicy: deliveryPolicy.throttlePolicy ? {
-        maxReceivesPerSecond: deliveryPolicy.throttlePolicy.maxReceivesPerSecond,
-      }: undefined,
-      requestPolicy: deliveryPolicy.requestPolicy ? {
-        headerContentType: deliveryPolicy.requestPolicy.headerContentType,
-      }: undefined,
+      healthyRetryPolicy: healthyRetryPolicy
+        ? {
+            // minDelayTarget, maxDelayTarget and numRetries are (empirically) mandatory when healthyRetryPolicy is specified,
+            // but for user-friendliness we allow them to be undefined and set them here instead.
+            // The defaults we use here are the same used in the event healthyRetryPolicy is not specified, see https://docs.aws.amazon.com/sns/latest/dg/creating-delivery-policy.html.
+            minDelayTarget:
+              healthyRetryPolicy.minDelayTarget === undefined
+                ? 20
+                : healthyRetryPolicy.minDelayTarget.toSeconds(),
+            maxDelayTarget:
+              healthyRetryPolicy.maxDelayTarget === undefined
+                ? 20
+                : healthyRetryPolicy.maxDelayTarget.toSeconds(),
+            numRetries:
+              healthyRetryPolicy.numRetries === undefined
+                ? 3
+                : healthyRetryPolicy.numRetries,
+            numNoDelayRetries: healthyRetryPolicy.numNoDelayRetries,
+            numMinDelayRetries: healthyRetryPolicy.numMinDelayRetries,
+            numMaxDelayRetries: healthyRetryPolicy.numMaxDelayRetries,
+            backoffFunction: healthyRetryPolicy.backoffFunction,
+          }
+        : undefined,
+      throttlePolicy: deliveryPolicy.throttlePolicy
+        ? {
+            maxReceivesPerSecond:
+              deliveryPolicy.throttlePolicy.maxReceivesPerSecond,
+          }
+        : undefined,
+      requestPolicy: deliveryPolicy.requestPolicy
+        ? {
+            headerContentType: deliveryPolicy.requestPolicy.headerContentType,
+          }
+        : undefined,
     };
   }
 
@@ -276,14 +374,16 @@ export class Subscription extends AwsConstructBase {
 
     const deadLetterQueue = props.deadLetterQueue;
 
-    deadLetterQueue.addToResourcePolicy(new iam.PolicyStatement({
-      resources: [deadLetterQueue.queueArn],
-      actions: ['sqs:SendMessage'],
-      principals: [new iam.ServicePrincipal('sns.amazonaws.com')],
-      conditions: {
-        ArnEquals: { 'aws:SourceArn': props.topic.topicArn },
-      },
-    }));
+    deadLetterQueue.addToResourcePolicy(
+      new iam.PolicyStatement({
+        resources: [deadLetterQueue.queueArn],
+        actions: ["sqs:SendMessage"],
+        principals: [new iam.ServicePrincipal("sns.amazonaws.com")],
+        conditions: {
+          ArnEquals: { "aws:SourceArn": props.topic.topicArn },
+        },
+      }),
+    );
 
     return deadLetterQueue;
   }
@@ -306,47 +406,47 @@ export enum SubscriptionProtocol {
   /**
    * JSON-encoded message is POSTED to an HTTP url.
    */
-  HTTP = 'http',
+  HTTP = "http",
 
   /**
    * JSON-encoded message is POSTed to an HTTPS url.
    */
-  HTTPS = 'https',
+  HTTPS = "https",
 
   /**
    * Notifications are sent via email.
    */
-  EMAIL = 'email',
+  EMAIL = "email",
 
   /**
    * Notifications are JSON-encoded and sent via mail.
    */
-  EMAIL_JSON = 'email-json',
+  EMAIL_JSON = "email-json",
 
   /**
    * Notification is delivered by SMS
    */
-  SMS = 'sms',
+  SMS = "sms",
 
   /**
    * Notifications are enqueued into an SQS queue.
    */
-  SQS = 'sqs',
+  SQS = "sqs",
 
   /**
    * JSON-encoded notifications are sent to a mobile app endpoint.
    */
-  APPLICATION = 'application',
+  APPLICATION = "application",
 
   /**
    * Notifications trigger a Lambda function.
    */
-  LAMBDA = 'lambda',
+  LAMBDA = "lambda",
 
   /**
    * Notifications put records into a firehose delivery stream.
    */
-  FIREHOSE = 'firehose',
+  FIREHOSE = "firehose",
 }
 
 function buildFilterPolicyWithMessageBody(
@@ -358,7 +458,11 @@ function buildFilterPolicyWithMessageBody(
 
   for (const [key, filterOrPolicy] of Object.entries(inputObject)) {
     if (filterOrPolicy.isPolicy()) {
-      result[key] = buildFilterPolicyWithMessageBody(filterOrPolicy.policyDoc, depth + 1, totalCombinationValues);
+      result[key] = buildFilterPolicyWithMessageBody(
+        filterOrPolicy.policyDoc,
+        depth + 1,
+        totalCombinationValues,
+      );
     } else if (filterOrPolicy.isFilter()) {
       const filter = filterOrPolicy.filterDoc.conditions;
       result[key] = filter;
@@ -368,11 +472,13 @@ function buildFilterPolicyWithMessageBody(
 
   // https://docs.aws.amazon.com/sns/latest/dg/subscription-filter-policy-constraints.html
   if (totalCombinationValues[0] > 150) {
-    throw new Error(`The total combination of values (${totalCombinationValues}) must not exceed 150.`);
+    throw new Error(
+      `The total combination of values (${totalCombinationValues}) must not exceed 150.`,
+    );
   }
 
   return result;
-};
+}
 
 /**
  * The type of the MessageBody at a given key value pair
@@ -459,7 +565,9 @@ export class Policy extends FilterOrPolicy {
    * Policy constructor
    * @param policyDoc policy argument to construct
    */
-  public constructor(public readonly policyDoc: { [attribute: string]: FilterOrPolicy }) {
+  public constructor(
+    public readonly policyDoc: { [attribute: string]: FilterOrPolicy },
+  ) {
     super();
   }
 }

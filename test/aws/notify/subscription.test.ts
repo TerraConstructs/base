@@ -1,8 +1,11 @@
 import { Testing } from "cdktf";
-import { Topic } from "../../../src/aws/sns/topic";
-import { Subscription, SubscriptionProtocol } from "../../../src/aws/sns/subscription";
+import { Topic } from "../../../src/aws/notify/topic";
+import {
+  Subscription,
+  SubscriptionProtocol,
+} from "../../../src/aws/notify/subscription";
 import { Queue } from "../../../src/aws/notify";
-import { SubscriptionFilter } from "../../../src/aws/sns/subscription-filter";
+import { SubscriptionFilter } from "../../../src/aws/notify/subscription-filter";
 
 describe("SNS Subscription", () => {
   test("basic subscription", () => {
@@ -60,7 +63,7 @@ describe("SNS Subscription", () => {
     const synthed = Testing.synthScope((scope) => {
       const topic = new Topic(scope, "MyTopic");
       const dlq = new Queue(scope, "DeadLetterQueue");
-      
+
       new Subscription(scope, "MySubscription", {
         topic,
         protocol: SubscriptionProtocol.EMAIL,
@@ -84,6 +87,8 @@ describe("SNS Subscription", () => {
           rawMessageDelivery: true,
         });
       });
-    }).toThrow(/Raw message delivery can only be enabled for HTTP, HTTPS, SQS, and Firehose subscriptions/);
+    }).toThrow(
+      /Raw message delivery can only be enabled for HTTP, HTTPS, SQS, and Firehose subscriptions/,
+    );
   });
 });

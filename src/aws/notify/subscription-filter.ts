@@ -1,4 +1,3 @@
-
 /**
  * A subscription filter for an attribute.
  */
@@ -14,19 +13,19 @@ export class SubscriptionFilter {
     }
 
     if (options.denylist) {
-      options.denylist.forEach(value => {
-        conditions.push({ 'anything-but': value });
+      options.denylist.forEach((value) => {
+        conditions.push({ "anything-but": value });
       });
     }
 
     if (options.matchPrefixes) {
-      options.matchPrefixes.forEach(value => {
+      options.matchPrefixes.forEach((value) => {
         conditions.push({ prefix: value });
       });
     }
 
     if (options.matchSuffixes) {
-      options.matchSuffixes.forEach(value => {
+      options.matchSuffixes.forEach((value) => {
         conditions.push({ suffix: value });
       });
     }
@@ -41,7 +40,9 @@ export class SubscriptionFilter {
   /**
    * Creates a new numeric filter.
    */
-  public static numericFilter(options: NumericFilterOptions): SubscriptionFilter {
+  public static numericFilter(
+    options: NumericFilterOptions,
+  ): SubscriptionFilter {
     const conditions: any[] = [];
 
     if (options.allowlist) {
@@ -49,30 +50,30 @@ export class SubscriptionFilter {
     }
 
     if (options.denylist) {
-      options.denylist.forEach(value => {
-        conditions.push({ 'anything-but': value });
+      options.denylist.forEach((value) => {
+        conditions.push({ "anything-but": value });
       });
     }
 
     if (options.greaterThan !== undefined) {
-      conditions.push({ numeric: ['>', options.greaterThan] });
+      conditions.push({ numeric: [">", options.greaterThan] });
     }
 
     if (options.greaterThanOrEqualTo !== undefined) {
-      conditions.push({ numeric: ['>=', options.greaterThanOrEqualTo] });
+      conditions.push({ numeric: [">=", options.greaterThanOrEqualTo] });
     }
 
     if (options.lessThan !== undefined) {
-      conditions.push({ numeric: ['<', options.lessThan] });
+      conditions.push({ numeric: ["<", options.lessThan] });
     }
 
     if (options.lessThanOrEqualTo !== undefined) {
-      conditions.push({ numeric: ['<=', options.lessThanOrEqualTo] });
+      conditions.push({ numeric: ["<=", options.lessThanOrEqualTo] });
     }
 
     if (options.between !== undefined) {
-      conditions.push({ numeric: ['>=', options.between.start] });
-      conditions.push({ numeric: ['<=', options.between.stop] });
+      conditions.push({ numeric: [">=", options.between.start] });
+      conditions.push({ numeric: ["<=", options.between.stop] });
     }
 
     if (options.exists !== undefined) {
@@ -92,8 +93,7 @@ export class SubscriptionFilter {
   /**
    * @param conditions The conditions for this filter.
    */
-  private constructor(public readonly conditions: any[]) {
-  }
+  private constructor(public readonly conditions: any[]) {}
 }
 
 /**

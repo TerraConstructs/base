@@ -63,6 +63,7 @@ const project = new cdk.JsiiProject({
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
     "@types/mime-types",
+    "corepack@^0.32.0",
   ],
   bundledDeps: ["esbuild-wasm@^0.23.1", "mime-types", "change-case@^4.1.1"],
 
@@ -125,7 +126,7 @@ const project = new cdk.JsiiProject({
 
 project.prettier?.addIgnorePattern("*.generated.ts");
 
-project.gitignore.exclude(".env");
+project.gitignore.exclude(".env", ".aider*");
 
 // exclude the integration tests from the npm package
 project.addPackageIgnore("/integ/");

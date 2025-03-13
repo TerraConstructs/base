@@ -1,6 +1,9 @@
 import { Testing } from "cdktf";
-import { Topic } from "../../../src/aws/sns/topic";
-import { Subscription, SubscriptionProtocol } from "../../../src/aws/sns/subscription";
+import { Topic } from "../../../src/aws/notify/topic";
+import {
+  Subscription,
+  SubscriptionProtocol,
+} from "../../../src/aws/notify/subscription";
 import { Queue } from "../../../src/aws/notify";
 
 describe("SNS Topic", () => {
@@ -57,7 +60,7 @@ describe("SNS Topic", () => {
     const synthed = Testing.synthScope((scope) => {
       const dlq = new Queue(scope, "DeadLetterQueue");
       const topic = new Topic(scope, "MyTopic");
-      
+
       topic.addSubscription({
         bind: () => ({
           protocol: SubscriptionProtocol.EMAIL,
@@ -76,9 +79,9 @@ describe("SNS Topic", () => {
       const importedTopic = Topic.fromTopicArn(
         scope,
         "ImportedTopic",
-        "arn:aws:sns:us-east-1:123456789012:my-topic"
+        "arn:aws:sns:us-east-1:123456789012:my-topic",
       );
-      
+
       importedTopic.addSubscription({
         bind: () => ({
           protocol: SubscriptionProtocol.EMAIL,

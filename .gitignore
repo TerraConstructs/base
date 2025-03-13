@@ -51,6 +51,7 @@ junit.xml
 .jsii
 tsconfig.json
 .env
+.aider*
 !/.nvmrc
 !/.projenrc.ts
 !/src/aws/provider-config.generated.ts
@@ -64,4 +65,3 @@ tsconfig.json
 !/src/aws/notify/queue-config.generated.ts
 !/src/aws/compute/lb-shared/lb-listener-config.generated.ts
 !/src/aws/compute/lb-shared/lb-target-group-attachment-config.generated.ts
-.aider*

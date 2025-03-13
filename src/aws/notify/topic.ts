@@ -3,7 +3,12 @@ import { snsTopic, snsTopicPolicy } from "@cdktf/provider-aws";
 import { Lazy, Token } from "cdktf";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import * as iam from "../iam";
-import { ITopic, TopicOutputs, INotificationRuleTarget, NotificationRuleTargetConfig } from "./topic-base";
+import {
+  ITopic,
+  TopicOutputs,
+  INotificationRuleTarget,
+  NotificationRuleTargetConfig,
+} from "./topic-base";
 import { ITopicSubscription, Subscription } from "./subscription";
 
 /**
@@ -85,11 +90,15 @@ export class Topic extends AwsConstructBase implements ITopic {
    * @param id The construct's name
    * @param topicArn topic ARN (i.e. arn:aws:sns:us-east-2:444455556666:MyTopic)
    */
-  public static fromTopicArn(scope: Construct, id: string, topicArn: string): ITopic {
+  public static fromTopicArn(
+    scope: Construct,
+    id: string,
+    topicArn: string,
+  ): ITopic {
     class Import extends AwsConstructBase implements ITopic {
       public readonly topicArn = topicArn;
       public readonly topicName = this.extractNameFromArn(topicArn);
-      public readonly fifo = this.topicName.endsWith('.fifo');
+      public readonly fifo = this.topicName.endsWith(".fifo");
       public readonly contentBasedDeduplication = false;
 
       public get topicOutputs(): TopicOutputs {
@@ -106,14 +115,16 @@ export class Topic extends AwsConstructBase implements ITopic {
       public addSubscription(subscription: ITopicSubscription): Subscription {
         const subscriptionConfig = subscription.bind(this);
         const scope = subscriptionConfig.subscriberScope || this;
-        const id = subscriptionConfig.subscriberId || 'Subscription';
+        const id = subscriptionConfig.subscriberId || "Subscription";
         return new Subscription(scope, id, {
           ...subscriptionConfig,
           topic: this,
         });
       }
 
-      public addToResourcePolicy(_statement: iam.PolicyStatement): iam.AddToResourcePolicyResult {
+      public addToResourcePolicy(
+        _statement: iam.PolicyStatement,
+      ): iam.AddToResourcePolicyResult {
         // This is imported, so we can't modify the policy
         return { statementAdded: false };
       }
@@ -121,7 +132,7 @@ export class Topic extends AwsConstructBase implements ITopic {
       public grantPublish(identity: iam.IGrantable): iam.Grant {
         return iam.Grant.addToPrincipal({
           grantee: identity,
-          actions: ['sns:Publish'],
+          actions: ["sns:Publish"],
           resourceArns: [this.topicArn],
         });
       }
@@ -129,20 +140,22 @@ export class Topic extends AwsConstructBase implements ITopic {
       public grantSubscribe(identity: iam.IGrantable): iam.Grant {
         return iam.Grant.addToPrincipal({
           grantee: identity,
-          actions: ['sns:Subscribe'],
+          actions: ["sns:Subscribe"],
           resourceArns: [this.topicArn],
         });
       }
 
-      public bindAsNotificationRuleTarget(_scope: Construct): NotificationRuleTargetConfig {
+      public bindAsNotificationRuleTarget(
+        _scope: Construct,
+      ): NotificationRuleTargetConfig {
         return {
           targetArn: this.topicArn,
-          targetType: 'SNS',
+          targetType: "SNS",
         };
       }
 
       private extractNameFromArn(arn: string): string {
-        return arn.split(':').pop() || '';
+        return arn.split(":").pop() || "";
       }
     }
 
@@ -180,11 +193,11 @@ export class Topic extends AwsConstructBase implements ITopic {
     this.contentBasedDeduplication = props.contentBasedDeduplication || false;
 
     let topicName = props.topicName;
-    if (this.fifo && topicName && !topicName.endsWith('.fifo')) {
+    if (this.fifo && topicName && !topicName.endsWith(".fifo")) {
       topicName = `${topicName}.fifo`;
     }
 
-    this.resource = new snsTopic.SnsTopic(this, 'Resource', {
+    this.resource = new snsTopic.SnsTopic(this, "Resource", {
       name: topicName,
       displayName: props.displayName,
       fifoTopic: this.fifo,
@@ -198,7 +211,7 @@ export class Topic extends AwsConstructBase implements ITopic {
 
     if (props.policy) {
       this.policyDocument = props.policy;
-      this.policy = new snsTopicPolicy.SnsTopicPolicy(this, 'Policy', {
+      this.policy = new snsTopicPolicy.SnsTopicPolicy(this, "Policy", {
         arn: this.topicArn,
         policy: this.policyDocument.toJson(),
       });
@@ -232,7 +245,7 @@ export class Topic extends AwsConstructBase implements ITopic {
   public addSubscription(subscription: ITopicSubscription): Subscription {
     const subscriptionConfig = subscription.bind(this);
     const scope = subscriptionConfig.subscriberScope || this;
-    const id = subscriptionConfig.subscriberId || 'Subscription';
+    const id = subscriptionConfig.subscriberId || "Subscription";
     return new Subscription(scope, id, {
       ...subscriptionConfig,
       topic: this,
@@ -246,10 +259,12 @@ export class Topic extends AwsConstructBase implements ITopic {
    * will be automatically created upon the first call to `addToResourcePolicy`. If
    * the topic is imported (`Topic.import`), then this is a no-op.
    */
-  public addToResourcePolicy(statement: iam.PolicyStatement): iam.AddToResourcePolicyResult {
+  public addToResourcePolicy(
+    statement: iam.PolicyStatement,
+  ): iam.AddToResourcePolicyResult {
     if (!this.policyDocument) {
       this.policyDocument = new iam.PolicyDocument();
-      this.policy = new snsTopicPolicy.SnsTopicPolicy(this, 'Policy', {
+      this.policy = new snsTopicPolicy.SnsTopicPolicy(this, "Policy", {
         arn: this.topicArn,
         policy: Lazy.stringValue({
           produce: () => this.policyDocument!.toJson(),
@@ -267,7 +282,7 @@ export class Topic extends AwsConstructBase implements ITopic {
   public grantPublish(identity: iam.IGrantable): iam.Grant {
     return iam.Grant.addToPrincipal({
       grantee: identity,
-      actions: ['sns:Publish'],
+      actions: ["sns:Publish"],
       resourceArns: [this.topicArn],
     });
   }
@@ -278,7 +293,7 @@ export class Topic extends AwsConstructBase implements ITopic {
   public grantSubscribe(identity: iam.IGrantable): iam.Grant {
     return iam.Grant.addToPrincipal({
       grantee: identity,
-      actions: ['sns:Subscribe'],
+      actions: ["sns:Subscribe"],
       resourceArns: [this.topicArn],
     });
   }
@@ -286,10 +301,12 @@ export class Topic extends AwsConstructBase implements ITopic {
   /**
    * Implements INotificationRuleTarget
    */
-  public bindAsNotificationRuleTarget(_scope: Construct): NotificationRuleTargetConfig {
+  public bindAsNotificationRuleTarget(
+    _scope: Construct,
+  ): NotificationRuleTargetConfig {
     return {
       targetArn: this.topicArn,
-      targetType: 'SNS',
+      targetType: "SNS",
     };
   }
 }
