@@ -261,6 +261,21 @@ export class Annotations {
   public hasWarnings(
     ...expectedWarnings: Array<Partial<StackAnnotationMatcher>>
   ) {
+    expect(this.warnings).toEqual(this.warningMatcher(...expectedWarnings));
+  }
+
+  /**
+   * ensure the stack has no warning for certain context path and message
+   */
+  public hasNoWarnings(
+    ...expectedWarnings: Array<Partial<StackAnnotationMatcher>>
+  ) {
+    expect(this.warnings).not.toEqual(this.warningMatcher(...expectedWarnings));
+  }
+
+  private warningMatcher(
+    ...expectedWarnings: Array<Partial<StackAnnotationMatcher>>
+  ) {
     const warningMatchers = expectedWarnings.map((warning) => {
       const transformed: Partial<StackAnnotationMatcher> = {};
       for (const key in warning) {
@@ -274,7 +289,7 @@ export class Annotations {
       }
       return expect.objectContaining(transformed);
     });
-    expect(this.warnings).toEqual(expect.arrayContaining(warningMatchers));
+    return expect.arrayContaining(warningMatchers);
   }
 
   /**
