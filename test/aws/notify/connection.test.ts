@@ -1,3 +1,5 @@
+// https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-events/test/connection.test.ts
+
 import { cloudwatchEventConnection } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import { AwsStack } from "../../../src/aws/aws-stack";
