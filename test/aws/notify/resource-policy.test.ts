@@ -10,6 +10,7 @@ import { AwsStack } from "../../../src/aws/aws-stack";
 import * as iam from "../../../src/aws/iam";
 import { Stream } from "../../../src/aws/notify/kinesis-stream";
 import { ResourcePolicy } from "../../../src/aws/notify/resource-policy";
+import { Template } from "../../assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -54,11 +55,8 @@ describe("Kinesis resource policy", () => {
     });
 
     // THEN
-    stack.prepareStack();
-    const synthesized = Testing.synth(stack);
-    // refer to full snapshot for debug
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveDataSourceWithProperties(
+    const t = new Template(stack);
+    t.expect.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: [
@@ -77,29 +75,12 @@ describe("Kinesis resource policy", () => {
         ],
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
+    t.expect.toHaveResourceWithProperties(
       kinesisResourcePolicy.KinesisResourcePolicy,
       {
         policy: "${data.aws_iam_policy_document.PolicyDocument_5B97F349.json}",
         resource_arn: "${aws_kinesis_stream.Stream_790BDEE4.arn}",
       },
     );
-    // Template.fromStack(stack).hasResourceProperties(
-    //   "AWS::Kinesis::ResourcePolicy",
-    //   {
-    //     ResourcePolicy: {
-    //       Version: "2012-10-17",
-    //       Statement: [
-    //         {
-    //           Sid: "0",
-    //           Action: "kinesis:GetRecords",
-    //           Effect: "Allow",
-    //           Principal: { AWS: "*" },
-    //           Resource: stack.resolve(stream.streamArn),
-    //         },
-    //       ],
-    //     },
-    //   },
-    // );
   });
 });
