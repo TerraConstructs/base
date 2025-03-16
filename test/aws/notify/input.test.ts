@@ -1,3 +1,5 @@
+// https://github.com/aws/aws-cdk/blob/a2c633f1e698249496f11338312ab42bd7b1e4f0/packages/aws-cdk-lib/aws-events/test/input.test.ts
+
 import { cloudwatchEventTarget } from "@cdktf/provider-aws";
 import { Testing, ref, Lazy } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
@@ -8,6 +10,7 @@ import { Rule } from "../../../src/aws/notify/rule";
 import { Schedule } from "../../../src/aws/notify/schedule";
 import { IRuleTarget } from "../../../src/aws/notify/target";
 import { Duration } from "../../../src/duration";
+import { Template } from "../../assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -36,11 +39,7 @@ describe("input", () => {
       );
 
       // THEN
-      // Do prepare run to resolve all Terraform resources
-      stack.prepareStack();
-      const synthesized = Testing.synth(stack);
-      // expect(synthesized).toMatchSnapshot();
-      expect(synthesized).toHaveResourceWithProperties(
+      Template.synth(stack).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
         {
           input: '{"SomeObject":"withAValue"}',
@@ -60,11 +59,7 @@ describe("input", () => {
       );
 
       // THEN
-      // Do prepare run to resolve all Terraform resources
-      stack.prepareStack();
-      const synthesized = Testing.synth(stack);
-      // expect(synthesized).toMatchSnapshot();
-      expect(synthesized).toHaveResourceWithProperties(
+      Template.synth(stack).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
         {
           input_transformer: {
@@ -75,27 +70,6 @@ describe("input", () => {
           },
         },
       );
-      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-      //   Targets: [
-      //     {
-      //       InputTransformer: {
-      //         InputPathsMap: {
-      //           f1: "$",
-      //         },
-      //         InputTemplate: {
-      //           "Fn::Join": [
-      //             "",
-      //             [
-      //               '{"data":<f1>,"stackName":"',
-      //               { Ref: "AWS::StackName" },
-      //               '"}',
-      //             ],
-      //           ],
-      //         },
-      //       },
-      //     },
-      //   ],
-      // });
     });
 
     test("can use joined JSON containing refs in JSON object with tricky inputs", () => {
@@ -110,11 +84,7 @@ describe("input", () => {
       );
 
       // THEN
-      // Do prepare run to resolve all Terraform resources
-      stack.prepareStack();
-      const synthesized = Testing.synth(stack);
-      // expect(synthesized).toMatchSnapshot();
-      expect(synthesized).toHaveResourceWithProperties(
+      Template.synth(stack).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
         {
           input_transformer: {
@@ -126,29 +96,6 @@ describe("input", () => {
           },
         },
       );
-      // const template = JSON.parse(synthesized);
-      // expect(template).toMatchObject({});
-      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-      //   Targets: [
-      //     {
-      //       InputTransformer: {
-      //         InputPathsMap: {
-      //           f1: "$",
-      //         },
-      //         InputTemplate: {
-      //           "Fn::Join": [
-      //             "",
-      //             [
-      //               '{"data":"they said \\"hello\\"<f1>","stackName":"',
-      //               { Ref: "AWS::StackName" },
-      //               '"}',
-      //             ],
-      //           ],
-      //         },
-      //       },
-      //     },
-      //   ],
-      // });
     });
 
     test("can use joined JSON containing refs in JSON object and concat", () => {
@@ -163,11 +110,7 @@ describe("input", () => {
       );
 
       // THEN
-      // Do prepare run to resolve all Terraform resources
-      stack.prepareStack();
-      const synthesized = Testing.synth(stack);
-      // expect(synthesized).toMatchSnapshot();
-      expect(synthesized).toHaveResourceWithProperties(
+      Template.synth(stack).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
         {
           input_transformer: {
@@ -179,27 +122,6 @@ describe("input", () => {
           },
         },
       );
-      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-      //   Targets: [
-      //     {
-      //       InputTransformer: {
-      //         InputPathsMap: {
-      //           f1: "$",
-      //         },
-      //         InputTemplate: {
-      //           "Fn::Join": [
-      //             "",
-      //             [
-      //               '{"data":"more text <f1>","stackName":"',
-      //               { Ref: "AWS::StackName" },
-      //               '"}',
-      //             ],
-      //           ],
-      //         },
-      //       },
-      //     },
-      //   ],
-      // });
     });
 
     test("can use joined JSON containing refs in JSON object and quotes", () => {
@@ -214,11 +136,7 @@ describe("input", () => {
       );
 
       // THEN
-      // Do prepare run to resolve all Terraform resources
-      stack.prepareStack();
-      const synthesized = Testing.synth(stack);
-      // expect(synthesized).toMatchSnapshot();
-      expect(synthesized).toHaveResourceWithProperties(
+      Template.synth(stack).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
         {
           input_transformer: {
@@ -230,27 +148,6 @@ describe("input", () => {
           },
         },
       );
-      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-      //   Targets: [
-      //     {
-      //       InputTransformer: {
-      //         InputPathsMap: {
-      //           f1: "$",
-      //         },
-      //         InputTemplate: {
-      //           "Fn::Join": [
-      //             "",
-      //             [
-      //               '{"data":"more text \\"<f1>\\"","stackName":"',
-      //               { Ref: "AWS::StackName" },
-      //               '"}',
-      //             ],
-      //           ],
-      //         },
-      //       },
-      //     },
-      //   ],
-      // });
     });
 
     test("can use joined JSON containing refs in JSON object and multiple keys", () => {
@@ -265,11 +162,7 @@ describe("input", () => {
       );
 
       // THEN
-      // Do prepare run to resolve all Terraform resources
-      stack.prepareStack();
-      const synthesized = Testing.synth(stack);
-      // expect(synthesized).toMatchSnapshot();
-      expect(synthesized).toHaveResourceWithProperties(
+      Template.synth(stack).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
         {
           input_transformer: {
@@ -282,27 +175,6 @@ describe("input", () => {
           },
         },
       );
-      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-      //   Targets: [
-      //     {
-      //       InputTransformer: {
-      //         InputPathsMap: {
-      //           f1: "$",
-      //         },
-      //         InputTemplate: {
-      //           "Fn::Join": [
-      //             "",
-      //             [
-      //               '{"data":"<f1><other>","stackName":"',
-      //               { Ref: "AWS::StackName" },
-      //               '"}',
-      //             ],
-      //           ],
-      //         },
-      //       },
-      //     },
-      //   ],
-      // });
     });
 
     test("can use token", () => {
@@ -317,34 +189,12 @@ describe("input", () => {
       );
 
       // THEN
-      // Do prepare run to resolve all Terraform resources
-      stack.prepareStack();
-      const synthesized = Testing.synth(stack);
-      // expect(synthesized).toMatchSnapshot();
-      expect(synthesized).toHaveResourceWithProperties(
+      Template.synth(stack).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
         {
           input: '{"roleArn":"${aws_iam_role.Role_1ABCC5F0.arn}"}',
         },
       );
-      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-      //   Targets: [
-      //     {
-      //       Input: {
-      //         "Fn::Join": [
-      //           "",
-      //           [
-      //             '{"roleArn":"',
-      //             {
-      //               "Fn::GetAtt": ["Role00B015A1", "Arn"],
-      //             },
-      //             '"}',
-      //           ],
-      //         ],
-      //       },
-      //     },
-      //   ],
-      // });
     });
   });
 
@@ -358,23 +208,12 @@ describe("input", () => {
       );
 
       // THEN
-      // Do prepare run to resolve all Terraform resources
-      stack.prepareStack();
-      const synthesized = Testing.synth(stack);
-      // expect(synthesized).toMatchSnapshot();
-      expect(synthesized).toHaveResourceWithProperties(
+      Template.synth(stack).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
         {
           input: '"I have"\n"multiple lines"',
         },
       );
-      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-      //   Targets: [
-      //     {
-      //       Input: '"I have"\n"multiple lines"',
-      //     },
-      //   ],
-      // });
     });
 
     test("escaped newlines are not interpreted as newlines", () => {
@@ -386,23 +225,12 @@ describe("input", () => {
       );
 
       // THEN
-      // Do prepare run to resolve all Terraform resources
-      stack.prepareStack();
-      const synthesized = Testing.synth(stack);
-      // expect(synthesized).toMatchSnapshot();
-      expect(synthesized).toHaveResourceWithProperties(
+      Template.synth(stack).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
         {
           input: '"this is not\\\\na real newline"',
         },
       );
-      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-      //   Targets: [
-      //     {
-      //       Input: '"this is not\\\\na real newline"',
-      //     },
-      //   ],
-      // });
     });
 
     test("can use Tokens in text templates", () => {
@@ -414,22 +242,12 @@ describe("input", () => {
       );
 
       // THEN
-      stack.prepareStack();
-      const synthesized = Testing.synth(stack);
-      // expect(synthesized).toMatchSnapshot();
-      expect(synthesized).toHaveResourceWithProperties(
+      Template.synth(stack).toHaveResourceWithProperties(
         cloudwatchEventTarget.CloudwatchEventTarget,
         {
           input: '"hello world"',
         },
       );
-      // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-      //   Targets: [
-      //     {
-      //       Input: '"hello world"',
-      //     },
-      //   ],
-      // });
     });
   });
 });

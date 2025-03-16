@@ -11,7 +11,8 @@ import { ArnFormat } from "../arn";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
 import { Archive, BaseArchiveProps } from "./archive";
-// import * as encryption from "../encryption";
+// import { IQueue } from "./queue";
+import * as encryption from "../encryption";
 import * as iam from "../iam";
 
 /**
@@ -103,15 +104,24 @@ export interface EventBusProps extends AwsConstructProps {
    */
   readonly eventSourceName?: string;
 
-  // TODO: Re-add KMS support
+  // // TODO: Dead-letter queue is not supported by terraform-provider-aws
   // /**
-  //  * The customer managed key that encrypt events on this event bus.
+  //  * Dead-letter queue for the event bus
   //  *
-  //  * @default - Use an AWS managed key
+  //  * @see https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rule-event-delivery.html#eb-rule-dlq
+  //  *
+  //  * @default - no dead-letter queue
   //  */
-  // readonly kmsKey?: encryption.IKey;
+  // readonly deadLetterQueue?: IQueue;
 
-  // // Description is not supported by terraform-provider-aws
+  /**
+   * The customer managed key that encrypt events on this event bus.
+   *
+   * @default - Use an AWS managed key
+   */
+  readonly kmsKey?: encryption.IKey;
+
+  // // TODO: Description is not supported by terraform-provider-aws
   // /**
   //  * The event bus description.
   //  *
@@ -388,43 +398,60 @@ export class EventBus extends EventBusBase {
       {
         name: eventBusName,
         eventSourceName,
-        // kmsKeyIdentifier: props?.kmsKey?.keyArn, // TODO: Re-add KMS support
+        kmsKeyIdentifier: props?.kmsKey?.keyArn,
         // description: props?.description, // Description is not supported by terraform-provider-aws
+        // TODO: Missing in terraform-provider-aws
+        // ref:
+        //  - https://github.com/hashicorp/terraform-provider-aws/issues/41563
+        //  - https://github.com/hashicorp/terraform-provider-aws/blob/v5.88.0/internal/service/events/bus.go#L79
+        //  - https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateEventBus.html#API_CreateEventBus_RequestSyntax
+        // deadletter_config: props?.deadLetterQueue
       },
     );
 
-    // TODO: Re-add KMS support
-    // /**
-    //  * Allow EventBridge to use customer managed key
-    //  *
-    //  * @see https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-encryption-key-policy.html#eb-encryption-key-policy-bus
-    //  */
-    // if (props?.kmsKey) {
-    //   props?.kmsKey.addToResourcePolicy(
-    //     new iam.PolicyStatement({
-    //       resources: ["*"],
-    //       actions: ["kms:Decrypt", "kms:GenerateDataKey", "kms:DescribeKey"],
-    //       principals: [new iam.ServicePrincipal("events.amazonaws.com")],
-    //       conditions: {
-    //         StringEquals: {
-    //           "aws:SourceAccount": this.stack.account,
-    //           "aws:SourceArn": AwsStack.ofAwsConstruct(this).formatArn({
-    //             service: "events",
-    //             resource: "event-bus",
-    //             resourceName: eventBusName,
-    //           }),
-    //           "kms:EncryptionContext:aws:events:event-bus:arn": AwsStack.ofAwsConstruct(
-    //             this,
-    //           ).formatArn({
-    //             service: "events",
-    //             resource: "event-bus",
-    //             resourceName: eventBusName,
-    //           }),
-    //         },
-    //       },
-    //     }),
-    //   );
-    // }
+    /**
+     * Allow EventBridge to use customer managed key
+     *
+     * @see https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-encryption-key-policy.html#eb-encryption-key-policy-bus
+     */
+    if (props?.kmsKey) {
+      props?.kmsKey.addToResourcePolicy(
+        new iam.PolicyStatement({
+          resources: ["*"],
+          actions: ["kms:Decrypt", "kms:GenerateDataKey", "kms:DescribeKey"],
+          principals: [new iam.ServicePrincipal("events.amazonaws.com")],
+          condition: [
+            {
+              test: "StringEquals",
+              variable: "aws:SourceAccount",
+              values: [this.stack.account],
+            },
+            {
+              test: "StringEquals",
+              variable: "aws:SourceArn",
+              values: [
+                AwsStack.ofAwsConstruct(this).formatArn({
+                  service: "events",
+                  resource: "event-bus",
+                  resourceName: eventBusName,
+                }),
+              ],
+            },
+            {
+              test: "StringEquals",
+              variable: "kms:EncryptionContext:aws:events:event-bus:arn",
+              values: [
+                AwsStack.ofAwsConstruct(this).formatArn({
+                  service: "events",
+                  resource: "event-bus",
+                  resourceName: eventBusName,
+                }),
+              ],
+            },
+          ],
+        }),
+      );
+    }
 
     this.eventSourceName = this.resource.eventSourceName;
     this.eventBusOutputs = {
