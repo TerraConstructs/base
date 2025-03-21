@@ -68,6 +68,11 @@
       "type": "build"
     },
     {
+      "name": "corepack",
+      "version": "^0.32.0",
+      "type": "build"
+    },
+    {
       "name": "eslint-config-prettier",
       "type": "build"
     },

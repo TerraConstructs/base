@@ -51,6 +51,7 @@ junit.xml
 .jsii
 tsconfig.json
 .env
+.aider*
 !/.nvmrc
 !/.projenrc.ts
 !/src/aws/provider-config.generated.ts
