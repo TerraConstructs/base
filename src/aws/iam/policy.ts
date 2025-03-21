@@ -1,4 +1,8 @@
-import { iamRolePolicy } from "@cdktf/provider-aws";
+import {
+  iamGroupPolicy,
+  iamRolePolicy,
+  iamUserPolicy,
+} from "@cdktf/provider-aws";
 import { TerraformElement } from "cdktf";
 import { Construct } from "constructs";
 import {
@@ -6,6 +10,7 @@ import {
   AwsConstructBase,
   AwsConstructProps,
 } from "../aws-construct";
+import { IGroup } from "./group";
 import { IPolicyDocument, PolicyDocument } from "./policy-document";
 import { PolicyStatement } from "./policy-statement";
 import {
@@ -15,6 +20,7 @@ import {
   PrincipalPolicyFragment,
 } from "./principals";
 import { IRole } from "./role";
+import { IUser } from "./user";
 
 export const MAX_POLICY_NAME_LEN = 128;
 
@@ -47,12 +53,28 @@ export interface PolicyProps extends AwsConstructProps {
   readonly policyName?: string;
 
   /**
+   * Users to attach this policy to.
+   * You can also use `attachToUser(user)` to attach this policy to a user.
+   *
+   * @default - No users.
+   */
+  readonly users?: IUser[];
+
+  /**
    * Roles to attach this policy to.
    * You can also use `attachToRole(role)` to attach this policy to a role.
    *
    * @default - No roles.
    */
   readonly roles?: IRole[];
+
+  /**
+   * Groups to attach this policy to.
+   * You can also use `attachToGroup(group)` to attach this policy to a group.
+   *
+   * @default - No groups.
+   */
+  readonly groups?: IGroup[];
 
   /**
    * Initial set of permissions to add to this policy document.
@@ -124,6 +146,8 @@ export class Policy extends AwsConstructBase implements IPolicy, IGrantable {
 
   private readonly _policyName: string;
   private readonly roles = new Array<IRole>();
+  private readonly users = new Array<IUser>();
+  private readonly groups = new Array<IGroup>();
   private readonly force: boolean;
   private referenceTaken = false; // TODO: do we actually use this?
 
@@ -140,6 +164,12 @@ export class Policy extends AwsConstructBase implements IPolicy, IGrantable {
 
     if (props.roles) {
       props.roles.forEach((r) => this.attachToRole(r));
+    }
+    if (props.users) {
+      props.users.forEach((u) => this.attachToUser(u));
+    }
+    if (props.groups) {
+      props.groups.forEach((g) => this.attachToGroup(g));
     }
 
     if (props.statements) {
@@ -159,6 +189,17 @@ export class Policy extends AwsConstructBase implements IPolicy, IGrantable {
   }
 
   /**
+   * Attaches this policy to a user.
+   */
+  public attachToUser(user: IUser) {
+    if (this.users.find((u) => u.userArn === user.userArn)) {
+      return;
+    }
+    this.users.push(user);
+    user.attachInlinePolicy(this);
+  }
+
+  /**
    * Attaches this policy to a role.
    *
    * NOTE: Using this method will conflict with a role that has
@@ -173,6 +214,17 @@ export class Policy extends AwsConstructBase implements IPolicy, IGrantable {
     }
     this.roles.push(role);
     role.attachInlinePolicy(this);
+  }
+
+  /**
+   * Attaches this policy to a group.
+   */
+  public attachToGroup(group: IGroup) {
+    if (this.groups.find((g) => g.groupArn === group.groupArn)) {
+      return;
+    }
+    this.groups.push(group);
+    group.attachInlinePolicy(this);
   }
 
   /**
@@ -225,8 +277,7 @@ export class Policy extends AwsConstructBase implements IPolicy, IGrantable {
    * Whether the policy resource has been attached to any identity
    */
   private get isAttached() {
-    // return this.groups.length + this.users.length + this.roles.length > 0;
-    return this.roles.length > 0;
+    return this.groups.length + this.users.length + this.roles.length > 0;
   }
 
   /**
@@ -265,6 +316,40 @@ export class Policy extends AwsConstructBase implements IPolicy, IGrantable {
       // copy any overrides to the underlying L0 resources
       for (const [key, value] of Object.entries(this.rawOverrides)) {
         rolePolicy.addOverride(key, value);
+        const policyDocument = this.document.node
+          .defaultChild as TerraformElement;
+        policyDocument.addOverride(key, value);
+      }
+    }
+    for (let i = 0; i < this.users.length; i++) {
+      const id = `ResourceUsers${i}`;
+      if (this.node.tryFindChild(id)) continue; // ignore if already generated
+
+      const userPolicy = new iamUserPolicy.IamUserPolicy(this, id, {
+        policy: this.document.json,
+        user: this.users[i].userName,
+        name: this.policyName,
+      });
+      // copy any overrides to the underlying L0 resources
+      for (const [key, value] of Object.entries(this.rawOverrides)) {
+        userPolicy.addOverride(key, value);
+        const policyDocument = this.document.node
+          .defaultChild as TerraformElement;
+        policyDocument.addOverride(key, value);
+      }
+    }
+    for (let i = 0; i < this.groups.length; i++) {
+      const id = `ResourceGroups${i}`;
+      if (this.node.tryFindChild(id)) continue; // ignore if already generated
+
+      const groupPolicy = new iamGroupPolicy.IamGroupPolicy(this, id, {
+        policy: this.document.json,
+        group: this.groups[i].groupName,
+        name: this.policyName,
+      });
+      // copy any overrides to the underlying L0 resources
+      for (const [key, value] of Object.entries(this.rawOverrides)) {
+        groupPolicy.addOverride(key, value);
         const policyDocument = this.document.node
           .defaultChild as TerraformElement;
         policyDocument.addOverride(key, value);
