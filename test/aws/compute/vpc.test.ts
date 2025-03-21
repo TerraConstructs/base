@@ -26,15 +26,12 @@ import {
 import {
   // App,
   TerraformOutput,
-  TerraformResource,
   Lazy,
   Testing,
   TerraformVariable,
-  TerraformMetaArguments,
 } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { TerraformConstructor } from "cdktf/lib/testing/matchers";
-import { Construct } from "constructs";
 import { AwsStack } from "../../../src/aws";
 import { Tags } from "../../../src/aws/aws-tags";
 import {
@@ -74,7 +71,8 @@ import {
   UserData,
 } from "../../../src/aws/compute";
 import { Fn } from "../../../src/terra-func";
-import { Annotations, Template } from "../../assertions";
+import { Template } from "../../assertions";
+import { TestResource } from "../../test-resource";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -3298,46 +3296,4 @@ function taggedObject(tags: { [key: string]: string }) {
   return expect.objectContaining({
     tags: expect.objectContaining(tags),
   });
-}
-
-export enum TestProviderMetadata {
-  TYPE = "test",
-}
-export interface TestResourceConfig extends TerraformMetaArguments {
-  readonly properties?: { [name: string]: any };
-}
-export class TestResource extends TerraformResource {
-  public static readonly tfResourceType: string = "test_resource";
-
-  /**
-   * AWS CloudFormation resource properties.
-   *
-   * This object is returned via cfnProperties
-   * @internal
-   */
-  protected readonly _properties: any;
-  constructor(scope: Construct, id: string, config: TestResourceConfig) {
-    super(scope, id, {
-      terraformResourceType: "test_resource",
-      terraformGeneratorMetadata: {
-        providerName: TestProviderMetadata.TYPE,
-        providerVersionConstraint: "~> 2.0",
-      },
-      provider: config.provider,
-      dependsOn: config.dependsOn,
-      count: config.count,
-      lifecycle: config.lifecycle,
-      provisioners: config.provisioners,
-      forEach: config.forEach,
-    });
-    this._properties = config.properties || {};
-  }
-
-  public get names(): string[] {
-    return this.getListAttribute("names");
-  }
-
-  protected synthesizeAttributes(): { [name: string]: any } {
-    return this._properties;
-  }
 }
