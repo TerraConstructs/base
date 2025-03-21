@@ -1,9 +1,12 @@
 import {
   iamUser,
+  iamUserLoginProfile,
   iamUserPolicy,
   iamUserGroupMembership,
+  dataAwsIamPolicyDocument,
+  iamUserPolicyAttachment,
 } from "@cdktf/provider-aws";
-import { App, SecretValue, Token, Testing } from "cdktf";
+import { App, Token, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import {
@@ -36,20 +39,26 @@ describe("IAM user", () => {
   });
 
   test("default user with password", () => {
-    new User(stack, "MyUser", {
-      password: SecretValue.unsafePlainText("1234"),
+    const user = new User(stack, "MyUser", {
+      createLoginProfile: true,
+      // terraform-provider-aws does not support providing password in plain text
+      // password: "1234", // SecretValue.unsafePlainText("1234"),
     });
     const t = new Template(stack);
-    t.expect.toHaveResourceWithProperties(iamUser.IamUser, {
-      login_profile: { password: "1234" },
-    });
+    t.expect.toHaveResourceWithProperties(
+      iamUserLoginProfile.IamUserLoginProfile,
+      {
+        user: stack.resolve(user.userName),
+      },
+    );
   });
 
-  test("fails if reset password is required but no password is set", () => {
-    expect(
-      () => new User(stack, "MyUser", { passwordResetRequired: true }),
-    ).toThrow();
-  });
+  // // NOTE: This test is not applicable to Terraform
+  // test("fails if reset password is required but no password is set", () => {
+  //   expect(
+  //     () => new User(stack, "MyUser", { passwordResetRequired: true }),
+  //   ).toThrow();
+  // });
 
   test("create with managed policy", () => {
     new User(stack, "MyUser", {
@@ -58,16 +67,16 @@ describe("IAM user", () => {
       ],
     });
     const t = new Template(stack);
-    t.expect.toHaveResourceWithProperties(iamUser.IamUser, {
-      managed_policy_arns: [
-        {
-          "Fn::Join": [
-            "",
-            ["arn:", { Ref: "AWS::Partition" }, ":iam::aws:policy/asdf"],
-          ],
-        },
-      ],
-    });
+    t.resourceCountIs(iamUser.IamUser, 1);
+    t.expect.toHaveResourceWithProperties(
+      iamUserPolicyAttachment.IamUserPolicyAttachment,
+      {
+        user: "${aws_iam_user.MyUser_DC45028B.name}",
+        policy_arn:
+          // "arn:{ Ref: "AWS::Partition" }:iam::aws:policy/asdf",
+          "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/asdf",
+      },
+    );
   });
 
   test("can supply permissions boundary managed policy", () => {
@@ -79,33 +88,18 @@ describe("IAM user", () => {
     new User(stack, "MyUser", { permissionsBoundary });
     const t = new Template(stack);
     t.expect.toHaveResourceWithProperties(iamUser.IamUser, {
-      permissions_boundary: {
-        "Fn::Join": [
-          "",
-          [
-            "arn:",
-            { Ref: "AWS::Partition" },
-            ":iam::aws:policy/managed-policy",
-          ],
-        ],
-      },
+      permissions_boundary:
+        // "arn:{ Ref: "AWS::Partition" }:iam::aws:policy/managed-policy",
+        "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/managed-policy",
     });
   });
 
   test("user imported by user name has an ARN", () => {
     const user = User.fromUserName(stack, "import", "MyUserName");
-    expect(stack.resolve(user.userArn)).toStrictEqual({
-      "Fn::Join": [
-        "",
-        [
-          "arn:",
-          { Ref: "AWS::Partition" },
-          ":iam::",
-          { Ref: "AWS::AccountId" },
-          ":user/MyUserName",
-        ],
-      ],
-    });
+    expect(stack.resolve(user.userArn)).toStrictEqual(
+      // "arn:{ Ref: "AWS::Partition" }:iam::{ Ref: "AWS::AccountId" }:user/MyUserName",
+      "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:user/MyUserName",
+    );
   });
 
   test("user imported by user ARN has a name", () => {
@@ -124,9 +118,9 @@ describe("IAM user", () => {
       "import",
       Token.asString({ Ref: "ARN" }),
     );
-    expect(stack.resolve(user.userName)).toStrictEqual({
-      "Fn::Select": [1, { "Fn::Split": [":user/", { Ref: "ARN" }] }],
-    });
+    expect(stack.resolve(user.userName)).toStrictEqual(
+      '${element(split(":user/", {"Ref" = "ARN"}), 1)}',
+    );
   });
 
   test("user imported by user ARN has a principalAccount", () => {
@@ -145,20 +139,17 @@ describe("IAM user", () => {
       "import",
       Token.asString({ Ref: "ARN" }),
     );
-    expect(stack.resolve(user.principalAccount)).toStrictEqual({
-      "Fn::Select": [4, { "Fn::Split": [":", { Ref: "ARN" }] }],
-    });
+    expect(stack.resolve(user.principalAccount)).toStrictEqual(
+      '${element(split(":", {"Ref" = "ARN"}), 4)}',
+    );
   });
 
   test("user imported by a new User construct has a principalAccount", () => {
     const localUser = new User(stack, "LocalUser");
     const user = User.fromUserArn(stack, "import", localUser.userArn);
-    expect(stack.resolve(user.principalAccount)).toStrictEqual({
-      "Fn::Select": [
-        4,
-        { "Fn::Split": [":", { "Fn::GetAtt": ["LocalUser87F70DDF", "Arn"] }] },
-      ],
-    });
+    expect(stack.resolve(user.principalAccount)).toStrictEqual(
+      '${element(split(":", aws_iam_user.LocalUser_87F70DDF.arn), 4)}',
+    );
   });
 
   test("user imported by user ARN with path", () => {
@@ -185,9 +176,9 @@ describe("IAM user", () => {
     const user = User.fromUserAttributes(stack, "import", {
       userArn: Token.asString({ Ref: "ARN" }),
     });
-    expect(stack.resolve(user.userName)).toStrictEqual({
-      "Fn::Select": [1, { "Fn::Split": [":user/", { Ref: "ARN" }] }],
-    });
+    expect(stack.resolve(user.userName)).toStrictEqual(
+      '${element(split(":user/", {"Ref" = "ARN"}), 1)}',
+    );
   });
 
   test("user imported by user attributes has a name", () => {
@@ -223,18 +214,22 @@ describe("IAM user", () => {
       }),
     );
     const t = new Template(stack);
-    t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
-      user: "john",
-      policy: {
-        Statement: [
+    t.expect.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+      {
+        statement: [
           {
-            Action: "aws:Use",
-            Effect: "Allow",
-            Resource: "*",
+            actions: ["aws:Use"],
+            resources: ["*"],
+            effect: "Allow",
           },
         ],
-        Version: "2012-10-17",
       },
+    );
+    t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
+      user: "john",
+      policy:
+        "${data.aws_iam_policy_document.ImportedUser_Policy_12354FE1.json}",
     });
   });
 
@@ -251,18 +246,21 @@ describe("IAM user", () => {
       }),
     );
     const t = new Template(stack);
-    t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
-      user: "john",
-      policy: {
-        Statement: [
+    t.expect.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+      {
+        statement: [
           {
-            Action: "aws:Use",
-            Effect: "Allow",
-            Resource: "*",
+            actions: ["aws:Use"],
+            resources: ["*"],
+            effect: "Allow",
           },
         ],
-        Version: "2012-10-17",
       },
+    );
+    t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
+      user: "john",
+      policy: "${data.aws_iam_policy_document.Policy_E08602BD.json}",
     });
   });
 
@@ -308,15 +306,8 @@ test("cross-env user ARNs include path", () => {
   });
 
   Template.synth(referencerStack).toHaveResourceWithProperties(TestResource, {
-    UserArn: {
-      "Fn::Join": [
-        "",
-        [
-          "arn:",
-          { Ref: "AWS::Partition" },
-          ":iam::123456789012:user/sample/path/sample-name",
-        ],
-      ],
-    },
+    // AWS CDK generates: "arn:{ Ref: "AWS::Partition" }":iam::123456789012:user/sample/path/sample-name",
+    UserArn:
+      "${data.terraform_remote_state.cross-stack-reference-input-user-stack.outputs.cross-stack-output-aws_iam_userUser_00B015A1arn}",
   });
 });

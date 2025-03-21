@@ -1,16 +1,18 @@
 // https://github.com/aws/aws-cdk/blob/dd912daf2b91a4a32064341e92863afbd9eeebdd/packages/aws-cdk-lib/aws-iam/lib/group.ts
 
+import {
+  iamGroupPolicyAttachment,
+  iamGroup as tfIamGroup,
+} from "@cdktf/provider-aws";
+import { Annotations } from "cdktf";
 import { Construct } from "constructs";
-import { IamGroup as TerraformIamGroup } from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+import { ArnFormat } from "../arn";
 import {
   AwsConstructBase,
   AwsConstructProps,
   IAwsConstruct,
 } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
-import { ArnFormat } from "../arn";
-import { Annotations, Lazy as CoreLazy, Stack } from "../../core";
 import { IIdentity } from "./identity-base";
 import { IManagedPolicy } from "./managed-policy";
 import { Policy } from "./policy";
@@ -25,11 +27,26 @@ import { AttachedPolicies } from "./private/util";
 import { IUser } from "./user";
 
 /**
+ * Outputs which may be registered for output via the Grid.
+ */
+export interface GroupOutputs {
+  readonly arn: string;
+  readonly name: string;
+}
+
+/**
  * Represents an IAM Group.
  *
  * @see https://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups.html
  */
 export interface IGroup extends IIdentity, IAwsConstruct {
+  /**
+   * strongly typed roleOutputs
+   *
+   * @attribute
+   */
+  readonly groupOutputs: GroupOutputs;
+
   /**
    * Returns the IAM Group Name
    *
@@ -82,6 +99,15 @@ export interface GroupProps extends AwsConstructProps {
 abstract class GroupBase extends AwsConstructBase implements IGroup {
   public abstract readonly groupName: string;
   public abstract readonly groupArn: string;
+  public get groupOutputs(): GroupOutputs {
+    return {
+      arn: this.groupArn,
+      name: this.groupName,
+    };
+  }
+  public get outputs(): Record<string, any> {
+    return this.groupOutputs;
+  }
 
   public readonly grantPrincipal: IPrincipal = this;
   public readonly principalAccount: string | undefined = this.env.account;
@@ -197,26 +223,33 @@ export class Group extends GroupBase {
 
   private readonly managedPolicies: IManagedPolicy[] = [];
 
+  private readonly physicalName: string;
   constructor(scope: Construct, id: string, props: GroupProps = {}) {
-    super(scope, id, { physicalName: props.groupName });
+    super(scope, id, props);
+    this.physicalName =
+      props.groupName ||
+      this.stack.uniqueResourceName(this, {
+        prefix: this.gridUUID,
+      });
 
     if (props.managedPolicies) {
       this.managedPolicies.push(...props.managedPolicies);
     }
 
     // Create the IAM Group using Terraform AWS Provider's IAM Group.
-    const groupResource = new TerraformIamGroup(this, "Resource", {
+    const groupResource = new tfIamGroup.IamGroup(this, "Resource", {
       name: this.physicalName,
       path: props.path,
     });
 
-    this.groupName = this.getResourceNameAttribute(groupResource.ref);
-    this.groupArn = this.getResourceArnAttribute(groupResource.arn, {
-      region: "", // IAM is global per partition.
-      service: "iam",
-      resource: "group",
-      resourceName: `${props.path ? (props.path.startsWith("/") ? props.path.substring(1) : props.path) : ""}${this.physicalName}`,
-    });
+    this.groupName = groupResource.name;
+    this.groupArn = groupResource.arn;
+    // this.getResourceArnAttribute(groupResource.arn, {
+    //   region: "", // IAM is global per partition.
+    //   service: "iam",
+    //   resource: "group",
+    //   resourceName: `${props.path ? (props.path.startsWith("/") ? props.path.substring(1) : props.path) : ""}${this.physicalName}`,
+    // });
 
     this.managedPoliciesExceededWarning();
   }
@@ -235,10 +268,44 @@ export class Group extends GroupBase {
 
   private managedPoliciesExceededWarning(): void {
     if (this.managedPolicies.length > 10) {
-      Annotations.of(this).addWarningV2(
-        "@aws-cdk/aws-iam:groupMaxPoliciesExceeded",
+      // "@aws-cdk/aws-iam:groupMaxPoliciesExceeded",
+      Annotations.of(this).addWarning(
         `You added ${this.managedPolicies.length} managed policies to IAM Group ${this.physicalName}. The maximum number of managed policies attached to an IAM group is 10.`,
       );
     }
+  }
+  /**
+   * Adds resource to the terraform JSON output.
+   *
+   * called by TerraformStack.prepareStack()
+   */
+  public toTerraform(): any {
+    /**
+     * A preparing resolve run might add new resources to the stack
+     *
+     * should not add resources if `force` is `false` and the policy
+     * document is empty or not attached
+     * ref: https://github.com/aws/aws-cdk/blob/v2.143.0/packages/aws-cdk-lib/aws-iam/lib/policy.ts#L149
+     */
+    if (this.managedPolicies.length === 0) {
+      return {};
+    }
+
+    // add iamGroupPolicyAttachment resource for each referenced ManagedPolicy
+    // NOTE: The TerraformDependendableAspect will propgate construct dependencies on this policy to its IamRolePolicy resources
+    // not sure if time.sleep is still necessary?
+    // https://github.com/pulumi/pulumi-aws/issues/2260#issuecomment-1977606509
+    // else need: https://github.com/hashicorp/terraform-provider-aws/issues/29828#issuecomment-1693307500
+    for (let i = 0; i < this.managedPolicies.length; i++) {
+      const id = `ResourceManagedPolicy${i}`; // unique id for each managed policy
+      // ignore if already generated
+      if (this.node.tryFindChild(id)) continue;
+
+      new iamGroupPolicyAttachment.IamGroupPolicyAttachment(this, id, {
+        group: this.groupName,
+        policyArn: this.managedPolicies[i].managedPolicyArn,
+      });
+    }
+    return {};
   }
 }

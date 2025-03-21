@@ -1,12 +1,20 @@
-import { iamRolePolicy, dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
+import {
+  iamRolePolicy,
+  iamUserPolicy,
+  iamGroupPolicy,
+  dataAwsIamPolicyDocument,
+} from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
+import { Group } from "../../../src/aws/iam/group";
 import { Policy } from "../../../src/aws/iam/policy";
 import { PolicyDocument } from "../../../src/aws/iam/policy-document";
 import { PolicyStatement } from "../../../src/aws/iam/policy-statement";
 import { ServicePrincipal } from "../../../src/aws/iam/principals";
 import { Role } from "../../../src/aws/iam/role";
+import { User } from "../../../src/aws/iam/user";
+import { Template } from "../../assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -45,11 +53,10 @@ describe("IAM policy", () => {
       assumedBy: new ServicePrincipal("sns"),
     });
     role.attachInlinePolicy(policy);
-    // Do prepare run to resolve all Terraform resources
-    stack.prepareStack();
-    const synthesized = Testing.synth(stack);
-    // NOTE: without prepareStack, the IamRolePolicy is missing!
-    expect(synthesized).toHaveDataSourceWithProperties(
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: expect.arrayContaining([
@@ -66,16 +73,11 @@ describe("IAM policy", () => {
         ]),
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
-      iamRolePolicy.IamRolePolicy,
-      {
-        name: "MyPolicyName",
-        policy: expect.stringContaining(
-          "data.aws_iam_policy_document.MyPolicy",
-        ),
-        role: expect.stringContaining("aws_iam_role.Role"),
-      },
-    );
+    t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
+      name: "MyPolicyName",
+      policy: expect.stringContaining("data.aws_iam_policy_document.MyPolicy"),
+      role: expect.stringContaining("aws_iam_role.Role"),
+    });
   });
 
   test("policy from policy document alone", () => {
@@ -96,13 +98,10 @@ describe("IAM policy", () => {
       assumedBy: new ServicePrincipal("sns"),
     });
     role.attachInlinePolicy(policy);
-    // Do prepare run to resolve all Terraform resources
-    stack.prepareStack();
-    const synthesized = Testing.synth(stack);
-    // expect(synthesized).toMatchSnapshot();
 
-    // NOTE: without prepareStack, the IamRolePolicy is missing!
-    expect(synthesized).toHaveDataSourceWithProperties(
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: expect.arrayContaining([
@@ -114,14 +113,11 @@ describe("IAM policy", () => {
         ]),
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
-      iamRolePolicy.IamRolePolicy,
-      {
-        name: "MyPolicyName",
-        policy: expect.stringContaining("data.aws_iam_policy_document.doc"),
-        role: expect.stringContaining("aws_iam_role.Role"),
-      },
-    );
+    t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
+      name: "MyPolicyName",
+      policy: expect.stringContaining("data.aws_iam_policy_document.doc"),
+      role: expect.stringContaining("aws_iam_role.Role"),
+    });
   });
 
   test("policy name can be omitted, in which case the logical id will be used", () => {
@@ -138,11 +134,9 @@ describe("IAM policy", () => {
     });
     role.attachInlinePolicy(policy);
 
-    // Do prepare run to resolve all Terraform resources
-    stack.prepareStack();
-    const synthesized = Testing.synth(stack);
-    // NOTE: without prepareStack, the IamRolePolicy is missing!
-    expect(synthesized).toHaveDataSourceWithProperties(
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: expect.arrayContaining([
@@ -159,16 +153,11 @@ describe("IAM policy", () => {
         ]),
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
-      iamRolePolicy.IamRolePolicy,
-      {
-        name: expect.stringContaining("TestStackMyPolicy"),
-        policy: expect.stringContaining(
-          "data.aws_iam_policy_document.MyPolicy",
-        ),
-        role: expect.stringContaining("aws_iam_role.Role"),
-      },
-    );
+    t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
+      name: expect.stringContaining("TestStackMyPolicy"),
+      policy: expect.stringContaining("data.aws_iam_policy_document.MyPolicy"),
+      role: expect.stringContaining("aws_iam_role.Role"),
+    });
   });
 
   test("policy can be attached users, groups and roles and added permissions via props", () => {
@@ -194,11 +183,9 @@ describe("IAM policy", () => {
       ],
     });
 
-    // Do prepare run to resolve all Terraform resources
-    stack.prepareStack();
-    const synthesized = Testing.synth(stack);
-    // NOTE: without prepareStack, the IamRolePolicy is missing!
-    expect(synthesized).toHaveDataSourceWithProperties(
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: expect.arrayContaining([
@@ -209,26 +196,20 @@ describe("IAM policy", () => {
         ]),
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
-      iamRolePolicy.IamRolePolicy,
-      {
-        name: "Foo",
-        policy: expect.stringContaining(
-          "data.aws_iam_policy_document.MyTestPolicy",
-        ),
-        role: expect.stringContaining("aws_iam_role.Role1"),
-      },
-    );
-    expect(synthesized).toHaveResourceWithProperties(
-      iamRolePolicy.IamRolePolicy,
-      {
-        name: "Foo",
-        policy: expect.stringContaining(
-          "data.aws_iam_policy_document.MyTestPolicy",
-        ),
-        role: expect.stringContaining("aws_iam_role.Role2"),
-      },
-    );
+    t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
+      name: "Foo",
+      policy: expect.stringContaining(
+        "data.aws_iam_policy_document.MyTestPolicy",
+      ),
+      role: expect.stringContaining("aws_iam_role.Role1"),
+    });
+    t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
+      name: "Foo",
+      policy: expect.stringContaining(
+        "data.aws_iam_policy_document.MyTestPolicy",
+      ),
+      role: expect.stringContaining("aws_iam_role.Role2"),
+    });
   });
 
   test("idempotent if a principal (user/group/role) is attached twice", () => {
@@ -241,23 +222,13 @@ describe("IAM policy", () => {
     p.attachToRole(role);
     p.attachToRole(role);
 
-    // Do prepare run to resolve all Terraform resources
-    stack.prepareStack();
-    const synthesized = Testing.synth(stack);
-    // NOTE: without prepareStack, the IamRolePolicy is missing!
-    const iamRolePolicies = Object.values(
-      JSON.parse(synthesized).resource.aws_iam_role_policy,
-    );
-    expect(iamRolePolicies.length).toStrictEqual(1);
-    expect(synthesized).toHaveResourceWithProperties(
-      iamRolePolicy.IamRolePolicy,
-      {
-        policy: expect.stringContaining(
-          "data.aws_iam_policy_document.MyPolicy",
-        ),
-        role: expect.stringContaining("aws_iam_role.Role1"),
-      },
-    );
+    // THEN
+    const t = new Template(stack);
+    t.resourceCountIs(iamRolePolicy.IamRolePolicy, 1);
+    t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
+      policy: expect.stringContaining("data.aws_iam_policy_document.MyPolicy"),
+      role: expect.stringContaining("aws_iam_role.Role1"),
+    });
   });
 
   test("users, groups, roles and permissions can be added using methods", () => {
@@ -265,6 +236,9 @@ describe("IAM policy", () => {
       policyName: "Foo",
     });
 
+    p.attachToUser(new User(stack, "User1"));
+    p.attachToUser(new User(stack, "User2"));
+    p.attachToGroup(new Group(stack, "Group1"));
     p.attachToRole(
       new Role(stack, "Role1", {
         assumedBy: new ServicePrincipal("test.service"),
@@ -275,11 +249,10 @@ describe("IAM policy", () => {
     );
 
     // Do prepare run to resolve all Terraform resources
-    stack.prepareStack();
-    const synthesized = Testing.synth(stack);
+    const t = new Template(stack);
     // expect(synthesized).toMatchSnapshot();
     // NOTE: without prepareStack, the IamRolePolicy is missing!
-    expect(synthesized).toHaveDataSourceWithProperties(
+    t.expect.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: [
@@ -290,16 +263,34 @@ describe("IAM policy", () => {
         ],
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
-      iamRolePolicy.IamRolePolicy,
-      {
-        name: "Foo",
-        policy: expect.stringContaining(
-          "data.aws_iam_policy_document.MyTestPolicy",
-        ),
-        role: expect.stringContaining("aws_iam_role.Role1"),
-      },
-    );
+    t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
+      name: "Foo",
+      policy: expect.stringContaining(
+        "data.aws_iam_policy_document.MyTestPolicy",
+      ),
+      role: expect.stringContaining("aws_iam_role.Role1"),
+    });
+    t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
+      name: "Foo",
+      policy: expect.stringContaining(
+        "data.aws_iam_policy_document.MyTestPolicy",
+      ),
+      user: expect.stringContaining("aws_iam_user.User1"),
+    });
+    t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
+      name: "Foo",
+      policy: expect.stringContaining(
+        "data.aws_iam_policy_document.MyTestPolicy",
+      ),
+      user: expect.stringContaining("aws_iam_user.User2"),
+    });
+    t.expect.toHaveResourceWithProperties(iamGroupPolicy.IamGroupPolicy, {
+      name: "Foo",
+      policy: expect.stringContaining(
+        "data.aws_iam_policy_document.MyTestPolicy",
+      ),
+      group: expect.stringContaining("aws_iam_group.Group1"),
+    });
   });
 
   test("policy can be attached to users, groups or role via methods on the principal", () => {
@@ -314,12 +305,9 @@ describe("IAM policy", () => {
       new PolicyStatement({ resources: ["*"], actions: ["*"] }),
     );
 
-    // Do prepare run to resolve all Terraform resources
-    stack.prepareStack();
-    const synthesized = Testing.synth(stack);
-    // expect(synthesized).toMatchSnapshot();
-    // NOTE: without prepareStack, the IamRolePolicy is missing!
-    expect(synthesized).toHaveDataSourceWithProperties(
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
       {
         statement: [
@@ -330,15 +318,10 @@ describe("IAM policy", () => {
         ],
       },
     );
-    expect(synthesized).toHaveResourceWithProperties(
-      iamRolePolicy.IamRolePolicy,
-      {
-        policy: expect.stringContaining(
-          "data.aws_iam_policy_document.MyPolicy",
-        ),
-        role: expect.stringContaining("aws_iam_role.MyRole"),
-      },
-    );
+    t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
+      policy: expect.stringContaining("data.aws_iam_policy_document.MyPolicy"),
+      role: expect.stringContaining("aws_iam_role.MyRole"),
+    });
   });
 
   test("fails if policy name is not unique within a user/group/role", () => {
@@ -388,21 +371,13 @@ describe("IAM policy", () => {
     p.attachToRole(role);
     p.attachToRole(importedRole);
 
-    // Do prepare run to resolve all Terraform resources
-    stack.prepareStack();
-    const synthesized = Testing.synth(stack);
-    // expect(synthesized).toMatchSnapshot();
-    const iamRolePolicies = Object.values(
-      JSON.parse(synthesized).resource.aws_iam_role_policy,
-    );
-    expect(iamRolePolicies.length).toStrictEqual(1);
-    expect(synthesized).toHaveResourceWithProperties(
-      iamRolePolicy.IamRolePolicy,
-      {
-        policy: expect.stringContaining("data.aws_iam_policy_document.Policy"),
-        role: expect.stringContaining("aws_iam_role.MyRole"),
-      },
-    );
+    // THEN
+    const t = new Template(stack);
+    t.resourceCountIs(iamRolePolicy.IamRolePolicy, 1);
+    t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
+      policy: expect.stringContaining("data.aws_iam_policy_document.Policy"),
+      role: expect.stringContaining("aws_iam_role.MyRole"),
+    });
     // Template.fromStack(stack).templateMatches({
     //   Resources: {
     //     Policy23B91518: {
