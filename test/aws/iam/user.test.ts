@@ -1,6 +1,10 @@
-import { App, CfnResource, SecretValue, Token, Testing } from "cdktf";
+import {
+  iamUser,
+  iamUserPolicy,
+  iamUserGroupMembership,
+} from "@cdktf/provider-aws";
+import { App, SecretValue, Token, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { Template } from "../../assertions";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import {
   User,
@@ -9,41 +13,52 @@ import {
   PolicyStatement,
   Group,
 } from "../../../src/aws/iam";
+import { Template } from "../../assertions";
+import { TestResource } from "../../test-resource";
 
 describe("IAM user", () => {
+  let app: App;
+  let stack: AwsStack;
+
+  beforeEach(() => {
+    app = Testing.app();
+    stack = new AwsStack(app, "MyStack", {
+      environmentName: "Test",
+      gridUUID: "test-uuid",
+      providerConfig: { region: "us-east-1" },
+      gridBackendConfig: { address: "http://localhost" },
+    });
+  });
   test("default user", () => {
-    const app = Testing.app();
-    const stack = new AwsStack(app, "MyStack");
     new User(stack, "MyUser");
-    Template.synth(stack).expect.toHaveResource("aws_iam_user");
+    const t = new Template(stack);
+    t.expect.toHaveResource(iamUser.IamUser);
   });
 
   test("default user with password", () => {
-    const app = Testing.app();
-    const stack = new AwsStack(app, "MyStack");
     new User(stack, "MyUser", {
       password: SecretValue.unsafePlainText("1234"),
     });
-    Template.synth(stack).expect.toHaveResourceWithProperties("aws_iam_user", {
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(iamUser.IamUser, {
       login_profile: { password: "1234" },
     });
   });
 
   test("fails if reset password is required but no password is set", () => {
-    const app = Testing.app();
-    const stack = new AwsStack(app, "MyStack");
     expect(
       () => new User(stack, "MyUser", { passwordResetRequired: true }),
     ).toThrow();
   });
 
   test("create with managed policy", () => {
-    const app = Testing.app();
-    const stack = new AwsStack(app, "MyStack");
     new User(stack, "MyUser", {
-      managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName("asdf")],
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName(stack, "UserPolicy", "asdf"),
+      ],
     });
-    Template.synth(stack).expect.toHaveResourceWithProperties("aws_iam_user", {
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(iamUser.IamUser, {
       managed_policy_arns: [
         {
           "Fn::Join": [
@@ -56,12 +71,14 @@ describe("IAM user", () => {
   });
 
   test("can supply permissions boundary managed policy", () => {
-    const app = Testing.app();
-    const stack = new AwsStack(app, "MyStack");
-    const permissionsBoundary =
-      ManagedPolicy.fromAwsManagedPolicyName("managed-policy");
+    const permissionsBoundary = ManagedPolicy.fromAwsManagedPolicyName(
+      stack,
+      "UserPolicy",
+      "managed-policy",
+    );
     new User(stack, "MyUser", { permissionsBoundary });
-    Template.synth(stack).expect.toHaveResourceWithProperties("aws_iam_user", {
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(iamUser.IamUser, {
       permissions_boundary: {
         "Fn::Join": [
           "",
@@ -76,7 +93,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by user name has an ARN", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const user = User.fromUserName(stack, "import", "MyUserName");
     expect(stack.resolve(user.userArn)).toStrictEqual({
       "Fn::Join": [
@@ -93,7 +109,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by user ARN has a name", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const userName = "MyUserName";
     const user = User.fromUserArn(
       stack,
@@ -104,7 +119,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by tokenized user ARN has a name", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const user = User.fromUserArn(
       stack,
       "import",
@@ -116,7 +130,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by user ARN has a principalAccount", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const accountId = "account-id";
     const user = User.fromUserArn(
       stack,
@@ -127,7 +140,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by tokenized user ARN has a principalAccount", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const user = User.fromUserArn(
       stack,
       "import",
@@ -139,7 +151,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by a new User construct has a principalAccount", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const localUser = new User(stack, "LocalUser");
     const user = User.fromUserArn(stack, "import", localUser.userArn);
     expect(stack.resolve(user.principalAccount)).toStrictEqual({
@@ -151,7 +162,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by user ARN with path", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const userName = "MyUserName";
     const user = User.fromUserArn(
       stack,
@@ -162,7 +172,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by user ARN with path (multiple elements)", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const userName = "MyUserName";
     const user = User.fromUserArn(
       stack,
@@ -173,7 +182,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by tokenized user attributes has a name", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const user = User.fromUserAttributes(stack, "import", {
       userArn: Token.asString({ Ref: "ARN" }),
     });
@@ -183,7 +191,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by user attributes has a name", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const userName = "MyUserName";
     const user = User.fromUserAttributes(stack, "import", {
       userArn: `arn:aws:iam::account-id:user/${userName}`,
@@ -192,7 +199,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by user attributes with path has a name", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const userName = "MyUserName";
     const user = User.fromUserAttributes(stack, "import", {
       userArn: `arn:aws:iam::account-id:user/path/${userName}`,
@@ -201,7 +207,6 @@ describe("IAM user", () => {
   });
 
   test("user imported by user attributes with path (multiple elements) has a name", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const userName = "MyUserName";
     const user = User.fromUserAttributes(stack, "import", {
       userArn: `arn:aws:iam::account-id:user/p/a/t/h/${userName}`,
@@ -210,7 +215,6 @@ describe("IAM user", () => {
   });
 
   test("add to policy of imported user", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const user = User.fromUserName(stack, "ImportedUser", "john");
     user.addToPrincipalPolicy(
       new PolicyStatement({
@@ -218,26 +222,23 @@ describe("IAM user", () => {
         resources: ["*"],
       }),
     );
-    Template.synth(stack).expect.toHaveResourceWithProperties(
-      "aws_iam_user_policy",
-      {
-        user: "john",
-        policy: {
-          Statement: [
-            {
-              Action: "aws:Use",
-              Effect: "Allow",
-              Resource: "*",
-            },
-          ],
-          Version: "2012-10-17",
-        },
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
+      user: "john",
+      policy: {
+        Statement: [
+          {
+            Action: "aws:Use",
+            Effect: "Allow",
+            Resource: "*",
+          },
+        ],
+        Version: "2012-10-17",
       },
-    );
+    });
   });
 
   test("attach policy to imported user", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const user = User.fromUserName(stack, "ImportedUser", "john");
     user.attachInlinePolicy(
       new Policy(stack, "Policy", {
@@ -249,26 +250,23 @@ describe("IAM user", () => {
         ],
       }),
     );
-    Template.synth(stack).expect.toHaveResourceWithProperties(
-      "aws_iam_user_policy",
-      {
-        user: "john",
-        policy: {
-          Statement: [
-            {
-              Action: "aws:Use",
-              Effect: "Allow",
-              Resource: "*",
-            },
-          ],
-          Version: "2012-10-17",
-        },
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
+      user: "john",
+      policy: {
+        Statement: [
+          {
+            Action: "aws:Use",
+            Effect: "Allow",
+            Resource: "*",
+          },
+        ],
+        Version: "2012-10-17",
       },
-    );
+    });
   });
 
   test("addToGroup for imported user", () => {
-    const stack = new AwsStack(Testing.app(), "MyStack");
     const user = User.fromUserName(stack, "ImportedUser", "john");
     const group = new Group(stack, "Group");
     const otherGroup = new Group(stack, "OtherGroup");
@@ -278,43 +276,47 @@ describe("IAM user", () => {
 
     // In TerraConstructs, group membership is expressed as separate resources.
     // Here we simply assert that two aws_iam_user_group_membership resources have been created.
-    Template.synth(stack).expect.resourceCountIs(
-      "aws_iam_user_group_membership",
-      2,
-    );
+    const t = new Template(stack);
+    t.resourceCountIs(iamUserGroupMembership.IamUserGroupMembership, 2);
   });
 });
 
 test("cross-env user ARNs include path", () => {
   const app = Testing.app();
+  const stackProps = {
+    environmentName: "Test",
+    gridUUID: "test-uuid",
+    providerConfig: { region: "us-east-1" },
+    gridBackendConfig: { address: "http://localhost" },
+  };
+  // env: { account: "123456789012", region: "us-east-1" },
   const userStack = new AwsStack(app, "user-stack", {
-    env: { account: "123456789012", region: "us-east-1" },
+    ...stackProps,
+    providerConfig: { region: "us-east-1" },
   });
+  // env: { region: "us-east-2" },
   const referencerStack = new AwsStack(app, "referencer-stack", {
-    env: { region: "us-east-2" },
+    ...stackProps,
+    providerConfig: { region: "us-east-2" },
   });
   const user = new User(userStack, "User", {
     path: "/sample/path/",
     userName: "sample-name",
   });
-  new CfnResource(referencerStack, "Referencer", {
-    type: "Custom::UserReferencer",
+  new TestResource(referencerStack, "Referencer", {
     properties: { UserArn: user.userArn },
   });
 
-  Template.synth(referencerStack).expect.toHaveResourceWithProperties(
-    "Custom::UserReferencer",
-    {
-      UserArn: {
-        "Fn::Join": [
-          "",
-          [
-            "arn:",
-            { Ref: "AWS::Partition" },
-            ":iam::123456789012:user/sample/path/sample-name",
-          ],
+  Template.synth(referencerStack).toHaveResourceWithProperties(TestResource, {
+    UserArn: {
+      "Fn::Join": [
+        "",
+        [
+          "arn:",
+          { Ref: "AWS::Partition" },
+          ":iam::123456789012:user/sample/path/sample-name",
         ],
-      },
+      ],
     },
-  );
+  });
 });
