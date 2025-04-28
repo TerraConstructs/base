@@ -704,7 +704,7 @@ export class Instance extends AwsConstructBase implements IInstance {
       keyName: props.keyPair?.keyPairName ?? props?.keyName,
       instanceType: props.instanceType.toString(),
       subnetId: networkInterfaces ? undefined : subnet.subnetId,
-      securityGroups: networkInterfaces ? undefined : securityGroupsToken,
+      vpcSecurityGroupIds: networkInterfaces ? undefined : securityGroupsToken,
       associatePublicIpAddress: props.associatePublicIpAddress,
       networkInterface: networkInterfaces,
       iamInstanceProfile,
