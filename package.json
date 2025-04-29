@@ -47,6 +47,7 @@
     "cdktf": "0.20.8",
     "commit-and-tag-version": "^12",
     "constructs": "10.3.0",
+    "corepack": "^0.32.0",
     "eslint": "^8",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-typescript": "^3.6.3",
