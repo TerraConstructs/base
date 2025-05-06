@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/bc96ee17a18c19b98e4ad052bed7c24da2371050/packages/aws-cdk-lib/aws-codestarnotifications/lib/notification-rule.ts
 
 import { codestarnotificationsNotificationRule } from "@cdktf/provider-aws";
-import { Annotations, Token } from "cdktf";
+import { Annotations, Lazy, Token } from "cdktf";
 import * as constructs from "constructs";
 import {
   AwsConstructBase,
@@ -95,6 +95,12 @@ export interface NotificationRuleProps
    * @default - No targets are added to the rule. Use `addTarget()` to add a target.
    */
   readonly targets?: INotificationRuleTarget[];
+  /**
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/resources/codestarnotifications_notification_rule#tags CodestarnotificationsNotificationRule#tags}
+   */
+  readonly tags?: {
+    [key: string]: string;
+  };
 }
 
 /**
@@ -162,6 +168,7 @@ export class NotificationRule
   public readonly notificationRuleArn: string;
 
   private readonly targetList: NotificationRuleTargetConfig[] = [];
+  private readonly events: string[] = [];
   private readonly resource: codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule;
 
   public get outputs(): Record<string, any> {
@@ -177,12 +184,12 @@ export class NotificationRule
 
     const source = props.source.bindAsNotificationRuleSource(this);
 
+    this.addEvents(props.events);
+
     // Process initial targets from props
-    if (props.targets) {
-      props.targets.forEach((target) => {
-        this.targetList.push(target.bindAsNotificationRuleTarget(this));
-      });
-    }
+    props.targets?.forEach((target) => {
+      this.addTarget(target);
+    });
 
     const ruleName = props.notificationRuleName
       ? props.notificationRuleName.slice(-64) // Ensure 64 char limit
@@ -195,7 +202,14 @@ export class NotificationRule
         {
           name: ruleName,
           detailType: props.detailType ?? DetailType.FULL,
-          eventTypeIds: props.events,
+          eventTypeIds: Lazy.listValue({
+            produce: () => {
+              if (Token.isUnresolved(props.events)) {
+                return props.events;
+              }
+              return this.events;
+            },
+          }),
           resource: source.sourceArn,
           status:
             props.enabled === false
@@ -203,8 +217,18 @@ export class NotificationRule
               : props.enabled === true || props.enabled === undefined
                 ? "ENABLED"
                 : undefined, // Let Terraform handle default if undefined
-          // Use Token.asList to handle the potentially dynamic list of targets
-          target: Token.asList(this.targetList as any), // Cast needed as targetList is mutable
+          // Use Lazy producer to handle the potentially dynamic list of targets
+          target: Lazy.anyValue({
+            produce: () =>
+              this.targetList.map((t) =>
+                codestarnotificationsNotificationRule.codestarnotificationsNotificationRuleTargetToTerraform(
+                  {
+                    address: t.targetAddress,
+                    type: t.targetType,
+                  },
+                ),
+              ),
+          }),
           tags: props.tags,
         },
       );
@@ -222,16 +246,24 @@ export class NotificationRule
     );
     if (!exists) {
       this.targetList.push(boundTarget);
-      // In a real CDKTF scenario where post-construction updates are needed,
-      // you would update the resource's target property here, potentially using
-      // lifecycle hooks or managing the list with TerraformList.
-      // However, for direct translation, we just update the internal list.
-      // this.resource.target = Token.asList(this.targetList as any);
-      console.warn(
-        `Target added to NotificationRule '${this.node.id}' in memory, but direct post-construction updates to the Terraform resource are not standard. Define all targets in props for reliable deployment.`,
-      );
       return true;
     }
     return false;
+  }
+  /**
+   * Adds events to notification rule
+   *
+   * @see https://docs.aws.amazon.com/dtconsole/latest/userguide/concepts.html#events-ref-pipeline
+   * @see https://docs.aws.amazon.com/dtconsole/latest/userguide/concepts.html#events-ref-buildproject
+   * @param events The list of event types for AWS Codebuild and AWS CodePipeline
+   */
+  private addEvents(events: string[]): void {
+    events.forEach((event) => {
+      if (this.events.includes(event)) {
+        return;
+      }
+
+      this.events.push(event);
+    });
   }
 }
