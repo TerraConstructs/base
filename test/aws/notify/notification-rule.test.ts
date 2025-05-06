@@ -4,6 +4,13 @@ import { codestarnotificationsNotificationRule } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { Construct } from "constructs";
+import {
+  FakeCodeBuild,
+  FakeCodePipeline,
+  FakeCodeCommit,
+  FakeSlackTarget,
+  FakeSnsTopicTarget,
+} from "./helpers";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import {
   DetailType,
@@ -13,13 +20,6 @@ import {
   NotificationRuleSourceConfig,
   NotificationRuleTargetConfig,
 } from "../../../src/aws/notify/";
-import {
-  FakeCodeBuild,
-  FakeCodePipeline,
-  FakeCodeCommit,
-  FakeSlackTarget,
-  FakeSnsTopicTarget,
-} from "./helpers";
 import { Template } from "../../assertions";
 
 const environmentName = "Test";

@@ -10,10 +10,9 @@ import {
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
-import { Queue } from "../../../src/aws/notify";
-import { Duration } from "../../../src/duration";
+import { Queue, SubscriptionProtocol } from "../../../src/aws/notify";
 import * as sns from "../../../src/aws/notify";
-import { SubscriptionProtocol } from "../../../src/aws/notify";
+import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
 const environmentName = "Test";
