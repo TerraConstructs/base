@@ -3,12 +3,7 @@
 import { codestarnotificationsNotificationRule } from "@cdktf/provider-aws";
 import { Annotations, Lazy, Token } from "cdktf";
 import * as constructs from "constructs";
-import {
-  AwsConstructBase,
-  AwsConstructProps,
-  AwsStack,
-  IAwsConstruct,
-} from "..";
+import { AwsConstructBase, AwsConstructProps, IAwsConstruct } from "..";
 import { INotificationRuleSource } from "./notification-rule-source";
 import {
   INotificationRuleTarget,
