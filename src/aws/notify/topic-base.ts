@@ -3,20 +3,20 @@
 import { Token } from "cdktf";
 import * as constructs from "constructs";
 import { Construct } from "constructs";
-import { TopicPolicy } from "./policy";
-import { ITopicSubscription } from "./subscriber";
-import { Subscription } from "./subscription";
 import {
   INotificationRuleTarget,
   NotificationRuleTargetConfig,
 } from "./notification-rule-target";
-import * as iam from "../iam";
-import { IKey } from "../encryption";
+import { TopicPolicy } from "./policy";
+import { ITopicSubscription } from "./subscriber";
+import { Subscription } from "./subscription";
 import {
   IAwsConstruct,
   AwsConstructBase,
   AwsConstructProps,
 } from "../aws-construct";
+import { IKey } from "../encryption";
+import * as iam from "../iam";
 // TODO: Adopt ValidationError
 // - https://github.com/aws/aws-cdk/pull/33382/
 // - https://github.com/aws/aws-cdk/pull/33045
