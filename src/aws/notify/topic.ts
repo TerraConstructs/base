@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/a7633a98ce325a620f364bfdeda354342751900a/packages/aws-cdk-lib/aws-sns/lib/topic.ts
 
-import { snsTopic, snsTopicPolicy } from "@cdktf/provider-aws";
-import { Fn, Jsonencode, Lazy, TerraformResource, Token } from "cdktf";
+import { snsTopic } from "@cdktf/provider-aws";
+import { Token } from "cdktf";
 import { Construct } from "constructs";
 import { ArnFormat, AwsStack } from "..";
 import { AwsConstructProps } from "../aws-construct";
@@ -176,7 +176,7 @@ export enum LoggingProtocol {
   /**
    * HTTP
    */
-  HTTP = "http/s",
+  HTTP = "http", // NOTE: AWSCDK enum value = "http/s",
 
   /**
    * Amazon Simple Queue Service
@@ -376,65 +376,6 @@ export class Topic extends TopicBase {
       );
     }
 
-    const loggingProps: Writeable<Partial<snsTopic.SnsTopicConfig>> = {};
-    if (props.loggingConfigs) {
-      for (const config of props.loggingConfigs) {
-        if (config.successFeedbackSampleRate !== undefined) {
-          const rate = config.successFeedbackSampleRate;
-          if (!Number.isInteger(rate) || rate < 0 || rate > 100) {
-            throw new Error(
-              "Success feedback sample rate must be an integer between 0 and 100",
-            );
-          }
-        }
-        switch (config.protocol) {
-          case LoggingProtocol.HTTP:
-            loggingProps.httpFailureFeedbackRoleArn =
-              config.failureFeedbackRole?.roleArn;
-            loggingProps.httpSuccessFeedbackRoleArn =
-              config.successFeedbackRole?.roleArn;
-            loggingProps.httpSuccessFeedbackSampleRate =
-              config.successFeedbackSampleRate;
-            break;
-          case LoggingProtocol.SQS:
-            loggingProps.sqsFailureFeedbackRoleArn =
-              config.failureFeedbackRole?.roleArn;
-            loggingProps.sqsSuccessFeedbackRoleArn =
-              config.successFeedbackRole?.roleArn;
-            loggingProps.sqsSuccessFeedbackSampleRate =
-              config.successFeedbackSampleRate;
-            break;
-          case LoggingProtocol.LAMBDA:
-            loggingProps.lambdaFailureFeedbackRoleArn =
-              config.failureFeedbackRole?.roleArn;
-            loggingProps.lambdaSuccessFeedbackRoleArn =
-              config.successFeedbackRole?.roleArn;
-            loggingProps.lambdaSuccessFeedbackSampleRate =
-              config.successFeedbackSampleRate;
-            break;
-          case LoggingProtocol.FIREHOSE:
-            loggingProps.firehoseFailureFeedbackRoleArn =
-              config.failureFeedbackRole?.roleArn;
-            loggingProps.firehoseSuccessFeedbackRoleArn =
-              config.successFeedbackRole?.roleArn;
-            loggingProps.firehoseSuccessFeedbackSampleRate =
-              config.successFeedbackSampleRate;
-            break;
-          case LoggingProtocol.APPLICATION:
-            loggingProps.applicationFailureFeedbackRoleArn =
-              config.failureFeedbackRole?.roleArn;
-            loggingProps.applicationSuccessFeedbackRoleArn =
-              config.successFeedbackRole?.roleArn;
-            loggingProps.applicationSuccessFeedbackSampleRate =
-              config.successFeedbackSampleRate;
-            break;
-          default:
-            // Should not happen
-            break;
-        }
-      }
-    }
-
     this.resource = new snsTopic.SnsTopic(this, "Resource", {
       name: topicName,
       displayName: props.displayName,
@@ -446,16 +387,17 @@ export class Topic extends TopicBase {
         : undefined,
       tracingConfig: props.tracingConfig,
       archivePolicy: props.messageRetentionPeriodInDays
-        ? Lazy.stringValue({
-            produce: () =>
-              Jsonencode.encode({
-                MessageRetentionPeriod: props.messageRetentionPeriodInDays,
-              }),
+        ? JSON.stringify({
+            MessageRetentionPeriod: props.messageRetentionPeriodInDays,
           })
         : undefined,
-      ...loggingProps,
-      // TODO: fifoThroughputScope is not supported
+      // TODO: fifoThroughputScope is not supported in Terraform as of provider v5.93.0
     });
+
+    // add logging config overrides
+    if (props.loggingConfigs) {
+      props.loggingConfigs.forEach((c) => this.addLoggingConfig(c));
+    }
 
     this.topicArn = this.resource.arn;
     this.topicName = this.resource.name;
@@ -470,19 +412,37 @@ export class Topic extends TopicBase {
 
   /**
    * Adds a delivery status logging configuration to the topic.
-   * NOTE: This method is difficult to implement correctly with Terraform's declarative model.
-   * Configurations should be passed via the constructor's `loggingConfigs` prop.
-   * This method is kept for potential future implementation or as a placeholder.
    */
-  public addLoggingConfig(_config: LoggingConfig) {
-    // In Terraform, modifying logging configs typically requires updating the snsTopic resource properties directly.
-    // Dynamically adding configs post-instantiation like in CDK is not straightforward.
-    // Consider managing logging configs declaratively through the constructor props.
-    console.warn(
-      "addLoggingConfig is not fully implemented for TerraConstructs SNS Topic due to limitations in declarative infrastructure management. Please provide logging configurations via the constructor.",
-    );
-    // If needed, one could potentially use Terraform overrides or complex state management,
-    // but that goes against the typical declarative pattern.
+  public addLoggingConfig(config: LoggingConfig) {
+    if (config.successFeedbackSampleRate !== undefined) {
+      const rate = config.successFeedbackSampleRate;
+      if (!Number.isInteger(rate) || rate < 0 || rate > 100) {
+        throw new Error(
+          "Success feedback sample rate must be an integer between 0 and 100",
+        );
+      }
+    }
+
+    if (config.failureFeedbackRole) {
+      this.resource.addOverride(
+        `${config.protocol}_failure_feedback_role_arn`,
+        config.failureFeedbackRole.roleArn,
+      );
+    }
+
+    if (config.successFeedbackRole) {
+      this.resource.addOverride(
+        `${config.protocol}_success_feedback_role_arn`,
+        config.successFeedbackRole.roleArn,
+      );
+    }
+
+    if (config.successFeedbackSampleRate !== undefined) {
+      this.resource.addOverride(
+        `${config.protocol}_success_feedback_sample_rate`,
+        config.successFeedbackSampleRate.toString(),
+      );
+    }
   }
 
   /**
@@ -509,5 +469,3 @@ export class Topic extends TopicBase {
     );
   }
 }
-
-type Writeable<T> = { -readonly [P in keyof T]: T[P] };

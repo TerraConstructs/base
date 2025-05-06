@@ -20,6 +20,8 @@ export * from "./subscription";
 export * from "./subscriber";
 export * from "./subscription-filter";
 export * from "./delivery-policy";
+
+import "./sns-augmentations.generated";
 // codestarnotifications
 export * from "./notification-rule";
 export * from "./notification-rule-source";
