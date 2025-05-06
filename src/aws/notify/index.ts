@@ -12,6 +12,18 @@ export * from "./target";
 // kinesis
 export * from "./kinesis-stream";
 export * from "./resource-policy";
+// sns
+export * from "./policy";
+export * from "./topic";
+export * from "./topic-base";
+export * from "./subscription";
+export * from "./subscriber";
+export * from "./subscription-filter";
+export * from "./delivery-policy";
+// codestarnotifications
+export * from "./notification-rule";
+export * from "./notification-rule-source";
+export * from "./notification-rule-target";
 
 export * as targets from "./targets";
 
