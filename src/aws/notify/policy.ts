@@ -65,7 +65,7 @@ export class TopicPolicy extends AwsConstructBase {
 
     this.document =
       props.policyDocument ??
-      new PolicyDocument({
+      new PolicyDocument(this, "PolicyDocument", {
         // statements must be unique, so we use the statement index.
         // potentially SIDs can change as a result of order change, but this should
         // not have an impact on the policy evaluation.
@@ -73,20 +73,21 @@ export class TopicPolicy extends AwsConstructBase {
         assignSids: true,
       });
 
-    props.topics.forEach((topic, index) => {
-      // Create a policy document specific to this topic if SSL enforcement is needed
-      let topicSpecificDocument = this.document;
-      if (props.enforceSSL) {
-        // Clone the base document to avoid modifying it for other topics
-        topicSpecificDocument = this.document.copy();
-        topicSpecificDocument.addStatements(
-          this.createSSLPolicyStatement(topic.topicArn),
-        );
-      }
+    if (props.enforceSSL) {
+      // preserving CFN behavior by using a single policy doc for all topics
+      this.document.addStatements(
+        this.createSSLPolicyStatement(
+          props.topics.map((topic) => topic.topicArn),
+        ),
+      );
+    }
 
+    // TF Provider AWS effectively sets the Policy attribute on every topic ...
+    // https://github.com/hashicorp/terraform-provider-aws/blob/v5.97.0/internal/service/sns/topic_policy.go#L73
+    props.topics.forEach((topic, index) => {
       new snsTopicPolicy.SnsTopicPolicy(this, `Resource-${index}`, {
         arn: topic.topicArn,
-        policy: topicSpecificDocument.json,
+        policy: this.document.json,
       });
     });
   }
@@ -96,12 +97,13 @@ export class TopicPolicy extends AwsConstructBase {
    *
    * For more information, see https://docs.aws.amazon.com/sns/latest/dg/sns-security-best-practices.html#enforce-encryption-data-in-transit.
    */
-  protected createSSLPolicyStatement(topicArn: string): PolicyStatement {
+  protected createSSLPolicyStatement(topicArns: string[]): PolicyStatement {
     return new PolicyStatement({
-      sid: "EnforcePublishSSL", // SID needs to be unique within the policy for each topic
+      // NOTE: SID needs to be unique within the policy for each topic
+      sid: "AllowPublishThroughSSLOnly",
       actions: ["sns:Publish"],
       effect: Effect.DENY,
-      resources: [topicArn],
+      resources: topicArns,
       condition: [
         {
           test: "Bool",

@@ -6,7 +6,10 @@ import { Construct } from "constructs";
 import { TopicPolicy } from "./policy";
 import { ITopicSubscription } from "./subscriber";
 import { Subscription } from "./subscription";
-import * as notifications from "../../aws-codestarnotifications";
+import {
+  INotificationRuleTarget,
+  NotificationRuleTargetConfig,
+} from "./notification-rule-target";
 import * as iam from "../iam";
 import { IKey } from "../encryption";
 import {
@@ -20,11 +23,32 @@ import {
 // import { ValidationError } from "../../core/lib/errors";
 
 /**
+ * Outputs for the Subscription construct.
+ */
+export interface TopicOutputs {
+  /**
+   * The ARN of the topic
+   *
+   * @attribute
+   */
+  readonly topicArn: string;
+
+  /**
+   * The name of the topic
+   *
+   * @attribute
+   */
+  readonly topicName: string;
+}
+
+/**
  * Represents an SNS topic
  */
-export interface ITopic
-  extends IAwsConstruct,
-    notifications.INotificationRuleTarget {
+export interface ITopic extends IAwsConstruct, INotificationRuleTarget {
+  /**
+   * strongly typed outputs for the topic
+   */
+  readonly topicOutputs: TopicOutputs;
   /**
    * The ARN of the topic
    *
@@ -95,6 +119,15 @@ export interface ITopic
  * Either a new or imported Topic
  */
 export abstract class TopicBase extends AwsConstructBase implements ITopic {
+  public get topicOutputs(): TopicOutputs {
+    return {
+      topicArn: this.topicArn,
+      topicName: this.topicName,
+    };
+  }
+  public get outputs(): Record<string, any> {
+    return this.topicOutputs;
+  }
   public abstract readonly topicArn: string;
 
   public abstract readonly topicName: string;
@@ -262,7 +295,7 @@ export abstract class TopicBase extends AwsConstructBase implements ITopic {
    */
   public bindAsNotificationRuleTarget(
     _scope: constructs.Construct,
-  ): notifications.NotificationRuleTargetConfig {
+  ): NotificationRuleTargetConfig {
     // SNS topic need to grant codestar-notifications service to publish
     // @see https://docs.aws.amazon.com/dtconsole/latest/userguide/set-up-sns.html
     this.grantPublish(

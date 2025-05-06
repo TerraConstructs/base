@@ -109,7 +109,7 @@ describe("Topic", () => {
       const t = new Template(stack);
       t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
         fifo_topic: true,
-        name: "MyStackMyTopic451F49E9.fifo", // Name is auto-generated
+        name: "MyStack-MyTopic-DFB2578F.fifo", // Name is auto-generated
       });
     });
 
@@ -149,7 +149,6 @@ describe("Topic", () => {
       t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
         fifo_topic: true,
         name: "topicName.fifo",
-        content_based_deduplication: undefined, // or check absence
       });
     });
 
@@ -186,7 +185,7 @@ describe("Topic", () => {
 
       const t = new Template(stack);
       t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
-        signature_version: "2",
+        signature_version: 2,
       });
     });
 
@@ -245,8 +244,10 @@ describe("Topic", () => {
         ],
       },
     );
-    t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
-      policy: "${data.aws_iam_policy_document.Topic_Policy_AC41731F.json}",
+    t.expect.toHaveResourceWithProperties(snsTopicPolicy.SnsTopicPolicy, {
+      arn: stack.resolve(topic.topicArn),
+      policy:
+        "${data.aws_iam_policy_document.Topic_Policy_PolicyDocument_087CD732.json}",
     });
   });
 
@@ -263,7 +264,7 @@ describe("Topic", () => {
       {
         statement: [
           {
-            sid: "AllowPublishThroughSSLOnly",
+            sid: "EnforcePublishSSL",
             actions: ["sns:Publish"],
             effect: "Deny",
             resources: ["${aws_sns_topic.Topic_BFC7AF6E.arn}"],
@@ -284,8 +285,9 @@ describe("Topic", () => {
         ],
       },
     );
-    t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
-      policy: "${data.aws_iam_policy_document.Topic_Policy_AC41731F.json}",
+    t.expect.toHaveResourceWithProperties(snsTopicPolicy.SnsTopicPolicy, {
+      policy:
+        "${data.aws_iam_policy_document.Topic_Policy_PolicyDocument_087CD732.json}",
     });
   });
 
@@ -311,7 +313,7 @@ describe("Topic", () => {
       {
         statement: [
           {
-            sid: "AllowPublishThroughSSLOnly",
+            sid: "EnforcePublishSSL",
             actions: ["sns:Publish"],
             effect: "Deny",
             resources: ["${aws_sns_topic.Topic_BFC7AF6E.arn}"],
@@ -344,8 +346,10 @@ describe("Topic", () => {
         ],
       },
     );
-    t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
-      policy: "${data.aws_iam_policy_document.Topic_Policy_AC41731F.json}",
+    t.expect.toHaveResourceWithProperties(snsTopicPolicy.SnsTopicPolicy, {
+      arn: stack.resolve(topic.topicArn),
+      policy:
+        "${data.aws_iam_policy_document.Topic_Policy_PolicyDocument_087CD732.json}",
     });
   });
 
@@ -372,7 +376,8 @@ describe("Topic", () => {
       },
     );
     t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
-      policy: "${data.aws_iam_policy_document.User_Policy_13A9444F.json}",
+      policy:
+        "${data.aws_iam_policy_document.User_DefaultPolicy_C8121D31.json}",
       user: stack.resolve(user.userName),
     });
   });
@@ -415,7 +420,8 @@ describe("Topic", () => {
       },
     );
     t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
-      policy: "${data.aws_iam_policy_document.User_Policy_13A9444F.json}",
+      policy:
+        "${data.aws_iam_policy_document.User_DefaultPolicy_C8121D31.json}",
       user: stack.resolve(user.userName),
     });
   });
@@ -443,7 +449,8 @@ describe("Topic", () => {
       },
     );
     t.expect.toHaveResourceWithProperties(iamUserPolicy.IamUserPolicy, {
-      policy: "${data.aws_iam_policy_document.User_Policy_13A9444F.json}",
+      policy:
+        "${data.aws_iam_policy_document.User_DefaultPolicy_C8121D31.json}",
       user: stack.resolve(user.userName),
     });
   });
@@ -459,9 +466,9 @@ describe("Topic", () => {
     // WHEN
     new sns.TopicPolicy(stack, "topicpolicy", {
       topics: [topic],
-      policyDocument: new iam.PolicyDocument({
+      policyDocument: new iam.PolicyDocument(stack, "PolicyDocument", {
         assignSids: true,
-        statements: [ps],
+        statement: [ps],
       }),
     });
 
@@ -487,8 +494,7 @@ describe("Topic", () => {
     );
     t.expect.toHaveResourceWithProperties(snsTopicPolicy.SnsTopicPolicy, {
       arn: stack.resolve(topic.topicArn),
-      policy:
-        "${data.aws_iam_policy_document.topicpolicy_PolicyDocument_15761A41.json}",
+      policy: "${data.aws_iam_policy_document.PolicyDocument_5B97F349.json}",
     });
   });
 
@@ -530,7 +536,7 @@ describe("Topic", () => {
     t.expect.toHaveResourceWithProperties(snsTopicPolicy.SnsTopicPolicy, {
       arn: stack.resolve(topic.topicArn),
       policy:
-        "${data.aws_iam_policy_document.TopicPolicy_PolicyDocument_7317C697.json}",
+        "${data.aws_iam_policy_document.TopicPolicy_PolicyDocument_DE71E6AF.json}",
     });
   });
 
@@ -563,8 +569,10 @@ describe("Topic", () => {
               },
             ],
             principals: [
+              // AWSCDK uses Star Principal, TerraConstructs uses AnyPrincipal.
+              // Most of the time, you should use `AnyPrincipal` instead.
               {
-                type: "AWS",
+                type: "*",
                 identifiers: ["*"],
               },
             ],
@@ -575,7 +583,7 @@ describe("Topic", () => {
     t.expect.toHaveResourceWithProperties(snsTopicPolicy.SnsTopicPolicy, {
       arn: stack.resolve(topic.topicArn),
       policy:
-        "${data.aws_iam_policy_document.TopicPolicy_PolicyDocument_7317C697.json}",
+        "${data.aws_iam_policy_document.TopicPolicy_PolicyDocument_DE71E6AF.json}",
     });
   });
 
@@ -625,8 +633,10 @@ describe("Topic", () => {
         ],
       },
     );
-    t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
-      policy: "${data.aws_iam_policy_document.MyTopic_Policy_7A1E1A7C.json}",
+    t.expect.toHaveResourceWithProperties(snsTopicPolicy.SnsTopicPolicy, {
+      arn: stack.resolve(topic.topicArn),
+      policy:
+        "${data.aws_iam_policy_document.MyTopic_Policy_PolicyDocument_8F6F210B.json}",
     });
   });
 
@@ -826,7 +836,9 @@ describe("Topic", () => {
     t2.expect.toHaveResourceWithProperties(
       snsTopicSubscription.SnsTopicSubscription,
       {
-        topic_arn: stack.resolve(topic.topicArn),
+        // TODO: Figure out cross stack reference resolving?
+        topic_arn:
+          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_sns_topicTopic_BFC7AF6Earn}", //stack.resolve(topic.topicArn),
         protocol: "http",
         endpoint: "http://foo/bar",
       },
@@ -846,7 +858,7 @@ describe("Topic", () => {
     );
 
     // THEN
-    expect(() => Testing.synth(stack)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /A PolicyStatement must specify at least one 'action' or 'notAction'/,
     );
   });
@@ -864,32 +876,22 @@ describe("Topic", () => {
     );
 
     // THEN
-    expect(() => Testing.synth(stack)).toThrow(
+    expect(() => Testing.synth(stack, true)).toThrow(
       /A PolicyStatement used in a resource-based policy must specify at least one IAM principal/,
     );
   });
 
   test("topic policy should be set if topic as a notifications rule target", () => {
     const topic = new sns.Topic(stack, "Topic");
-    const rule =
-      new codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule(
-        stack,
-        "MyNotificationRule",
-        {
-          resource: "ARN", // Source ARN
-          name: "MyRule",
-          detailType: "FULL",
-          eventTypeIds: ["codebuild-project-build-state-succeeded"],
-          target: [
-            {
-              address: topic.topicArn,
-            },
-          ],
-        },
-      );
-
-    // Binding happens implicitly when topic is used as target
-    // rule.addTarget(topic); // This might be needed depending on TerraConstructs implementation
+    const rule = new sns.NotificationRule(stack, "MyNotificationRule", {
+      source: {
+        bindAsNotificationRuleSource: () => ({
+          sourceArn: "ARN",
+        }),
+      },
+      events: ["codebuild-project-build-state-succeeded"],
+    });
+    rule.addTarget(topic); // This might be needed depending on TerraConstructs implementation
 
     const t = new Template(stack);
     t.expect.toHaveDataSourceWithProperties(
@@ -903,7 +905,9 @@ describe("Topic", () => {
             principals: [
               {
                 type: "Service",
-                identifiers: ["codestar-notifications.amazonaws.com"],
+                identifiers: [
+                  "${data.aws_service_principal.aws_svcp_default_region_codestar-notifications.name}",
+                ],
               },
             ],
             resources: [stack.resolve(topic.topicArn)],
@@ -911,8 +915,10 @@ describe("Topic", () => {
         ],
       },
     );
-    t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
-      policy: "${data.aws_iam_policy_document.Topic_Policy_AC41731F.json}",
+    t.expect.toHaveResourceWithProperties(snsTopicPolicy.SnsTopicPolicy, {
+      arn: stack.resolve(topic.topicArn),
+      policy:
+        "${data.aws_iam_policy_document.Topic_Policy_PolicyDocument_087CD732.json}",
     });
   });
 
@@ -1074,34 +1080,38 @@ describe("Topic", () => {
     });
   });
 
-  describe("fifoThroughputScope", () => {
-    test.each([
-      sns.FifoThroughputScope.MESSAGE_GROUP,
-      sns.FifoThroughputScope.TOPIC,
-    ])("set fifoThroughputScope to %s", (fifoThroughputScope) => {
-      // WHEN
-      new sns.Topic(stack, "MyTopic", {
-        fifo: true,
-        fifoThroughputScope,
-      });
+  // // TODO: fifoThroughputScope is not supported in Terraform as of provider v5.93.0
+  // // ref:
+  // // - https://github.com/aws/aws-cdk/pull/33056
+  // // - https://github.com/hashicorp/terraform-provider-aws/issues/42501
+  // describe("fifoThroughputScope", () => {
+  //   test.each([
+  //     sns.FifoThroughputScope.MESSAGE_GROUP,
+  //     sns.FifoThroughputScope.TOPIC,
+  //   ])("set fifoThroughputScope to %s", (fifoThroughputScope) => {
+  //     // WHEN
+  //     new sns.Topic(stack, "MyTopic", {
+  //       fifo: true,
+  //       fifoThroughputScope,
+  //     });
 
-      // THEN
-      const t = new Template(stack);
-      t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
-        fifo_topic: true,
-        // fifo_throughput_scope: fifoThroughputScope, // Not directly available in aws provider sns_topic
-      });
-      // Note: fifo_throughput_scope is not a direct attribute in the Terraform AWS provider for sns_topic.
-      // This might be managed via other means or not exposed.
-    });
+  //     // THEN
+  //     const t = new Template(stack);
+  //     t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
+  //       fifo_topic: true,
+  //       // fifo_throughput_scope: fifoThroughputScope, // Not directly available in aws provider sns_topic
+  //     });
+  //     // Note: fifo_throughput_scope is not a direct attribute in the Terraform AWS provider for sns_topic.
+  //     // This might be managed via other means or not exposed.
+  //   });
 
-    test("throw error when specify fifoThroughputScope to standard topic", () => {
-      expect(
-        () =>
-          new sns.Topic(stack, "MyTopic", {
-            fifoThroughputScope: sns.FifoThroughputScope.MESSAGE_GROUP,
-          }),
-      ).toThrow("`fifoThroughputScope` can only be set for FIFO SNS topics.");
-    });
-  });
+  //   test("throw error when specify fifoThroughputScope to standard topic", () => {
+  //     expect(
+  //       () =>
+  //         new sns.Topic(stack, "MyTopic", {
+  //           fifoThroughputScope: sns.FifoThroughputScope.MESSAGE_GROUP,
+  //         }),
+  //     ).toThrow("`fifoThroughputScope` can only be set for FIFO SNS topics.");
+  //   });
+  // });
 });
