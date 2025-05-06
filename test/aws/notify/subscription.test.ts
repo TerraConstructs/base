@@ -7,13 +7,13 @@ import {
   sqsQueuePolicy,
   dataAwsIamPolicyDocument,
 } from "@cdktf/provider-aws";
-import { Testing, App } from "cdktf";
+import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
-import { Queue } from "../../../src/aws/compute/sqs";
+import { Queue } from "../../../src/aws/notify";
 import { Duration } from "../../../src/duration";
-import * as sns from "../../../src/aws/notify/sns";
-import { SubscriptionProtocol } from "../../../src/aws/notify/sns";
+import * as sns from "../../../src/aws/notify";
+import { SubscriptionProtocol } from "../../../src/aws/notify";
 import { Template } from "../../assertions";
 
 const environmentName = "Test";
@@ -61,8 +61,9 @@ describe("Subscription", () => {
   test("create a subscription with DLQ when client provides DLQ", () => {
     // GIVEN
     const dlQueue = new Queue(stack, "DeadLetterQueue", {
-      queueName: "MySubscription_DLQ",
-      retentionPeriod: Duration.days(14),
+      // TODO: Fix terraconstructs QueueProps to match AWS CDK ...
+      namePrefix: "MySubscription_DLQ",
+      messageRetentionSeconds: Duration.days(14).toSeconds(),
     });
 
     // WHEN
@@ -85,13 +86,13 @@ describe("Subscription", () => {
       },
     );
     t.expect.toHaveResourceWithProperties(sqsQueue.SqsQueue, {
-      name: "MySubscription_DLQ",
+      name_prefix: "MySubscription_DLQMyStackDeadLetterQueue",
       message_retention_seconds: 1209600,
     });
     t.expect.toHaveResourceWithProperties(sqsQueuePolicy.SqsQueuePolicy, {
       queue_url: stack.resolve(dlQueue.queueUrl),
       policy:
-        "${data.aws_iam_policy_document.DeadLetterQueue_Policy_1B4F91BC.json}",
+        "${data.aws_iam_policy_document.DeadLetterQueue_Policy_D01590FE.json}",
     });
     t.expect.toHaveDataSourceWithProperties(
       dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -110,7 +111,9 @@ describe("Subscription", () => {
             principals: [
               {
                 type: "Service",
-                identifiers: ["sns.amazonaws.com"],
+                identifiers: [
+                  "${data.aws_service_principal.aws_svcp_default_region_sns.name}",
+                ],
               },
             ],
             resources: [stack.resolve(dlQueue.queueArn)],
@@ -317,9 +320,9 @@ describe("Subscription", () => {
         minDelayTarget: 5,
         maxDelayTarget: 10,
         numRetries: 6,
-        numMaxDelayRetries: 0,
-        numNoDelayRetries: 0,
-        numMinDelayRetries: 0,
+        // numMaxDelayRetries: 0,
+        // numNoDelayRetries: 0,
+        // numMinDelayRetries: 0,
         backoffFunction: sns.BackoffFunction.EXPONENTIAL,
       },
       throttlePolicy: {
@@ -358,9 +361,9 @@ describe("Subscription", () => {
         minDelayTarget: 20,
         maxDelayTarget: 20,
         numRetries: 3,
-        numMaxDelayRetries: 0,
-        numNoDelayRetries: 0,
-        numMinDelayRetries: 0,
+        // numMaxDelayRetries: 0,
+        // numNoDelayRetries: 0,
+        // numMinDelayRetries: 0,
         backoffFunction: sns.BackoffFunction.EXPONENTIAL,
       },
     });
