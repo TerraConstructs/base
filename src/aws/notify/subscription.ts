@@ -1,13 +1,11 @@
 // https://github.com/aws/aws-cdk/blob/6b9e47a1529319561bc1040739fe02bac15895bf/packages/aws-cdk-lib/aws-sns/lib/subscription.ts
 
 import { snsTopicSubscription } from "@cdktf/provider-aws";
-import { Fn, Json } from "cdktf";
 import { Construct } from "constructs";
 import { DeliveryPolicy } from "./delivery-policy";
 import { SubscriptionFilter } from "./subscription-filter";
 import { ITopic } from "./topic-base";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
-import { Duration } from "../../duration";
 import * as iam from "../iam";
 import * as notify from "../notify";
 
@@ -137,13 +135,15 @@ export class Subscription extends AwsConstructBase {
         SubscriptionProtocol.FIREHOSE,
       ].indexOf(props.protocol) < 0
     ) {
+      // TODO: re-add ValidationError
       throw new Error(
         "Raw message delivery can only be enabled for HTTP, HTTPS, SQS, and Firehose subscriptions.",
       );
     }
 
     let filterPolicyJson: string | undefined;
-    let filterPolicyScope: string | undefined;
+    /** Whether the filter_policy applies to MessageAttributes (default) or MessageBody */
+    let filterPolicyScope: "MessageAttributes" | "MessageBody" | undefined;
 
     if (props.filterPolicy && props.filterPolicyWithMessageBody) {
       throw new Error(
@@ -168,11 +168,12 @@ export class Subscription extends AwsConstructBase {
         total *= filter.length;
       });
       if (total > 150) {
+        // TODO: re-add ValidationError
         throw new Error(
           `The total combination of values (${total}) must not exceed 150.`,
         );
       }
-      filterPolicyJson = Json.stringify(filterPolicyConditions);
+      filterPolicyJson = JSON.stringify(filterPolicyConditions);
       filterPolicyScope = "MessageAttributes"; // Default scope
     } else if (props.filterPolicyWithMessageBody) {
       if (Object.keys(props.filterPolicyWithMessageBody).length > 5) {
@@ -184,7 +185,7 @@ export class Subscription extends AwsConstructBase {
         this,
         props.filterPolicyWithMessageBody,
       );
-      filterPolicyJson = Json.stringify(builtPolicy);
+      filterPolicyJson = JSON.stringify(builtPolicy);
       filterPolicyScope = "MessageBody";
     }
 
@@ -218,7 +219,7 @@ export class Subscription extends AwsConstructBase {
         deliveryPolicy: deliveryPolicyJson,
         // confirmationTimeoutInMinutes: // Not directly available in CDK props
         // endpointAutoConfirms: // Not directly available in CDK props
-        // replayPolicy: // Not directly available in CDK props
+        // replayPolicy: // Not directly available in CDK props (missing in AWS CDK)
       },
     );
 
@@ -231,6 +232,7 @@ export class Subscription extends AwsConstructBase {
     deliveryPolicy: DeliveryPolicy,
     protocol: SubscriptionProtocol,
   ): string {
+    // TODO: re-add ValidationError(s)
     if (
       ![SubscriptionProtocol.HTTP, SubscriptionProtocol.HTTPS].includes(
         protocol,
@@ -365,7 +367,7 @@ export class Subscription extends AwsConstructBase {
       };
     }
 
-    return Json.stringify(renderedPolicy);
+    return JSON.stringify(renderedPolicy);
   }
 
   private buildDeadLetterQueue(
@@ -399,7 +401,7 @@ export class Subscription extends AwsConstructBase {
     deadLetterQueue?: notify.IQueue,
   ): string | undefined {
     if (deadLetterQueue) {
-      return Json.stringify({
+      return JSON.stringify({
         deadLetterTargetArn: deadLetterQueue.queueArn,
       });
     } else {
