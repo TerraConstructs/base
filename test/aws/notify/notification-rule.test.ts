@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/81cde0e2e1f83f80273d14724d5518cc20dc5a80/packages/aws-cdk-lib/aws-codestarnotifications/test/notification-rule.test.ts
 
 import { codestarnotificationsNotificationRule } from "@cdktf/provider-aws";
-import { Testing, TerraformMetaArguments, TerraformResource } from "cdktf";
+import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { Construct } from "constructs";
 import { AwsStack } from "../../../src/aws/aws-stack";
@@ -12,35 +12,15 @@ import {
   NotificationRule,
   NotificationRuleSourceConfig,
   NotificationRuleTargetConfig,
-} from "../../../src/aws/codestar/notification-rule";
+} from "../../../src/aws/notify/";
+import {
+  FakeCodeBuild,
+  FakeCodePipeline,
+  FakeCodeCommit,
+  FakeSlackTarget,
+  FakeSnsTopicTarget,
+} from "./helpers";
 import { Template } from "../../assertions";
-
-// Helper to mimic the Fake* classes from the original test
-class TestNotificationSource implements INotificationRuleSource {
-  constructor(public readonly sourceArn: string) {}
-  bindAsNotificationRuleSource(
-    _scope: Construct,
-  ): NotificationRuleSourceConfig {
-    return {
-      sourceArn: this.sourceArn,
-    };
-  }
-}
-
-class TestNotificationTarget implements INotificationRuleTarget {
-  constructor(
-    public readonly targetAddress: string,
-    public readonly targetType: string,
-  ) {}
-  bindAsNotificationRuleTarget(
-    _scope: Construct,
-  ): NotificationRuleTargetConfig {
-    return {
-      targetAddress: this.targetAddress,
-      targetType: this.targetType,
-    };
-  }
-}
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -54,6 +34,7 @@ describe("NotificationRule", () => {
   let projectSource: INotificationRuleSource;
   let repoSource: INotificationRuleSource;
   let pipelineSource: INotificationRuleSource;
+  let project: FakeCodeBuild;
 
   beforeEach(() => {
     const app = Testing.app();
@@ -63,28 +44,19 @@ describe("NotificationRule", () => {
       providerConfig,
       gridBackendConfig,
     });
-    // Use simple objects or TestResource for sources if needed, here using helpers
-    projectSource = new TestNotificationSource(
-      "arn:aws:codebuild:us-east-1:123456789012:project/FakeProject",
-    );
-    repoSource = new TestNotificationSource(
-      "arn:aws:codecommit:us-east-1:123456789012:FakeRepo",
-    );
-    pipelineSource = new TestNotificationSource(
-      "arn:aws:codepipeline:us-east-1:123456789012:FakePipeline",
-    );
+    project = new FakeCodeBuild();
   });
 
   test("created new notification rule with source", () => {
     new NotificationRule(stack, "MyNotificationRule", {
-      source: projectSource,
+      source: project,
       events: ["codebuild-project-build-state-succeeded"],
     });
 
     Template.synth(stack).toHaveResourceWithProperties(
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
-        resource: projectSource.sourceArn,
+        resource: project.projectArn,
         event_type_ids: ["codebuild-project-build-state-succeeded"],
         detail_type: "FULL", // Default
         status: "ENABLED", // Default
@@ -93,8 +65,9 @@ describe("NotificationRule", () => {
   });
 
   test("created new notification rule from repository source", () => {
+    const repository = new FakeCodeCommit();
     new NotificationRule(stack, "MyNotificationRule", {
-      source: repoSource,
+      source: repository,
       events: [
         "codecommit-repository-pull-request-created",
         "codecommit-repository-pull-request-merged",
@@ -104,7 +77,7 @@ describe("NotificationRule", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
-        resource: repoSource.sourceArn,
+        resource: repository.repositoryArn,
         event_type_ids: [
           "codecommit-repository-pull-request-created",
           "codecommit-repository-pull-request-merged",
@@ -114,10 +87,7 @@ describe("NotificationRule", () => {
   });
 
   test("created new notification rule with all parameters in constructor props", () => {
-    const slackTarget = new TestNotificationTarget(
-      "arn:aws:chatbot::123456789012:chat-configuration/slack-channel/my-slack-channel",
-      "AWSChatbotSlack",
-    );
+    const slack = new FakeSlackTarget();
 
     new NotificationRule(stack, "MyNotificationRule", {
       notificationRuleName: "MyNotificationRuleName", // Use a different name to avoid conflict with id
@@ -126,8 +96,8 @@ describe("NotificationRule", () => {
         "codebuild-project-build-state-succeeded",
         "codebuild-project-build-state-failed",
       ],
-      source: projectSource,
-      targets: [slackTarget],
+      source: project,
+      targets: [slack],
       // createdBy: 'Jone Doe', // Not supported in Terraform resource
     });
 
@@ -140,10 +110,10 @@ describe("NotificationRule", () => {
           "codebuild-project-build-state-succeeded",
           "codebuild-project-build-state-failed",
         ],
-        resource: projectSource.sourceArn,
+        resource: project.projectArn,
         target: [
           {
-            address: slackTarget.targetAddress,
+            address: slack.slackChannelConfigurationArn,
             type: "AWSChatbotSlack",
           },
         ],
@@ -154,36 +124,33 @@ describe("NotificationRule", () => {
 
   test("created new notification rule without name and will generate from the `id`", () => {
     new NotificationRule(stack, "MyNotificationRuleGeneratedFromId", {
-      source: projectSource,
+      source: project,
       events: ["codebuild-project-build-state-succeeded"],
     });
 
     Template.synth(stack).toHaveResourceWithProperties(
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
-        name: "MyNotificationRuleGeneratedFromId", // Name defaults to construct ID
-        resource: projectSource.sourceArn,
+        name: "TestStackMyNotificationRuleGeneratedFromIdE450151A", // Name defaults to construct ID
+        resource: project.projectArn,
         event_type_ids: ["codebuild-project-build-state-succeeded"],
       },
     );
   });
 
   test("generating name will cut if id length is over than 64 charts", () => {
-    // Note: Terraform provider or AWS API might handle this differently. CDKTF itself doesn't enforce this specific truncation.
-    // The CDK behavior is specific to its CloudFormation synthesis.
-    // We test if the name is passed correctly, assuming Terraform handles length constraints.
     const longId =
       "MyNotificationRuleGeneratedFromIdIsToooooooooooooooooooooooooooooLong";
     new NotificationRule(stack, longId, {
-      source: projectSource,
+      source: project,
       events: ["codebuild-project-build-state-succeeded"],
     });
 
     Template.synth(stack).toHaveResourceWithProperties(
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
-        name: longId, // Terraform provider/API will handle validation
-        resource: projectSource.sourceArn,
+        name: "TestStackMyNotificationRuleGooooooooooooooooooooooooLongC320B51B",
+        resource: project.projectArn,
         event_type_ids: ["codebuild-project-build-state-succeeded"],
       },
     );
@@ -192,7 +159,7 @@ describe("NotificationRule", () => {
   test("created new notification rule without detailType", () => {
     new NotificationRule(stack, "MyNotificationRule", {
       notificationRuleName: "MyNotificationRuleName",
-      source: projectSource,
+      source: project,
       events: ["codebuild-project-build-state-succeeded"],
     });
 
@@ -200,7 +167,7 @@ describe("NotificationRule", () => {
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
         name: "MyNotificationRuleName",
-        resource: projectSource.sourceArn,
+        resource: project.projectArn,
         event_type_ids: ["codebuild-project-build-state-succeeded"],
         detail_type: "FULL", // Default
       },
@@ -210,7 +177,7 @@ describe("NotificationRule", () => {
   test("created new notification rule with status DISABLED", () => {
     new NotificationRule(stack, "MyNotificationRule", {
       notificationRuleName: "MyNotificationRuleName",
-      source: projectSource,
+      source: project,
       events: ["codebuild-project-build-state-succeeded"],
       enabled: false,
     });
@@ -219,7 +186,7 @@ describe("NotificationRule", () => {
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
         name: "MyNotificationRuleName",
-        resource: projectSource.sourceArn,
+        resource: project.projectArn,
         event_type_ids: ["codebuild-project-build-state-succeeded"],
         status: "DISABLED",
       },
@@ -229,7 +196,7 @@ describe("NotificationRule", () => {
   test("created new notification rule with status ENABLED", () => {
     new NotificationRule(stack, "MyNotificationRule", {
       notificationRuleName: "MyNotificationRuleName",
-      source: projectSource,
+      source: project,
       events: ["codebuild-project-build-state-succeeded"],
       enabled: true,
     });
@@ -238,7 +205,7 @@ describe("NotificationRule", () => {
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
         name: "MyNotificationRuleName",
-        resource: projectSource.sourceArn,
+        resource: project.projectArn,
         event_type_ids: ["codebuild-project-build-state-succeeded"],
         status: "ENABLED",
       },
@@ -246,36 +213,32 @@ describe("NotificationRule", () => {
   });
 
   test("notification added targets", () => {
-    // In TerraConstructs/CDKTF, targets are typically added declaratively at construction.
-    const snsTopicTarget = new TestNotificationTarget(
-      "arn:aws:sns:us-east-1:123456789012:FakeTopic",
-      "SNS",
-    );
-    const slackTarget = new TestNotificationTarget(
-      "arn:aws:chatbot::123456789012:chat-configuration/slack-channel/my-slack-channel",
-      "AWSChatbotSlack",
-    );
+    const topic = new FakeSnsTopicTarget();
+    const slack = new FakeSlackTarget();
 
-    new NotificationRule(stack, "MyNotificationRule", {
-      source: projectSource,
+    const rule = new NotificationRule(stack, "MyNotificationRule", {
+      source: project,
       events: ["codebuild-project-build-state-succeeded"],
-      targets: [slackTarget, snsTopicTarget], // Add targets directly in props
     });
+
+    rule.addTarget(slack);
+
+    expect(rule.addTarget(topic)).toEqual(true);
 
     // The original test checked the return value of addTarget, which doesn't apply here.
     // We just check the final state.
     Template.synth(stack).toHaveResourceWithProperties(
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
-        resource: projectSource.sourceArn,
+        resource: project.projectArn,
         event_type_ids: ["codebuild-project-build-state-succeeded"],
         target: [
           {
-            address: slackTarget.targetAddress,
+            address: slack.slackChannelConfigurationArn,
             type: "AWSChatbotSlack",
           },
           {
-            address: snsTopicTarget.targetAddress,
+            address: topic.topicArn,
             type: "SNS",
           },
         ],
@@ -284,9 +247,11 @@ describe("NotificationRule", () => {
   });
 
   test("will not add if notification added duplicating event", () => {
+    const pipeline = new FakeCodePipeline();
+
     // The NotificationRule construct should handle deduplication internally.
     new NotificationRule(stack, "MyNotificationRule", {
-      source: pipelineSource,
+      source: pipeline,
       events: [
         "codepipeline-pipeline-pipeline-execution-succeeded",
         "codepipeline-pipeline-pipeline-execution-failed",
@@ -298,7 +263,7 @@ describe("NotificationRule", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
-        resource: pipelineSource.sourceArn,
+        resource: pipeline.pipelineArn,
         event_type_ids: [
           // Expect duplicates to be removed by the construct
           "codepipeline-pipeline-pipeline-execution-succeeded",
