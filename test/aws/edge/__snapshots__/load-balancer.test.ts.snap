@@ -1,0 +1,62 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Load-Balancers Synthesises and matches snapshot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_route53_record": {
+      "LoadBalancerAlias_D7FCAA89": {
+        "alias": {
+          "evaluate_target_health": true,
+          "name": "dualstack.alb-1234567890.us-east-1.elb.amazonaws.com",
+          "zone_id": "H6JUI97EXAMPL3"
+        },
+        "name": "alb.example.com.",
+        "type": "A",
+        "zone_id": "\${aws_route53_zone.Zone_A5DE4B68.id}"
+      }
+    },
+    "aws_route53_zone": {
+      "Zone_A5DE4B68": {
+        "name": "example.com.",
+        "tags": {
+          "Name": "Test-Zone",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.88.0"
+      }
+    }
+  }
+}"
+`;

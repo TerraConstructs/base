@@ -13,6 +13,25 @@ export interface IAliasRecordTarget {
   bind(record: IRecordSet, zone?: IDnsZone): route53Record.Route53RecordAlias;
 }
 
+export interface ILoadBalancerV2 {
+  /**
+   * The canonical hosted zone ID of this load balancer
+   *
+   * Example value: `Z2P70J7EXAMPLE`
+   *
+   * @attribute
+   */
+  readonly loadBalancerCanonicalHostedZoneId: string;
+  /**
+   * The DNS name of this load balancer
+   *
+   * Example value: `my-load-balancer-424835706.us-west-2.elb.amazonaws.com`
+   *
+   * @attribute
+   */
+  readonly loadBalancerDnsName: string;
+}
+
 /**
  * Use a CloudFront Distribution as an alias record target
  */
@@ -54,4 +73,42 @@ export class BucketWebsiteTarget implements IAliasRecordTarget {
       evaluateTargetHealth: true,
     };
   }
+}
+
+// /**
+//  * Use an ELBv2 as an alias record target
+//  */
+export class LoadBalancerTarget implements IAliasRecordTarget {
+  public static fromAttributes(
+    loadBalancerCanonicalHostedZoneId: string,
+    loadBalancerDnsName: string,
+  ) {
+    const imported = new ImportedLoadBalancer(
+      loadBalancerCanonicalHostedZoneId,
+      loadBalancerDnsName,
+    );
+    return new LoadBalancerTarget(imported);
+  }
+  constructor(private readonly loadBalancer: ILoadBalancerV2) {}
+
+  public bind(
+    _record: IRecordSet,
+    _zone?: IDnsZone,
+  ): route53Record.Route53RecordAlias {
+    return {
+      zoneId: this.loadBalancer.loadBalancerCanonicalHostedZoneId,
+      name: `dualstack.${this.loadBalancer.loadBalancerDnsName}`,
+      evaluateTargetHealth: true,
+    };
+  }
+}
+
+/**
+ * A helper class to instantiate an ILoadBalancerV2
+ */
+export class ImportedLoadBalancer implements ILoadBalancerV2 {
+  constructor(
+    public readonly loadBalancerCanonicalHostedZoneId: string,
+    public readonly loadBalancerDnsName: string,
+  ) {}
 }
