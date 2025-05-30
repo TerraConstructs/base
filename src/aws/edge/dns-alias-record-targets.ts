@@ -1,5 +1,9 @@
 import { route53Record } from "@cdktf/provider-aws";
 import { IRecordSet, IDnsZone, IDistribution } from ".";
+import {
+  ILoadBalancerBaseV2,
+  ImportedLoadBalancer,
+} from "../compute/lb-shared/base-load-balancer";
 import { IBucket } from "../storage";
 
 /**
@@ -11,25 +15,6 @@ export interface IAliasRecordTarget {
    * Return hosted zone ID and DNS name, usable for Route53 alias targets
    */
   bind(record: IRecordSet, zone?: IDnsZone): route53Record.Route53RecordAlias;
-}
-
-export interface ILoadBalancerV2 {
-  /**
-   * The canonical hosted zone ID of this load balancer
-   *
-   * Example value: `Z2P70J7EXAMPLE`
-   *
-   * @attribute
-   */
-  readonly loadBalancerCanonicalHostedZoneId: string;
-  /**
-   * The DNS name of this load balancer
-   *
-   * Example value: `my-load-balancer-424835706.us-west-2.elb.amazonaws.com`
-   *
-   * @attribute
-   */
-  readonly loadBalancerDnsName: string;
 }
 
 /**
@@ -89,7 +74,7 @@ export class LoadBalancerTarget implements IAliasRecordTarget {
     );
     return new LoadBalancerTarget(imported);
   }
-  constructor(private readonly loadBalancer: ILoadBalancerV2) {}
+  constructor(private readonly loadBalancer: ILoadBalancerBaseV2) {}
 
   public bind(
     _record: IRecordSet,
@@ -101,14 +86,4 @@ export class LoadBalancerTarget implements IAliasRecordTarget {
       evaluateTargetHealth: true,
     };
   }
-}
-
-/**
- * A helper class to instantiate an ILoadBalancerV2
- */
-export class ImportedLoadBalancer implements ILoadBalancerV2 {
-  constructor(
-    public readonly loadBalancerCanonicalHostedZoneId: string,
-    public readonly loadBalancerDnsName: string,
-  ) {}
 }
