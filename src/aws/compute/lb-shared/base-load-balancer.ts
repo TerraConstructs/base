@@ -111,9 +111,7 @@ export interface LoadBalancerV2Outputs {
   readonly loadBalancerDnsName: string;
 }
 
-export interface ILoadBalancerV2 extends IAwsConstruct {
-  /** Strongly typed outputs */
-  readonly loadBalancerV2Outputs: LoadBalancerV2Outputs;
+export interface ILoadBalancerBaseV2 {
   /**
    * The canonical hosted zone ID of this load balancer
    *
@@ -131,6 +129,10 @@ export interface ILoadBalancerV2 extends IAwsConstruct {
    * @attribute
    */
   readonly loadBalancerDnsName: string;
+}
+export interface ILoadBalancerV2 extends IAwsConstruct, ILoadBalancerBaseV2 {
+  /** Strongly typed outputs */
+  readonly loadBalancerV2Outputs: LoadBalancerV2Outputs;
 }
 
 /**
@@ -588,4 +590,14 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
 
     return ret;
   }
+}
+
+/**
+ * A helper class to instantiate an ILoadBalancerV2
+ */
+export class ImportedLoadBalancer implements ILoadBalancerBaseV2 {
+  constructor(
+    public readonly loadBalancerCanonicalHostedZoneId: string,
+    public readonly loadBalancerDnsName: string,
+  ) {}
 }
