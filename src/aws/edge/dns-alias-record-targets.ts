@@ -1,5 +1,9 @@
 import { route53Record } from "@cdktf/provider-aws";
 import { IRecordSet, IDnsZone, IDistribution } from ".";
+import {
+  ILoadBalancerBaseV2,
+  ImportedLoadBalancer,
+} from "../compute/lb-shared/base-load-balancer";
 import { IBucket } from "../storage";
 
 /**
@@ -51,6 +55,34 @@ export class BucketWebsiteTarget implements IAliasRecordTarget {
     return {
       zoneId: this.bucket.hostedZoneId,
       name: this.bucket.websiteDomainName,
+      evaluateTargetHealth: true,
+    };
+  }
+}
+
+// /**
+//  * Use an ELBv2 as an alias record target
+//  */
+export class LoadBalancerTarget implements IAliasRecordTarget {
+  public static fromAttributes(
+    loadBalancerCanonicalHostedZoneId: string,
+    loadBalancerDnsName: string,
+  ) {
+    const imported = new ImportedLoadBalancer(
+      loadBalancerCanonicalHostedZoneId,
+      loadBalancerDnsName,
+    );
+    return new LoadBalancerTarget(imported);
+  }
+  constructor(private readonly loadBalancer: ILoadBalancerBaseV2) {}
+
+  public bind(
+    _record: IRecordSet,
+    _zone?: IDnsZone,
+  ): route53Record.Route53RecordAlias {
+    return {
+      zoneId: this.loadBalancer.loadBalancerCanonicalHostedZoneId,
+      name: `dualstack.${this.loadBalancer.loadBalancerDnsName}`,
       evaluateTargetHealth: true,
     };
   }
