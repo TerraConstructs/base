@@ -79,12 +79,6 @@ describe("LaunchTemplate", () => {
               Name: "MyStack/Template",
             },
           },
-          {
-            resource_type: "launch-template",
-            tags: {
-              Name: "MyStack/Template",
-            },
-          },
         ],
         // These are GRID backend specific tags
         tags: {
@@ -338,13 +332,10 @@ describe("LaunchTemplate", () => {
             Name: "MyStack/Template",
           },
         },
-        {
-          resource_type: "launch-template",
-          tags: {
-            Name: "MyStack/Template",
-          },
-        },
       ],
+      tags: expect.objectContaining({
+        Name: "MyStack/Template",
+      }),
     });
     expect(template.role).toBeDefined();
     expect(template.grantPrincipal).toBeDefined();
@@ -871,14 +862,11 @@ describe("LaunchTemplate", () => {
               TestKey: "TestValue",
             },
           },
-          {
-            resource_type: "launch-template",
-            tags: {
-              Name: "MyStack/Template",
-              TestKey: "TestValue",
-            },
-          },
         ],
+        tags: expect.objectContaining({
+          Name: "MyStack/Template",
+          TestKey: "TestValue",
+        }),
       },
     );
   });
