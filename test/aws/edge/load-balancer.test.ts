@@ -1,10 +1,10 @@
 // https://github.com/aws/aws-cdk/blob/v2.199.0/packages/aws-cdk-lib/aws-route53-targets/test/load-balancer-target.test.ts
 
 import "cdktf/lib/testing/adapters/jest";
-import { edge, AwsStack, compute } from "../../../src/aws";
-import { Template } from "../../assertions";
 import { route53Record } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
+import { edge, AwsStack, compute } from "../../../src/aws";
+import { Template } from "../../assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
