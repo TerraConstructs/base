@@ -811,10 +811,6 @@ export class LaunchTemplate
               resourceType: "volume",
               tags: this._tags,
             },
-            {
-              resourceType: "launch-template",
-              tags: this._tags,
-            },
           ].map(tfLaunchTemplate.launchTemplateTagSpecificationsToTerraform);
         }
         return undefined;
