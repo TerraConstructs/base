@@ -23,3 +23,19 @@ stream-dashboard: ## Test Kinesis Data Stream Dashboard
 stream-resource-policy: ## Test Kinesis Data Stream Resource Policy
 	go test -v -timeout 30m ./... -run ^TestStreamResourcePolicy$
 .PHONY: stream-resource-policy
+
+sns: ## Test SNS integration app
+	go test -v -timeout 30m ./... -run ^TestSns$
+.PHONY: sns
+
+sns-lambda: ## Test SNS Lambda integration app
+	go test -v -timeout 30m ./... -run ^TestSnsLambda$
+.PHONY: sns-lambda
+
+sns-sqs: ## Test SNS integration with sqs
+	go test -v -timeout 30m ./... -run ^TestSnsSqs$
+.PHONY: sns-sqs
+
+sns-url: ## Test SNS URL subscription integration app
+	go test -v -timeout 30m ./... -run ^TestSnsUrl$
+.PHONY: sns-url

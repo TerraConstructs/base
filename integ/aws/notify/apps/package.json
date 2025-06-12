@@ -6,7 +6,11 @@
     "dlq-queue": "bun run ./dlq-queue.ts",
     "stream": "bun run ./stream.ts",
     "stream-dashboard": "bun run ./stream-dashboard.ts",
-    "stream-resource-policy": "bun run ./stream-resource-policy.ts"
+    "stream-resource-policy": "bun run ./stream-resource-policy.ts",
+    "sns": "bun run ./sns.ts",
+    "sns-lambda": "bun run ./sns-lambda.ts",
+    "sns-sqs": "bun run ./sns-sqs.ts",
+    "sns-url": "bun run ./sns-url.ts"
   },
   "dependencies": {
     "cdktf": "^0.20.8",
