@@ -68,6 +68,119 @@ func TestStreamResourcePolicy(t *testing.T) {
 	runNotifyIntegrationTest(t, "stream-resource-policy", "us-east-1", envVars, validateStreamResourcePoliy)
 }
 
+// Test the sns app
+func TestSns(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	
+	// See if app deploys
+	testApp := "sns"
+	awsRegion := "us-east-1"
+	t.Parallel()
+	tfWorkingDir := filepath.Join("tf", testApp)
+	envVars["AWS_REGION"] = awsRegion
+	envVars["ENVIRONMENT_NAME"] = "test"
+	envVars["STACK_NAME"] = testApp
+
+	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
+		util.UndeployUsingTerraform(t, tfWorkingDir)
+	})
+
+	test_structure.RunTestStage(t, "synth_app", func() {
+		util.SynthApp(t, testApp, tfWorkingDir, envVars)
+	})
+	test_structure.RunTestStage(t, "deploy_terraform", func() {
+		util.DeployUsingTerraform(t, tfWorkingDir, nil)
+	})
+	// test_structure.RunTestStage(t, "validate", func() {
+	// 	validate(t, tfWorkingDir, awsRegion)
+	// })
+}
+
+
+// Test the sns-lambda app
+func TestSnsLambda(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	
+	// See if app deploys
+	testApp := "sns-lambda"
+	awsRegion := "us-east-1"
+	t.Parallel()
+	tfWorkingDir := filepath.Join("tf", testApp)
+	envVars["AWS_REGION"] = awsRegion
+	envVars["ENVIRONMENT_NAME"] = "test"
+	envVars["STACK_NAME"] = testApp
+
+	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
+		util.UndeployUsingTerraform(t, tfWorkingDir)
+	})
+
+	test_structure.RunTestStage(t, "synth_app", func() {
+		util.SynthApp(t, testApp, tfWorkingDir, envVars, "handlers")
+	})
+	test_structure.RunTestStage(t, "deploy_terraform", func() {
+		util.DeployUsingTerraform(t, tfWorkingDir, nil)
+	})
+	// test_structure.RunTestStage(t, "validate", func() {
+	// 	validate(t, tfWorkingDir, awsRegion)
+	// })
+}
+
+// Test the sns-sqs app
+func TestSnsSqs(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	
+	// See if app deploys
+	testApp := "sns-sqs"
+	awsRegion := "us-east-1"
+	t.Parallel()
+	tfWorkingDir := filepath.Join("tf", testApp)
+	envVars["AWS_REGION"] = awsRegion
+	envVars["ENVIRONMENT_NAME"] = "test"
+	envVars["STACK_NAME"] = testApp
+
+	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
+		util.UndeployUsingTerraform(t, tfWorkingDir)
+	})
+
+	test_structure.RunTestStage(t, "synth_app", func() {
+		util.SynthApp(t, testApp, tfWorkingDir, envVars)
+	})
+	test_structure.RunTestStage(t, "deploy_terraform", func() {
+		util.DeployUsingTerraform(t, tfWorkingDir, nil)
+	})
+	// test_structure.RunTestStage(t, "validate", func() {
+	// 	validate(t, tfWorkingDir, awsRegion)
+	// })
+}
+
+// Test the sns-url app
+func TestSnsUrl(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	
+	// See if app deploys
+	testApp := "sns-url"
+	awsRegion := "us-east-1"
+	t.Parallel()
+	tfWorkingDir := filepath.Join("tf", testApp)
+	envVars["AWS_REGION"] = awsRegion
+	envVars["ENVIRONMENT_NAME"] = "test"
+	envVars["STACK_NAME"] = testApp
+
+	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
+		util.UndeployUsingTerraform(t, tfWorkingDir)
+	})
+
+	test_structure.RunTestStage(t, "synth_app", func() {
+		util.SynthApp(t, testApp, tfWorkingDir, envVars)
+	})
+	test_structure.RunTestStage(t, "deploy_terraform", func() {
+		util.DeployUsingTerraform(t, tfWorkingDir, nil)
+	})
+	// test_structure.RunTestStage(t, "validate", func() {
+	// 	validate(t, tfWorkingDir, awsRegion)
+	// })
+}
+
 func validateFifoQueue(t *testing.T, workingDir string, awsRegion string) {
 	// Load the Terraform Options saved by the earlier deploy_terraform stage
 	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
