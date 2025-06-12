@@ -3,11 +3,11 @@
 import { Token } from "cdktf";
 import { Construct } from "constructs";
 import { SubscriptionProps } from "./subscription";
-import * as iam from "../../iam";
-import * as lambda from "../../compute";
 import * as sns from "../";
 import { ArnFormat } from "../../arn";
 import { AwsStack } from "../../aws-stack";
+import * as lambda from "../../compute";
+import * as iam from "../../iam";
 
 /**
  * Properties for a Lambda subscription

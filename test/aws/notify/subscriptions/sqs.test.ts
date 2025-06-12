@@ -2,11 +2,11 @@
 import { snsTopicSubscription } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { Template } from "../../../assertions";
 // import * as kms from "../../../../src/aws/encryption";
-import * as notify from "../../../../src/aws/notify";
 import { AwsStack } from "../../../../src/aws/aws-stack";
+import * as notify from "../../../../src/aws/notify";
 import * as subscriptions from "../../../../src/aws/notify/subscriptions";
+import { Template } from "../../../assertions";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";

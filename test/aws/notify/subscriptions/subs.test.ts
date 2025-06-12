@@ -9,13 +9,13 @@ import {
 } from "@cdktf/provider-aws";
 import { App, Testing, Token, TerraformVariable, ref } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { Template } from "../../../assertions";
 // import * as kms from "../../../../src/aws/encryption";
-import * as notify from "../../../../src/aws/notify";
 import { AwsStack } from "../../../../src/aws/aws-stack";
-import * as subs from "../../../../src/aws/notify/subscriptions";
 import * as compute from "../../../../src/aws/compute";
+import * as notify from "../../../../src/aws/notify";
+import * as subs from "../../../../src/aws/notify/subscriptions";
 import { Duration } from "../../../../src/duration";
+import { Template } from "../../../assertions";
 // import * as cxapi from "../../cx-api";
 
 // /* eslint-disable quote-props */
@@ -118,7 +118,7 @@ test("url subscription with user provided dlq", () => {
           principals: [
             {
               identifiers: [
-                "\${data.aws_service_principal.aws_svcp_default_region_sns.name}",
+                "${data.aws_service_principal.aws_svcp_default_region_sns.name}",
               ],
               type: "Service",
             },
@@ -262,7 +262,7 @@ test("queue subscription", () => {
           principals: [
             {
               identifiers: [
-                "\${data.aws_service_principal.aws_svcp_default_region_sns.name}",
+                "${data.aws_service_principal.aws_svcp_default_region_sns.name}",
               ],
               type: "Service",
             },
@@ -326,7 +326,7 @@ test("queue subscription cross region", () => {
 
   // TOFIX: should be "topic" output when registerOutputs is true...
   const crossStackTopicRef =
-    "\${data.terraform_remote_state.cross-stack-reference-input-TopicStack.outputs.cross-stack-output-aws_sns_topicTopic_BFC7AF6Earn}";
+    "${data.terraform_remote_state.cross-stack-reference-input-TopicStack.outputs.cross-stack-output-aws_sns_topicTopic_BFC7AF6Earn}";
   const t = new Template(queueStack);
   t.expect.toHaveResourceWithProperties(
     snsTopicSubscription.SnsTopicSubscription,
@@ -357,7 +357,7 @@ test("queue subscription cross region", () => {
           principals: [
             {
               identifiers: [
-                "\${data.aws_service_principal.aws_svcp_default_region_sns.name}",
+                "${data.aws_service_principal.aws_svcp_default_region_sns.name}",
               ],
               type: "Service",
             },
@@ -771,7 +771,7 @@ test("queue subscription with user provided dlq", () => {
           principals: [
             {
               identifiers: [
-                "\${data.aws_service_principal.aws_svcp_default_region_sns.name}",
+                "${data.aws_service_principal.aws_svcp_default_region_sns.name}",
               ],
               type: "Service",
             },
@@ -803,7 +803,7 @@ test("queue subscription with user provided dlq", () => {
           principals: [
             {
               identifiers: [
-                "\${data.aws_service_principal.aws_svcp_default_region_sns.name}",
+                "${data.aws_service_principal.aws_svcp_default_region_sns.name}",
               ],
               type: "Service",
             },
@@ -1573,7 +1573,7 @@ test("multiple subscriptions", () => {
           principals: [
             {
               identifiers: [
-                "\${data.aws_service_principal.aws_svcp_default_region_sns.name}",
+                "${data.aws_service_principal.aws_svcp_default_region_sns.name}",
               ],
               type: "Service",
             },

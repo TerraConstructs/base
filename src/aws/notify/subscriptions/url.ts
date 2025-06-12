@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.176.0/packages/aws-cdk-lib/aws-sns-subscriptions/lib/url.ts
 
 import { Token } from "cdktf";
-import { SubscriptionProps } from "./subscription";
 import * as sns from "..";
+import { SubscriptionProps } from "./subscription";
 
 /**
  * Options for URL subscriptions.

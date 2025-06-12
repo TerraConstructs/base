@@ -1,12 +1,12 @@
 // https://github.com/aws/aws-cdk/blob/v2.176.0/packages/aws-cdk-lib/aws-sns-subscriptions/lib/sqs.ts
 
-import { Construct } from "constructs";
-import { SubscriptionProps } from "./subscription";
-import * as iam from "../../iam";
-import * as notify from "..";
 import { Token } from "cdktf";
+import { Construct } from "constructs";
+import * as notify from "..";
+import { SubscriptionProps } from "./subscription";
 import { ArnFormat } from "../../arn";
 import { AwsStack } from "../../aws-stack";
+import * as iam from "../../iam";
 // import * as cxapi from '../../cx-api';
 
 /**
