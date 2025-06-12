@@ -217,6 +217,8 @@ export class Subscription extends AwsConstructBase {
         redrivePolicy: redrivePolicyJson,
         subscriptionRoleArn: props.subscriptionRoleArn,
         deliveryPolicy: deliveryPolicyJson,
+        // TODO: Bump to newer provider-aws version to get 'region' property support
+        // region: props.topic.stack.region,
         // confirmationTimeoutInMinutes: // Not directly available in CDK props
         // endpointAutoConfirms: // Not directly available in CDK props
         // replayPolicy: // Not directly available in CDK props (missing in AWS CDK)

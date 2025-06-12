@@ -435,7 +435,7 @@ export class AwsStack extends StackBase implements IAwsStack {
   public availabilityZones(maxCount: number = 2): string[] {
     // TODO: Implement ContextProvider
     const azs = this.dataAwsAvailabilityZones;
-    const azLookups = [];
+    const azLookups: any[] = [];
     for (let i = 0; i < maxCount; i++) {
       azLookups.push(Fn.element(azs.names, i));
     }
