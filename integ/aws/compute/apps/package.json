@@ -7,13 +7,17 @@
     "event-source-sqs": "bun run ./event-source-sqs.ts",
     "event-source-sqs-filtered": "bun run ./event-source-sqs-filtered.ts",
     "lambda-chain": "bun run ./lambda-chain.ts",
-    "nodejs-function-url": "bun run ./nodejs-function-url.ts"
+    "nodejs-function-url": "bun run ./nodejs-function-url.ts",
+    "instance": "bun run ./instance.ts",
+    "launch-template": "bun run ./launch-template.ts",
+    "instance-public": "bun run ./instance-public.ts"
   },
   "dependencies": {
-    "cdktf": "^0.20.8",
-    "constructs": "^10.3.0",
     "@cdktf/provider-aws": "^19.24.1",
-    "@types/aws-lambda": "^8.10.76"
+    "@cdktf/provider-cloudinit": "^11.0.0",
+    "@types/aws-lambda": "^8.10.76",
+    "cdktf": "^0.20.8",
+    "constructs": "^10.3.0"
   },
   "devDependencies": {
     "@types/bun": "^1.1.3",
