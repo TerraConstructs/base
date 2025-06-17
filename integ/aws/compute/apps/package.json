@@ -10,7 +10,8 @@
     "nodejs-function-url": "bun run ./nodejs-function-url.ts",
     "instance": "bun run ./instance.ts",
     "launch-template": "bun run ./launch-template.ts",
-    "instance-public": "bun run ./instance-public.ts"
+    "instance-public": "bun run ./instance-public.ts",
+    "machine-image": "bun run ./machine-image.ts"
   },
   "dependencies": {
     "@cdktf/provider-aws": "^19.24.1",

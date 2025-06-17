@@ -35,3 +35,7 @@ launch-template: ## Test Launch Template
 instance-public: ## Test Compute Instance with public IP
 	go test -v -count 1 -timeout 15m ./... -run ^TestInstancePublic$
 .PHONY: instance-public
+
+machine-image: ## Test Machine Image
+	go test -v -count 1 -timeout 15m ./... -run ^TestMachineImage$
+.PHONY: machine-image
