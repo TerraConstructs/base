@@ -35,33 +35,29 @@ export function launchTemplateBlockDeviceMappings(
 ): launchTemplate.LaunchTemplateBlockDeviceMappings[] | undefined {
   const result: launchTemplate.LaunchTemplateBlockDeviceMappings[] = [];
   for (const blockDevice of blockDevices) {
-    if (!isRootBlockDevice(blockDevice)) {
-      const { deviceName, volume, mappingEnabled } = blockDevice;
-      const common = blockDeviceCommon(construct, volume);
-      // convert EbsBlockVolume common properties for LaunchTemplateBlockDeviceMappings
-      const deleteOnTermination =
-        common?.deleteOnTermination !== undefined
-          ? common.deleteOnTermination.toString()
-          : undefined;
-      const encrypted =
-        common?.encrypted !== undefined
-          ? common.encrypted.toString()
-          : undefined;
-      result.push({
-        deviceName,
-        noDevice: mappingEnabled === false ? "" : undefined,
-        virtualName: volume.virtualName,
-        ...(volume.virtualName
-          ? {}
-          : {
-              ebs: {
-                ...common,
-                encrypted,
-                deleteOnTermination,
-              },
-            }),
-      });
-    }
+    const { deviceName, volume, mappingEnabled } = blockDevice;
+    const common = blockDeviceCommon(construct, volume);
+    // convert EbsBlockVolume common properties for LaunchTemplateBlockDeviceMappings
+    const deleteOnTermination =
+      common?.deleteOnTermination !== undefined
+        ? common.deleteOnTermination.toString()
+        : undefined;
+    const encrypted =
+      common?.encrypted !== undefined ? common.encrypted.toString() : undefined;
+    result.push({
+      deviceName,
+      noDevice: mappingEnabled === false ? "" : undefined,
+      virtualName: volume.virtualName,
+      ...(volume.virtualName
+        ? {}
+        : {
+            ebs: {
+              ...common,
+              encrypted,
+              deleteOnTermination,
+            },
+          }),
+    });
   }
   return result.length === 0 ? undefined : result;
 }

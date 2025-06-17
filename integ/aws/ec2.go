@@ -178,3 +178,39 @@ func WaitForEc2InstanceRunning(t testing.TestingT, region, instanceID string, ma
 	err := WaitForEc2InstanceStateE(t, region, instanceID, types.InstanceStateNameRunning, maxRetries, sleepBetweenRetries)
 	require.NoError(t, err)
 }
+
+// Describe LaunchTemplate helpers
+
+// GetLaunchTemplateVersionE describes a specific version of the launch template.
+func GetLaunchTemplateVersionE(t testing.TestingT, region, launchTemplateID, version string) (*types.LaunchTemplateVersion, error) {
+	logger.Log(t, fmt.Sprintf("Describing LaunchTemplate %s version %s in %s", launchTemplateID, version, region))
+	client, err := NewEc2ClientE(t, region)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.DescribeLaunchTemplateVersions(context.Background(), &ec2.DescribeLaunchTemplateVersionsInput{
+		LaunchTemplateId: aws.String(launchTemplateID),
+		Versions:         []string{version},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.LaunchTemplateVersions) == 0 {
+		return nil, fmt.Errorf("no launch template version %s found for ID %s", version, launchTemplateID)
+	}
+	return &resp.LaunchTemplateVersions[0], nil
+}
+
+// GetLaunchTemplateLatestVersionE describes the "$Latest" version of the launch template.
+func GetLaunchTemplateLatestVersionE(t testing.TestingT, region, launchTemplateID string) (*types.LaunchTemplateVersion, error) {
+	return GetLaunchTemplateVersionE(t, region, launchTemplateID, "$Latest")
+}
+
+// GetLaunchTemplateLatestVersion fetches the "$Latest" version and fails the test if there is an error.
+func GetLaunchTemplateLatestVersion(t testing.TestingT, region, launchTemplateID string) *types.LaunchTemplateVersion {
+	lt, err := GetLaunchTemplateLatestVersionE(t, region, launchTemplateID)
+	require.NoError(t, err)
+	return lt
+}

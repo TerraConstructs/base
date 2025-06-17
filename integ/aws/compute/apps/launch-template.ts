@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.164.1/packages/%40aws-cdk-testing/framework-integ/test/aws-ec2/test/integ.launch-template.ts
 
 import { CloudinitProvider } from "@cdktf/provider-cloudinit/lib/provider";
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend, TerraformOutput } from "cdktf";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
@@ -63,6 +63,19 @@ new aws.compute.LaunchTemplate(stack, "LTWithMachineImage", {
   machineImage: aws.compute.MachineImage.latestAmazonLinux({
     generation: aws.compute.AmazonLinuxGeneration.AMAZON_LINUX_2,
   }),
+});
+
+new TerraformOutput(stack, "LaunchTemplateId", {
+  value: lt.launchTemplateId,
+  staticId: true,
+});
+new TerraformOutput(stack, "Sg1Id", {
+  value: sg1.securityGroupId,
+  staticId: true,
+});
+new TerraformOutput(stack, "Sg2Id", {
+  value: sg2.securityGroupId,
+  staticId: true,
 });
 
 app.synth();
