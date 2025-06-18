@@ -22,11 +22,15 @@ class SnsToLambda extends aws.AwsStack {
       "index.ts",
     );
 
-    const topic = new aws.notify.Topic(this, "MyTopic");
-
+    const topic = new aws.notify.Topic(this, "MyTopic", {
+      registerOutputs: true,
+      outputName: "my_topic",
+    });
     const func = new aws.compute.NodejsFunction(this, "Echo", {
       runtime: "nodejs20.x",
       path: handlerPath,
+      registerOutputs: true,
+      outputName: "echo_function",
       //   handler: "index.handler",
       //   runtime: STANDARD_NODEJS_RUNTIME,
       //   code: aws.compute.Code.fromInline(`exports.handler = ${handler.toString()}`),
@@ -41,6 +45,8 @@ class SnsToLambda extends aws.AwsStack {
     const funcFiltered = new aws.compute.NodejsFunction(this, "Filtered", {
       runtime: "nodejs20.x",
       path: handlerPath,
+      registerOutputs: true,
+      outputName: "filtered_function",
       //   handler: "index.handler",
       //   runtime: STANDARD_NODEJS_RUNTIME,
       //   code: aws.compute.Code.fromInline(
@@ -72,6 +78,8 @@ class SnsToLambda extends aws.AwsStack {
       {
         runtime: "nodejs20.x",
         path: handlerPath,
+        registerOutputs: true,
+        outputName: "filtered_message_body_function",
         // handler: "index.handler",
         // runtime: STANDARD_NODEJS_RUNTIME,
         // code: aws.compute.Code.fromInline(

@@ -2,13 +2,16 @@ package test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/gruntwork-io/terratest/modules/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sns/types"
+	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,7 +74,7 @@ func TestStreamResourcePolicy(t *testing.T) {
 // Test the sns app
 func TestSns(t *testing.T) {
 	envVars := executors.EnvMap(os.Environ())
-	
+
 	// See if app deploys
 	testApp := "sns"
 	awsRegion := "us-east-1"
@@ -96,11 +99,10 @@ func TestSns(t *testing.T) {
 	// })
 }
 
-
 // Test the sns-lambda app
 func TestSnsLambda(t *testing.T) {
 	envVars := executors.EnvMap(os.Environ())
-	
+
 	// See if app deploys
 	testApp := "sns-lambda"
 	awsRegion := "us-east-1"
@@ -120,15 +122,62 @@ func TestSnsLambda(t *testing.T) {
 	test_structure.RunTestStage(t, "deploy_terraform", func() {
 		util.DeployUsingTerraform(t, tfWorkingDir, nil)
 	})
-	// test_structure.RunTestStage(t, "validate", func() {
-	// 	validate(t, tfWorkingDir, awsRegion)
-	// })
+	test_structure.RunTestStage(t, "validate", func() {
+		validateSnsLambda(t, tfWorkingDir, awsRegion)
+	})
+}
+
+func validateSnsLambda(t *testing.T, tfDir, awsRegion string) {
+	opts := test_structure.LoadTerraformOptions(t, tfDir)
+	topicArn := util.LoadOutputAttribute(t, opts, "my_topic", "topicArn")
+	echoFunctionName := util.LoadOutputAttribute(t, opts, "echo_function", "name")
+	echoFunctionLogGroup := fmt.Sprintf("/aws/lambda/%s", echoFunctionName)
+	msgBodyFilteredFunctionName := util.LoadOutputAttribute(t, opts, "filtered_message_body_function", "name")
+	msgBodyFilteredFunctionLogGroup := fmt.Sprintf("/aws/lambda/%s", msgBodyFilteredFunctionName)
+	// // TODO: Find out why the filtered function is not being triggered
+	// filteredFunctionName := util.LoadOutputAttribute(t, opts, "filtered_function", "name")
+	// filteredFunctionLogGroup := fmt.Sprintf("/aws/lambda/%s", filteredFunctionName)
+
+	// Publish a Message that should trigger all functions
+	bodyPos := `{ "background": { "color": "red" }, "price": 200 }`
+	attrsPos := map[string]types.MessageAttributeValue{
+		"color": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(`"red"`),
+		},
+		"size": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(`"large"`),
+		},
+		"price": {
+			DataType:    aws.String("Number"),
+			StringValue: aws.String(`150`),
+		},
+	}
+	util.PublishMessage(t, awsRegion, topicArn, bodyPos, attrsPos)
+
+	messages := util.WaitForLogEvents(t, awsRegion, echoFunctionLogGroup, 12, 5*time.Second)
+	for _, message := range messages {
+		// we log messages only, no messages fails the test
+		terratestLogger.Logf(t, "Success Test: Message: %s", message)
+	}
+	messages = util.WaitForLogEvents(t, awsRegion, msgBodyFilteredFunctionLogGroup, 12, 5*time.Second)
+	for _, message := range messages {
+		// we log messages only, no messages fails the test
+		terratestLogger.Logf(t, "Success Test: Message: %s", message)
+	}
+	// // TODO: Find out why the filtered function is not being triggered
+	// messages = util.WaitForLogEvents(t, awsRegion, filteredFunctionLogGroup, 12, 5*time.Second)
+	// for _, message := range messages {
+	// 	// we log messages only, no messages fails the test
+	// 	terratestLogger.Logf(t, "Success Test: Message: %s", message)
+	// }
 }
 
 // Test the sns-sqs app
 func TestSnsSqs(t *testing.T) {
 	envVars := executors.EnvMap(os.Environ())
-	
+
 	// See if app deploys
 	testApp := "sns-sqs"
 	awsRegion := "us-east-1"
@@ -148,15 +197,41 @@ func TestSnsSqs(t *testing.T) {
 	test_structure.RunTestStage(t, "deploy_terraform", func() {
 		util.DeployUsingTerraform(t, tfWorkingDir, nil)
 	})
-	// test_structure.RunTestStage(t, "validate", func() {
-	// 	validate(t, tfWorkingDir, awsRegion)
-	// })
+	test_structure.RunTestStage(t, "validate", func() {
+		validateSnsToSqs(t, tfWorkingDir, awsRegion)
+	})
+}
+
+func validateSnsToSqs(t *testing.T, tfDir, awsRegion string) {
+	opts := test_structure.LoadTerraformOptions(t, tfDir)
+	topicArn := util.LoadOutputAttribute(t, opts, "my_topic", "topicArn")
+	queueUrl := util.LoadOutputAttribute(t, opts, "my_queue", "url")
+
+	// 1) Positive case: matches filter → should arrive
+	bodyPos := `{ "background": { "color": "green" }, "price": 200 }`
+	util.PublishMessage(t, awsRegion, topicArn, bodyPos, nil)
+
+	msg := util.WaitForQueueMessage(t, awsRegion, queueUrl, 20)
+	require.NoError(t, msg.Error, "Expected to receive a message from the queue")
+	var got map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(msg.MessageBody), &got))
+	assert.Equal(t, bodyPos, got["Message"])
+
+	// clean up
+	terratestaws.DeleteMessageFromQueue(t, awsRegion, queueUrl, msg.ReceiptHandle)
+
+	// 3. Negative case: a non-matching message
+	bodyNeg := `{ "background": { "color": "white" }, "price": 100 }`
+	util.PublishMessage(t, awsRegion, topicArn, bodyNeg, nil)
+	// Use the E-variant to get an error on timeout rather than blocking
+	resp := util.WaitForQueueMessage(t, awsRegion, queueUrl, 5)
+	assert.NotNil(t, resp.Error, "Expected an error for non-matching filter")
 }
 
 // Test the sns-url app
 func TestSnsUrl(t *testing.T) {
 	envVars := executors.EnvMap(os.Environ())
-	
+
 	// See if app deploys
 	testApp := "sns-url"
 	awsRegion := "us-east-1"
@@ -188,7 +263,7 @@ func validateFifoQueue(t *testing.T, workingDir string, awsRegion string) {
 	messageBody := "Test message"
 	// NOTE: either you pass in deduplicationId or set content based deduplication in the apps/fifo-queue.ts code
 	util.SendMessageFifoToQueueWithDeduplicationId(t, awsRegion, queueUrl, messageBody, "test-group-id", "test-deduplication-id")
-	resp := aws.WaitForQueueMessage(t, awsRegion, queueUrl, 5)
+	resp := util.WaitForQueueMessage(t, awsRegion, queueUrl, 5)
 	// TODO: should we validate deduplication prevents sending the same message?
 
 	// Verify the message body matches
@@ -203,7 +278,7 @@ func validateDlqQueue(t *testing.T, workingDir string, awsRegion string) {
 	queueUrl := util.LoadOutputAttribute(t, terraformOptions, "queue", "url")
 	dlqUrl := util.LoadOutputAttribute(t, terraformOptions, "dlq_queue", "url")
 	messageBody := "Test message"
-	aws.SendMessageToQueue(t, awsRegion, queueUrl, messageBody)
+	terratestaws.SendMessageToQueue(t, awsRegion, queueUrl, messageBody)
 
 	// Attempt to exceed the maxReceiveCount message without deleting it (trigger DLQ policy)
 	for i := 0; i < maxReceiveCount; i++ {
@@ -233,7 +308,7 @@ func validateDlqQueue(t *testing.T, workingDir string, awsRegion string) {
 	terratestLogger.Logf(t, "Message was successfully moved to DLQ: %s (approx receipts: %d)", dlqMsgResponse.MessageBody, dlqMsgResponse.ApproximateReceiveCount)
 
 	// Delete the message from the DLQ
-	aws.DeleteMessageFromQueue(t, awsRegion, dlqUrl, dlqMsgResponse.ReceiptHandle)
+	terratestaws.DeleteMessageFromQueue(t, awsRegion, dlqUrl, dlqMsgResponse.ReceiptHandle)
 }
 
 func validateStream(t *testing.T, workingDir string, awsRegion string) {

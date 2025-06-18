@@ -13,11 +13,17 @@ class SnsToSqsStack extends aws.AwsStack {
   queue: aws.notify.Queue;
   constructor(scope: App, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
-    this.topic = new aws.notify.Topic(this, "MyTopic");
+    this.topic = new aws.notify.Topic(this, "MyTopic", {
+      registerOutputs: true,
+      outputName: "my_topic",
+    });
     // TODO: cross stack integ test?
     // const queueStack = new aws.AwsStack(app, "QueueStack");
     // this.queue = new aws.notify.Queue(queueStack, "MyQueue");
-    this.queue = new aws.notify.Queue(this, "MyQueue");
+    this.queue = new aws.notify.Queue(this, "MyQueue", {
+      registerOutputs: true,
+      outputName: "my_queue",
+    });
     this.topic.addSubscription(
       new aws.notify.subscriptions.SqsSubscription(this.queue, {
         filterPolicyWithMessageBody: {
