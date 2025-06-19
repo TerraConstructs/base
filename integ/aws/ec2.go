@@ -3,6 +3,8 @@ package aws
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"runtime"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -213,4 +215,51 @@ func GetLaunchTemplateLatestVersion(t testing.TestingT, region, launchTemplateID
 	lt, err := GetLaunchTemplateLatestVersionE(t, region, launchTemplateID)
 	require.NoError(t, err)
 	return lt
+}
+
+// PingHostE performs an ICMP ping to the specified host using the system ping command.
+// This approach is simpler than raw ICMP sockets since the ping command has setuid 
+// permissions on most Unix systems, avoiding privilege requirements.
+func PingHostE(t testing.TestingT, host string, timeout time.Duration) error {
+	logger.Log(t, fmt.Sprintf("Pinging %s with timeout %v using system ping command", host, timeout))
+	
+	// Build ping command based on OS
+	var cmd *exec.Cmd
+	timeoutSeconds := int(timeout.Seconds())
+	if timeoutSeconds < 1 {
+		timeoutSeconds = 1
+	}
+	
+	switch runtime.GOOS {
+	case "windows":
+		// Windows ping: ping -n 1 -w <timeout_ms> <host>
+		timeoutMs := timeoutSeconds * 1000
+		cmd = exec.Command("ping", "-n", "1", "-w", fmt.Sprintf("%d", timeoutMs), host)
+	case "darwin":
+		// macOS ping: ping -c 1 -W <timeout_ms> <host>
+		timeoutMs := timeoutSeconds * 1000
+		cmd = exec.Command("ping", "-c", "1", "-W", fmt.Sprintf("%d", timeoutMs), host)
+	default:
+		// Linux ping: ping -c 1 -W <timeout_seconds> <host>
+		cmd = exec.Command("ping", "-c", "1", "-W", fmt.Sprintf("%d", timeoutSeconds), host)
+	}
+	
+	// Create context with timeout for command execution
+	ctx, cancel := context.WithTimeout(context.Background(), timeout+(2*time.Second))
+	defer cancel()
+	
+	// Execute ping command with timeout context
+	output, err := exec.CommandContext(ctx, cmd.Args[0], cmd.Args[1:]...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("ping to %s failed: %w\nOutput: %s", host, err, string(output))
+	}
+	
+	logger.Log(t, fmt.Sprintf("Successfully pinged %s", host))
+	return nil
+}
+
+// PingHost performs an ICMP ping to the specified host and fails the test if it doesn't respond.
+func PingHost(t testing.TestingT, host string, timeout time.Duration) {
+	err := PingHostE(t, host, timeout)
+	require.NoError(t, err)
 }

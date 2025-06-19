@@ -25,6 +25,26 @@ TerraConstructs is a TypeScript library that provides AWS CDK-like constructs fo
 - Use individual make targets per service instead: `cd integ/aws/compute && make instance`
 - Requires AWS credentials and Bun runtime for synthesis
 
+#### Make Target Patterns
+
+For faster development iteration, use make target suffixes to skip certain stages:
+
+- `%-validate-only` - Skip synth, deploy, and cleanup (e.g., `make instance-public-validate-only`)
+- `%-no-cleanup` - Skip cleanup step to inspect outputs (e.g., `make instance-public-no-cleanup`)
+- `%-synth-only` - Skip deploy, validate, and cleanup (e.g., `make instance-public-synth-only`)
+- `%-cleanup-only` - Skip synth, deploy, and validate (e.g., `make instance-public-cleanup-only`)
+
+Use `make help` to see all available targets and patterns.
+
+**Example workflow for iterating on integration test validation:**
+
+```bash
+cd integ/aws/compute
+make instance-public-no-cleanup  # Deploy and keep resources
+make instance-public-validate-only  # Test validation logic repeatedly
+make instance-public-cleanup-only  # Clean up when done
+```
+
 ### Tool Management
 
 - `mise install` - Install correct versions of required tools (Node.js, pnpm, Bun, Go, OpenTofu)
@@ -73,6 +93,63 @@ TerraConstructs is a TypeScript library that provides AWS CDK-like constructs fo
 - Modular tests using same categories as the library in `integ/aws/`
 - Automatic resource cleanup after tests
 - Requires compiled `lib` folder and AWS credentials
+
+## Testing Patterns
+
+### Integration Test Structure
+
+Integration tests should follow this validation pattern (see `validateMachineImage` in `integ/aws/compute/ec2_test.go`):
+
+1. **Terraform Outputs**: Use `registerOutputs` or add `TerraformOutput` statements to test apps for validation access (depending on TerraConstruct support)
+
+### Unit Test Patterns
+
+When changing construct behavior, update corresponding unit tests in `test/`.
+
+Notes on Assertion helpers:
+
+```typescript
+// Check resource count
+Template.resources(stack, ResourceType).toHaveLength(0);
+
+// Or using template instance method
+const template = Template.synth(stack);
+template.expectResources(ResourceType).toHaveLength(0);
+```
+
+Template validation should match actual Terraform behavior and update snapshot tests if resource structure changes.
+
+## Common Development Patterns
+
+### Integration Test Validation
+
+Follow the pattern established in `validateMachineImage` and `validateInstancePublic`:
+
+```go
+func validateYourFeature(t *testing.T, tfWorkingDir, awsRegion string) {
+    terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+    // for Constructs that support registerOutputs:
+	  topicArn := util.LoadOutputAttribute(t, terraformOptions, "my_topic", "topicArn")
+
+    // in case of using TerraformOutput instead:
+    outputs := terraform.OutputAll(t, terraformOptions)
+    resourceID := outputs["ResourceId"].(string)
+
+    // Wait for resource readiness
+    util.WaitForResourceReady(t, awsRegion, resourceID, 10, 10*time.Second)
+
+    // Fetch resource details
+    details := util.GetResourceDetails(t, awsRegion, resourceID)
+
+    // Validate properties
+    assert.Equal(t, "expected-value", details.Property)
+
+    // Test functionality (if applicable)
+    if needsConnectivityTest {
+        util.PingHost(t, details.PublicIP, 5*time.Second)
+    }
+}
+```
 
 ## Important Notes
 

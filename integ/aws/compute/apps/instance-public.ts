@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/raw/refs/tags/v2.164.1/packages/@aws-cdk-testing/framework-integ/test/aws-ec2/test/integ.instance-public.ts
 
 import { CloudinitProvider } from "@cdktf/provider-cloudinit/lib/provider";
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend, TerraformOutput } from "cdktf";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
@@ -47,6 +47,7 @@ class TestStack extends aws.AwsStack {
       }),
       detailedMonitoring: true,
       associatePublicIpAddress: true,
+      // TODO: Add support for registerOutputs
     });
 
     instance.addToRolePolicy(
@@ -59,6 +60,23 @@ class TestStack extends aws.AwsStack {
     instance.connections.allowFromAnyIpv4(aws.compute.Port.icmpPing());
 
     instance.addUserData("yum install -y");
+
+    // Export outputs for testing
+    new TerraformOutput(this, "InstanceId", {
+      value: instance.instanceId,
+      description: "The ID of the EC2 instance",
+      staticId: true,
+    });
+    new TerraformOutput(this, "InstancePublicIp", {
+      value: instance.instancePublicIp,
+      description: "The public IP address of the EC2 instance",
+      staticId: true,
+    });
+    new TerraformOutput(this, "VpcId", {
+      value: vpc.vpcId,
+      description: "The ID of the VPC",
+      staticId: true,
+    });
   }
 }
 

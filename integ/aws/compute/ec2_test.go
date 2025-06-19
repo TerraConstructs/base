@@ -140,6 +140,9 @@ func TestInstancePublic(t *testing.T) {
 	test_structure.RunTestStage(t, "deploy_terraform", func() {
 		util.DeployUsingTerraform(t, tfWorkingDir, nil)
 	})
+	test_structure.RunTestStage(t, "validate", func() {
+		validateInstancePublic(t, tfWorkingDir, awsRegion)
+	})
 }
 
 // Test the machine-image app
@@ -224,4 +227,42 @@ func validateMachineImage(t *testing.T, tfWorkingDir string, awsRegion string) {
 			}
 		})
 	}
+}
+
+func validateInstancePublic(t *testing.T, tfWorkingDir, awsRegion string) {
+	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+	outputs := terraform.OutputAll(t, terraformOptions)
+
+	instanceID := outputs["InstanceId"].(string)
+	instancePublicIP := outputs["InstancePublicIp"].(string)
+	vpcID := outputs["VpcId"].(string)
+
+	// Wait for instance to be running before validation
+	util.WaitForEc2InstanceRunning(t, awsRegion, instanceID, 10, 10*time.Second)
+	
+	// Fetch instance details
+	instance := util.GetEc2InstanceDetails(t, awsRegion, instanceID)
+
+	// Validate basic instance properties
+	assert.Equal(t, "t3.nano", string(instance.InstanceType))
+	assert.Equal(t, vpcID, *instance.VpcId)
+	
+	// Validate instance has public IP
+	require.NotNil(t, instance.PublicIpAddress, "instance should have a public IP address")
+	assert.Equal(t, instancePublicIP, *instance.PublicIpAddress)
+	
+	// Validate associate_public_ip_address was set correctly
+	assert.True(t, instance.PublicIpAddress != nil && *instance.PublicIpAddress != "", 
+		"instance should have associate_public_ip_address=true resulting in a public IP")
+	
+	// Validate instance has private IP
+	require.NotNil(t, instance.PrivateIpAddress, "instance should have a private IP address")
+	assert.NotEmpty(t, *instance.PrivateIpAddress)
+	
+	// Validate security groups (should have at least one)
+	require.True(t, len(instance.SecurityGroups) > 0, "instance should have at least one security group")
+	
+	// Test network connectivity - ping the public IP
+	// This validates that ICMP is allowed and the instance is reachable
+	util.PingHost(t, instancePublicIP, 5*time.Second)
 }
