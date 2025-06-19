@@ -632,20 +632,16 @@ describe("instance", () => {
     });
 
     // THEN
-    // PrivateIpAddress AND NetworkInterfaces cannot both be present
+    // Now private_ip and associate_public_ip_address are both set directly on the instance
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfInstance.Instance, {
-      // private_ip property should not exist
-      // private_ip: undefined, // Jest / CDKTF Helpers -> This does not work!
-      // should point to network interface with private IP set
-      network_interface: [
-        {
-          device_index: 0,
-          network_interface_id:
-            "${aws_network_interface.Instance_NetworkInterface_96CFD750.id}",
-        },
-      ],
-      // // should depend on VPC Public routing for connectivity
+      // private_ip property should be set directly on the instance
+      private_ip: privateIpAddress,
+      // associate_public_ip_address should be set directly on the instance
+      associate_public_ip_address: true,
+      // subnet_id should be set directly on the instance
+      subnet_id: "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
+      // should depend on VPC Public routing for connectivity
       depends_on: [
         "data.aws_iam_policy_document.Instance_InstanceRole_AssumeRolePolicy_5AE9180F",
         "aws_iam_role.Instance_InstanceRole_E9785DE5",
@@ -657,27 +653,17 @@ describe("instance", () => {
         "aws_route.VPC_PublicSubnet3_DefaultRoute_A0D29D46",
       ],
     });
-    template.toHaveResourceWithProperties(tfNetworkInterface.NetworkInterface, {
-      private_ips: [privateIpAddress],
-      subnet_id: "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
-      security_groups: ["${aws_security_group.SecurityGroup_DD263621.id}"],
-      // TODO: Dependencies are only attached to the Instance resource
-      // depends_on: [
-      //   "InstanceInstanceRoleE9785DE5",
-      //   "VPCPublicSubnet1DefaultRoute91CEF279",
-      //   "VPCPublicSubnet1RouteTableAssociation0B0896DC",
-      //   "VPCPublicSubnet2DefaultRouteB7481BBA",
-      //   "VPCPublicSubnet2RouteTableAssociation5A808732",
-      // ],
-    });
+    // No NetworkInterface resource should be created for basic scenarios
+    expect(() =>
+      template.toHaveResource(tfNetworkInterface.NetworkInterface),
+    ).toThrow();
 
-    // Validate the instances created (1) have no private IP set
-    // TODO: Find a better way to ensure a property does not exist...
+    // Validate the instances created have the private IP set correctly
     const instances = Template.resources(stack, tfInstance.Instance);
     instances.toEqual(
-      expect.not.arrayContaining([
+      expect.arrayContaining([
         expect.objectContaining({
-          private_ip: expect.anything(),
+          private_ip: privateIpAddress,
         }),
       ]),
     );
@@ -1058,37 +1044,14 @@ test("associate public IP address with instance", () => {
 
   // THEN
   const template = Template.synth(stack);
-  template.toHaveResourceWithProperties(tfNetworkInterface.NetworkInterface, {
-    security_groups: ["${aws_security_group.SecurityGroup_DD263621.id}"],
-    // [
-    //   {
-    //     "Fn::GetAtt": ["SecurityGroupDD263621", "GroupId"],
-    //   },
-    // ],
-    subnet_id: "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
-    // {
-    //   Ref: "VPCPublicSubnet1SubnetB4246D30",
-    // },
-    // // NOTE: AWSCDK only adds deps on Instance no network interface
-    // // to add deps on network interface, call
-    // // this.primaryNetworkInterface.node.addDependency(internetConnected);
-    // depends_on: [
-    //   "InstanceInstanceRoleE9785DE5",
-    //   "VPCPublicSubnet1DefaultRoute91CEF279",
-    //   "VPCPublicSubnet1RouteTableAssociation0B0896DC",
-    //   "VPCPublicSubnet2DefaultRouteB7481BBA",
-    //   "VPCPublicSubnet2RouteTableAssociation5A808732",
-    // ],
-  });
+  // No NetworkInterface resource should be created for basic public IP assignment
+  expect(() =>
+    template.toHaveResource(tfNetworkInterface.NetworkInterface),
+  ).toThrow();
+
   template.toHaveResourceWithProperties(tfInstance.Instance, {
     associate_public_ip_address: true,
-    network_interface: [
-      {
-        device_index: 0,
-        network_interface_id:
-          "${aws_network_interface.Instance_NetworkInterface_96CFD750.id}",
-      },
-    ],
+    subnet_id: "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
     depends_on: [
       // "InstanceInstanceRoleE9785DE5",
       "data.aws_iam_policy_document.Instance_InstanceRole_AssumeRolePolicy_5AE9180F",
@@ -1124,27 +1087,14 @@ test("do not associate public IP address with instance", () => {
 
   // THEN
   const template = Template.synth(stack);
-  template.toHaveResourceWithProperties(tfNetworkInterface.NetworkInterface, {
-    security_groups: ["${aws_security_group.SecurityGroup_DD263621.id}"],
-    // [
-    //   {
-    //     "Fn::GetAtt": ["SecurityGroupDD263621", "GroupId"],
-    //   },
-    // ],
-    subnet_id: "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
-    // {
-    //   Ref: "VPCPublicSubnet1SubnetB4246D30",
-    // },
-  });
+  // No NetworkInterface resource should be created for basic public IP assignment
+  expect(() =>
+    template.toHaveResource(tfNetworkInterface.NetworkInterface),
+  ).toThrow();
+
   template.toHaveResourceWithProperties(tfInstance.Instance, {
     associate_public_ip_address: false,
-    network_interface: [
-      {
-        device_index: 0,
-        network_interface_id:
-          "${aws_network_interface.Instance_NetworkInterface_96CFD750.id}",
-      },
-    ],
+    subnet_id: "${aws_subnet.VPC_PublicSubnet1_0D1B5E48.id}",
   });
 });
 
