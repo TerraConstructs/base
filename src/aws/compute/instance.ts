@@ -635,30 +635,10 @@ export class Instance extends AwsConstructBase implements IInstance {
       });
     }
 
-    // network interfaces array is set to configure the primary network interface if associatePublicIpAddress is true or false
+    // network interfaces array is set to configure the primary network interface for advanced networking scenarios
+    // For basic public IP assignment, let the EC2 instance handle it directly
     let networkInterfaces: instance.InstanceNetworkInterface[] | undefined =
       undefined;
-    if (props.associatePublicIpAddress !== undefined) {
-      this.primaryNetworkInterface = new tfNetworkInterface.NetworkInterface(
-        this,
-        "NetworkInterface",
-        {
-          subnetId: subnet.subnetId,
-          securityGroups: securityGroupsToken,
-          privateIps: props.privateIpAddress
-            ? [props.privateIpAddress]
-            : undefined,
-        },
-      );
-      // TODO: Use networkInterfaceAttachment instead?
-      // ref: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance#network-interfaces
-      networkInterfaces = [
-        {
-          deviceIndex: 0,
-          networkInterfaceId: this.primaryNetworkInterface.id,
-        },
-      ];
-    }
 
     if (props.keyPair && !props.keyPair._isOsCompatible(imageConfig.osType)) {
       throw new Error(
