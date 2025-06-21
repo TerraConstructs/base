@@ -395,8 +395,9 @@ export class NetworkLoadBalancer
     | undefined {
     if (
       this._enforceSecurityGroupInboundRulesOnPrivateLinkTraffic === undefined
-    )
+    ) {
       return undefined;
+    }
     return this._enforceSecurityGroupInboundRulesOnPrivateLinkTraffic
       ? "on"
       : "off";
