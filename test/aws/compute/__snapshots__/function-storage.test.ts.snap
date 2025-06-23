@@ -159,7 +159,7 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }
@@ -330,7 +330,7 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }
