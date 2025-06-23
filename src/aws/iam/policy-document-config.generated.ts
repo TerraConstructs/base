@@ -7,43 +7,43 @@ import type { FileProvisioner, ITerraformDependable, ITerraformIterator, LocalEx
  */
 export interface PolicyDocumentConfig {
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#version DataAwsIamPolicyDocument#version}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/data-sources/iam_policy_document#version DataAwsIamPolicyDocument#version}.
    * @stability stable
    */
   readonly version?: string;
   /**
    * Configuration block for a policy statement
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#statement DataAwsIamPolicyDocument#statement}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/data-sources/iam_policy_document#statement DataAwsIamPolicyDocument#statement}
    * @stability stable
    */
   readonly statement?: Array<PolicyStatement>;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#source_policy_documents DataAwsIamPolicyDocument#source_policy_documents}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/data-sources/iam_policy_document#source_policy_documents DataAwsIamPolicyDocument#source_policy_documents}.
    * @stability stable
    */
   readonly sourcePolicyDocuments?: Array<string>;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#source_json DataAwsIamPolicyDocument#source_json}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/data-sources/iam_policy_document#source_json DataAwsIamPolicyDocument#source_json}.
    * @stability stable
    */
   readonly sourceJson?: string;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#policy_id DataAwsIamPolicyDocument#policy_id}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/data-sources/iam_policy_document#policy_id DataAwsIamPolicyDocument#policy_id}.
    * @stability stable
    */
   readonly policyId?: string;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#override_policy_documents DataAwsIamPolicyDocument#override_policy_documents}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/data-sources/iam_policy_document#override_policy_documents DataAwsIamPolicyDocument#override_policy_documents}.
    * @stability stable
    */
   readonly overridePolicyDocuments?: Array<string>;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#override_json DataAwsIamPolicyDocument#override_json}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/data-sources/iam_policy_document#override_json DataAwsIamPolicyDocument#override_json}.
    * @stability stable
    */
   readonly overrideJson?: string;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/data-sources/iam_policy_document#id DataAwsIamPolicyDocument#id}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/data-sources/iam_policy_document#id DataAwsIamPolicyDocument#id}.
    * Please be aware that the id field is automatically added to all resources in Terraform providers using a Terraform provider SDK version below 2.
    * If you experience problems setting this value it might not be settable. Please take a look at the provider documentation to ensure it should be settable.
    * @stability stable

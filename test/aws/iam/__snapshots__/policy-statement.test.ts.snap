@@ -58,7 +58,7 @@ exports[`IAM policy statement from JSON parses a given Principal 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }
@@ -123,7 +123,7 @@ exports[`IAM policy statement from JSON parses a given notPrincipal 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }
@@ -180,7 +180,7 @@ exports[`IAM policy statement from JSON parses with no principal 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }
@@ -227,7 +227,7 @@ exports[`IAM policy statement from JSON parses with notAction 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }
@@ -275,7 +275,7 @@ exports[`IAM policy statement from JSON parses with notActions 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }
@@ -323,7 +323,7 @@ exports[`IAM policy statement from JSON parses with notResource 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }
@@ -372,7 +372,7 @@ exports[`IAM policy statement from JSON parses with notResources 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }
@@ -427,7 +427,7 @@ exports[`IAM policy statement from JSON should not convert \`Principal: *\` to \
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }
@@ -506,7 +506,7 @@ exports[`IAM policy statement from JSON the kitchen sink 1`] = `
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.88.0"
+        "version": "5.100.0"
       }
     }
   }

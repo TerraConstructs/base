@@ -33,10 +33,10 @@
     "organization": false
   },
   "devDependencies": {
-    "@cdktf/provider-aws": "19.54.0",
-    "@cdktf/provider-cloudinit": "10.0.3",
-    "@cdktf/provider-time": "10.2.1",
-    "@cdktf/provider-tls": "10.0.1",
+    "@cdktf/provider-aws": "20.1.0",
+    "@cdktf/provider-cloudinit": "11.0.0",
+    "@cdktf/provider-time": "11.0.0",
+    "@cdktf/provider-tls": "11.0.0",
     "@jsii/spec": "^1.102.0",
     "@mrgrain/jsii-struct-builder": "^0.7.43",
     "@types/jest": "^29.5.13",
@@ -44,9 +44,9 @@
     "@types/node": "ts5.7",
     "@typescript-eslint/eslint-plugin": "^7",
     "@typescript-eslint/parser": "^7",
-    "cdktf": "0.20.8",
+    "cdktf": "0.21.0",
     "commit-and-tag-version": "^12",
-    "constructs": "10.3.0",
+    "constructs": "10.4.2",
     "eslint": "^8",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-typescript": "^3.6.3",
@@ -65,12 +65,12 @@
     "typescript": "~5.7"
   },
   "peerDependencies": {
-    "@cdktf/provider-aws": "^19.54.0",
-    "@cdktf/provider-cloudinit": "10.0.3",
-    "@cdktf/provider-time": "^10.2.1",
-    "@cdktf/provider-tls": "10.0.1",
-    "cdktf": "^0.20.8",
-    "constructs": "^10.3.0"
+    "@cdktf/provider-aws": "^20.1.0",
+    "@cdktf/provider-cloudinit": "^11.0.0",
+    "@cdktf/provider-time": "^11.0.0",
+    "@cdktf/provider-tls": "^11.0.0",
+    "cdktf": "^0.21.0",
+    "constructs": "^10.4.2"
   },
   "dependencies": {
     "change-case": "^4.1.1",

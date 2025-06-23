@@ -14,11 +14,11 @@
     "machine-image": "bun run ./machine-image.ts"
   },
   "dependencies": {
-    "@cdktf/provider-aws": "^19.24.1",
+    "@cdktf/provider-aws": "^20.1.0",
     "@cdktf/provider-cloudinit": "^11.0.0",
     "@types/aws-lambda": "^8.10.76",
-    "cdktf": "^0.20.8",
-    "constructs": "^10.3.0"
+    "cdktf": "^0.21.0",
+    "constructs": "^10.4.2"
   },
   "devDependencies": {
     "@types/bun": "^1.1.3",

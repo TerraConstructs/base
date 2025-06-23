@@ -8,9 +8,9 @@
     "log-group-metrics": "bun run ./log-group-metrics.ts"
   },
   "dependencies": {
-    "cdktf": "^0.20.8",
-    "constructs": "^10.3.0",
-    "@cdktf/provider-aws": "^19.24.1"
+    "cdktf": "^0.21.0",
+    "constructs": "^10.4.2",
+    "@cdktf/provider-aws": "^20.1.0"
   },
   "devDependencies": {
     "@types/bun": "^1.1.3",
