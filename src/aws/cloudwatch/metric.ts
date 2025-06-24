@@ -549,7 +549,7 @@ export class Metric implements IMetric {
       return dims;
     }
 
-    var dimsArray = Object.keys(dims);
+    const dimsArray = Object.keys(dims);
     if (dimsArray?.length > 30) {
       throw new Error(
         `The maximum number of dimensions is 30, received ${dimsArray.length}`,

@@ -14,3 +14,13 @@ export * from "./website-config.generated";
 export * from "./cors-config.generated";
 export * from "./cors-rule-config.generated";
 export * from "./lifecycle-config.generated";
+
+// // aws-dynamodb
+export * from "./table";
+export * from "./scalable-attribute-api";
+// export * from "./table-v2";
+// export * from "./table-v2-base";
+export * from "./shared";
+export * from "./capacity";
+export * from "./billing";
+export * from "./encryption";

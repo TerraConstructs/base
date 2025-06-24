@@ -1464,7 +1464,7 @@ class ImportedApplicationLoadBalancer
     if (this.props.loadBalancerCanonicalHostedZoneId) {
       return this.props.loadBalancerCanonicalHostedZoneId;
     }
-    // eslint-disable-next-line max-len
+     
     throw new Error(
       `'loadBalancerCanonicalHostedZoneId' was not provided when constructing Application Load Balancer ${this.node.path} from attributes`,
     );
@@ -1474,7 +1474,7 @@ class ImportedApplicationLoadBalancer
     if (this.props.loadBalancerDnsName) {
       return this.props.loadBalancerDnsName;
     }
-    // eslint-disable-next-line max-len
+     
     throw new Error(
       `'loadBalancerDnsName' was not provided when constructing Application Load Balancer ${this.node.path} from attributes`,
     );

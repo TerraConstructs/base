@@ -776,7 +776,7 @@ export class SecurityGroup extends SecurityGroupBase {
    * Add a direct ingress rule
    */
   private addDirectIngressRule(rule: securityGroup.SecurityGroupIngress) {
-    let r = normalizeDirectRule(rule);
+    const r = normalizeDirectRule(rule);
     if (!this.hasIngressRule(r)) {
       this.directIngressRules.push(r);
     }
@@ -795,7 +795,7 @@ export class SecurityGroup extends SecurityGroupBase {
    * Add a direct egress rule
    */
   private addDirectEgressRule(rule: securityGroup.SecurityGroupEgress) {
-    let r = normalizeDirectRule(rule);
+    const r = normalizeDirectRule(rule);
     if (!this.hasEgressRule(r)) {
       this.directEgressRules.push(r);
     }

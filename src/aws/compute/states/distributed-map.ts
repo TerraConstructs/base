@@ -203,7 +203,7 @@ export class DistributedMap extends MapBase implements INextable {
         errors.push("label must be 40 characters or less");
       }
 
-      let labelRegex =
+      const labelRegex =
         /[\s\?\*\<\>\{\}\\[\]\:\;\,\|\^\~\$\#\%\&\`\"]|[\u0000-\u001f]|[\u007f-\u009f]/gi;
       if (labelRegex.test(this.label)) {
         errors.push(
@@ -270,7 +270,7 @@ export class DistributedMap extends MapBase implements INextable {
    * Return the Amazon States Language object for this state
    */
   public toStateJson(): object {
-    let rendered: any = super.toStateJson();
+    const rendered: any = super.toStateJson();
     if (rendered.ItemProcessor.ProcessorConfig.ExecutionType) {
       // "@aws-cdk/aws-stepfunctions:propertyIgnored", // TODO: CDKTF does not support acknowledgeable warnings
       Annotations.of(this).addWarning(

@@ -49,7 +49,7 @@ export interface TargetBaseProps {
  * @internal
  */
 export function bindBaseTargetConfig(props: TargetBaseProps) {
-  let { deadLetterQueue, retryAttempts, maxEventAge } = props;
+  const { deadLetterQueue, retryAttempts, maxEventAge } = props;
 
   return {
     deadLetterConfig: deadLetterQueue

@@ -101,6 +101,17 @@ export * from "./nlb/network-listener-action";
 // elasticloadbalancingv2-targets
 export * as lbtargets from "./lb-targets";
 
+// autoscaling-common
+export * as autoscalingcommon from "./autoscaling-common";
+
+// appautoscaling
+export * from "./base-scalable-attribute";
+export * from "./schedule";
+export * from "./scalable-target";
+export * from "./step-scaling-policy";
+export * from "./step-scaling-action";
+export * from "./target-tracking-scaling-policy";
+
 // temp export, required by base types
 export * from "./lb-shared/grid-lookup-types";
 export * from "./lb-shared/base-listener";

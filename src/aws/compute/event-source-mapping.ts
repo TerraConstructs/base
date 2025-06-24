@@ -461,7 +461,7 @@ export class EventSourceMapping
       };
     }
 
-    let consumerGroupConfig = props.kafkaConsumerGroupId
+    const consumerGroupConfig = props.kafkaConsumerGroupId
       ? { consumerGroupId: props.kafkaConsumerGroupId }
       : undefined;
 

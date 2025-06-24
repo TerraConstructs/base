@@ -73,7 +73,7 @@ export abstract class Authorization {
   public static apiKey(apiKeyName: string, apiKeyValue: string): Authorization {
     return new (class extends Authorization {
       public _bind() {
-        let authParameters: cloudwatchEventConnection.CloudwatchEventConnectionAuthParameters =
+        const authParameters: cloudwatchEventConnection.CloudwatchEventConnectionAuthParameters =
           {
             apiKey: {
               key: apiKeyName,
@@ -94,7 +94,7 @@ export abstract class Authorization {
   public static basic(username: string, password: string): Authorization {
     return new (class extends Authorization {
       public _bind() {
-        let authParameters: cloudwatchEventConnection.CloudwatchEventConnectionAuthParameters =
+        const authParameters: cloudwatchEventConnection.CloudwatchEventConnectionAuthParameters =
           {
             basic: {
               username: username,
@@ -123,7 +123,7 @@ export abstract class Authorization {
 
     return new (class extends Authorization {
       public _bind() {
-        let authParameters: cloudwatchEventConnection.CloudwatchEventConnectionAuthParameters =
+        const authParameters: cloudwatchEventConnection.CloudwatchEventConnectionAuthParameters =
           {
             oauth: {
               authorizationEndpoint: props.authorizationEndpoint,

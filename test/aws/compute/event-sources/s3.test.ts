@@ -5,7 +5,7 @@ import { TestFunction } from "./test-function";
 import { compute, storage, AwsStack } from "../../../../src/aws";
 import { Template } from "../../../assertions";
 
-/* eslint-disable quote-props */
+ 
 
 describe("S3EventSource", () => {
   let stack: AwsStack;

@@ -341,7 +341,7 @@ describe("LambdaFunction as an event rule target", () => {
 
     const queue = new Queue(stack2, "Queue");
 
-    let rule = new Rule(stack, "Rule", {
+    const rule = new Rule(stack, "Rule", {
       schedule: Schedule.rate(Duration.minutes(1)),
     });
 

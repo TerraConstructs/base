@@ -63,6 +63,7 @@ const project = new cdk.JsiiProject({
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
     "@types/mime-types",
+    "fast-check@^3.23.2",
   ],
   bundledDeps: ["esbuild-wasm@^0.23.1", "mime-types", "change-case@^4.1.1"],
 

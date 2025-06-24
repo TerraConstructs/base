@@ -508,7 +508,7 @@ export class Distribution extends AwsConstructBase implements IDistribution {
     }
     locations.forEach((location) => {
       if (!LOCATION_REGEX.test(location)) {
-        // eslint-disable-next-line max-len
+         
         throw new Error(
           `Invalid location format for location: ${location}, location should be two-letter and uppercase country ISO 3166-1-alpha-2 code`,
         );

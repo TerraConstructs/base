@@ -103,7 +103,7 @@ export class BucketSource extends AwsConstructBase implements IBucketSource {
   }
 
   private uploadAssetFile(basePath: string, assetPath: string) {
-    let relativePath = path.join(
+    const relativePath = path.join(
       this.prefix,
       basePath.replace(this.resolvedPath, ""),
     );
