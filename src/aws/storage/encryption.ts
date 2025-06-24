@@ -1,9 +1,9 @@
-import { Construct } from "constructs";
 import { dynamodbTable } from "@cdktf/provider-aws";
-import { TableEncryption } from "./shared";
-import * as kms from "../encryption";
-import { AwsStack } from "../aws-stack";
 import { Token } from "cdktf";
+import { Construct } from "constructs";
+import { TableEncryption } from "./shared";
+import { AwsStack } from "../aws-stack";
+import * as kms from "../encryption";
 
 /**
  * Custom error for validation failures.
@@ -29,12 +29,12 @@ export abstract class TableEncryptionV2 {
       constructor() {
         super(TableEncryption.DEFAULT);
       }
-      public getTableSseConfiguration():
+      public _renderSseSpecification():
         | dynamodbTable.DynamodbTableServerSideEncryption
         | undefined {
         return { enabled: false };
       }
-      public getReplicaKmsKeyArn(
+      public _renderReplicaSseSpecification(
         _replicaRegion: string,
         _scopeForStackLookup: Construct,
       ): string | undefined {
@@ -53,13 +53,13 @@ export abstract class TableEncryptionV2 {
       constructor() {
         super(TableEncryption.AWS_MANAGED);
       }
-      public getTableSseConfiguration():
+      public _renderSseSpecification():
         | dynamodbTable.DynamodbTableServerSideEncryption
         | undefined {
         // enabled: true without kmsKeyArn means AWS_MANAGED_KMS_KEY (alias/aws/dynamodb)
         return { enabled: true };
       }
-      public getReplicaKmsKeyArn(
+      public _renderReplicaSseSpecification(
         _replicaRegion: string,
         _scopeForStackLookup: Construct,
       ): string | undefined {
@@ -100,7 +100,7 @@ export abstract class TableEncryptionV2 {
         super(TableEncryption.CUSTOMER_MANAGED, tableKey, replicaKeyArns);
       }
 
-      public getTableSseConfiguration():
+      public _renderSseSpecification():
         | dynamodbTable.DynamodbTableServerSideEncryption
         | undefined {
         if (!this.tableKey) {
@@ -112,7 +112,7 @@ export abstract class TableEncryptionV2 {
         return { enabled: true, kmsKeyArn: this.tableKey.keyArn };
       }
 
-      public getReplicaKmsKeyArn(
+      public _renderReplicaSseSpecification(
         replicaRegion: string,
         scopeForStackLookup: Construct,
       ): string | undefined {
@@ -158,8 +158,10 @@ export abstract class TableEncryptionV2 {
   /**
    * Get the Server-Side Encryption (SSE) configuration for the primary DynamoDB table.
    * This is used for the `serverSideEncryption` block of the `DynamodbTable` resource.
+   *
+   * @internal
    */
-  public abstract getTableSseConfiguration():
+  public abstract _renderSseSpecification():
     | dynamodbTable.DynamodbTableServerSideEncryption
     | undefined;
 
@@ -169,8 +171,10 @@ export abstract class TableEncryptionV2 {
    * This method assumes `replicaRegion` is for a secondary replica (not the primary table's region).
    * @param replicaRegion The AWS region of the replica.
    * @param scopeForStackLookup A construct within the stack, used to determine the primary stack's region for validation.
+   *
+   * @internal
    */
-  public abstract getReplicaKmsKeyArn(
+  public abstract _renderReplicaSseSpecification(
     replicaRegion: string,
     scopeForStackLookup: Construct,
   ): string | undefined;

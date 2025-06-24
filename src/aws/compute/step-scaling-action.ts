@@ -81,7 +81,7 @@ export class StepScalingAction extends AwsConstructBase {
   private readonly adjustments =
     new Array<appautoscalingPolicy.AppautoscalingPolicyStepScalingPolicyConfigurationStepAdjustment>();
 
-  public get outputs() {
+  public get outputs(): Record<string, any> {
     return {
       scalingPolicyArn: this.scalingPolicyArn,
     };

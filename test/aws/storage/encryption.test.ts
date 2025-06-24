@@ -34,7 +34,7 @@ describe("dynamo owned key", () => {
 
   test("type is DEFAULT and tableKey is undefined", () => {
     // WHEN / THEN
-    expect(encryption.getTableSseConfiguration()).toEqual({
+    expect(encryption._renderSseSpecification()).toEqual({
       enabled: false,
     });
   });

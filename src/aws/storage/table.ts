@@ -1761,7 +1761,8 @@ export class Table extends TableBase {
     };
   }
 
-  private addKey(attribute: Attribute, keyType: string) {
+  // TODO: keyType is unused
+  private addKey(attribute: Attribute, _keyType: string) {
     const existingAttr = this.attributeDefinitionsInternal.find(
       (def) => def.name === attribute.name,
     );
