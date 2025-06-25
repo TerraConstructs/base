@@ -7,13 +7,13 @@ import {
 } from "@cdktf/provider-aws";
 import { App, Lazy, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
+import { createScalableTarget } from "./util";
 import { AwsStack } from "../../../src/aws/aws-stack";
-import * as iam from "../../../src/aws/iam";
-import * as appscaling from "../../../src/aws/compute";
 import * as cloudwatch from "../../../src/aws/cloudwatch";
+import * as appscaling from "../../../src/aws/compute";
+import * as iam from "../../../src/aws/iam";
 import { Duration } from "../../../src/duration";
 import { TimeZone } from "../../../src/time-zone";
-import { createScalableTarget } from "./util";
 import { Annotations, Template } from "../../assertions";
 
 const environmentName = "TestEnv";

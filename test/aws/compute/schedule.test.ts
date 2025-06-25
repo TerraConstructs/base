@@ -1,7 +1,7 @@
 import { Lazy, Testing, App } from "cdktf";
-import { Duration } from "../../../src/duration";
-import { Schedule } from "../../../src/aws/compute/schedule";
 import { AwsStack } from "../../../src/aws/aws-stack";
+import { Schedule } from "../../../src/aws/compute/schedule";
+import { Duration } from "../../../src/duration";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";

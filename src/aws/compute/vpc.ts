@@ -2465,10 +2465,9 @@ export class Subnet extends AwsConstructBase implements ISubnet {
   public static fromSubnetId(
     scope: Construct,
     id: string,
-     
-    subnetId: string,
+    snetId: string,
   ): ISubnet {
-    return this.fromSubnetAttributes(scope, id, { subnetId });
+    return this.fromSubnetAttributes(scope, id, { subnetId: snetId });
   }
 
   public readonly subnetOutputs: SubnetOutputs;
@@ -3198,7 +3197,7 @@ class ImportedSubnet
         Token.isUnresolved([attrs.subnetId])
           ? `at '${Node.of(scope).path}/${id}'`
           : `'${attrs.subnetId}'`;
-       
+
       // "@aws-cdk/aws-ec2:noSubnetRouteTableId",
       Annotations.of(this).addWarning(
         `No routeTableId was provided to the subnet ${ref}. Attempting to read its .routeTable.routeTableId will return null/undefined. (More info: https://github.com/aws/aws-cdk/pull/3171)`,
@@ -3224,7 +3223,6 @@ class ImportedSubnet
 
   public get availabilityZone(): string {
     if (!this._availabilityZone) {
-       
       throw new Error(
         "You cannot reference a Subnet's availability zone if it was not supplied. Add the availabilityZone when importing using Subnet.fromSubnetAttributes()",
       );
@@ -3290,14 +3288,12 @@ function determineNatGatewayCount(
         : 0;
 
   if (count === 0 && hasPrivateSubnets && !hasCustomEgress) {
-     
     throw new Error(
       "If you do not want NAT gateways (natGateways=0), make sure you don't configure any PRIVATE(_WITH_NAT) subnets in 'subnetConfiguration' (make them PUBLIC or ISOLATED instead)",
     );
   }
 
   if (count > 0 && !hasPublicSubnets) {
-     
     throw new Error(
       `If you configure PRIVATE subnets in 'subnetConfiguration', you must also configure PUBLIC subnets to put the NAT gateways into (got ${JSON.stringify(subnetConfig)}.`,
     );

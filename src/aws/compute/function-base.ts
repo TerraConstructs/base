@@ -605,8 +605,7 @@ export abstract class LambdaFunctionBase
     // Try some specific common classes first.
     // use duck-typing, not instance of
     if ("wrapped" in principal) {
-       
-      principal = principal["wrapped"];
+      principal = principal.wrapped;
     }
 
     if ("accountId" in principal) {

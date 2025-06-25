@@ -71,7 +71,6 @@ export class ImportSubnetGroup {
     this.groups = this.subnetIds.length / this.availabilityZones.length;
 
     if (Math.floor(this.groups) !== this.groups) {
-       
       throw new Error(
         `Number of ${idField} (${this.subnetIds.length}) must be a multiple of availability zones (${this.availabilityZones.length}).`,
       );
@@ -81,7 +80,7 @@ export class ImportSubnetGroup {
       routeTableIds != null
     ) {
       // We don't err if no routeTableIds were provided to maintain backwards-compatibility. See https://github.com/aws/aws-cdk/pull/3171
-       
+
       throw new Error(
         `Number of ${routeTableIdField} (${this.routeTableIds.length}) must be equal to the amount of ${idField} (${this.subnetIds.length}).`,
       );
@@ -91,7 +90,7 @@ export class ImportSubnetGroup {
       ipv4CidrBlocks != null
     ) {
       // We don't err if no ipv4CidrBlocks were provided to maintain backwards-compatibility.
-       
+
       throw new Error(
         `Number of ${ipv4CidrBlockField} (${this.ipv4CidrBlocks.length}) must be equal to the amount of ${idField} (${this.subnetIds.length}).`,
       );

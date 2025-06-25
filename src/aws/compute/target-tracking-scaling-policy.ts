@@ -3,8 +3,8 @@
 import { appautoscalingPolicy } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import { IScalableTarget } from "./scalable-target";
-import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { Duration } from "../../duration";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import * as cloudwatch from "../cloudwatch";
 // TODO Adupt ValidationError is available, otherwise use standard Error
 // - https://github.com/aws/aws-cdk/pull/33382/

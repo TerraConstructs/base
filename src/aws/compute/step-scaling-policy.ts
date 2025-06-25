@@ -2,22 +2,22 @@
 
 import { Token } from "cdktf";
 import { Construct } from "constructs";
+import {
+  findAlarmThresholds,
+  normalizeIntervals,
+} from "./autoscaling-common/interval-utils";
 import { IScalableTarget } from "./scalable-target";
 import {
   AdjustmentType,
   MetricAggregationType,
   StepScalingAction,
 } from "./step-scaling-action";
-import {
-  findAlarmThresholds,
-  normalizeIntervals,
-} from "./autoscaling-common/interval-utils";
+import { Duration } from "../../duration";
 import * as cloudwatch from "../cloudwatch";
 // TODO Adupt ValidationError is available, otherwise use standard Error
 // - https://github.com/aws/aws-cdk/pull/33382/
 // - https://github.com/aws/aws-cdk/pull/33045
 // import { ValidationError } from "../../errors";
-import { Duration } from "../../duration";
 
 export interface BasicStepScalingPolicyProps {
   /**

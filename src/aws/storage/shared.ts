@@ -1,9 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-dynamodb/lib/shared.ts
 
-import * as cloudwatch from "../cloudwatch";
-import * as iam from "../iam";
-import * as kms from "../encryption";
 import { IAwsConstruct } from "../aws-construct";
+import * as cloudwatch from "../cloudwatch";
+import * as kms from "../encryption";
+import * as iam from "../iam";
 
 /**
  * Supported DynamoDB table operations.

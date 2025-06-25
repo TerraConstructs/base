@@ -384,7 +384,6 @@ export class NetworkListener extends BaseListener implements INetworkListener {
     props: AddNetworkTargetsProps,
   ): NetworkTargetGroup {
     if (!this.loadBalancer.vpc) {
-       
       throw new Error(
         "Can only call addTargets() when using a constructed Load Balancer or imported Load Balancer with specified VPC; construct a new TargetGroup and use addTargetGroup",
       );

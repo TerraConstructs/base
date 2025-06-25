@@ -7,11 +7,11 @@ import { Testing, App } from "cdktf";
 import * as fc from "fast-check";
 import "cdktf/lib/testing/adapters/jest";
 import { arbitrary_input_intervals, createScalableTarget } from "./util";
-import { Template } from "../../assertions";
-import { Metric } from "../../../src/aws/cloudwatch";
 import { AwsStack } from "../../../src/aws";
+import { Metric } from "../../../src/aws/cloudwatch";
 // import { Duration } from "../../../src/duration";
 import * as appscaling from "../../../src/aws/compute";
+import { Template } from "../../assertions";
 
 const environmentName = "TestEnv";
 const gridUUID = "123e4567-e89b-12d3";
@@ -497,6 +497,10 @@ class ScalingStackTemplate {
     "Target_ScaleInterval_LowerPolicy_6F26D597";
   public readonly upperPolicyLogicalName =
     "Target_ScaleInterval_UpperPolicy_7C751132";
+  public readonly lowerAlarmLogicalName =
+    "Target_ScaleInterval_LowerAlarm_4B5CE869";
+  public readonly upperAlarmLogicalName =
+    "Target_ScaleInterval_UpperAlarm_69FD1BBB";
 
   constructor(private readonly template: Template) {
     const policies = this.template.resourcesByType(
@@ -508,8 +512,8 @@ class ScalingStackTemplate {
 
     this.lowerPolicy = policies[this.lowerPolicyLogicalName];
     this.upperPolicy = policies[this.upperPolicyLogicalName];
-    this.lowerAlarm = alarms["Target_ScaleInterval_LowerAlarm_4B5CE869"];
-    this.upperAlarm = alarms["Target_ScaleInterval_UpperAlarm_69FD1BBB"];
+    this.lowerAlarm = alarms[this.lowerAlarmLogicalName];
+    this.upperAlarm = alarms[this.upperAlarmLogicalName];
   }
 
   public get lowerThreshold(): number | undefined {
@@ -622,7 +626,6 @@ function apply<T, U>(
  */
 function reportFalse(cond: boolean, ...repr: any[]): boolean {
   if (!cond) {
-     
     console.error("PROPERTY FAILS ON:", ...repr.map((r) => JSON.stringify(r)));
   }
   return cond;

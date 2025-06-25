@@ -5,11 +5,11 @@ import {
 } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-import { AwsStack } from "../../../src/aws";
-import * as appscaling from "../../../src/aws/compute";
-import * as cloudwatch from "../../../src/aws/cloudwatch";
-import { Template } from "../../assertions";
 import { createScalableTarget } from "./util";
+import { AwsStack } from "../../../src/aws";
+import * as cloudwatch from "../../../src/aws/cloudwatch";
+import * as appscaling from "../../../src/aws/compute";
+import { Template } from "../../assertions";
 
 const environmentName = "TestEnv";
 const gridUUID = "123e4567-e89b-12d3";

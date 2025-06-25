@@ -515,7 +515,6 @@ export class ApplicationListener
     props: AddApplicationTargetsProps,
   ): ApplicationTargetGroup {
     if (!this.loadBalancer.vpc) {
-       
       throw new Error(
         "Can only call addTargets() when using a constructed Load Balancer or an imported Load Balancer with specified vpc; construct a new TargetGroup and use addTargetGroup",
       );
@@ -866,7 +865,6 @@ abstract class ExternalApplicationListener
     _id: string,
     _props: AddApplicationTargetsProps,
   ): ApplicationTargetGroup {
-     
     throw new Error(
       "Can only call addTargets() when using a constructed ApplicationListener; construct a new TargetGroup and use addTargetGroup.",
     );

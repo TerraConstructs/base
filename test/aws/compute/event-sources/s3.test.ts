@@ -5,8 +5,6 @@ import { TestFunction } from "./test-function";
 import { compute, storage, AwsStack } from "../../../../src/aws";
 import { Template } from "../../../assertions";
 
- 
-
 describe("S3EventSource", () => {
   let stack: AwsStack;
   beforeEach(() => {

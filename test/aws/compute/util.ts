@@ -5,9 +5,9 @@ import {
   appautoscalingPolicy,
 } from "@cdktf/provider-aws";
 import * as constructs from "constructs";
-import * as appscaling from "../../../src/aws/compute";
-import { AwsStack } from "../../../src/aws/aws-stack";
 import * as fc from "fast-check";
+import { AwsStack } from "../../../src/aws/aws-stack";
+import * as appscaling from "../../../src/aws/compute";
 import * as scalingcommon from "../../../src/aws/compute/autoscaling-common";
 
 // Helper function from the original test suite, adapted for AwsStack

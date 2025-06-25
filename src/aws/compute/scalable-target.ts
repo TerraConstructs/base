@@ -14,14 +14,14 @@ import {
   BasicTargetTrackingScalingPolicyProps,
   TargetTrackingScalingPolicy,
 } from "./target-tracking-scaling-policy";
-import * as iam from "../iam";
+import { TimeZone } from "../../time-zone";
+import { withResolved } from "../../token";
 import {
   AwsConstructBase,
   AwsConstructProps,
   IAwsConstruct,
 } from "../aws-construct";
-import { TimeZone } from "../../time-zone";
-import { withResolved } from "../../token";
+import * as iam from "../iam";
 
 /**
  * Represents a Application Auto Scaling Scalable Target

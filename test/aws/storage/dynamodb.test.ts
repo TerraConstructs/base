@@ -1,17 +1,20 @@
-import { AppautoscalingTarget } from "@cdktf/provider-aws/lib/appautoscaling-target";
 import { AppautoscalingPolicy } from "@cdktf/provider-aws/lib/appautoscaling-policy";
+import { AppautoscalingTarget } from "@cdktf/provider-aws/lib/appautoscaling-target";
 import { DataAwsIamPolicyDocument } from "@cdktf/provider-aws/lib/data-aws-iam-policy-document";
-import { DynamodbTable } from "@cdktf/provider-aws/lib/dynamodb-table";
 import { DynamodbContributorInsights } from "@cdktf/provider-aws/lib/dynamodb-contributor-insights";
 import { DynamodbKinesisStreamingDestination } from "@cdktf/provider-aws/lib/dynamodb-kinesis-streaming-destination";
 import { DynamodbResourcePolicy } from "@cdktf/provider-aws/lib/dynamodb-resource-policy";
-import { IamUserPolicy } from "@cdktf/provider-aws/lib/iam-user-policy";
+import { DynamodbTable } from "@cdktf/provider-aws/lib/dynamodb-table";
 import { IamRolePolicy } from "@cdktf/provider-aws/lib/iam-role-policy";
+import { IamUserPolicy } from "@cdktf/provider-aws/lib/iam-user-policy";
 import { KmsKey } from "@cdktf/provider-aws/lib/kms-key";
 import { App, Testing } from "cdktf";
 // import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
-import { Stream } from "../../../src/aws/notify/kinesis-stream";
+import { AwsStack } from "../../../src/aws/aws-stack";
+import { Tags } from "../../../src/aws/aws-tags";
+import { Alarm } from "../../../src/aws/cloudwatch";
+import { Schedule } from "../../../src/aws/compute";
 import { Key } from "../../../src/aws/encryption";
 import {
   IPrincipal,
@@ -23,10 +26,7 @@ import {
   PolicyStatement,
   ArnPrincipal,
 } from "../../../src/aws/iam";
-import { Schedule } from "../../../src/aws/compute";
-import { Alarm } from "../../../src/aws/cloudwatch";
-import { AwsStack } from "../../../src/aws/aws-stack";
-import { Tags } from "../../../src/aws/aws-tags";
+import { Stream } from "../../../src/aws/notify/kinesis-stream";
 // import { AwsConstructBase } from "../../../src/aws/aws-construct";
 import {
   Attribute,

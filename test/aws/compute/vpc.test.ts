@@ -2699,7 +2699,7 @@ describe("vpc", () => {
       const subnet = Subnet.fromSubnetId(stack, "subnet1", "pub-1");
 
       // THEN
-       
+
       expect(() => subnet.availabilityZone).toThrow(
         "You cannot reference a Subnet's availability zone if it was not supplied. Add the availabilityZone when importing using Subnet.fromSubnetAttributes()",
       );
@@ -2717,7 +2717,7 @@ describe("vpc", () => {
 
       // THEN
       expect(subnet.subnetId).toEqual("pub-1");
-       
+
       expect(() => subnet.availabilityZone).toThrow(
         "You cannot reference a Subnet's availability zone if it was not supplied. Add the availabilityZone when importing using Subnet.fromSubnetAttributes()",
       );
