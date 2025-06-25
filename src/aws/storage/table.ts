@@ -8,6 +8,8 @@ import {
 } from "@cdktf/provider-aws";
 import { Token, Lazy, Annotations } from "cdktf";
 import { Construct } from "constructs";
+import * as storage from ".";
+import { ArnFormat, AwsConstructBase, AwsConstructProps, AwsStack } from "..";
 import { DynamoDBMetrics } from "./dynamodb-canned-metrics.generated";
 import * as perms from "./dynamodb-perms";
 import {
@@ -30,13 +32,11 @@ import {
   StreamViewType,
   PointInTimeRecoverySpecification,
 } from "./shared";
-import * as appscaling from "../compute";
 import * as cloudwatch from "../cloudwatch";
+import * as appscaling from "../compute";
+import * as kms from "../encryption";
 import * as iam from "../iam";
 import * as kinesis from "../notify";
-import * as kms from "../encryption";
-import * as storage from ".";
-import { ArnFormat, AwsConstructBase, AwsConstructProps, AwsStack } from "..";
 // Missing in Terraform DynamoDb Replica Configuration block
 // https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/resources/dynamodb_table#replica
 // import { Duration } from "../../duration";
@@ -613,18 +613,12 @@ export abstract class TableBase
     const resources = [
       this.tableArn,
       Lazy.stringValue({
-        produce: () =>
-          this.hasIndex
-            ? `${this.tableArn}/index/*`
-            : Token.asString(Token.nullValue()),
+        produce: () => (this.hasIndex ? `${this.tableArn}/index/*` : undefined),
       }),
       ...this.regionalArns,
       ...this.regionalArns.map((arn) =>
         Lazy.stringValue({
-          produce: () =>
-            this.hasIndex
-              ? `${arn}/index/*`
-              : Token.asString(Token.nullValue()),
+          produce: () => (this.hasIndex ? `${arn}/index/*` : undefined),
         }),
       ),
     ];
@@ -632,9 +626,7 @@ export abstract class TableBase
     return iam.Grant.addToPrincipalOrResource({
       grantee,
       actions,
-      resourceArns: resources.filter(
-        (r) => r !== Token.asString(Token.nullValue()),
-      ),
+      resourceArns: resources.filter((r) => r !== undefined),
       resource: this, // Grant will take the principal from the grantee
     });
   }
@@ -657,7 +649,19 @@ export abstract class TableBase
   }
 
   public grantReadData(grantee: iam.IGrantable): iam.Grant {
-    const tableActions = perms.READ_DATA_ACTIONS.concat(perms.DESCRIBE_TABLE);
+    const tableActions = perms.READ_DATA_ACTIONS_TABLE_SAFE.concat(
+      perms.DESCRIBE_TABLE,
+    );
+
+    // If streams are available, also grant stream-specific actions
+    if (this.tableStreamArn) {
+      return this.combinedGrant(grantee, {
+        keyActions: perms.KEY_READ_ACTIONS,
+        tableActions,
+        streamActions: perms.READ_DATA_ACTIONS_STREAM_ONLY,
+      });
+    }
+
     return this.combinedGrant(grantee, {
       keyActions: perms.KEY_READ_ACTIONS,
       tableActions,
@@ -967,26 +971,19 @@ export abstract class TableBase
         this.tableArn,
         Lazy.stringValue({
           produce: () =>
-            this.hasIndex
-              ? `${this.tableArn}/index/*`
-              : Token.asString(Token.nullValue()),
+            this.hasIndex ? `${this.tableArn}/index/*` : undefined,
         }),
         ...this.regionalArns,
         ...this.regionalArns.map((arn) =>
           Lazy.stringValue({
-            produce: () =>
-              this.hasIndex
-                ? `${arn}/index/*`
-                : Token.asString(Token.nullValue()),
+            produce: () => (this.hasIndex ? `${arn}/index/*` : undefined),
           }),
         ),
       ];
       const ret = iam.Grant.addToPrincipalOrResource({
         grantee,
         actions: opts.tableActions,
-        resourceArns: resources.filter(
-          (r) => r !== Token.asString(Token.nullValue()),
-        ),
+        resourceArns: resources.filter((r) => r !== undefined),
         resource: this,
       });
       return ret;

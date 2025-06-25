@@ -12,10 +12,12 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.32.7
 	github.com/aws/aws-sdk-go-v2/config v1.28.5
 	github.com/aws/aws-sdk-go-v2/service/acm v1.30.6
+	github.com/aws/aws-sdk-go-v2/service/applicationautoscaling v1.33.6
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.38.7
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.43.4
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchevents v1.27.3
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.44.0
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.37.1
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.193.0
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.36.1
 	github.com/aws/aws-sdk-go-v2/service/iam v1.38.1
@@ -52,7 +54,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.26 // indirect
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.51.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/codeartifact v1.30.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.37.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.36.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.52.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1 // indirect

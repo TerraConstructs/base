@@ -254,7 +254,6 @@ export class Alarm extends AlarmBase {
     this.metric = props.metric;
     const datapoints = props.datapointsToAlarm || props.evaluationPeriods;
     this.annotation = {
-       
       label: `${this.metric} ${OPERATOR_SYMBOLS[comparisonOperator]} ${props.threshold} for ${datapoints} datapoints within ${describePeriod(props.evaluationPeriods * metricPeriod(props.metric).toSeconds())}`,
       value: props.threshold,
     };
@@ -407,7 +406,7 @@ export class Alarm extends AlarmBase {
                       ? stat.account
                       : undefined,
                     label: conf.renderingProperties?.label,
-                    returnData: entry.tag ? undefined : false, // entry.tag evaluates to true if the metric is the math expression the alarm is based on.
+                    returnData: entry.tag ? true : false, // entry.tag evaluates to true if the metric is the math expression the alarm is based on.
                   };
                 },
                 withExpression(expr, conf) {
@@ -424,7 +423,7 @@ export class Alarm extends AlarmBase {
                     id: entry.id || uniqueMetricId(),
                     label: conf.renderingProperties?.label,
                     period: hasSubmetrics ? undefined : expr.period,
-                    returnData: entry.tag ? undefined : false, // entry.tag evaluates to true if the metric is the math expression the alarm is based on.
+                    returnData: entry.tag ? true : false, // entry.tag evaluates to true if the metric is the math expression the alarm is based on.
                   };
                 },
               }) as cloudwatchMetricAlarm.CloudwatchMetricAlarmMetricQuery,

@@ -2154,7 +2154,7 @@ describe("grants", () => {
         {
           actions: ["dynamodb:action1", "dynamodb:action2"],
           effect: "Allow",
-          resources: [stack.resolve(table.tableArn), null],
+          resources: [stack.resolve(table.tableArn)],
         },
       ],
     });
@@ -2175,8 +2175,6 @@ describe("grants", () => {
     testGrant(
       [
         "BatchGetItem",
-        "GetRecords",
-        "GetShardIterator",
         "Query",
         "GetItem",
         "Scan",
@@ -2395,8 +2393,6 @@ describe("grants", () => {
         {
           actions: [
             "dynamodb:BatchGetItem",
-            "dynamodb:GetRecords",
-            "dynamodb:GetShardIterator",
             "dynamodb:Query",
             "dynamodb:GetItem",
             "dynamodb:Scan",
@@ -2438,7 +2434,6 @@ describe("grants", () => {
           effect: "Allow",
           resources: [
             "arn:${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/my-table",
-            null,
           ],
         },
       ],
@@ -2517,8 +2512,6 @@ describe("import", () => {
               {
                 actions: [
                   "dynamodb:BatchGetItem",
-                  "dynamodb:GetRecords",
-                  "dynamodb:GetShardIterator",
                   "dynamodb:Query",
                   "dynamodb:GetItem",
                   "dynamodb:Scan",
@@ -2781,8 +2774,6 @@ describe("import", () => {
                 {
                   actions: [
                     "dynamodb:BatchGetItem",
-                    "dynamodb:GetRecords",
-                    "dynamodb:GetShardIterator",
                     "dynamodb:Query",
                     "dynamodb:GetItem",
                     "dynamodb:Scan",
@@ -2832,8 +2823,6 @@ describe("import", () => {
                 {
                   actions: [
                     "dynamodb:BatchGetItem",
-                    "dynamodb:GetRecords",
-                    "dynamodb:GetShardIterator",
                     "dynamodb:Query",
                     "dynamodb:GetItem",
                     "dynamodb:Scan",
@@ -2954,8 +2943,6 @@ describe("global", () => {
           {
             actions: [
               "dynamodb:BatchGetItem",
-              "dynamodb:GetRecords",
-              "dynamodb:GetShardIterator",
               "dynamodb:Query",
               "dynamodb:GetItem",
               "dynamodb:Scan",
@@ -3018,8 +3005,6 @@ describe("global", () => {
           {
             actions: [
               "dynamodb:BatchGetItem",
-              "dynamodb:GetRecords",
-              "dynamodb:GetShardIterator",
               "dynamodb:Query",
               "dynamodb:GetItem",
               "dynamodb:Scan",
@@ -3410,7 +3395,7 @@ function testGrant(
         {
           actions: action,
           effect: "Allow",
-          resources: [stack.resolve(table.tableArn), null],
+          resources: [stack.resolve(table.tableArn)],
         },
       ],
     },
