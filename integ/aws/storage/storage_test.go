@@ -172,8 +172,8 @@ func runStorageIntegrationTest(t *testing.T, testApp, awsRegion string, validate
 	})
 	test_structure.RunTestStage(t, "deploy_terraform", func() {
 		util.DeployUsingTerraform(t, tfWorkingDir, map[string]string{
-			// TODO: Fix Dependency tree to avoid this error :(
-			".*The EventInvokeConfig for function .* could not be updated due to a concurrent update operation.*": "Failed due to concurrent update operation.",
+			// TODO: Scaling Policy Target race condition on resource Id (despite `resource_id = "table/${aws_dynamodb_table.Table_CD117FA1.name}" containing resource reference)
+			".*No scalable target registered for service namespace: dynamodb.*": "Failed due to eventual consistency between AutoScaling and DynamoDb services.",
 		})
 	})
 	test_structure.RunTestStage(t, "validate", func() {
@@ -204,8 +204,8 @@ func runStorageIntegrationTestWithLoadTest(
 	})
 	test_structure.RunTestStage(t, "deploy_terraform", func() {
 		util.DeployUsingTerraform(t, tfWorkingDir, map[string]string{
-			// TODO: Fix Dependency tree to avoid this error :(
-			".*The EventInvokeConfig for function .* could not be updated due to a concurrent update operation.*": "Failed due to concurrent update operation.",
+			// TODO: Scaling Policy Target race condition on resource Id (despite `resource_id = "table/${aws_dynamodb_table.Table_CD117FA1.name}" containing resource reference)
+			".*No scalable target registered for service namespace: dynamodb.*": "Failed due to eventual consistency between AutoScaling and DynamoDb services.",
 		})
 	})
 	test_structure.RunTestStage(t, "validate", func() {
