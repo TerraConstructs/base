@@ -3,25 +3,32 @@ package test
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
+	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/applicationautoscaling/types"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/applicationautoscaling/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/terraconstructs/go-synth/executors"
 
 	"github.com/gruntwork-io/terratest/modules/aws"
+	loggers "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	util "github.com/terraconstructs/base/integ/aws"
+)
+
+var (
+	terratestLogger = loggers.Default
 )
 
 // Test the bucket-notifications integration
@@ -176,8 +183,8 @@ func runStorageIntegrationTest(t *testing.T, testApp, awsRegion string, validate
 
 // run integration test with load testing
 func runStorageIntegrationTestWithLoadTest(
-	t *testing.T, 
-	testApp, awsRegion string, 
+	t *testing.T,
+	testApp, awsRegion string,
 	validate func(t *testing.T, tfWorkingDir string, awsRegion string),
 	loadTest func(t *testing.T, tfWorkingDir string, awsRegion string),
 ) {
@@ -240,6 +247,7 @@ func getTableReadCapacityTarget(t *testing.T, awsRegion string, resourceId strin
 }
 
 // validateTableAutoScalingLoadTest performs load testing validation for DynamoDB autoscaling
+// Note: Only tests scale-up behavior due to AWS DynamoDB autoscaling cooldown periods (15-20 minutes for scale-down)
 func validateTableAutoScalingLoadTest(t *testing.T, tfWorkingDir string, awsRegion string) {
 	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 	outputs := terraform.OutputAll(t, terraformOptions)
@@ -249,59 +257,61 @@ func validateTableAutoScalingLoadTest(t *testing.T, tfWorkingDir string, awsRegi
 
 	// 1. Record initial capacity
 	initialCapacity := getCurrentReadCapacity(t, awsRegion, resourceId)
-	t.Logf("Initial read capacity: %d RCU", initialCapacity)
+	terratestLogger.Logf(t, "Initial read capacity: %d RCU", initialCapacity)
 	assert.Equal(t, int32(5), initialCapacity, "Initial capacity should be 5 RCU")
 
 	// 2. Start load simulation
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 
-	t.Logf("Starting load simulation targeting 30+ percent utilization...")
+	terratestLogger.Logf(t, "Starting load simulation targeting 30+ percent utilization...")
 	go simulateReadLoad(ctx, t, awsRegion, tableName)
 
 	// Give load simulation time to ramp up and CloudWatch metrics to register
-	t.Logf("Allowing 30 seconds for load to ramp up...")
+	terratestLogger.Logf(t, "Allowing 30 seconds for load to ramp up...")
 	time.Sleep(30 * time.Second)
 
 	// 3. Wait for scale-up
-	t.Logf("Waiting for capacity to scale up...")
+	terratestLogger.Logf(t, "Waiting for capacity to scale up...")
 	scaledUpCapacity := waitForCapacityChange(t, awsRegion, resourceId, initialCapacity, "up", 5*time.Minute)
 	assert.Greater(t, scaledUpCapacity, initialCapacity, "Capacity should scale up under load")
-	t.Logf("Capacity scaled up from %d to %d RCU", initialCapacity, scaledUpCapacity)
+	terratestLogger.Logf(t, "Capacity scaled up from %d to %d RCU", initialCapacity, scaledUpCapacity)
 
-	// 4. Stop load and wait for scale-down
+	// 4. Stop load simulation (scale-down testing skipped due to 15-20 minute cooldown periods)
 	cancel() // Stop load simulation
-	t.Logf("Load stopped, waiting for scale-down...")
-
-	scaledDownCapacity := waitForCapacityChange(t, awsRegion, resourceId, scaledUpCapacity, "down", 6*time.Minute)
-	assert.Less(t, scaledDownCapacity, scaledUpCapacity, "Capacity should scale down after load reduction")
-	assert.GreaterOrEqual(t, scaledDownCapacity, int32(1), "Capacity should not go below minimum")
-	t.Logf("Capacity scaled down from %d to %d RCU", scaledUpCapacity, scaledDownCapacity)
+	terratestLogger.Logf(t, "Load simulation completed. Scale-up validation successful!")
+	terratestLogger.Logf(t, "Note: Scale-down testing skipped due to AWS DynamoDB autoscaling cooldown periods (15-20 minutes)")
 }
 
-// simulateReadLoad creates concurrent load on the DynamoDB table
+// simulateReadLoad creates concurrent load on the DynamoDB table with exponential backoff
 func simulateReadLoad(ctx context.Context, t *testing.T, region, tableName string) {
 	client := aws.NewDynamoDBClient(t, region)
 
-	// Launch multiple goroutines for concurrent load
-	// Target: ~2.5 RCU/second (50% of 5 RCU) to exceed 30% threshold
+	// Target: ~15 RCU/second to exceed 30% threshold while allowing for backoff
 	var wg sync.WaitGroup
-	numWorkers := 20
+	numWorkers := 10
 
-	t.Logf("Starting %d worker goroutines for load simulation", numWorkers)
+	terratestLogger.Logf(t, "Starting %d worker goroutines for load simulation with exponential backoff", numWorkers)
 
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
+
 			requestCount := 0
+			successCount := 0
+			backoffDelay := 200 * time.Millisecond // Base interval
+			maxBackoff := 5 * time.Second          // Maximum backoff
+			minBackoff := 100 * time.Millisecond   // Minimum backoff for errors
 
 			for {
 				select {
 				case <-ctx.Done():
-					t.Logf("Worker %d completed %d requests", workerID, requestCount)
+					terratestLogger.Logf(t, "Worker %d completed %d requests (%d successful)", workerID, requestCount, successCount)
 					return
 				default:
+					requestCount++
+
 					// Perform GetItem with random key
 					key := fmt.Sprintf("loadtest-%d-%d", workerID, time.Now().UnixNano())
 					_, err := client.GetItem(ctx, &dynamodb.GetItemInput{
@@ -311,18 +321,51 @@ func simulateReadLoad(ctx context.Context, t *testing.T, region, tableName strin
 						},
 						ConsistentRead: awssdk.Bool(true), // Use consistent reads for more predictable RCU consumption
 					})
-					
-					if err != nil && ctx.Err() == nil {
-						t.Logf("Worker %d GetItem error: %v", workerID, err)
-					} else {
-						requestCount++
-					}
 
-					// Control request rate - each worker does ~1 request every 800ms
-					// 20 workers * 1.25 req/sec = ~25 req/sec total
-					// Each GetItem consumes ~1 RCU, so ~25 RCU/sec total
-					// This should be 25/5 = 500% utilization, well above 30% threshold
-					time.Sleep(80 * time.Millisecond)
+					if err != nil && ctx.Err() == nil {
+						// Classify error type for appropriate handling
+						errorMsg := err.Error()
+						isThrottling := strings.Contains(errorMsg, "ProvisionedThroughputExceededException")
+						isRetryQuotaExceeded := strings.Contains(errorMsg, "retry quota exceeded")
+
+						if isThrottling {
+							// Exponential backoff for throttling errors
+							backoffDelay = time.Duration(float64(backoffDelay) * 1.5)
+							if backoffDelay > maxBackoff {
+								backoffDelay = maxBackoff
+							}
+							// Add jitter to prevent thundering herd
+							jitter := time.Duration(rand.Intn(int(backoffDelay.Milliseconds()/4))) * time.Millisecond
+							totalDelay := backoffDelay + jitter
+
+							if requestCount <= 3 { // Only log first few throttling errors per worker
+								terratestLogger.Logf(t, "Worker %d throttled, backing off for %v (request %d)", workerID, totalDelay, requestCount)
+							}
+							time.Sleep(totalDelay)
+						} else if isRetryQuotaExceeded {
+							// Longer backoff for retry quota exceeded
+							quotaBackoff := 2*time.Second + time.Duration(rand.Intn(3000))*time.Millisecond
+							if requestCount <= 2 { // Only log first couple quota errors per worker
+								terratestLogger.Logf(t, "Worker %d retry quota exceeded, backing off for %v", workerID, quotaBackoff)
+							}
+							time.Sleep(quotaBackoff)
+						} else {
+							// Other errors - shorter backoff
+							if requestCount <= 3 {
+								terratestLogger.Logf(t, "Worker %d error: %v", workerID, err)
+							}
+							time.Sleep(minBackoff)
+						}
+					} else {
+						// Success - reset backoff and increment success counter
+						successCount++
+						backoffDelay = 200 * time.Millisecond // Reset to base interval
+
+						// Normal interval between successful requests
+						// 10 workers * 200ms = ~50 requests/second total when not throttled
+						// Each GetItem consumes ~1 RCU, targeting ~200% utilization to exceed 30% threshold
+						time.Sleep(backoffDelay)
+					}
 				}
 			}
 		}(i)
@@ -335,14 +378,14 @@ func simulateReadLoad(ctx context.Context, t *testing.T, region, tableName strin
 func getCurrentReadCapacity(t *testing.T, region, resourceId string) int32 {
 	// Extract table name from resourceId (format: "table/tableName")
 	tableName := resourceId[6:] // Remove "table/" prefix
-	
+
 	// Get actual current capacity from DynamoDB
 	dynamoClient := aws.NewDynamoDBClient(t, region)
 	result, err := dynamoClient.DescribeTable(context.Background(), &dynamodb.DescribeTableInput{
 		TableName: awssdk.String(tableName),
 	})
 	require.NoError(t, err, "Failed to describe DynamoDB table")
-	
+
 	return int32(*result.Table.ProvisionedThroughput.ReadCapacityUnits)
 }
 
@@ -358,24 +401,24 @@ func waitForCapacityChange(t *testing.T, region, resourceId string, baselineCapa
 	var finalCapacity int32
 	pollCount := 0
 
-	t.Logf("Starting capacity monitoring: baseline=%d, direction=%s, timeout=%v", baselineCapacity, direction, timeout)
+	terratestLogger.Logf(t, "Starting capacity monitoring: baseline=%d, direction=%s, timeout=%v", baselineCapacity, direction, timeout)
 
 	_, err := retry.DoWithRetryE(t, description, maxRetries, 20*time.Second, func() (string, error) {
 		pollCount++
 		currentCapacity := getCurrentReadCapacity(t, region, resourceId)
 		finalCapacity = currentCapacity
 
-		t.Logf("Poll %d: Current capacity = %d RCU (baseline = %d)", pollCount, currentCapacity, baselineCapacity)
+		terratestLogger.Logf(t, "Poll %d: Current capacity = %d RCU (baseline = %d)", pollCount, currentCapacity, baselineCapacity)
 
 		switch direction {
 		case "up":
 			if currentCapacity > baselineCapacity {
-				t.Logf("SUCCESS: Capacity scaled up from %d to %d RCU", baselineCapacity, currentCapacity)
+				terratestLogger.Logf(t, "SUCCESS: Capacity scaled up from %d to %d RCU", baselineCapacity, currentCapacity)
 				return fmt.Sprintf("Scaled up to %d", currentCapacity), nil
 			}
 		case "down":
 			if currentCapacity < baselineCapacity {
-				t.Logf("SUCCESS: Capacity scaled down from %d to %d RCU", baselineCapacity, currentCapacity)
+				terratestLogger.Logf(t, "SUCCESS: Capacity scaled down from %d to %d RCU", baselineCapacity, currentCapacity)
 				return fmt.Sprintf("Scaled down to %d", currentCapacity), nil
 			}
 		}
@@ -384,10 +427,9 @@ func waitForCapacityChange(t *testing.T, region, resourceId string, baselineCapa
 	})
 
 	if err != nil {
-		t.Logf("TIMEOUT: Capacity did not scale %s within %v (final capacity: %d)", direction, timeout, finalCapacity)
+		terratestLogger.Logf(t, "TIMEOUT: Capacity did not scale %s within %v (final capacity: %d)", direction, timeout, finalCapacity)
 	}
 
 	require.NoError(t, err, "Failed to detect capacity scaling within timeout")
 	return finalCapacity
 }
-

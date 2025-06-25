@@ -1183,7 +1183,10 @@ export class Table extends TableBase {
   private readonly billingMode: BillingMode;
   private readonly tableScaling: ScalableAttributePair = {};
   private readonly indexScaling = new Map<string, ScalableAttributePair>();
-  private readonly scalingRole: iam.IRole;
+  // Commenting out scalingRole as Terraform auto-creates service-linked roles
+  // Unlike AWS CDK CloudFormation, Terraform AWS provider's roleArn is optional
+  // and defaults to appropriate service-linked roles when omitted
+  // private readonly scalingRole: iam.IRole;
 
   private readonly _resource: dynamodbTable.DynamodbTable;
   private readonly _replicas: dynamodbTable.DynamodbTableReplica[] | undefined;
@@ -1367,7 +1370,8 @@ export class Table extends TableBase {
       );
     }
 
-    this.scalingRole = this.makeScalingRole();
+    // Commenting out scalingRole initialization - let Terraform auto-create service-linked role
+    // this.scalingRole = this.makeScalingRole();
 
     this.node.addValidation({ validate: () => this.validateTable() });
   }
@@ -1474,7 +1478,7 @@ export class Table extends TableBase {
         serviceNamespace: appscaling.ServiceNamespace.DYNAMODB,
         resourceId: `table/${this.tableName}`,
         dimension: "dynamodb:table:ReadCapacityUnits",
-        role: this.scalingRole,
+        // role: this.scalingRole, // Commenting out - let Terraform use service-linked role
         ...props,
       }));
   }
@@ -1504,7 +1508,7 @@ export class Table extends TableBase {
         serviceNamespace: appscaling.ServiceNamespace.DYNAMODB,
         resourceId: `table/${this.tableName}`,
         dimension: "dynamodb:table:WriteCapacityUnits",
-        role: this.scalingRole,
+        // role: this.scalingRole, // Commenting out - let Terraform use service-linked role
         ...props,
       },
     );
@@ -1548,7 +1552,7 @@ export class Table extends TableBase {
         serviceNamespace: appscaling.ServiceNamespace.DYNAMODB,
         resourceId: `table/${this.tableName}/index/${indexName}`,
         dimension: "dynamodb:index:ReadCapacityUnits",
-        role: this.scalingRole,
+        // role: this.scalingRole, // Commenting out - let Terraform use service-linked role
         ...props,
       },
     ));
@@ -1588,7 +1592,7 @@ export class Table extends TableBase {
         serviceNamespace: appscaling.ServiceNamespace.DYNAMODB,
         resourceId: `table/${this.tableName}/index/${indexName}`,
         dimension: "dynamodb:index:WriteCapacityUnits",
-        role: this.scalingRole,
+        // role: this.scalingRole, // Commenting out - let Terraform use service-linked role
         ...props,
       },
     ));
@@ -1799,24 +1803,26 @@ export class Table extends TableBase {
     }
   }
 
-  private makeScalingRole(): iam.IRole {
-    // Use a Service Linked Role.
-    // https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-service-linked-roles.html
-    return iam.Role.fromRoleArn(
-      this,
-      "ScalingRole",
-      this.stack.formatArn({
-        service: "iam",
-        region: "", // SLRs are global
-        account: "aws", // SLRs are AWS-managed in terms of account for ARN construction
-        resource:
-          "role/aws-service-role/dynamodb.application-autoscaling.amazonaws.com",
-        resourceName: "AWSServiceRoleForApplicationAutoScaling_DynamoDBTable",
-        // TODO: Is this needed?
-        // arnFormat: ArnFormat.SLASH_RESOURCE_SLASH_RESOURCE_NAME, // Special format for SLRs
-      }),
-    );
-  }
+  // Commenting out makeScalingRole method - Terraform handles service-linked roles automatically
+  // Unlike AWS CDK CloudFormation implementation, Terraform AWS provider creates appropriate
+  // service-linked roles when roleArn is omitted from aws_appautoscaling_target resource
+  // private makeScalingRole(): iam.IRole {
+  //   // Use a Service Linked Role.
+  //   // https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-service-linked-roles.html
+  //   return iam.Role.fromRoleArn(
+  //     this,
+  //     "ScalingRole",
+  //     this.stack.formatArn({
+  //       service: "iam",
+  //       region: "", // SLRs are global
+  //       resource:
+  //         "role/aws-service-role/dynamodb.application-autoscaling.amazonaws.com",
+  //       resourceName: "AWSServiceRoleForApplicationAutoScaling_DynamoDBTable",
+  //       // TODO: Is this needed?
+  //       // arnFormat: ArnFormat.SLASH_RESOURCE_SLASH_RESOURCE_NAME, // Special format for SLRs
+  //     }),
+  //   );
+  // }
 
   /**
    * Creates replica tables

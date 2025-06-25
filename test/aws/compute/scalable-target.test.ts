@@ -225,6 +225,7 @@ describe("scalable target", () => {
           {
             expression: "a",
             id: "expr_1",
+            return_data: true,
           },
           {
             id: "a",
@@ -271,6 +272,7 @@ describe("scalable target", () => {
           {
             expression: "a",
             id: "expr_1",
+            return_data: true,
           },
           {
             id: "a",
@@ -388,6 +390,43 @@ describe("scalable target", () => {
         min_capacity: 1,
         max_capacity: 20,
         role_arn: stack.resolve(role.roleArn),
+      },
+    );
+  });
+
+  test("create scalable target without role (uses service-linked role)", () => {
+    // WHEN
+    new appscaling.ScalableTarget(stack, "ServiceLinkedTarget", {
+      serviceNamespace: appscaling.ServiceNamespace.DYNAMODB,
+      scalableDimension: "test:TestCount",
+      resourceId: "test:this/test",
+      minCapacity: 1,
+      maxCapacity: 20,
+      // No role provided - should use service-linked role
+    });
+
+    // THEN - role_arn should not be present, allowing Terraform to use service-linked roles
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(
+      appautoscalingTarget.AppautoscalingTarget,
+      {
+        service_namespace: "dynamodb",
+        scalable_dimension: "test:TestCount",
+        resource_id: "test:this/test",
+        min_capacity: 1,
+        max_capacity: 20,
+        // role_arn intentionally omitted to verify it's not present
+      },
+    );
+
+    // Additional verification: role_arn should not be present at all
+    template.not.toHaveResourceWithProperties(
+      appautoscalingTarget.AppautoscalingTarget,
+      {
+        service_namespace: "dynamodb",
+        scalable_dimension: "test:TestCount",
+        resource_id: "test:this/test",
+        role_arn: expect.anything(), // Should not have role_arn property
       },
     );
   });

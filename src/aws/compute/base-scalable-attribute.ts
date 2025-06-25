@@ -31,8 +31,10 @@ export interface BaseScalableAttributeProps extends EnableScalingProps {
 
   /**
    * Role to use for scaling
+   *
+   * @default A role is automatically created
    */
-  readonly role: iam.IRole;
+  readonly role?: iam.IRole;
 }
 
 /**

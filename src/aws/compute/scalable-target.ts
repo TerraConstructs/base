@@ -37,7 +37,7 @@ export interface IScalableTarget extends IAwsConstruct {
   /**
    * The IAM role that allows Application Auto Scaling to modify your scalable target.
    */
-  readonly role: iam.IRole;
+  readonly role?: iam.IRole;
 
   /**
    * The resource identifier to associate with this scalable target.
@@ -233,7 +233,7 @@ export class ScalableTarget
   }
 
   public readonly scalableTargetId: string;
-  public readonly role: iam.IRole;
+  public readonly role?: iam.IRole;
   public readonly resourceId: string;
   public readonly scalableDimension: string;
   public readonly serviceNamespace: ServiceNamespace;
@@ -267,25 +267,29 @@ export class ScalableTarget
       }
     });
 
-    this.role =
-      props.role ||
-      new iam.Role(this, "Role", {
-        assumedBy: new iam.ServicePrincipal(
-          "application-autoscaling.amazonaws.com",
-        ),
-      });
+    // For DynamoDB autoscaling, use service-linked roles when no explicit role is provided
+    // This allows Terraform to automatically manage the appropriate service-linked role
+    // rather than creating a custom IAM role that may have incorrect ARN format
+    this.role = props.role;
+
+    const targetConfig: any = {
+      maxCapacity: props.maxCapacity,
+      minCapacity: props.minCapacity,
+      resourceId: props.resourceId,
+      scalableDimension: props.scalableDimension,
+      serviceNamespace: props.serviceNamespace,
+    };
+
+    // Only include roleArn if a role is explicitly provided
+    // When omitted, Terraform will use appropriate service-linked roles
+    if (this.role) {
+      targetConfig.roleArn = this.role.roleArn;
+    }
 
     this.targetResource = new appautoscalingTarget.AppautoscalingTarget(
       this,
       "Resource",
-      {
-        maxCapacity: props.maxCapacity,
-        minCapacity: props.minCapacity,
-        resourceId: props.resourceId,
-        roleArn: this.role.roleArn,
-        scalableDimension: props.scalableDimension,
-        serviceNamespace: props.serviceNamespace,
-      },
+      targetConfig,
     );
 
     this.scalableTargetId = this.targetResource.id;
@@ -297,11 +301,17 @@ export class ScalableTarget
   public get outputs(): Record<string, any> {
     return {
       scalableTargetId: this.scalableTargetId,
-      roleArn: this.role.roleArn,
+      roleArn: this.role?.roleArn,
     };
   }
 
   public addToRolePolicy(statement: iam.PolicyStatement) {
+    if (!this.role) {
+      throw new Error(
+        "Cannot add policy to role when using service-linked roles. " +
+          "Provide an explicit role in ScalableTargetProps if you need to add custom policies.",
+      );
+    }
     this.role.addToPrincipalPolicy(statement);
   }
 
