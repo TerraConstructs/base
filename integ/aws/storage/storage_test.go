@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -148,10 +149,54 @@ func TestTablePolicy(t *testing.T) {
 	runStorageIntegrationTest(t, "table.policy", "us-east-1", validateTablePolicy)
 }
 
-// Validate table.alarm-metrics integration test
+// Validate table.policy integration test
 func validateTablePolicy(t *testing.T, tfWorkingDir string, awsRegion string) {
-	// terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
-	// TODO: Implement validation logic for table.alarm-metrics
+	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+
+	// Get table names and ARNs from terraform outputs using LoadOutputAttribute
+	tableTest1Name := util.LoadOutputAttribute(t, terraformOptions, "table", "tableName")
+	tableTest2Name := util.LoadOutputAttribute(t, terraformOptions, "table_two", "tableName")
+	tableTest1Arn := util.LoadOutputAttribute(t, terraformOptions, "table", "tableArn")
+	tableTest2Arn := util.LoadOutputAttribute(t, terraformOptions, "table_two", "tableArn")
+
+	// 1. Table Creation and Schema Validation
+	terratestLogger.Logf(t, "Validating table schemas...")
+	
+	// Validate TableTest1 schema: partition key = "id" (STRING), no sort key
+	validateTableSchema(t, awsRegion, tableTest1Name, "id", "", "TableTest1")
+	
+	// Validate TableTest2 schema: partition key = "PK" (STRING), no sort key  
+	validateTableSchema(t, awsRegion, tableTest2Name, "PK", "", "TableTest2")
+
+	// 2. Resource Policy Validation for TableTest1
+	terratestLogger.Logf(t, "Validating TableTest1 resource policy...")
+	policy := getDynamoDBTableResourcePolicy(t, awsRegion, tableTest1Arn)
+	require.NotNil(t, policy, "TableTest1 should have a resource policy")
+	
+	// Parse policy document
+	var policyDoc map[string]interface{}
+	err := json.Unmarshal([]byte(*policy), &policyDoc)
+	require.NoError(t, err, "Policy document should be valid JSON")
+	
+	// Validate policy structure and content
+	validateResourcePolicyContent(t, policyDoc, "TableTest1")
+
+	// 3. grantReadData Policy Validation for TableTest2
+	terratestLogger.Logf(t, "Validating TableTest2 grantReadData policy...")
+	// Note: grantReadData creates resource policies when it can't add to principal IAM policies
+	// For TableTest2, we verify that a resource policy exists (created by grantReadData)
+	policy2 := getDynamoDBTableResourcePolicy(t, awsRegion, tableTest2Arn)
+	require.NotNil(t, policy2, "TableTest2 should have a resource policy created by grantReadData")
+	
+	// Parse policy document for TableTest2
+	var policyDoc2 map[string]interface{}
+	err2 := json.Unmarshal([]byte(*policy2), &policyDoc2)
+	require.NoError(t, err2, "TableTest2 policy document should be valid JSON")
+	
+	// Validate TableTest2 policy content (should have more specific read-only actions)
+	validateGrantReadDataPolicyContent(t, policyDoc2, "TableTest2")
+
+	terratestLogger.Logf(t, "Table policy validation completed successfully!")
 }
 
 // run integration test
@@ -432,4 +477,292 @@ func waitForCapacityChange(t *testing.T, region, resourceId string, baselineCapa
 
 	require.NoError(t, err, "Failed to detect capacity scaling within timeout")
 	return finalCapacity
+}
+
+// validateTableSchema validates the schema of a DynamoDB table
+func validateTableSchema(t *testing.T, awsRegion string, tableName string, expectedPartitionKey string, expectedSortKey string, tableIdentifier string) {
+	table := aws.GetDynamoDBTable(t, awsRegion, tableName)
+	assert.Equal(t, "ACTIVE", string(table.TableStatus), "%s should be ACTIVE", tableIdentifier)
+
+	// Validate partition key
+	require.Len(t, table.KeySchema, getExpectedKeyCount(expectedSortKey), "%s should have correct number of keys", tableIdentifier)
+	
+	// Find partition key
+	var partitionKey *types.KeySchemaElement
+	for _, key := range table.KeySchema {
+		if key.KeyType == types.KeyTypeHash {
+			partitionKey = &key
+			break
+		}
+	}
+	require.NotNil(t, partitionKey, "%s should have a partition key", tableIdentifier)
+	assert.Equal(t, expectedPartitionKey, *partitionKey.AttributeName, "%s partition key should be %s", tableIdentifier, expectedPartitionKey)
+
+	// Validate sort key if expected
+	if expectedSortKey != "" {
+		var sortKey *types.KeySchemaElement
+		for _, key := range table.KeySchema {
+			if key.KeyType == types.KeyTypeRange {
+				sortKey = &key
+				break
+			}
+		}
+		require.NotNil(t, sortKey, "%s should have a sort key", tableIdentifier)
+		assert.Equal(t, expectedSortKey, *sortKey.AttributeName, "%s sort key should be %s", tableIdentifier, expectedSortKey)
+	}
+
+	// Validate attribute definitions
+	expectedAttrCount := 1
+	if expectedSortKey != "" {
+		expectedAttrCount = 2
+	}
+	require.Len(t, table.AttributeDefinitions, expectedAttrCount, "%s should have correct number of attribute definitions", tableIdentifier)
+
+	// Find partition key attribute definition
+	var partitionKeyAttr *types.AttributeDefinition
+	for _, attr := range table.AttributeDefinitions {
+		if *attr.AttributeName == expectedPartitionKey {
+			partitionKeyAttr = &attr
+			break
+		}
+	}
+	require.NotNil(t, partitionKeyAttr, "%s should have partition key attribute definition", tableIdentifier)
+	assert.Equal(t, types.ScalarAttributeTypeS, partitionKeyAttr.AttributeType, "%s partition key should be STRING type", tableIdentifier)
+}
+
+// getExpectedKeyCount returns the expected number of keys based on whether sort key is provided
+func getExpectedKeyCount(expectedSortKey string) int {
+	if expectedSortKey == "" {
+		return 1 // Only partition key
+	}
+	return 2 // Partition key + sort key
+}
+
+// getDynamoDBTableResourcePolicy retrieves the resource policy for a DynamoDB table with retry logic for eventual consistency
+func getDynamoDBTableResourcePolicy(t *testing.T, awsRegion string, tableArn string) *string {
+	client := aws.NewDynamoDBClient(t, awsRegion)
+	
+	// Retry logic for eventual consistency - GetResourcePolicy can initially return PolicyNotFoundException
+	description := fmt.Sprintf("Getting resource policy for table %s", tableArn)
+	maxRetries := 5
+	retryInterval := 10 * time.Second
+
+	var policy *string
+	_, err := retry.DoWithRetryE(t, description, maxRetries, retryInterval, func() (string, error) {
+		result, err := client.GetResourcePolicy(context.Background(), &dynamodb.GetResourcePolicyInput{
+			ResourceArn: awssdk.String(tableArn),
+		})
+		
+		if err != nil {
+			// Check if it's a PolicyNotFoundException (expected for tables without policies)
+			if strings.Contains(err.Error(), "PolicyNotFoundException") {
+				terratestLogger.Logf(t, "No resource policy found for table %s", tableArn)
+				policy = nil
+				return "No policy found", nil
+			}
+			return "", err
+		}
+		
+		if result.Policy != nil {
+			policy = result.Policy
+			terratestLogger.Logf(t, "Successfully retrieved resource policy for table %s", tableArn)
+			return "Policy retrieved", nil
+		}
+		
+		return "", fmt.Errorf("policy result was nil")
+	})
+
+	// For eventual consistency, we allow PolicyNotFoundException to be the final result
+	if err != nil && !strings.Contains(err.Error(), "PolicyNotFoundException") {
+		require.NoError(t, err, "Failed to get resource policy")
+	}
+
+	return policy
+}
+
+// validateResourcePolicyContent validates the content of a DynamoDB resource policy
+func validateResourcePolicyContent(t *testing.T, policyDoc map[string]interface{}, tableIdentifier string) {
+	// Validate policy document structure
+	require.Contains(t, policyDoc, "Statement", "%s policy should have Statement", tableIdentifier)
+	
+	statements, ok := policyDoc["Statement"].([]interface{})
+	require.True(t, ok, "%s policy Statement should be an array", tableIdentifier)
+	require.Len(t, statements, 1, "%s policy should have exactly one statement", tableIdentifier)
+	
+	statement, ok := statements[0].(map[string]interface{})
+	require.True(t, ok, "%s policy statement should be an object", tableIdentifier)
+	
+	// Validate Effect
+	require.Contains(t, statement, "Effect", "%s policy statement should have Effect", tableIdentifier)
+	assert.Equal(t, "Allow", statement["Effect"], "%s policy statement Effect should be Allow", tableIdentifier)
+	
+	// Validate Action
+	require.Contains(t, statement, "Action", "%s policy statement should have Action", tableIdentifier)
+	action := statement["Action"]
+	
+	// Action can be either a string or an array
+	var actionString string
+	switch v := action.(type) {
+	case string:
+		actionString = v
+	case []interface{}:
+		require.Len(t, v, 1, "%s policy statement should have exactly one action", tableIdentifier)
+		actionString = v[0].(string)
+	default:
+		require.Fail(t, "Unexpected action type", "%s policy statement Action should be string or array", tableIdentifier)
+	}
+	
+	assert.Equal(t, "dynamodb:*", actionString, "%s policy statement should allow dynamodb:* actions", tableIdentifier)
+	
+	// Validate Principal
+	require.Contains(t, statement, "Principal", "%s policy statement should have Principal", tableIdentifier)
+	principal, ok := statement["Principal"].(map[string]interface{})
+	require.True(t, ok, "%s policy statement Principal should be an object", tableIdentifier)
+	
+	require.Contains(t, principal, "AWS", "%s policy statement Principal should have AWS", tableIdentifier)
+	awsPrincipal := principal["AWS"]
+	
+	// Principal can be either a string or an array - handle both cases
+	var principalArn string
+	switch v := awsPrincipal.(type) {
+	case string:
+		principalArn = v
+	case []interface{}:
+		require.Len(t, v, 1, "%s policy statement should have exactly one AWS principal", tableIdentifier)
+		principalArn = v[0].(string)
+	default:
+		require.Fail(t, "Unexpected principal type", "%s policy statement AWS principal should be string or array", tableIdentifier)
+	}
+	
+	// Validate that it's an account root principal (format: arn:aws:iam::ACCOUNT-ID:root)
+	assert.Contains(t, principalArn, ":root", "%s policy statement should grant access to account root principal", tableIdentifier)
+	assert.Contains(t, principalArn, "arn:aws:iam::", "%s policy statement should be a valid IAM ARN", tableIdentifier)
+	
+	// Validate Resource
+	require.Contains(t, statement, "Resource", "%s policy statement should have Resource", tableIdentifier)
+	resource := statement["Resource"]
+	
+	// Resource can be either a string or an array
+	var resourceString string
+	switch v := resource.(type) {
+	case string:
+		resourceString = v
+	case []interface{}:
+		require.Len(t, v, 1, "%s policy statement should have exactly one resource", tableIdentifier)
+		resourceString = v[0].(string)
+	default:
+		require.Fail(t, "Unexpected resource type", "%s policy statement Resource should be string or array", tableIdentifier)
+	}
+	
+	assert.Equal(t, "*", resourceString, "%s policy statement should allow access to all resources", tableIdentifier)
+	
+	terratestLogger.Logf(t, "Successfully validated %s resource policy content", tableIdentifier)
+}
+
+// validateGrantReadDataPolicyContent validates the content of a DynamoDB resource policy created by grantReadData
+func validateGrantReadDataPolicyContent(t *testing.T, policyDoc map[string]interface{}, tableIdentifier string) {
+	// Validate policy document structure
+	require.Contains(t, policyDoc, "Statement", "%s policy should have Statement", tableIdentifier)
+	
+	statements, ok := policyDoc["Statement"].([]interface{})
+	require.True(t, ok, "%s policy Statement should be an array", tableIdentifier)
+	require.Len(t, statements, 1, "%s policy should have exactly one statement", tableIdentifier)
+	
+	statement, ok := statements[0].(map[string]interface{})
+	require.True(t, ok, "%s policy statement should be an object", tableIdentifier)
+	
+	// Validate Effect
+	require.Contains(t, statement, "Effect", "%s policy statement should have Effect", tableIdentifier)
+	assert.Equal(t, "Allow", statement["Effect"], "%s policy statement Effect should be Allow", tableIdentifier)
+	
+	// Validate Action - grantReadData should only have read-specific actions
+	require.Contains(t, statement, "Action", "%s policy statement should have Action", tableIdentifier)
+	actions, ok := statement["Action"].([]interface{})
+	require.True(t, ok, "%s policy statement Action should be an array", tableIdentifier)
+	
+	// Verify that we have read-only actions (not "dynamodb:*")
+	actionStrings := make([]string, len(actions))
+	for i, action := range actions {
+		actionStrings[i] = action.(string)
+	}
+	
+	// Check for expected read actions (these come from READ_DATA_ACTIONS_TABLE_SAFE + DESCRIBE_TABLE)
+	expectedReadActions := []string{
+		"dynamodb:BatchGetItem",
+		"dynamodb:ConditionCheckItem", 
+		"dynamodb:DescribeTable",
+		"dynamodb:GetItem",
+		"dynamodb:Query",
+		"dynamodb:Scan",
+	}
+	
+	for _, expectedAction := range expectedReadActions {
+		assert.Contains(t, actionStrings, expectedAction, "%s policy should contain read action %s", tableIdentifier, expectedAction)
+	}
+	
+	// Should NOT contain write actions like PutItem, UpdateItem, DeleteItem
+	forbiddenWriteActions := []string{
+		"dynamodb:PutItem",
+		"dynamodb:UpdateItem", 
+		"dynamodb:DeleteItem",
+		"dynamodb:BatchWriteItem",
+	}
+	
+	for _, forbiddenAction := range forbiddenWriteActions {
+		assert.NotContains(t, actionStrings, forbiddenAction, "%s policy should not contain write action %s", tableIdentifier, forbiddenAction)
+	}
+	
+	// Should NOT contain wildcard action
+	assert.NotContains(t, actionStrings, "dynamodb:*", "%s policy should not contain wildcard action", tableIdentifier)
+	
+	// Validate Principal - should be the account root principal
+	require.Contains(t, statement, "Principal", "%s policy statement should have Principal", tableIdentifier)
+	principal, ok := statement["Principal"].(map[string]interface{})
+	require.True(t, ok, "%s policy statement Principal should be an object", tableIdentifier)
+	
+	require.Contains(t, principal, "AWS", "%s policy statement Principal should have AWS", tableIdentifier)
+	awsPrincipal := principal["AWS"]
+	
+	// Principal can be either a string or an array - handle both cases
+	var principalArn string
+	switch v := awsPrincipal.(type) {
+	case string:
+		principalArn = v
+	case []interface{}:
+		require.Len(t, v, 1, "%s policy statement should have exactly one AWS principal", tableIdentifier)
+		principalArn = v[0].(string)
+	default:
+		require.Fail(t, "Unexpected principal type", "%s policy statement AWS principal should be string or array", tableIdentifier)
+	}
+	
+	// Validate that it's an account root principal (format: arn:aws:iam::ACCOUNT-ID:root)
+	assert.Contains(t, principalArn, ":root", "%s policy statement should grant access to account root principal", tableIdentifier)
+	assert.Contains(t, principalArn, "arn:aws:iam::", "%s policy statement should be a valid IAM ARN", tableIdentifier)
+	
+	// Validate Resource - should reference the table
+	require.Contains(t, statement, "Resource", "%s policy statement should have Resource", tableIdentifier)
+	resource := statement["Resource"]
+	
+	// Resource can be either a string or an array
+	var resourceArns []string
+	switch v := resource.(type) {
+	case string:
+		resourceArns = []string{v}
+	case []interface{}:
+		resourceArns = make([]string, len(v))
+		for i, res := range v {
+			resourceArns[i] = res.(string)
+		}
+	default:
+		require.Fail(t, "Unexpected resource type", "%s policy statement Resource should be string or array", tableIdentifier)
+	}
+	
+	require.GreaterOrEqual(t, len(resourceArns), 1, "%s policy statement should have at least one resource", tableIdentifier)
+	
+	// First resource should be the table ARN
+	tableArn := resourceArns[0]
+	assert.Contains(t, tableArn, "arn:aws:dynamodb:", "%s policy statement should reference a DynamoDB table", tableIdentifier)
+	assert.Contains(t, tableArn, "table/", "%s policy statement should reference a table resource", tableIdentifier)
+	
+	terratestLogger.Logf(t, "Successfully validated %s grantReadData policy content", tableIdentifier)
 }

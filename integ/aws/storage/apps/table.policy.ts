@@ -35,6 +35,8 @@ export class TestStack extends aws.AwsStack {
       },
       // removalPolicy: RemovalPolicy.DESTROY,
       resourcePolicy: doc,
+      registerOutputs: true,
+      outputName: "table",
     });
 
     this.tableTwo = new aws.storage.Table(this, "TableTest2", {
@@ -43,6 +45,8 @@ export class TestStack extends aws.AwsStack {
         type: aws.storage.AttributeType.STRING,
       },
       // removalPolicy: RemovalPolicy.DESTROY,
+      registerOutputs: true,
+      outputName: "table_two",
     });
 
     this.tableTwo.grantReadData(new aws.iam.AccountPrincipal(awsAccountId));
