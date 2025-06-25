@@ -583,7 +583,7 @@ export class LogGroup extends LogGroupBase {
       );
     }
 
-    let logGroupClass = props.logGroupClass;
+    const logGroupClass = props.logGroupClass;
 
     const logGroupClassUnsupportedRegions = [
       "us-iso-west-1", // APA

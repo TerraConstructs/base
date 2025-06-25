@@ -31,7 +31,7 @@ export class EventBridgeDestination implements compute.IDestination {
     }
 
     const existingDefaultEventBus = _scope.node.tryFindChild("DefaultEventBus");
-    let eventBus =
+    const eventBus =
       (existingDefaultEventBus as notify.EventBus) ||
       notify.EventBus.fromEventBusArn(
         _scope,

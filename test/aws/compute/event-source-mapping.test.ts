@@ -28,7 +28,7 @@ describe("event source mapping", () => {
   // TODO: Revisit this test
   test.skip("verify that alias.addEventSourceMapping produces stable ids", () => {
     // GIVEN
-    var alias = new compute.Alias(stack, "LiveAlias", {
+    const alias = new compute.Alias(stack, "LiveAlias", {
       aliasName: "Live",
       function: fn,
       version: fn.version,
@@ -369,7 +369,7 @@ describe("event source mapping", () => {
       type: "String",
     });
 
-    let eventSourceArn = "some-arn";
+    const eventSourceArn = "some-arn";
 
     new compute.EventSourceMapping(stack, "test", {
       target: fn,
@@ -400,7 +400,7 @@ describe("event source mapping", () => {
       type: "String",
     });
 
-    let eventSourceArn = "some-arn";
+    const eventSourceArn = "some-arn";
 
     new compute.EventSourceMapping(stack, "test", {
       target: fn,
@@ -448,7 +448,7 @@ describe("event source mapping", () => {
       type: "String",
     });
 
-    let eventSourceArn = "some-arn";
+    const eventSourceArn = "some-arn";
 
     new compute.EventSourceMapping(stack, "test", {
       target: fn,
@@ -585,7 +585,7 @@ describe("event source mapping", () => {
       type: "String",
     });
 
-    let kafkaBootstrapServers = ["kafka-broker.example.com:9092"];
+    const kafkaBootstrapServers = ["kafka-broker.example.com:9092"];
     new compute.EventSourceMapping(stack, "test", {
       target: fn,
       kafkaBootstrapServers,

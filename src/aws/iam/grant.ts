@@ -329,7 +329,6 @@ export class Grant implements IDependable {
    */
   public assertSuccess(): void {
     if (!this.success) {
-      // eslint-disable-next-line max-len
       throw new Error(
         `${describeGrant(this.options)} could not be added on either identity or resource policy.`,
       );

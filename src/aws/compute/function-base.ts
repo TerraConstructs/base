@@ -300,9 +300,9 @@ export abstract class LambdaFunctionBase
       return;
     }
 
-    let principal = this.parsePermissionPrincipal(permission.principal);
+    const principal = this.parsePermissionPrincipal(permission.principal);
 
-    let { sourceArn, sourceAccount, principalOrgID } =
+    const { sourceArn, sourceAccount, principalOrgID } =
       this.validateConditionCombinations(permission.principal) ?? {};
 
     const action = permission.action ?? "lambda:InvokeFunction";
@@ -425,7 +425,7 @@ export abstract class LambdaFunctionBase
     // Memoize the result so subsequent grantInvoke() calls are idempotent
     grant = this._invocationGrants[identifier];
     if (!grant) {
-      let resouceArns = [`${this.functionArn}:${version}`];
+      const resouceArns = [`${this.functionArn}:${version}`];
       if (version == this.version) {
         resouceArns.push(this.functionArn);
       }
@@ -605,8 +605,7 @@ export abstract class LambdaFunctionBase
     // Try some specific common classes first.
     // use duck-typing, not instance of
     if ("wrapped" in principal) {
-      // eslint-disable-next-line dot-notation
-      principal = principal["wrapped"];
+      principal = principal.wrapped;
     }
 
     if ("accountId" in principal) {

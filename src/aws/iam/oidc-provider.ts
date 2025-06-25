@@ -170,7 +170,7 @@ export class OpenIdConnectProvider
     super(scope, id, props);
     // thumbprints is still required for terraform-provider-aws, use dummy ...
     // https://github.com/hashicorp/terraform-provider-aws/issues/35112
-    let thumbprintList = props.thumbprints ?? [
+    const thumbprintList = props.thumbprints ?? [
       "afafafafafafafafafafafafafafafafafafafaf",
     ];
     // TODO: this may cause unexpected errors if thumbprints are not provided

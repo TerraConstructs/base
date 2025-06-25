@@ -923,7 +923,7 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
       placement.subnets === undefined
     ) {
       // Return default subnet type based on subnets that actually exist
-      let subnetType = this.privateSubnets.length
+      const subnetType = this.privateSubnets.length
         ? SubnetType.PRIVATE_WITH_EGRESS
         : this.isolatedSubnets.length
           ? SubnetType.PRIVATE_ISOLATED
@@ -932,7 +932,7 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
     }
 
     // Establish which subnet filters are going to be used
-    let subnetFilters = placement.subnetFilters ?? [];
+    const subnetFilters = placement.subnetFilters ?? [];
 
     // Backwards compatibility with existing `availabilityZones` and `onePerAz` functionality
     if (placement.availabilityZones !== undefined) {
@@ -941,7 +941,7 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
         SubnetFilter.availabilityZones(placement.availabilityZones),
       );
     }
-    if (!!placement.onePerAz) {
+    if (placement.onePerAz) {
       // Ensure one per AZ if specified
       subnetFilters.push(SubnetFilter.onePerAz());
     }
@@ -2465,10 +2465,9 @@ export class Subnet extends AwsConstructBase implements ISubnet {
   public static fromSubnetId(
     scope: Construct,
     id: string,
-    // eslint-disable-next-line @typescript-eslint/no-shadow
-    subnetId: string,
+    snetId: string,
   ): ISubnet {
-    return this.fromSubnetAttributes(scope, id, { subnetId });
+    return this.fromSubnetAttributes(scope, id, { subnetId: snetId });
   }
 
   public readonly subnetOutputs: SubnetOutputs;
@@ -3198,7 +3197,7 @@ class ImportedSubnet
         Token.isUnresolved([attrs.subnetId])
           ? `at '${Node.of(scope).path}/${id}'`
           : `'${attrs.subnetId}'`;
-      // eslint-disable-next-line max-len
+
       // "@aws-cdk/aws-ec2:noSubnetRouteTableId",
       Annotations.of(this).addWarning(
         `No routeTableId was provided to the subnet ${ref}. Attempting to read its .routeTable.routeTableId will return null/undefined. (More info: https://github.com/aws/aws-cdk/pull/3171)`,
@@ -3224,7 +3223,6 @@ class ImportedSubnet
 
   public get availabilityZone(): string {
     if (!this._availabilityZone) {
-      // eslint-disable-next-line max-len
       throw new Error(
         "You cannot reference a Subnet's availability zone if it was not supplied. Add the availabilityZone when importing using Subnet.fromSubnetAttributes()",
       );
@@ -3290,14 +3288,12 @@ function determineNatGatewayCount(
         : 0;
 
   if (count === 0 && hasPrivateSubnets && !hasCustomEgress) {
-    // eslint-disable-next-line max-len
     throw new Error(
       "If you do not want NAT gateways (natGateways=0), make sure you don't configure any PRIVATE(_WITH_NAT) subnets in 'subnetConfiguration' (make them PUBLIC or ISOLATED instead)",
     );
   }
 
   if (count > 0 && !hasPublicSubnets) {
-    // eslint-disable-next-line max-len
     throw new Error(
       `If you configure PRIVATE subnets in 'subnetConfiguration', you must also configure PUBLIC subnets to put the NAT gateways into (got ${JSON.stringify(subnetConfig)}.`,
     );

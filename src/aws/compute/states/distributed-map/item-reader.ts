@@ -422,7 +422,7 @@ export class S3CsvItemReader extends S3FileItemReader {
   }
 
   public render(): any {
-    let rendered = super.render();
+    const rendered = super.render();
 
     rendered.ReaderConfig = FieldUtils.renderObject({
       ...rendered.ReaderConfig,

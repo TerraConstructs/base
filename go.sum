@@ -34,6 +34,8 @@ github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.26 h1:GeNJsIFHB+WW5ap2Tec4K6dzcVT
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.26/go.mod h1:zfgMpwHDXX2WGoG84xG2H+ZlPTkJUU4YUvx2svLQYWo=
 github.com/aws/aws-sdk-go-v2/service/acm v1.30.6 h1:fDg0RlN30Xf/yYzEUL/WXqhmgFsjVb/I3230oCfyI5w=
 github.com/aws/aws-sdk-go-v2/service/acm v1.30.6/go.mod h1:zRR6jE3v/TcbfO8C2P+H0Z+kShiKKVaVyoIl8NQRjyg=
+github.com/aws/aws-sdk-go-v2/service/applicationautoscaling v1.33.6 h1:tA9FFJKQEPZ1YXuO+ZIMXBYy7Jrsz5SJ4feg/zb82Ig=
+github.com/aws/aws-sdk-go-v2/service/applicationautoscaling v1.33.6/go.mod h1:XBKTLJ2N61HegfI0sroliDC1MNX0L3ApqCfNoZ9POAA=
 github.com/aws/aws-sdk-go-v2/service/autoscaling v1.51.0 h1:1KzQVZi7OTixxaVJ8fWaJAUBjme+iQ3zBOCZhE4RgxQ=
 github.com/aws/aws-sdk-go-v2/service/autoscaling v1.51.0/go.mod h1:I1+/2m+IhnK5qEbhS3CrzjeiVloo9sItE/2K+so0fkU=
 github.com/aws/aws-sdk-go-v2/service/cloudfront v1.38.7 h1:XAIxPw6FUxGv2xCB+7GapxB/H1LxfUogdzHbL6Pn3kI=

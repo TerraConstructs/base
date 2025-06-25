@@ -568,10 +568,10 @@ export class NatGateway extends AwsConstructBase implements IRouteTarget {
     }
 
     // If user does not provide EIP, generate one for them
-    var aId: string | undefined;
+    let aId: string | undefined;
     if (this.connectivityType === NatConnectivityType.PUBLIC) {
       if (!props.allocationId) {
-        let eip = new tfEip.Eip(this, "EIP", {
+        const eip = new tfEip.Eip(this, "EIP", {
           domain: props.vpc?.vpcId,
         });
         aId = eip.allocationId;

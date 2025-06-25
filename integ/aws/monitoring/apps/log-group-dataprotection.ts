@@ -12,9 +12,9 @@ class LogGroupIntegStack extends aws.AwsStack {
   constructor(scope: App, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
 
-    var audit = new aws.cloudwatch.LogGroup(this, "LogGroupLambdaAudit");
+    const audit = new aws.cloudwatch.LogGroup(this, "LogGroupLambdaAudit");
 
-    var bucket = new aws.storage.Bucket(this, "audit-bucket-id", {
+    const bucket = new aws.storage.Bucket(this, "audit-bucket-id", {
       registerOutputs: true,
       outputName: "bucket",
     });

@@ -57,7 +57,7 @@ export class SqsQueue implements notify.IRuleTarget {
    */
   public bind(rule: notify.IRule, _id?: string): notify.RuleTargetConfig {
     // restrict to same account
-    let conditions: iam.Conditions = [
+    const conditions: iam.Conditions = [
       // Add only the account id as a condition, to avoid circular dependency.
       // https://github.com/aws/aws-cdk/issues/11158
       {

@@ -56,7 +56,7 @@ export class DataProtectionPolicy {
 
     const identifiers: string[] = [];
     const customDataIdentifiers: PolicyCustomDataIdentifier[] = [];
-    for (let identifier of this.dataProtectionPolicyProps.identifiers) {
+    for (const identifier of this.dataProtectionPolicyProps.identifiers) {
       if (identifier instanceof CustomDataIdentifier) {
         identifiers.push(identifier.name);
         customDataIdentifiers.push({

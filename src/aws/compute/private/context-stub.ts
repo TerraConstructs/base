@@ -24,7 +24,7 @@ export function allowAllOutboundLocal(
   }
   const stack = AwsStack.ofAwsConstruct(scope);
   const conditionName = `${id}AllowAllOutbound`;
-  let allowAllOutboundCondition = stack.node.tryFindChild(
+  const allowAllOutboundCondition = stack.node.tryFindChild(
     conditionName,
   ) as TerraformLocal;
   if (allowAllOutboundCondition) {

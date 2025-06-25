@@ -29,8 +29,6 @@ const gridBackendConfig = {
   address: "http://localhost:3000",
 };
 
-/* eslint-disable quote-props */
-
 describe("Topic", () => {
   let app: App;
   let stack: AwsStack;
