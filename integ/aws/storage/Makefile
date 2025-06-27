@@ -9,7 +9,7 @@ table.autoscaling: ## Test Auto Scaling Table
 .PHONY: table.autoscaling
 
 table.global: ## Test Global Table
-	go test -v -count 1 -timeout 15m ./... -run ^TestGlobalTable$
+	go test -v -count 1 -timeout 15m ./... -run ^TestTableGlobal$
 .PHONY: table.global
 
 table.kinesis-stream: ## Test Table with Kinesis Stream
