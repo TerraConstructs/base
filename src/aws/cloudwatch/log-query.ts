@@ -133,11 +133,11 @@ export class LogQueryWidget extends ConcreteWidget {
       this.props.view === LogQueryVisualizationType.STACKEDAREA
     ) {
       // assign the right native view value. both types share the same value
-      (properties.view = "timeSeries"),
+      ((properties.view = "timeSeries"),
         (properties.stacked =
           this.props.view === LogQueryVisualizationType.STACKEDAREA
             ? true
-            : false);
+            : false));
     }
 
     return [
