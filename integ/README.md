@@ -10,6 +10,43 @@ Refer to their excelent [Quick Start](https://terratest.gruntwork.io/docs/gettin
 
 Launch an Authenticated AWS Shell.
 
+## E2E User Setup
+
+To run the integration tests, you must not use the root AWS account. Instead, create a dedicated IAM user with administrative privileges.
+
+1.  **Create the IAM User:**
+
+    ```sh
+    aws iam create-user --user-name terraconstructs-e2e
+    ```
+
+2.  **Attach Administrator Policy:**
+
+    ```sh
+    aws iam attach-user-policy --user-name terraconstructs-e2e --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+    ```
+
+3.  **Create and Configure Access Key:**
+
+    ```sh
+    aws iam create-access-key --user-name terraconstructs-e2e
+    ```
+
+    This command will output an `AccessKeyId` and a `SecretAccessKey`. Use these to configure a new AWS CLI profile:
+
+    ```sh
+    aws configure --profile terraconstructs-e2e set aws_access_key_id <YOUR_ACCESS_KEY_ID>
+    aws configure --profile terraconstructs-e2e set aws_secret_access_key <YOUR_SECRET_ACCESS_KEY>
+    ```
+
+4.  **Set the AWS_PROFILE Environment Variable:**
+
+    Before running the tests, set the `AWS_PROFILE` environment variable to use the newly created profile:
+
+    ```sh
+    export AWS_PROFILE=terraconstructs-e2e
+    ```
+
 Run all e2e tests:
 
 > [!IMPORTANT]
