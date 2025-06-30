@@ -50,6 +50,14 @@ export class TestStack extends aws.AwsStack {
     });
 
     this.tableTwo.grantReadData(new aws.iam.AccountPrincipal(awsAccountId));
+
+    const testRole = new aws.iam.Role(this, "TestRole", {
+      assumedBy: new aws.iam.AccountPrincipal(awsAccountId),
+      registerOutputs: true,
+      outputName: "test_role",
+    });
+
+    this.table.grantReadWriteData(testRole);
   }
 }
 

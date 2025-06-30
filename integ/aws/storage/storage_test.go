@@ -193,6 +193,7 @@ func validateTablePolicy(t *testing.T, tfWorkingDir string, awsRegion string) {
 	tableTest2Name := util.LoadOutputAttribute(t, terraformOptions, "table_two", "tableName")
 	tableTest1Arn := util.LoadOutputAttribute(t, terraformOptions, "table", "tableArn")
 	tableTest2Arn := util.LoadOutputAttribute(t, terraformOptions, "table_two", "tableArn")
+	testRoleArn := util.LoadOutputAttribute(t, terraformOptions, "test_role", "arn")
 
 	// 1. Table Creation and Schema Validation
 	terratestLogger.Logf(t, "Validating table schemas...")
@@ -230,6 +231,22 @@ func validateTablePolicy(t *testing.T, tfWorkingDir string, awsRegion string) {
 
 	// Validate TableTest2 policy content (should have more specific read-only actions)
 	validateGrantReadDataPolicyContent(t, policyDoc2, "TableTest2")
+
+	// 4. IAM Role Policy Validation
+	terratestLogger.Logf(t, "Validating IAM role policy...")
+
+	// Get a DynamoDB client that assumes the test role
+	dynamoClient := util.GetDynamoDbClientWithRole(t, awsRegion, testRoleArn)
+
+	// Put and get the item using the assumed role
+	const testItemId = "test-item-1"
+	const testItemContent = "hello-world"
+	util.PutTestItem(t, dynamoClient, tableTest1Name, testItemId, testItemContent)
+
+	retrievedItem := util.GetTestItem(t, dynamoClient, tableTest1Name, "id", testItemId)
+
+	// Verify the retrieved item's content
+	assert.Equal(t, testItemContent, retrievedItem.Content, "Retrieved item content should match")
 
 	terratestLogger.Logf(t, "Table policy validation completed successfully!")
 }
