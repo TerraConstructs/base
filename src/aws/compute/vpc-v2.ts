@@ -319,7 +319,7 @@ export class VpcV2 extends VpcV2Base {
         props: VpcV2Attributes,
       ) {
         super(construct, constructId);
-        (this.vpcId = props.vpcId),
+        ((this.vpcId = props.vpcId),
           (this.region = props.region ?? this.stack.region),
           (this.ownerAccountId = props.ownerAccountId ?? this.stack.account),
           (this._partition = AwsStack.ofAwsConstruct(this).partition),
@@ -333,7 +333,7 @@ export class VpcV2 extends VpcV2Base {
               partition: this._partition,
             },
             this.stack,
-          ));
+          )));
 
         // Populate region and account fields that can be used to set up peering connection
         // sample vpc Arn - arn:aws:ec2:us-west-2:123456789012:vpc/vpc-0123456789abcdef0
