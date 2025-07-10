@@ -13,8 +13,8 @@ import {
 } from "./projenrc";
 
 // set strict node version compatible with webcontainers.io
-const nodeVersion = ">=18.18.0";
-const workflowNodeVersion = "18.20.5";
+const nodeVersion = ">=20.9.0";
+const workflowNodeVersion = "20.9.0";
 
 const project = new cdk.JsiiProject({
   name: "terraconstructs",
@@ -51,6 +51,7 @@ const project = new cdk.JsiiProject({
     "@cdktf/provider-time@^11.0.0",
     "@cdktf/provider-tls@^11.0.0",
     "@cdktf/provider-cloudinit@^11.0.0",
+    "@cdktf/provider-docker@^12.0.2",
     "constructs@^10.4.2",
   ],
   devDeps: [
@@ -59,16 +60,49 @@ const project = new cdk.JsiiProject({
     "@cdktf/provider-time@^11.0.0",
     "@cdktf/provider-tls@^11.0.0",
     "@cdktf/provider-cloudinit@^11.0.0",
+    "@cdktf/provider-docker@^12.0.2",
     "constructs@^10.4.2",
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
     "@types/mime-types",
     "fast-check@^3.23.2",
+    "delay@^5.0.0",
   ],
-  bundledDeps: ["esbuild-wasm@^0.23.1", "mime-types", "change-case@^4.1.1"],
+  bundledDeps: [
+    // TODO: remove esbuild-wasm
+    "esbuild-wasm@^0.23.1",
+    "mime-types",
+    "change-case@^4.1.1",
+    "@balena/dockerignore@^1.0.2",
+    "ignore@^5.3.2",
+    "minimatch@^3.1.2",
+  ],
+  // deps: ["@balena/dockerignore@^1.0.2", "ignore@^5.3.2"],
 
   workflowNodeVersion,
   workflowBootstrapSteps: [
+    // Docker setup and caching
+    // This is based on the CDK's PR build workflow:
+    // https://github.com/aws/aws-cdk/blob/v2.204.0/.github/workflows/pr-build.yml#L38-L58
+    // TODO: Only run this on PR builds and pushes to main
+    {
+      name: "set up Docker",
+      uses: "docker/setup-buildx-action@v3",
+    },
+    {
+      name: "Load docker images",
+      id: "docker-cache",
+      uses: "actions/cache/restore@v4",
+      with: {
+        path: "~/.docker-images.tar",
+        key: "docker-cache-${{ runner.os }}",
+      },
+    },
+    {
+      name: "Restore docker images",
+      if: "${{ steps.docker-cache.outputs.cache-hit }}",
+      run: "docker image load --input ~/.docker-images.tar",
+    },
     // // use individual setup actions for tool specific caching
     // {
     //   uses: "jdx/mise-action@v2",
@@ -98,6 +132,23 @@ const project = new cdk.JsiiProject({
       },
     },
   ],
+  postBuildSteps: [
+    // NOTE: Conditions required to ensure this only runs on pushes to main
+    {
+      name: "Export Docker images",
+      if: "${{ github.event_name == 'push' && github.ref_name == 'main' }}",
+      run: 'docker image save --output ~/.docker-images.tar $(docker image list --format \'{{ if ne .Repository "<none>" }}{{ .Repository }}{{ if ne .Tag "<none>" }}:{{ .Tag }}{{ end }}{{ else }}{{ .ID }}{{ end }}\')',
+    },
+    {
+      name: "Cache Docker images",
+      if: "${{ github.event_name == 'push' && github.ref_name == 'main' }}",
+      uses: "actions/cache/save@v4",
+      with: {
+        path: "~/.docker-images.tar",
+        key: "docker-cache-${{ runner.os }}",
+      },
+    },
+  ],
 
   jestOptions: {
     jestConfig: {
@@ -115,9 +166,9 @@ const project = new cdk.JsiiProject({
   },
 
   licensed: true,
-  license: "GPL-3.0-or-later",
+  license: "Apache-2.0",
   pullRequestTemplateContents: [
-    "By submitting this pull request, I confirm that my contribution is made under the terms of the GPL-3.0-or-later license.",
+    "By submitting this pull request, I confirm that my contribution is made under the terms of the Apache 2.0 license.",
   ],
 
   // disable autoMerge for now

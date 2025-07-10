@@ -1,9 +1,13 @@
-import path from "path";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { Duration } from "../../../src/";
 import { compute, storage, notify, AwsStack } from "../../../src/aws";
 
+const lambdaProps = {
+  code: new compute.InlineCode("foo"),
+  handler: "index.handler",
+  runtime: compute.Runtime.NODEJS_LATEST,
+};
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
 const gridBackendConfig = {
@@ -15,9 +19,7 @@ describe("Function with Storage", () => {
     // GIVEN
     const stack = getAwsStack();
     // WHEN
-    const fn = new compute.NodejsFunction(stack, "HelloWorld", {
-      path: path.join(__dirname, "fixtures", "hello-world.ts"),
-    });
+    const fn = new compute.LambdaFunction(stack, "HelloWorld", lambdaProps);
     const bucket = new storage.Bucket(stack, "HelloWorldBucket", {
       namePrefix: "hello-world",
     });
@@ -33,9 +35,7 @@ describe("Function with event rules", () => {
     // GIVEN
     const stack = getAwsStack();
     // WHEN
-    const fn = new compute.NodejsFunction(stack, "HelloWorld", {
-      path: path.join(__dirname, "fixtures", "hello-world.ts"),
-    });
+    const fn = new compute.LambdaFunction(stack, "HelloWorld", lambdaProps);
     const rule = new notify.Rule(stack, "HelloWorldRule", {
       schedule: notify.Schedule.rate(Duration.days(1)),
     });

@@ -120,6 +120,19 @@ export interface IFunction extends IAwsConstruct, iam.IGrantable {
   readonly architecture: Architecture;
 
   /**
+   * The ARN(s) to put into the resource field of the generated IAM policy for grantInvoke().
+   *
+   * This property is for cdk modules to consume only. You should not need to use this property.
+   * Instead, use grantInvoke() directly.
+   */
+  readonly resourceArnsForGrantInvoke: string[];
+
+  /**
+   * Qualified (`:QUALIFIER` or `:VERSION` suffix) ARN to be used for invoking Lambda Function from API Gateway.
+   */
+  readonly functionQualifiedInvokeArn: string;
+
+  /**
    * Adds an event source that maps to this AWS Lambda function.
    * @param id construct ID
    * @param options mapping options
@@ -211,6 +224,11 @@ export abstract class LambdaFunctionBase
    * Should include version (if versioning is enabled via publish = true)
    */
   public abstract readonly functionArn: string;
+
+  /**
+   * Qualified (`:QUALIFIER` or `:VERSION` suffix) ARN to be used for invoking Lambda Function from API Gateway. See also invoke_arn.
+   */
+  public abstract readonly functionQualifiedInvokeArn: string;
 
   /**
    * Latest published version of your Lambda Function.
@@ -531,7 +549,7 @@ export abstract class LambdaFunctionBase
    */
   protected _isStackAccount(): boolean {
     if (
-      Token.isUnresolved(this.stack.account) ||
+      Token.isUnresolved(this.stack.account) || // BUG? this is always false in TerraConstructs
       Token.isUnresolved(this.functionArn)
     ) {
       return false;

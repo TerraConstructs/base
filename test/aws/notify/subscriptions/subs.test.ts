@@ -1182,14 +1182,13 @@ test("queue subscription (with raw delivery)", () => {
 // });
 
 test("lambda subscription", () => {
-  const func = new compute.NodejsFunction(stack, "MyFunc", {
-    runtime: "nodejs18.x",
-    // runtime: compute.Runtime.NODEJS_LATEST,
-    // handler: "index.handler",
-    // code: compute.Code.fromInline(
-    //   "exports.handler = function(e, c, cb) { return cb() }",
-    // ),
-    path: path.join(__dirname, "fixtures", "noop.ts"),
+  const func = new compute.LambdaFunction(stack, "MyFunc", {
+    // path: path.join(__dirname, "fixtures", "noop.ts"),
+    runtime: compute.Runtime.NODEJS_LATEST,
+    handler: "index.handler",
+    code: compute.Code.fromInline(
+      "exports.handler = function(e, c, cb) { return cb() }",
+    ),
   });
 
   topic.addSubscription(new subs.LambdaSubscription(func));
@@ -1231,14 +1230,13 @@ test("lambda subscription, cross region env agnostic", () => {
     topicName: "topicName",
     displayName: "displayName",
   });
-  const func = new compute.NodejsFunction(lambdaStack, "MyFunc", {
-    runtime: "nodejs18.x",
-    // runtime: compute.Runtime.NODEJS_LATEST,
-    // handler: "index.handler",
-    // code: compute.Code.fromInline(
-    //   "exports.handler = function(e, c, cb) { return cb() }",
-    // ),
-    path: path.join(__dirname, "fixtures", "noop.ts"),
+  const func = new compute.LambdaFunction(lambdaStack, "MyFunc", {
+    // path: path.join(__dirname, "fixtures", "noop.ts"),
+    runtime: compute.Runtime.NODEJS_LATEST,
+    handler: "index.handler",
+    code: compute.Code.fromInline(
+      "exports.handler = function(e, c, cb) { return cb() }",
+    ),
   });
 
   topic1.addSubscription(new subs.LambdaSubscription(func));
@@ -1298,14 +1296,13 @@ test("lambda subscription, cross region env agnostic", () => {
 //     topicName: "topicName",
 //     displayName: "displayName",
 //   });
-//   const func = new compute.NodejsFunction(lambdaStack, "MyFunc", {
-//     runtime: "nodejs18.x",
-//     // runtime: compute.Runtime.NODEJS_LATEST,
-//     // handler: "index.handler",
-//     // code: compute.Code.fromInline(
-//     //   "exports.handler = function(e, c, cb) { return cb() }",
-//     // ),
-//     path: path.join(__dirname, "fixtures", "noop.ts"),
+//   const func = new compute.LambdaFunction(lambdaStack, "MyFunc", {
+//     // path: path.join(__dirname, "fixtures", "noop.ts"),
+//     runtime: compute.Runtime.NODEJS_LATEST,
+//     handler: "index.handler",
+//     code: compute.Code.fromInline(
+//       "exports.handler = function(e, c, cb) { return cb() }",
+//     ),
 //   });
 
 //   topic1.addSubscription(new subs.LambdaSubscription(func));
@@ -1513,14 +1510,13 @@ test("email and url subscriptions with unresolved - four subscriptions", () => {
 
 test("multiple subscriptions", () => {
   const queue = new notify.Queue(stack, "MyQueue");
-  const func = new compute.NodejsFunction(stack, "MyFunc", {
-    runtime: "nodejs18.x",
-    // runtime: compute.Runtime.NODEJS_LATEST,
-    // handler: "index.handler",
-    // code: compute.Code.fromInline(
-    //   "exports.handler = function(e, c, cb) { return cb() }",
-    // ),
-    path: path.join(__dirname, "fixtures", "noop.ts"),
+  const func = new compute.LambdaFunction(stack, "MyFunc", {
+    // path: path.join(__dirname, "fixtures", "noop.ts"),
+    runtime: compute.Runtime.NODEJS_LATEST,
+    handler: "index.handler",
+    code: compute.Code.fromInline(
+      "exports.handler = function(e, c, cb) { return cb() }",
+    ),
   });
 
   topic.addSubscription(new subs.SqsSubscription(queue));
@@ -1600,14 +1596,13 @@ test("throws with multiple subscriptions of the same subscriber", () => {
 });
 
 test("with filter policy", () => {
-  const func = new compute.NodejsFunction(stack, "MyFunc", {
-    runtime: "nodejs18.x",
-    // runtime: compute.Runtime.NODEJS_LATEST,
-    // handler: "index.handler",
-    // code: compute.Code.fromInline(
-    //   "exports.handler = function(e, c, cb) { return cb() }",
-    // ),
-    path: path.join(__dirname, "fixtures", "noop.ts"),
+  const func = new compute.LambdaFunction(stack, "MyFunc", {
+    // path: path.join(__dirname, "fixtures", "noop.ts"),
+    runtime: compute.Runtime.NODEJS_LATEST,
+    handler: "index.handler",
+    code: compute.Code.fromInline(
+      "exports.handler = function(e, c, cb) { return cb() }",
+    ),
   });
 
   topic.addSubscription(
@@ -1663,14 +1658,13 @@ test("with filter policy", () => {
 });
 
 test("with filter policy scope MessageBody", () => {
-  const func = new compute.NodejsFunction(stack, "MyFunc", {
-    runtime: "nodejs18.x",
-    // runtime: compute.Runtime.NODEJS_LATEST,
-    // handler: "index.handler",
-    // code: compute.Code.fromInline(
-    //   "exports.handler = function(e, c, cb) { return cb() }",
-    // ),
-    path: path.join(__dirname, "fixtures", "noop.ts"),
+  const func = new compute.LambdaFunction(stack, "MyFunc", {
+    // path: path.join(__dirname, "fixtures", "noop.ts"),
+    runtime: compute.Runtime.NODEJS_LATEST,
+    handler: "index.handler",
+    code: compute.Code.fromInline(
+      "exports.handler = function(e, c, cb) { return cb() }",
+    ),
   });
 
   topic.addSubscription(
@@ -1772,14 +1766,13 @@ test("with filter policy scope MessageBody", () => {
 //     "mytopic",
 //     "arn:aws:sns:us-east-1:1234567890:mytopic",
 //   );
-//   const func = new compute.NodejsFunction(stack, "MyFunc", {
-//     runtime: "nodejs18.x",
-//     // runtime: compute.Runtime.NODEJS_LATEST,
-//     // handler: "index.handler",
-//     // code: compute.Code.fromInline(
-//     //   "exports.handler = function(e, c, cb) { return cb() }",
-//     // ),
-//     path: path.join(__dirname, "fixtures", "noop.ts"),
+//   const func = new compute.LambdaFunction(stack, "MyFunc", {
+//     // path: path.join(__dirname, "fixtures", "noop.ts"),
+//     runtime: compute.Runtime.NODEJS_LATEST,
+//     handler: "index.handler",
+//     code: compute.Code.fromInline(
+//       "exports.handler = function(e, c, cb) { return cb() }",
+//     ),
 //   });
 //   imported.addSubscription(new subs.LambdaSubscription(func));
 
@@ -1799,14 +1792,13 @@ test("with filter policy scope MessageBody", () => {
 //     "mytopic",
 //     topicArn.stringValue,
 //   );
-//   const func = new compute.NodejsFunction(stack, "MyFunc", {
-//     runtime: "nodejs18.x",
-//     // runtime: compute.Runtime.NODEJS_LATEST,
-//     // handler: "index.handler",
-//     // code: compute.Code.fromInline(
-//     //   "exports.handler = function(e, c, cb) { return cb() }",
-//     // ),
-//     path: path.join(__dirname, "fixtures", "noop.ts"),
+//   const func = new compute.LambdaFunction(stack, "MyFunc", {
+//     // path: path.join(__dirname, "fixtures", "noop.ts"),
+//     runtime: compute.Runtime.NODEJS_LATEST,
+//     handler: "index.handler",
+//     code: compute.Code.fromInline(
+//       "exports.handler = function(e, c, cb) { return cb() }",
+//     ),
 //   });
 //   imported.addSubscription(new subs.LambdaSubscription(func));
 

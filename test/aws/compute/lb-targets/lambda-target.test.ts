@@ -1,4 +1,5 @@
-import path from "path";
+// https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-elasticloadbalancingv2-targets/test/lambda-target.test.ts
+
 import {
   lbTargetGroup as tfLbTargetGroup,
   lbTargetGroupAttachment as tfTargetGroupAttachment,
@@ -17,15 +18,11 @@ const gridBackendConfig = {
 };
 const providerConfig = { region: "us-east-1" };
 
-const fnProps: compute.NodejsFunctionProps = {
-  path: path.join(__dirname, "..", "fixtures", "hello-world.ts"),
-};
-
 describe("lambda targets", () => {
   let app: App;
   let stack: AwsStack;
   let listener: compute.ApplicationListener;
-  let fn: compute.NodejsFunction;
+  let fn: compute.LambdaFunction;
 
   beforeEach(() => {
     app = Testing.app();
@@ -39,10 +36,10 @@ describe("lambda targets", () => {
     const lb = new compute.ApplicationLoadBalancer(stack, "LB", { vpc });
     listener = lb.addListener("Listener", { port: 80 });
 
-    fn = new compute.NodejsFunction(stack, "Fun", {
-      ...fnProps,
-      // TODO: Deprecate esbuild and adopt Code Construct
-      // code: compute.Code.fromInline("foo"),
+    fn = new compute.LambdaFunction(stack, "Fun", {
+      code: compute.Code.fromInline("foo"),
+      runtime: compute.Runtime.PYTHON_3_9,
+      handler: "index.handler",
     });
   });
 

@@ -22,10 +22,12 @@ new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 
+const handler = new aws.compute.NodejsFunction(stack, "Handler", {
+  entry: path.join(__dirname, "handlers", "hello-world", "index.ts"),
+});
+
 const submitJob = new aws.compute.tasks.LambdaInvoke(stack, "InvokeHandler", {
-  lambdaFunction: new aws.compute.NodejsFunction(stack, "Handler", {
-    path: path.join(__dirname, "handlers", "hello-world", "index.ts"),
-  }),
+  lambdaFunction: handler,
   resultPath: "$.response",
 });
 
@@ -33,7 +35,7 @@ const callBackHandler = new aws.compute.NodejsFunction(
   stack,
   "CallbackHandler",
   {
-    path: path.join(__dirname, "handlers", "callback", "index.ts"),
+    entry: path.join(__dirname, "handlers", "callback", "index.ts"),
   },
 );
 callBackHandler.addToRolePolicy(

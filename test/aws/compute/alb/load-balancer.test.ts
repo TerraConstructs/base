@@ -591,7 +591,8 @@ describe("tests", () => {
       const t = new Template(stack);
       t.expect.toHaveResourceWithProperties(tfLb.Lb, {
         access_logs: {
-          bucket: "${data.aws_s3_bucket.imported-bucket.bucket}",
+          bucket: "imported-bucket",
+          // bucket: "${data.aws_s3_bucket.imported-bucket.bucket}",
           enabled: true,
         },
       });
@@ -617,7 +618,8 @@ describe("tests", () => {
                 },
               ],
               resources: [
-                "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+                // "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+                "arn:${data.aws_partition.Partitition.partition}:s3:::imported-bucket/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
               ],
             },
             {
@@ -639,7 +641,8 @@ describe("tests", () => {
                 },
               ],
               resources: [
-                "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+                // "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+                "arn:${data.aws_partition.Partitition.partition}:s3:::imported-bucket/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
               ],
             },
             {
@@ -653,7 +656,10 @@ describe("tests", () => {
                   type: "Service",
                 },
               ],
-              resources: ["${data.aws_s3_bucket.imported-bucket.arn}"],
+              resources: [
+                // "${data.aws_s3_bucket.imported-bucket.arn}"
+                "arn:${data.aws_partition.Partitition.partition}:s3:::imported-bucket",
+              ],
             },
           ],
         },
@@ -1009,7 +1015,8 @@ describe("tests", () => {
       const t = new Template(stack);
       t.expect.toHaveResourceWithProperties(tfLb.Lb, {
         connection_logs: {
-          bucket: "${data.aws_s3_bucket.imported-bucket.bucket}",
+          bucket: "imported-bucket",
+          // bucket: "${data.aws_s3_bucket.imported-bucket.bucket}",
           enabled: true,
           prefix: "",
         },
@@ -1036,7 +1043,8 @@ describe("tests", () => {
                 },
               ],
               resources: [
-                "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+                // "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+                "arn:${data.aws_partition.Partitition.partition}:s3:::imported-bucket/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
               ],
             },
             {
@@ -1058,7 +1066,8 @@ describe("tests", () => {
                 },
               ],
               resources: [
-                "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+                // "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+                "arn:${data.aws_partition.Partitition.partition}:s3:::imported-bucket/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
               ],
             },
             {
@@ -1072,7 +1081,10 @@ describe("tests", () => {
                   type: "Service",
                 },
               ],
-              resources: ["${data.aws_s3_bucket.imported-bucket.arn}"],
+              resources: [
+                // "${data.aws_s3_bucket.imported-bucket.arn}"
+                "arn:${data.aws_partition.Partitition.partition}:s3:::imported-bucket",
+              ],
             },
           ],
         },

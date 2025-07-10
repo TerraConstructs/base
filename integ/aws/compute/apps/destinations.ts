@@ -1,8 +1,18 @@
 // ref: https://github.com/aws/aws-cdk/blob/v2.161.1/packages/%40aws-cdk-testing/framework-integ/test/aws-lambda-destinations/test/integ.destinations.ts
+
 import * as path from "path";
 import { App, LocalBackend } from "cdktf";
 import { Construct } from "constructs";
 import { aws, Duration } from "../../../../src";
+
+/**
+ * The standard nodejs runtime used for integration tests.
+ * Use this, unless specifically testing a certain runtime.
+ *
+ * The runtime should be the lowest runtime currently supported by the AWS CDK.
+ * Updating this value will require you to run a lot of integration tests.
+ */
+export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_18_X;
 
 /*
  * Stack verification steps:
@@ -27,8 +37,14 @@ class SampleStack extends aws.AwsStack {
       outputName: "queue",
     });
 
-    this.fn = new aws.compute.NodejsFunction(this, "SnsSqs", {
-      path: path.join(__dirname, "handlers", "check-event", "index.ts"),
+    this.fn = new aws.compute.LambdaFunction(this, "SnsSqs", {
+      // path: path.join(__dirname, "handlers", "check-event", "index.ts"),
+      runtime: STANDARD_NODEJS_RUNTIME,
+      handler: "index.handler",
+      code: aws.compute.Code.fromInline(`exports.handler = async (event) => {
+        if (event.status === 'OK') return 'success';
+        throw new Error('failure');
+      };`),
       // onFailure: new destinations.SnsDestination(topic),
       onSuccess: new aws.compute.destinations.SqsDestination(this.queue),
       maxEventAge: Duration.hours(3),
@@ -37,11 +53,22 @@ class SampleStack extends aws.AwsStack {
       outputName: "function",
     });
 
-    const onSuccessLambda = new aws.compute.NodejsFunction(this, "OnSucces", {
-      path: path.join(__dirname, "handlers", "log-event", "index.ts"),
+    const onSuccessLambda = new aws.compute.LambdaFunction(this, "OnSucces", {
+      // path: path.join(__dirname, "handlers", "log-event", "index.ts"),
+      runtime: STANDARD_NODEJS_RUNTIME,
+      handler: "index.handler",
+      code: aws.compute.Code.fromInline(`exports.handler = async (event) => {
+        console.log(event);
+      };`),
     });
-    new aws.compute.NodejsFunction(this, "EventBusLambda", {
-      path: path.join(__dirname, "handlers", "check-event", "index.ts"),
+    new aws.compute.LambdaFunction(this, "EventBusLambda", {
+      // path: path.join(__dirname, "handlers", "check-event", "index.ts"),
+      runtime: STANDARD_NODEJS_RUNTIME,
+      handler: "index.handler",
+      code: aws.compute.Code.fromInline(`exports.handler = async (event) => {
+        if (event.status === 'OK') return 'success';
+        throw new Error('failure');
+      };`),
       onFailure: new aws.compute.destinations.EventBridgeDestination(),
       onSuccess: new aws.compute.destinations.FunctionDestination(
         onSuccessLambda,

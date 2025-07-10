@@ -360,7 +360,8 @@ describe("tests", () => {
               },
             ],
             resources: [
-              "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+              // "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+              "arn:${data.aws_partition.Partitition.partition}:s3:::imported-bucket/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
             ],
           },
           {
@@ -383,7 +384,8 @@ describe("tests", () => {
               },
             ],
             resources: [
-              "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+              // "${data.aws_s3_bucket.imported-bucket.arn}/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
+              "arn:${data.aws_partition.Partitition.partition}:s3:::imported-bucket/AWSLogs/${data.aws_caller_identity.CallerIdentity.account_id}/*",
             ],
           },
           {
@@ -397,7 +399,10 @@ describe("tests", () => {
                 ],
               },
             ],
-            resources: ["${data.aws_s3_bucket.imported-bucket.arn}"],
+            resources: [
+              // "${data.aws_s3_bucket.imported-bucket.arn}"
+              "arn:${data.aws_partition.Partitition.partition}:s3:::imported-bucket",
+            ],
           },
         ],
       },

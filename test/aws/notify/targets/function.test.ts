@@ -1,4 +1,5 @@
-import * as path from "path";
+// https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-events-targets/test/lambda/lambda.test.ts
+
 import {
   lambdaPermission,
   cloudwatchEventTarget,
@@ -9,7 +10,9 @@ import { Testing, App } from "cdktf";
 import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
-import { NodejsFunction } from "../../../../src/aws/compute/function-nodejs";
+import { InlineCode } from "../../../../src/aws/compute/code";
+import { LambdaFunction } from "../../../../src/aws/compute/function";
+import { Runtime } from "../../../../src/aws/compute/runtime";
 import { RuleTargetInput } from "../../../../src/aws/notify/input";
 import { Queue } from "../../../../src/aws/notify/queue";
 import { Rule } from "../../../../src/aws/notify/rule";
@@ -361,7 +364,7 @@ describe("LambdaFunction as an event rule target", () => {
   //   // GIVEN
   //   const stack2 = getAwsStack(app, "us-east-2", "2"); //  account: "222222222222"
 
-  //   const fn = new NodejsFunction(stack, "MyLambda", {
+  //   const fn = new LambdaFunction(stack, "MyLambda", {
   //     path: path.join(__dirname, "handlers", "hello-world.ts"),
   //   });
 
@@ -511,8 +514,11 @@ describe("LambdaFunction as an event rule target", () => {
 });
 
 function newTestLambda(scope: Construct, suffix = "") {
-  return new NodejsFunction(scope, `MyLambda${suffix}`, {
-    path: path.join(__dirname, "handlers", "hello-world.ts"),
+  return new LambdaFunction(scope, `MyLambda${suffix}`, {
+    // path: path.join(__dirname, "handlers", "hello-world.ts"),
+    code: new InlineCode("foo"),
+    handler: "bar",
+    runtime: Runtime.PYTHON_3_9,
   });
 }
 

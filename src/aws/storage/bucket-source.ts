@@ -4,7 +4,8 @@ import { s3Object } from "@cdktf/provider-aws";
 import { TerraformAsset, AssetType, Fn, ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import * as mime from "mime-types";
-import { normalPath, IBucket, AddSourceOptions } from ".";
+import { IBucket, AddSourceOptions } from "./bucket";
+import { normalPath } from "./util";
 import {
   AwsConstructBase,
   IAwsConstruct,

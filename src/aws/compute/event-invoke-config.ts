@@ -1,9 +1,9 @@
 import { lambdaFunctionEventInvokeConfig } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { AwsConstructBase, AwsConstructProps } from "..";
+import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { IFunction } from "./function-base";
 import { DestinationType, IDestination } from "./function-destination";
-import { Duration } from "../..";
+import { Duration } from "../../duration";
 
 /**
  * Options to add an EventInvokeConfig to a function.

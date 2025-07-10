@@ -1,4 +1,5 @@
-import path from "path";
+// https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-lambda/test/alias.test.ts
+
 import {
   lambdaAlias,
   lambdaFunctionEventInvokeConfig,
@@ -7,12 +8,13 @@ import {
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { compute, AwsStack } from "../../../src/aws";
+import { Template } from "../../assertions";
 
 const gridUUID = "123e4567-e89b-12d3";
 
 describe("alias", () => {
   let stack: AwsStack;
-  let fn: compute.NodejsFunction;
+  let fn: compute.LambdaFunction;
   beforeEach(() => {
     stack = new AwsStack(Testing.app(), `TestStack`, {
       environmentName: "Test",
@@ -24,8 +26,10 @@ describe("alias", () => {
         address: "http://localhost:3000",
       },
     });
-    fn = new compute.NodejsFunction(stack, "MyLambda", {
-      path: path.join(__dirname, "fixtures", "hello-world.ts"),
+    fn = new compute.LambdaFunction(stack, "MyLambda", {
+      code: new compute.InlineCode("hello()"),
+      handler: "index.hello",
+      runtime: compute.Runtime.NODEJS_LATEST,
     });
   });
 
@@ -208,15 +212,16 @@ describe("alias", () => {
 
     // THEN
     // Do prepare run to resolve all Terraform resources
+    const template = new Template(stack);
     stack.prepareStack();
-    const synthesized = Testing.synth(stack);
-    // expect(synthesized).toMatchSnapshot();
-    expect(synthesized).toHaveResourceWithProperties(
+    template.expect.toHaveResourceWithProperties(
       lambdaFunctionEventInvokeConfig.LambdaFunctionEventInvokeConfig,
       {
-        function_name:
-          '${element(split(":", "arn:aws:lambda:region:account-id:function:function-name:version"), 6)}',
+        // Name or Amazon Resource Name (ARN) of the Lambda Function,
+        // omitting any version or alias qualifier.
+        function_name: "function-name",
         maximum_retry_attempts: 1,
+        // Lambda Function published version, `$LATEST`, or Lambda Alias name.
         qualifier: "${data.aws_lambda_alias.Alias_325C5727.function_version}",
       },
     );

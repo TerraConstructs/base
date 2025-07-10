@@ -1,9 +1,9 @@
 import { lambdaFunctionUrl } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
-import { IAwsConstruct, AwsConstructBase } from "..";
+import { IAwsConstruct, AwsConstructBase } from "../aws-construct";
 import { IAlias } from "./function-alias";
 import { IFunction } from "./function-base";
-import { Duration } from "../..";
+import { Duration } from "../../duration";
 import * as iam from "../iam";
 
 /**

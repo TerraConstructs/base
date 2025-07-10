@@ -3,6 +3,7 @@ export * from "./bucket-notifications";
 export * from "./bucket-policy";
 export * from "./bucket-source";
 export * from "./bucket";
+export * from "./location";
 export * from "./util";
 export * from "./origin-access-identity";
 export * from "./parameter";
@@ -15,7 +16,7 @@ export * from "./cors-config.generated";
 export * from "./cors-rule-config.generated";
 export * from "./lifecycle-config.generated";
 
-// // aws-dynamodb
+// aws-dynamodb
 export * from "./table";
 export * from "./scalable-attribute-api";
 // export * from "./table-v2";
@@ -24,3 +25,11 @@ export * from "./shared";
 export * from "./capacity";
 export * from "./billing";
 export * from "./encryption";
+
+// aws-ecr
+export * from "./ecr-repository";
+export * from "./ecr-lifecycle";
+export * from "./auth-token";
+
+// s3 and ECR assets
+export * as assets from "./assets";

@@ -11,6 +11,11 @@
       "type": "build"
     },
     {
+      "name": "@cdktf/provider-docker",
+      "version": "^12.0.2",
+      "type": "build"
+    },
+    {
       "name": "@cdktf/provider-time",
       "version": "^11.0.0",
       "type": "build"
@@ -65,6 +70,11 @@
     {
       "name": "constructs",
       "version": "^10.4.2",
+      "type": "build"
+    },
+    {
+      "name": "delay",
+      "version": "^5.0.0",
       "type": "build"
     },
     {
@@ -142,6 +152,11 @@
       "type": "build"
     },
     {
+      "name": "@balena/dockerignore",
+      "version": "^1.0.2",
+      "type": "bundled"
+    },
+    {
       "name": "change-case",
       "version": "^4.1.1",
       "type": "bundled"
@@ -152,7 +167,17 @@
       "type": "bundled"
     },
     {
+      "name": "ignore",
+      "version": "^5.3.2",
+      "type": "bundled"
+    },
+    {
       "name": "mime-types",
+      "type": "bundled"
+    },
+    {
+      "name": "minimatch",
+      "version": "^3.1.2",
       "type": "bundled"
     },
     {
@@ -163,6 +188,11 @@
     {
       "name": "@cdktf/provider-cloudinit",
       "version": "^11.0.0",
+      "type": "peer"
+    },
+    {
+      "name": "@cdktf/provider-docker",
+      "version": "^12.0.2",
       "type": "peer"
     },
     {

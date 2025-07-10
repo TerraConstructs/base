@@ -18,6 +18,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
+      - name: set up Docker
+        uses: docker/setup-buildx-action@v3
+      - name: Load docker images
+        id: docker-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.docker-images.tar
+          key: docker-cache-${{ runner.os }}
+      - name: Restore docker images
+        if: ${{ steps.docker-cache.outputs.cache-hit }}
+        run: docker image load --input ~/.docker-images.tar
       - uses: actions/setup-go@v5
         with:
           go-version: ^1.23.0
@@ -35,7 +46,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.20.5
+          node-version: 20.9.0
       - name: Install dependencies
         run: pnpm i --frozen-lockfile
       - name: Upgrade dependencies

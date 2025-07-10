@@ -163,9 +163,9 @@ describe("user data", () => {
     const rendered = stack.resolve(userData.content);
     expect(rendered).toEqual(
       "<powershell>mkdir (Split-Path -Path 'C:/temp/filename.bat' ) -ea 0\n" +
-        "Read-S3Object -BucketName '${data.aws_s3_bucket.test.bucket}' -key 'filename.bat' -file 'C:/temp/filename.bat' -ErrorAction Stop\n" +
+        "Read-S3Object -BucketName 'test' -key 'filename.bat' -file 'C:/temp/filename.bat' -ErrorAction Stop\n" +
         "mkdir (Split-Path -Path 'c:\\test\\location\\otherScript.bat' ) -ea 0\n" +
-        "Read-S3Object -BucketName '${data.aws_s3_bucket.test2.bucket}' -key 'filename2.bat' -file 'c:\\test\\location\\otherScript.bat' -ErrorAction Stop</powershell>",
+        "Read-S3Object -BucketName 'test2' -key 'filename2.bat' -file 'c:\\test\\location\\otherScript.bat' -ErrorAction Stop</powershell>",
     );
   });
   test("can windows userdata download S3 files with given region", () => {
@@ -191,9 +191,9 @@ describe("user data", () => {
     const rendered = stack.resolve(userData.content);
     expect(rendered).toEqual(
       "<powershell>mkdir (Split-Path -Path 'C:/temp/filename.bat' ) -ea 0\n" +
-        "Read-S3Object -BucketName '${data.aws_s3_bucket.test.bucket}' -key 'filename.bat' -file 'C:/temp/filename.bat' -ErrorAction Stop -Region us-east-1\n" +
+        "Read-S3Object -BucketName 'test' -key 'filename.bat' -file 'C:/temp/filename.bat' -ErrorAction Stop -Region us-east-1\n" +
         "mkdir (Split-Path -Path 'c:\\test\\location\\otherScript.bat' ) -ea 0\n" +
-        "Read-S3Object -BucketName '${data.aws_s3_bucket.test2.bucket}' -key 'filename2.bat' -file 'c:\\test\\location\\otherScript.bat' -ErrorAction Stop -Region us-east-1</powershell>",
+        "Read-S3Object -BucketName 'test2' -key 'filename2.bat' -file 'c:\\test\\location\\otherScript.bat' -ErrorAction Stop -Region us-east-1</powershell>",
     );
   });
   test("can windows userdata execute files", () => {
@@ -365,9 +365,9 @@ describe("user data", () => {
     expect(rendered).toEqual(
       "#!/bin/bash\n" +
         "mkdir -p $(dirname '/tmp/filename.sh')\n" +
-        "aws s3 cp 's3://${data.aws_s3_bucket.test.bucket}/filename.sh' '/tmp/filename.sh'\n" +
+        "aws s3 cp 's3://test/filename.sh' '/tmp/filename.sh'\n" +
         "mkdir -p $(dirname 'c:\\test\\location\\otherScript.sh')\n" +
-        "aws s3 cp 's3://${data.aws_s3_bucket.test2.bucket}/filename2.sh' 'c:\\test\\location\\otherScript.sh'",
+        "aws s3 cp 's3://test2/filename2.sh' 'c:\\test\\location\\otherScript.sh'",
     );
   });
   test("can linux userdata download S3 files from specific region", () => {
@@ -394,9 +394,9 @@ describe("user data", () => {
     expect(rendered).toEqual(
       "#!/bin/bash\n" +
         "mkdir -p $(dirname '/tmp/filename.sh')\n" +
-        "aws s3 cp 's3://${data.aws_s3_bucket.test.bucket}/filename.sh' '/tmp/filename.sh' --region us-east-1\n" +
+        "aws s3 cp 's3://test/filename.sh' '/tmp/filename.sh' --region us-east-1\n" +
         "mkdir -p $(dirname 'c:\\test\\location\\otherScript.sh')\n" +
-        "aws s3 cp 's3://${data.aws_s3_bucket.test2.bucket}/filename2.sh' 'c:\\test\\location\\otherScript.sh' --region us-east-1",
+        "aws s3 cp 's3://test2/filename2.sh' 'c:\\test\\location\\otherScript.sh' --region us-east-1",
     );
   });
   test("can linux userdata execute files", () => {
@@ -804,9 +804,9 @@ describe("user data", () => {
     const expectedInner = [
       "#!/bin/bash",
       "mkdir -p $(dirname '/tmp/filename.sh')",
-      "aws s3 cp 's3://${data.aws_s3_bucket.test.bucket}/filename.sh' '/tmp/filename.sh'",
+      "aws s3 cp 's3://test/filename.sh' '/tmp/filename.sh'",
       "mkdir -p $(dirname 'c:\\test\\location\\otherScript.sh')",
-      "aws s3 cp 's3://${data.aws_s3_bucket.test2.bucket}/filename2.sh' 'c:\\test\\location\\otherScript.sh'",
+      "aws s3 cp 's3://test2/filename2.sh' 'c:\\test\\location\\otherScript.sh'",
     ].join("\n");
     const rendered = stack.resolve(innerUserData.content);
     expect(rendered).toEqual(expectedInner);

@@ -35,6 +35,7 @@
   "devDependencies": {
     "@cdktf/provider-aws": "20.1.0",
     "@cdktf/provider-cloudinit": "11.0.0",
+    "@cdktf/provider-docker": "12.0.2",
     "@cdktf/provider-time": "11.0.0",
     "@cdktf/provider-tls": "11.0.0",
     "@jsii/spec": "^1.102.0",
@@ -47,6 +48,7 @@
     "cdktf": "0.21.0",
     "commit-and-tag-version": "^12",
     "constructs": "10.4.2",
+    "delay": "^5.0.0",
     "eslint": "^8",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-typescript": "^3.6.3",
@@ -68,30 +70,37 @@
   "peerDependencies": {
     "@cdktf/provider-aws": "^20.1.0",
     "@cdktf/provider-cloudinit": "^11.0.0",
+    "@cdktf/provider-docker": "^12.0.2",
     "@cdktf/provider-time": "^11.0.0",
     "@cdktf/provider-tls": "^11.0.0",
     "cdktf": "^0.21.0",
     "constructs": "^10.4.2"
   },
   "dependencies": {
+    "@balena/dockerignore": "^1.0.2",
     "change-case": "^4.1.1",
     "esbuild-wasm": "^0.23.1",
-    "mime-types": "^2.1.35"
+    "ignore": "^5.3.2",
+    "mime-types": "^2.1.35",
+    "minimatch": "^3.1.2"
   },
   "bundledDependencies": [
+    "@balena/dockerignore",
     "change-case",
     "esbuild-wasm",
-    "mime-types"
+    "ignore",
+    "mime-types",
+    "minimatch"
   ],
   "pnpm": {},
   "keywords": [
     "terraconstructs"
   ],
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=20.9.0"
   },
   "main": "lib/index.js",
-  "license": "GPL-3.0-or-later",
+  "license": "Apache-2.0",
   "publishConfig": {
     "access": "public"
   },

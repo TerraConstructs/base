@@ -13,12 +13,20 @@ import {
   Fn,
   ResourceTerraformIterator,
 } from "cdktf";
-import { snakeCase } from "change-case";
 import { Construct, IConstruct } from "constructs";
 import { Arn, ArnComponents, ArnFormat } from "./arn";
 import { AwsProviderConfig } from "./provider-config.generated";
+import { IAssetManager } from "../asset-manager";
+import {
+  DockerImageAssetLocation,
+  DockerImageAssetSource,
+  FileAssetLocation,
+  FileAssetSource,
+} from "../assets";
 import { SKIP_DEPENDENCY_PROPAGATION } from "../private/terraform-dependables-aspect";
 import { StackBaseProps, StackBase, IStack } from "../stack-base";
+import { AwsAssetManagerOptions, AwsAssetManager } from "./aws-asset-manager";
+import { toTerraformIdentifier } from "./util";
 // import { TagType } from "./aws-construct";
 // import { TagManager, ITaggableV2 } from "./tag-manager";
 
@@ -29,6 +37,22 @@ export interface AwsStackProps extends StackBaseProps {
    * The AWS Provider configuration (without the alias field)
    */
   readonly providerConfig: AwsProviderConfig;
+
+  /**
+   * Asset manager for handling file and Docker image assets
+   *
+   * @default - AwsAssetManager with default settings
+   */
+  readonly assetManager?: IAssetManager;
+
+  /**
+   * Asset Management options
+   *
+   * Use this to reference existing S3 Bucket and ECR Repository for assets.
+   *
+   * @default - Stack creates Bucket and Repository on demand
+   */
+  readonly assetOptions?: AwsAssetManagerOptions;
 }
 
 // TODO: Re-add ITaggableV2
@@ -57,6 +81,16 @@ export interface IAwsStack extends IStack {
   //  * Produce the Token's value at resolution time
   //  */
   // resolve<T>(obj: T): T;
+
+  /**
+   * Register a file asset on this Stack
+   */
+  addFileAsset(asset: FileAssetSource): FileAssetLocation;
+
+  /**
+   * Register a docker image asset on this Stack
+   */
+  addDockerImageAsset(asset: DockerImageAssetSource): DockerImageAssetLocation;
 }
 
 interface AwsLookup {
@@ -103,6 +137,11 @@ export class AwsStack extends StackBase implements IAwsStack {
     );
   }
 
+  /**
+   * Asset manager for handling file and Docker image assets
+   */
+  private readonly assetManager: IAssetManager;
+
   // /**
   //  * Tags to be applied to the stack.
   //  */
@@ -143,6 +182,18 @@ export class AwsStack extends StackBase implements IAwsStack {
     };
     // these should never depend on anything (HACK to avoid cycles)
     Object.defineProperty(this, AWS_STACK_SYMBOL, { value: true });
+
+    // Initialize asset manager
+    this.assetManager =
+      props.assetManager ??
+      new AwsAssetManager(this, {
+        region: this.region,
+        account: this.account,
+        partition: this.partition,
+        urlSuffix: this.urlSuffix,
+        qualifier: this.gridUUID,
+        ...(props.assetOptions || {}),
+      });
   }
 
   public get provider(): provider.AwsProvider {
@@ -442,6 +493,22 @@ export class AwsStack extends StackBase implements IAwsStack {
     return azLookups;
   }
 
+  /**
+   * Register a file asset on this Stack
+   */
+  public addFileAsset(asset: FileAssetSource): FileAssetLocation {
+    return this.assetManager.addFileAsset(asset);
+  }
+
+  /**
+   * Register a docker image asset on this Stack
+   */
+  public addDockerImageAsset(
+    asset: DockerImageAssetSource,
+  ): DockerImageAssetLocation {
+    return this.assetManager.addDockerImageAsset(asset);
+  }
+
   // /**
   //  * Resolve a tokenized value in the context of the current stack.
   //  */
@@ -450,8 +517,4 @@ export class AwsStack extends StackBase implements IAwsStack {
   //   // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/stack.ts#L572
   //   return resolve(this, obj);
   // }
-}
-
-function toTerraformIdentifier(identifier: string) {
-  return snakeCase(identifier).replace(/-/g, "_");
 }

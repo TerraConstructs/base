@@ -1,7 +1,10 @@
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/arn.ts
+
 import * as cdktf from "cdktf";
 import { IAwsStack } from "./aws-stack";
 import { filterUndefined } from "./util";
+import { Fn } from "../terra-func";
+
 /**
  * An enum representing the various ARN formats that different services use.
  */
@@ -341,7 +344,7 @@ export class Arn {
   public static extractResourceName(arn: string, resourceType: string): string {
     const components = parseArnShape(arn);
     if (components === "token") {
-      return cdktf.Fn.element(cdktf.Fn.split(`:${resourceType}/`, arn), 1);
+      return Fn.select(1, Fn.splitv2(`:${resourceType}/`, arn));
     }
 
     // Apparently we could just parse this right away. Validate that we got the right
@@ -390,12 +393,12 @@ function parseTokenArn(arnToken: string, arnFormat: ArnFormat): ArnComponents {
   // arn:partition:service:region:account:resource/resourceName
   // arn:partition:service:region:account:/resource/resourceName
 
-  const components = cdktf.Fn.split(":", arnToken);
+  const components = Fn.splitv2(":", arnToken);
 
-  const partition = cdktf.Fn.element(components, 1).toString();
-  const service = cdktf.Fn.element(components, 2).toString();
-  const region = cdktf.Fn.element(components, 3).toString();
-  const account = cdktf.Fn.element(components, 4).toString();
+  const partition = Fn.select(1, components).toString();
+  const service = Fn.select(2, components).toString();
+  const region = Fn.select(3, components).toString();
+  const account = Fn.select(4, components).toString();
   let resource: string;
   let resourceName: string | undefined;
   let sep: string | undefined;
@@ -405,9 +408,9 @@ function parseTokenArn(arnToken: string, arnFormat: ArnFormat): ArnComponents {
     arnFormat === ArnFormat.COLON_RESOURCE_NAME
   ) {
     // we know that the 'resource' part will always be the 6th segment in this case
-    resource = cdktf.Fn.element(components, 5);
+    resource = Fn.select(5, components);
     if (arnFormat === ArnFormat.COLON_RESOURCE_NAME) {
-      resourceName = cdktf.Fn.element(components, 6);
+      resourceName = Fn.select(6, components);
       sep = ":";
     } else {
       resourceName = undefined;
@@ -416,16 +419,16 @@ function parseTokenArn(arnToken: string, arnFormat: ArnFormat): ArnComponents {
   } else {
     // we know that the 'resource' and 'resourceName' parts are separated by slash here,
     // so we split the 6th segment from the colon-separated ones with a slash
-    const lastComponents = cdktf.Fn.split("/", cdktf.Fn.element(components, 5));
+    const lastComponents = Fn.split("/", Fn.select(5, components));
 
     if (arnFormat === ArnFormat.SLASH_RESOURCE_NAME) {
-      resource = cdktf.Fn.element(lastComponents, 0);
-      resourceName = cdktf.Fn.element(lastComponents, 1);
+      resource = Fn.select(0, lastComponents);
+      resourceName = Fn.select(1, lastComponents);
     } else {
       // arnFormat is ArnFormat.SLASH_RESOURCE_SLASH_RESOURCE_NAME,
       // which means there's an extra slash there at the beginning that we need to skip
-      resource = cdktf.Fn.element(lastComponents, 1);
-      resourceName = cdktf.Fn.element(lastComponents, 2);
+      resource = Fn.select(1, lastComponents);
+      resourceName = Fn.select(2, lastComponents);
     }
     sep = "/";
   }

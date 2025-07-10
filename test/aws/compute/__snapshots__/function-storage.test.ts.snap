@@ -121,13 +121,12 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
           "variables": {
           }
         },
-        "filename": "assets/HelloWorld_NodejsAsset_04D667C4/9A3227D39E16A36D4510660AB9C595A1/archive.zip",
+        "filename": "foo",
         "function_name": "123e4567-e89b-12d3-TestStackHelloWorld",
-        "handler": "hello-world.handler",
+        "handler": "index.handler",
         "memory_size": 128,
         "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.arn}",
-        "runtime": "nodejs20.x",
-        "source_code_hash": "9A3227D39E16A36D4510660AB9C595A1",
+        "runtime": "nodejs18.x",
         "tags": {
           "Name": "Test-HelloWorld",
           "grid:EnvironmentName": "Test",
@@ -294,13 +293,12 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
           "variables": {
           }
         },
-        "filename": "assets/HelloWorld_NodejsAsset_04D667C4/9A3227D39E16A36D4510660AB9C595A1/archive.zip",
+        "filename": "foo",
         "function_name": "123e4567-e89b-12d3-TestStackHelloWorld",
-        "handler": "hello-world.handler",
+        "handler": "index.handler",
         "memory_size": 128,
         "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.arn}",
-        "runtime": "nodejs20.x",
-        "source_code_hash": "9A3227D39E16A36D4510660AB9C595A1",
+        "runtime": "nodejs18.x",
         "tags": {
           "Name": "Test-HelloWorld",
           "grid:EnvironmentName": "Test",

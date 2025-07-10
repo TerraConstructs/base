@@ -63,7 +63,7 @@ export function makeUniqueResourceName(
   }
 
   // Calculate the hash from the full path, included unresolved tokens so the hash value is always unique
-  const hash = pathHash(components);
+  let hash = pathHash(components);
   let human =
     prefix +
     removeDupes(components)
@@ -80,6 +80,7 @@ export function makeUniqueResourceName(
 
   if (lowerCase) {
     human = human.toLowerCase();
+    hash = hash.toLowerCase();
   }
 
   const maxhumanLength = maxLength - HASH_LEN;

@@ -1,4 +1,5 @@
-import path from "path";
+// https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-lambda-destinations/test/destinations.test.ts
+
 import {
   dataAwsIamPolicyDocument,
   cloudwatchEventRule,
@@ -24,8 +25,10 @@ beforeEach(() => {
   });
 });
 
-const fnProps: compute.NodejsFunctionProps = {
-  path: path.join(__dirname, "fixtures", "hello-world.ts"),
+const fnProps: compute.FunctionProps = {
+  code: new compute.InlineCode("foo"),
+  handler: "index.handler",
+  runtime: compute.Runtime.NODEJS_LATEST,
 };
 
 test("event bus as destination", () => {
@@ -33,7 +36,7 @@ test("event bus as destination", () => {
   const eventBus = new notify.EventBus(stack, "EventBus");
 
   // WHEN
-  new compute.NodejsFunction(stack, "Function", {
+  new compute.LambdaFunction(stack, "Function", {
     ...fnProps,
     onSuccess: new compute.destinations.EventBridgeDestination(eventBus),
   });
@@ -96,14 +99,14 @@ test("event bus as destination", () => {
 
 test("lambda as destination", () => {
   // GIVEN
-  const successFunction = new compute.NodejsFunction(
+  const successFunction = new compute.LambdaFunction(
     stack,
     "SuccessFunction",
     fnProps,
   );
 
   // WHEN
-  new compute.NodejsFunction(stack, "Function", {
+  new compute.LambdaFunction(stack, "Function", {
     ...fnProps,
     onSuccess: new compute.destinations.FunctionDestination(successFunction),
   });
@@ -175,19 +178,19 @@ test("lambda as destination", () => {
 
 test("lambda payload as destination", () => {
   // GIVEN
-  const successFunction = new compute.NodejsFunction(
+  const successFunction = new compute.LambdaFunction(
     stack,
     "SuccessFunction",
     fnProps,
   );
-  const failureFunction = new compute.NodejsFunction(
+  const failureFunction = new compute.LambdaFunction(
     stack,
     "FailureFunction",
     fnProps,
   );
 
   // WHEN
-  new compute.NodejsFunction(stack, "Function", {
+  new compute.LambdaFunction(stack, "Function", {
     ...fnProps,
     onSuccess: new compute.destinations.FunctionDestination(successFunction, {
       responseOnly: true,
@@ -440,7 +443,7 @@ test("lambda payload as destination", () => {
 //   const topic = new notify.Topic(stack, "Topic");
 
 //   // WHEN
-//   new compute.NodejsFunction(stack, "Function", {
+//   new compute.LambdaFunction(stack, "Function", {
 //     ...lambdaProps,
 //     onSuccess: new compute.destinations.SnsDestination(topic),
 //   });
@@ -480,7 +483,7 @@ test("sqs as destination", () => {
   const queue = new notify.Queue(stack, "Queue");
 
   // WHEN
-  new compute.NodejsFunction(stack, "Function", {
+  new compute.LambdaFunction(stack, "Function", {
     ...fnProps,
     onSuccess: new compute.destinations.SqsDestination(queue),
   });

@@ -7,10 +7,13 @@ import {
   lambdaEventSourceMapping,
   dataAwsLambdaFunction,
 } from "@cdktf/provider-aws";
-import { IResolveContext, Lazy, IResolvable, Token, Fn } from "cdktf";
+import { IResolveContext, Lazy, IResolvable, Token } from "cdktf";
 import { Construct } from "constructs";
-import { RetentionDays, AwsStack, ArnFormat } from "..";
+import { ArnFormat, Arn } from "../arn";
+import { AwsStack } from "../aws-stack";
+import { RetentionDays } from "../log-retention";
 import { Architecture } from "./architecture";
+import { Code, CodeConfig } from "./code";
 import { EventInvokeConfigOptions } from "./event-invoke-config";
 import { IEventSourceMapping } from "./event-source-mapping";
 import { AliasOptions, Alias } from "./function-alias";
@@ -22,10 +25,13 @@ import {
 } from "./function-base";
 import { FunctionUrl, FunctionUrlOptions } from "./function-url";
 import { VpcConfig } from "./function-vpc-config.generated";
+import { Handler } from "./handler";
 import { addAlias } from "./util";
 import { Duration } from "../../duration";
+// import { Fn } from "../../terra-func";
 import * as iam from "../iam";
 import { IQueue, Queue } from "../notify";
+import { Runtime } from "./runtime";
 
 export interface FunctionOutputs {
   /**
@@ -54,7 +60,7 @@ export interface FunctionOutputs {
   readonly defaultSecurityGroup?: string | IResolvable;
 }
 
-export interface FunctionProps extends EventInvokeConfigOptions {
+export interface FunctionOptions extends EventInvokeConfigOptions {
   /**
    * Force function name (for adoption of existing resources).
    *
@@ -249,19 +255,38 @@ export interface FunctionProps extends EventInvokeConfigOptions {
    * @default false
    */
   readonly publish?: boolean | IResolvable;
+}
 
-  // // This will be defined by extending classes
-  // // ref: https://aws.github.io/jsii/user-guides/lib-author/typescript-restrictions/#covariant-overrides-parameter-list-changes
-  // // implement Runtime as a class?
-  // // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-lambda/lib/runtime.ts
-  // /**
-  //  * Identifier of the function's runtime.
-  //  *
-  //  * Docs:
-  //  * - at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function#runtime LambdaFunction#runtime}
-  //  * - AWS Lambda CreatFunction docs: {@link https://docs.aws.amazon.com/lambda/latest/api/API_CreateFunction.html#lambda-CreateFunction-request-Runtime CreateFunction#rntime}
-  //  */
-  // readonly runtime?: string;
+export interface FunctionProps extends FunctionOptions {
+  /**
+   * The runtime environment for the Lambda function that you are uploading.
+   * For valid values, see the Runtime property in the AWS Lambda Developer
+   * Guide.
+   *
+   * Use `Runtime.FROM_IMAGE` when defining a function from a Docker image.
+   */
+  readonly runtime: Runtime;
+
+  /**
+   * The source code of your Lambda function. You can point to a file in an
+   * Amazon Simple Storage Service (Amazon S3) bucket or specify your source
+   * code as inline text.
+   */
+  readonly code: Code;
+
+  /**
+   * The name of the method within your code that Lambda calls to execute
+   * your function. The format includes the file name. It can also include
+   * namespaces and other qualifiers, depending on the runtime.
+   * For more information, see https://docs.aws.amazon.com/lambda/latest/dg/foundation-progmodel.html.
+   *
+   * Use `Handler.FROM_IMAGE` when defining a function from a Docker image.
+   *
+   * NOTE: If you specify your source code as inline text by specifying the
+   * ZipFile property within the Code property, specify index.function_name as
+   * the handler.
+   */
+  readonly handler: string;
 }
 
 // re-add ec2.IConnectable?
@@ -358,6 +383,13 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
       public readonly resource: dataAwsLambdaFunction.DataAwsLambdaFunction;
       public readonly functionName = functionName;
       public readonly functionArn = functionArn;
+      public get functionQualifiedInvokeArn(): string {
+        const { region, partition } = Arn.split(
+          functionArn,
+          ArnFormat.COLON_RESOURCE_NAME,
+        );
+        return `arn:${partition}:apigateway:${region}:lambda:path/2015-03-31/functions/${functionArn}/invocations`;
+      }
       // TODO: Resolve role and principal resolve from TF data source?
       public readonly grantPrincipal: iam.IPrincipal;
       public readonly role = role;
@@ -435,8 +467,6 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
 
   /**
    * The name of the function.
-   *
-   * (not a TOKEN)
    */
   public readonly functionName: string;
 
@@ -686,6 +716,9 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
       this.role.addToPrincipalPolicy(statement);
     }
 
+    const code = props.code.bind(this);
+    verifyCodeConfig(code, props);
+
     // add support for AWS_CODEGURU Profile env variables...
     const env = variables || {};
     for (const [key, value] of Object.entries(env)) {
@@ -712,21 +745,28 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
       },
     );
     this._logGroup = logGroup;
-
     this.resource = new lambdaFunction.LambdaFunction(this, "Resource", {
       functionName,
       description,
-      role: this.role.roleArn,
-      architectures: [
-        // This is an array, but maximum length is 1!
-        // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html#cfn-lambda-function-architectures
-        props.architecture?.toString() ?? Architecture.X86_64.toString(),
-      ],
-      memorySize,
-      timeout: timeout.toSeconds(),
+      // NOTE: for the underlaying resource, Exactly one of filename, image_uri, or s3_bucket must be specified
+      s3Bucket: code.s3Location && code.s3Location.bucketName,
+      s3Key: code.s3Location && code.s3Location.objectKey,
+      s3ObjectVersion: code.s3Location && code.s3Location.objectVersion,
+      filename: code.inlineCode,
+      sourceCodeHash: code.sourceCodeHash,
+      imageUri: code.image?.imageUri,
       layers, // TODO: Support ILayer with Lazy list of arns
-      reservedConcurrentExecutions,
+      handler: props.handler === Handler.FROM_IMAGE ? undefined : props.handler,
+      timeout: timeout.toSeconds(),
+      packageType: props.runtime === Runtime.FROM_IMAGE ? "Image" : undefined,
+      runtime:
+        props.runtime === Runtime.FROM_IMAGE ? undefined : props.runtime.name,
+      // // Source Code KMS not supported by Terraform provider?
+      // // see: https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-lambda-function-code.html#cfn-lambda-function-code-sourcekmskeyarn
+      // sourceKmsKeyArn: code.sourceKMSKeyArn,
+      role: this.role.roleArn,
       // TODO: CDK Sorts environment to match Lambda Hash behaviour
+      // TODO: Do not set this at all if no environment variables are set (ComplexList can't be IResolvable)
       // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-lambda/lib/function.ts#L1467
       environment: {
         variables: Lazy.anyValue({
@@ -735,14 +775,34 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
           },
         }) as any,
       },
+      memorySize,
+      // TODO: re-add ephemeralStorage
       vpcConfig: this.parseVpcConfig(props.networkConfig),
-      loggingConfig: this.getLoggingConfig(this._logGroup.name, props),
-      tracingConfig: this.parseTracingConfig(props.tracing ?? Tracing.ACTIVE),
       deadLetterConfig: this.parseDeadLetterConfig(dlqTopicOrQueue),
+      reservedConcurrentExecutions,
+      imageConfig: undefinedIfNoKeys({
+        command: code.image?.cmd,
+        entryPoint: code.image?.entrypoint,
+        workingDirectory: code.image?.workingDirectory,
+      }),
+      // TODO: re-add kmsKeyArn for environment encryption
+      // TODO: re-add fileSystemConfigs for EFS support,
+      // TODO: re-add codeSigningConfigArn
+      architectures: [
+        // This is an array, but maximum length is 1!
+        // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html#cfn-lambda-function-architectures
+        props.architecture?.toString() ?? Architecture.X86_64.toString(),
+      ],
+      // TODO: re-add runtimeManagementConfig
+      // TODO: re-add snapStart
+      loggingConfig: this.getLoggingConfig(this._logGroup.name, props),
+      // TODO: re-add recursiveLoop detection
+      tracingConfig: this.parseTracingConfig(props.tracing ?? Tracing.ACTIVE),
       publish: props.publish,
       // TODO: use logGroup.node.addDependency when logGroup is implemented
       dependsOn: [logGroup],
     });
+    // NOTE: Should this be functionName input instead of TOKEN?
     this.functionName = this.resource.functionName;
 
     // make sure any role attachments are added as dependencies for this lambda
@@ -757,6 +817,9 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
     for (const event of props.events || []) {
       this.addEventSource(event);
     }
+
+    // // TODO: pending custom CLI to mock Lambda function invocations locally
+    // props.code.bindToResource(this);
 
     // Event Invoke Config
     if (
@@ -1031,7 +1094,15 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
  * @returns `element(split(':', arn), 6)`
  */
 function extractNameFromArn(arn: string) {
-  return Fn.element(Fn.split(":", arn), 6);
+  const { resourceName } = Arn.split(arn, ArnFormat.COLON_RESOURCE_NAME);
+  if (!resourceName) {
+    throw new Error(`Invalid Lambda function ARN: ${arn}`);
+  }
+  // if (resourceName.includes(":")) split off the version
+  if (resourceName.includes(":")) {
+    return resourceName.split(":")[0];
+  }
+  return resourceName;
 }
 
 /**
@@ -1145,4 +1216,43 @@ export interface IEventSourceDlq {
     target: IEventSourceMapping,
     targetHandler: IFunction,
   ): DlqDestinationConfig;
+}
+
+export function verifyCodeConfig(code: CodeConfig, props: FunctionProps) {
+  // mutually exclusive
+  const codeType = [code.inlineCode, code.s3Location, code.image];
+
+  if (codeType.filter((x) => !!x).length !== 1) {
+    // throw new UnscopedValidationError(
+    throw new Error(
+      'lambda.Code must specify exactly one of: "inlineCode", "s3Location", or "image"',
+    );
+  }
+
+  if (!!code.image === (props.handler !== Handler.FROM_IMAGE)) {
+    // throw new UnscopedValidationError(
+    throw new Error(
+      "handler must be `Handler.FROM_IMAGE` when using image asset for Lambda function",
+    );
+  }
+
+  if (!!code.image === (props.runtime !== Runtime.FROM_IMAGE)) {
+    // throw new UnscopedValidationError(
+    throw new Error(
+      "runtime must be `Runtime.FROM_IMAGE` when using image asset for Lambda function",
+    );
+  }
+
+  // if this is inline code, check that the runtime supports
+  if (code.inlineCode && !props.runtime.supportsInlineCode) {
+    // throw new UnscopedValidationError(
+    throw new Error(`Inline source not allowed for ${props.runtime!.name}`);
+  }
+}
+
+function undefinedIfNoKeys<A extends { [key: string]: unknown }>(
+  struct: A,
+): A | undefined {
+  const allUndefined = Object.values(struct).every((val) => val === undefined);
+  return allUndefined ? undefined : struct;
 }

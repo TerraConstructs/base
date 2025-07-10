@@ -1,16 +1,16 @@
 import { lambdaEventSourceMapping } from "@cdktf/provider-aws";
 import * as cdktf from "cdktf";
 import { Construct } from "constructs";
+import { ArnFormat } from "../arn";
 import {
-  AwsStack,
   IAwsConstruct,
   AwsConstructBase,
   AwsConstructProps,
-  ArnFormat,
-} from "..";
+} from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import { IEventSourceDlq } from "./function";
 import { IFunction } from "./function-base";
-import { Duration } from "../..";
+import { Duration } from "../../duration";
 import { withResolved } from "../../token";
 // TODO: re-add support for KMS
 // import * as iam from "../iam"; // required to grant KMS permissions
