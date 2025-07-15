@@ -136,6 +136,9 @@ export class Alias extends QualifiedFunctionBase implements IAlias {
       public get version() {
         return this.resource.functionVersion;
       }
+      public get functionQualifiedInvokeArn() {
+        return this.resource.invokeArn;
+      }
       public readonly lambda = attrs.function;
       public readonly functionArn = `${attrs.function.functionArn}:${attrs.aliasName}`;
       public readonly functionName = `${attrs.function.functionName}:${attrs.aliasName}`;
@@ -207,6 +210,10 @@ export class Alias extends QualifiedFunctionBase implements IAlias {
    * ARNs everywhere it accepts function names.
    */
   public readonly functionArn: string;
+
+  public get functionQualifiedInvokeArn() {
+    return this.resource.invokeArn;
+  }
 
   protected readonly qualifier: string;
 

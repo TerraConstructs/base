@@ -28,6 +28,17 @@ jobs:
         run: |-
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
+      - name: set up Docker
+        uses: docker/setup-buildx-action@v3
+      - name: Load docker images
+        id: docker-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.docker-images.tar
+          key: docker-cache-${{ runner.os }}
+      - name: Restore docker images
+        if: ${{ steps.docker-cache.outputs.cache-hit }}
+        run: docker image load --input ~/.docker-images.tar
       - uses: actions/setup-go@v5
         with:
           go-version: ^1.23.0
@@ -45,11 +56,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.20.5
+          node-version: 20.9.0
       - name: Install dependencies
         run: pnpm i --frozen-lockfile
       - name: release
         run: npx projen release
+      - name: Export Docker images
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        run: docker image save --output ~/.docker-images.tar $(docker image list --format '{{ if ne .Repository "<none>" }}{{ .Repository }}{{ if ne .Tag "<none>" }}:{{ .Tag }}{{ end }}{{ else }}{{ .ID }}{{ end }}')
+      - name: Cache Docker images
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.docker-images.tar
+          key: docker-cache-${{ runner.os }}
       - name: Check if version has already been tagged
         id: check_tag_exists
         run: |-
@@ -84,7 +104,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: 18.20.5
+          node-version: 20.9.0
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -110,7 +130,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: 18.20.5
+          node-version: 20.9.0
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -119,6 +139,17 @@ jobs:
       - name: Restore build artifact permissions
         run: cd dist && setfacl --restore=permissions-backup.acl
         continue-on-error: true
+      - name: set up Docker
+        uses: docker/setup-buildx-action@v3
+      - name: Load docker images
+        id: docker-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.docker-images.tar
+          key: docker-cache-${{ runner.os }}
+      - name: Restore docker images
+        if: ${{ steps.docker-cache.outputs.cache-hit }}
+        run: docker image load --input ~/.docker-images.tar
       - uses: actions/setup-go@v5
         with:
           go-version: ^1.23.0

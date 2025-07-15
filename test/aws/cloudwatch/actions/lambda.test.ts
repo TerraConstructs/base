@@ -1,6 +1,5 @@
-// https://github.com/aws/aws-cdk/blob/a12887b593ef6796f63bf754a3d381676d2e5155/packages/aws-cdk-lib/aws-cloudwatch-actions/lib/lambda.ts
+// https://github.com/aws/aws-cdk/blob/a12887b593ef6796f63bf754a3d381676d2e5155/packages/aws-cdk-lib/aws-cloudwatch-actions/test/lambda.test.ts
 
-import path from "node:path";
 import { cloudwatchMetricAlarm, lambdaPermission } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
@@ -31,8 +30,15 @@ beforeEach(() => {
     gridBackendConfig,
   });
   // GIVEN
-  alarmLambda = new compute.NodejsFunction(stack, "HelloWorld", {
-    path: path.join(__dirname, "fixtures", "hello-world.ts"),
+  alarmLambda = new compute.LambdaFunction(stack, "HelloWorld", {
+    runtime: compute.Runtime.PYTHON_3_12,
+    functionName: "alarmLambda",
+    code: compute.Code.fromInline(`
+def handler(event, context):
+  print('event:', event)
+  print('.............................................')
+  print('context:', context)`),
+    handler: "index.handler",
   });
 });
 

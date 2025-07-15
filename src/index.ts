@@ -6,5 +6,12 @@ export * from "./expiration";
 export * from "./size";
 export * from "./terra-func";
 
+// AWS CDK Bundling
+export * from "./assets";
+export * from "./asset-staging";
+export * from "./asset-manager";
+export * from "./bundling";
+export * from "./fs";
+
 // cloud specific exports
 export * as aws from "./aws";

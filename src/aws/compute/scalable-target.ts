@@ -1,4 +1,4 @@
-// https://github.com/aws/aws-cdk/blob/v2.168.0/packages/aws-cdk-lib/aws-applicationautoscaling/lib/scalable-target.ts
+// https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-applicationautoscaling/lib/scalable-target.ts
 
 import {
   appautoscalingTarget,

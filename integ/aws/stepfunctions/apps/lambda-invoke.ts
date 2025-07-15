@@ -37,7 +37,7 @@ new LocalBackend(stack, {
 
 const submitJob = new aws.compute.tasks.LambdaInvoke(stack, "Invoke Handler", {
   lambdaFunction: new aws.compute.NodejsFunction(stack, "submitJobLambda", {
-    path: path.join(__dirname, "handlers", "hello-world-status", "index.ts"),
+    entry: path.join(__dirname, "handlers", "hello-world-status", "index.ts"),
   }),
   payload: aws.compute.TaskInput.fromObject({
     execId: aws.compute.JsonPath.executionId,
@@ -62,7 +62,7 @@ const checkJobState = new aws.compute.tasks.LambdaInvoke(
       stack,
       "checkJobStateLambda",
       {
-        path: path.join(__dirname, "handlers", "check-job-state", "index.ts"),
+        entry: path.join(__dirname, "handlers", "check-job-state", "index.ts"),
       },
     ),
     resultSelector: {

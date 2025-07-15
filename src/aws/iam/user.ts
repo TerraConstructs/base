@@ -8,7 +8,7 @@ import {
 } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import * as iam from ".";
-import { Arn, ArnFormat } from "../";
+import { Arn, ArnFormat } from "../arn";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
 import { IGroup } from "./group";

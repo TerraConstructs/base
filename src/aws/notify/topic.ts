@@ -3,8 +3,9 @@
 import { snsTopic } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
-import { ArnFormat, AwsStack } from "..";
+import { ArnFormat } from "../arn";
 import { AwsConstructProps } from "../aws-construct";
+import { AwsStack } from "../aws-stack";
 import * as encryption from "../encryption";
 import * as iam from "../iam";
 import { ITopic, TopicBase } from "./topic-base";

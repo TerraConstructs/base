@@ -1,5 +1,7 @@
+// DEPRECATED by test/aws/compute/function-nodejs/function.test.ts
+
 import path from "path";
-import { Testing } from "cdktf";
+import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { compute, AwsStack } from "../../../src/aws";
 import { Template } from "../../assertions";
@@ -9,24 +11,41 @@ const gridUUID = "123e4567-e89b-12d3";
 const gridBackendConfig = {
   address: "http://localhost:3000",
 };
+const TEST_APPDIR = path.join(__dirname, "fixtures", "app");
+const CDKTFJSON_PATH = path.join(TEST_APPDIR, "cdktf.json");
+
 const providerConfig = { region: "us-east-1" };
 describe("Function", () => {
+  let app: App;
+  let stack: AwsStack;
+  beforeEach(() => {
+    app = Testing.stubVersion(
+      new App({
+        stackTraces: false,
+        context: {
+          cdktfJsonPath: path.resolve(__dirname, CDKTFJSON_PATH),
+        },
+      }),
+    );
+    stack = new AwsStack(app, "TestStack", {
+      environmentName,
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
+  });
   test("Should synth and match SnapShot", () => {
-    // GIVEN
-    const stack = getAwsStack();
     // WHEN
     new compute.NodejsFunction(stack, "HelloWorld", {
-      path: path.join(__dirname, "fixtures", "hello-world.ts"),
+      entry: path.join(__dirname, "fixtures", "hello-world.ts"),
     });
     // THEN
     Template.synth(stack).toMatchSnapshot();
   });
   test("Should support adding vpc configuration", () => {
-    // GIVEN
-    const stack = getAwsStack();
     // WHEN
     new compute.NodejsFunction(stack, "HelloWorld", {
-      path: path.join(__dirname, "fixtures", "hello-world.ts"),
+      entry: path.join(__dirname, "fixtures", "hello-world.ts"),
       networkConfig: {
         vpcId: "vpc-123",
         subnetIds: ["subnet-12345678"],
@@ -69,13 +88,3 @@ describe("Function", () => {
     );
   });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}

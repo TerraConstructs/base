@@ -1,8 +1,17 @@
 // ref: https://github.com/aws/aws-cdk/blob/v2.161.1/packages/%40aws-cdk-testing/framework-integ/test/aws-lambda-destinations/test/integ.lambda-chain.ts
-import * as path from "path";
+
 import { App, LocalBackend } from "cdktf";
 import { Construct } from "constructs";
 import { aws } from "../../../../src";
+
+/**
+ * The standard nodejs runtime used for integration tests.
+ * Use this, unless specifically testing a certain runtime.
+ *
+ * The runtime should be the lowest runtime currently supported by the AWS CDK.
+ * Updating this value will require you to run a lot of integration tests.
+ */
+export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_18_X;
 
 // Test success case with:
 // 1. Invoke first function in the chain
@@ -25,28 +34,30 @@ class SampleStack extends aws.AwsStack {
   constructor(scope: Construct, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
 
-    const handlerPath = path.join(
-      __dirname,
-      "handlers",
-      "log-event-err",
-      "index.ts",
-    );
-    const first = new aws.compute.NodejsFunction(this, "First", {
-      path: handlerPath,
+    const lambdaProps: aws.compute.FunctionProps = {
+      runtime: STANDARD_NODEJS_RUNTIME,
+      handler: "index.handler",
+      code: aws.compute.Code.fromInline(`exports.handler = async (event) => {
+        console.log('Event: %j', event);
+        if (event.status === 'error') throw new Error('UnkownError');
+        return event;
+      };`),
       registerOutputs: true,
+    };
+
+    const first = new aws.compute.LambdaFunction(this, "First", {
+      ...lambdaProps,
       outputName: "first_function",
     });
-    const second = new aws.compute.NodejsFunction(this, "Second", {
-      path: handlerPath,
+    const second = new aws.compute.LambdaFunction(this, "Second", {
+      ...lambdaProps,
     });
-    const third = new aws.compute.NodejsFunction(this, "Third", {
-      path: handlerPath,
-      registerOutputs: true,
+    const third = new aws.compute.LambdaFunction(this, "Third", {
+      ...lambdaProps,
       outputName: "third_function",
     });
-    const error = new aws.compute.NodejsFunction(this, "Error", {
-      path: handlerPath,
-      registerOutputs: true,
+    const error = new aws.compute.LambdaFunction(this, "Error", {
+      ...lambdaProps,
       outputName: "error_function",
     });
 

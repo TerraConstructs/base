@@ -1,4 +1,5 @@
-import path from "path";
+// https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-lambda/test/event-source-mapping.test.ts
+
 import { lambdaEventSourceMapping } from "@cdktf/provider-aws";
 import { Testing, Token, Lazy, TerraformVariable } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
@@ -7,7 +8,7 @@ import { compute, AwsStack } from "../../../src/aws";
 
 const gridUUID = "123e4567-e89b-12d3";
 let stack: AwsStack;
-let fn: compute.NodejsFunction;
+let fn: compute.LambdaFunction;
 beforeEach(() => {
   stack = new AwsStack(Testing.app(), `TestStack`, {
     environmentName: "Test",
@@ -19,8 +20,10 @@ beforeEach(() => {
       address: "http://localhost:3000",
     },
   });
-  fn = new compute.NodejsFunction(stack, "MyLambda", {
-    path: path.join(__dirname, "fixtures", "hello-world.ts"),
+  fn = new compute.LambdaFunction(stack, "MyLambda", {
+    handler: "index.handler",
+    code: compute.Code.fromInline("exports.handler = ${handler.toString()}"),
+    runtime: compute.Runtime.NODEJS_LATEST,
   });
 });
 

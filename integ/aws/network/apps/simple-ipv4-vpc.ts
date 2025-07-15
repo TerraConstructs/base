@@ -1,6 +1,14 @@
-import * as path from "path";
 import { App, LocalBackend } from "cdktf";
 import { aws, Duration } from "../../../../src";
+
+/**
+ * The standard nodejs runtime used for integration tests.
+ * Use this, unless specifically testing a certain runtime.
+ *
+ * The runtime should be the lowest runtime currently supported by the AWS CDK.
+ * Updating this value will require you to run a lot of integration tests.
+ */
+export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_18_X;
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
 const region = process.env.AWS_REGION ?? "us-east-1";
@@ -35,8 +43,19 @@ const network = new aws.network.SimpleIPv4Vpc(stack, "default", {
 });
 
 // add a public echo endpoint for network connectivity tests
-const echoLambda = new aws.compute.NodejsFunction(stack, "Echo", {
-  path: path.join(__dirname, "handlers", "echo", "index.ts"),
+const echoLambda = new aws.compute.LambdaFunction(stack, "Echo", {
+  // path: path.join(__dirname, "handlers", "echo", "index.ts"),
+  runtime: STANDARD_NODEJS_RUNTIME,
+  handler: "index.handler",
+  code: aws.compute.Code.fromInline(`exports.handler = async (event) => {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        host: process.env.NAME || "unnamed",
+        ip: event.requestContext.http.sourceIp,
+      }),
+    };
+  };`),
   environment: {
     NAME: "simple-ipv4-test",
   },
@@ -55,10 +74,33 @@ echoLambda.addFunctionUrl({
   },
 });
 
+const fetchIpProps: aws.compute.FunctionProps = {
+  // path: path.join(__dirname, "handlers", "fetch-ip", "index.ts"),
+  runtime: STANDARD_NODEJS_RUNTIME,
+  handler: "index.handler",
+  code: aws.compute.Code.fromInline(`const https = require('https');
+  exports.handler = async (event, context, callback) => {
+    https
+      .get(event.url, (res) => {
+        let data = "";
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+        res.on("end", () => {
+          const result = JSON.parse(data);
+          callback(null, result);
+        });
+      })
+      .on("error", (e) => {
+        callback(e);
+      });
+  };`),
+};
+
 // add lambdas to test connectivity from all private subnets to public echo endpoint
 for (let i = 0; i < azCount; i++) {
-  new aws.compute.NodejsFunction(stack, `PrivateFetchIp${i}`, {
-    path: path.join(__dirname, "handlers", "fetch-ip", "index.ts"),
+  new aws.compute.LambdaFunction(stack, `PrivateFetchIp${i}`, {
+    ...fetchIpProps,
     networkConfig: {
       vpcId: network.vpcId, // errors if not set :( - ideally this could be inferred?
       subnetIds: [network.privateSubnets[i].subnetId],
@@ -66,8 +108,8 @@ for (let i = 0; i < azCount; i++) {
     registerOutputs: true,
     outputName: "fetch_ip_private" + i,
   });
-  new aws.compute.NodejsFunction(stack, `DataFetchIp${i}`, {
-    path: path.join(__dirname, "handlers", "fetch-ip", "index.ts"),
+  new aws.compute.LambdaFunction(stack, `DataFetchIp${i}`, {
+    ...fetchIpProps,
     networkConfig: {
       vpcId: network.vpcId,
       subnetIds: [network.dataSubnets[i].subnetId],

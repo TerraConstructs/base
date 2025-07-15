@@ -1,4 +1,5 @@
-import path from "path";
+// https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-stepfunctions-tasks/test/lambda/invoke.test.ts
+
 import "cdktf/lib/testing/adapters/jest";
 import { Testing } from "cdktf";
 import { AwsStack } from "../../../../../src/aws/aws-stack";
@@ -10,7 +11,7 @@ import {
 
 describe("LambdaInvoke", () => {
   let stack: AwsStack;
-  let lambdaFunction: compute.NodejsFunction;
+  let lambdaFunction: compute.LambdaFunction;
 
   beforeEach(() => {
     // GIVEN
@@ -23,8 +24,10 @@ describe("LambdaInvoke", () => {
         address: "http://localhost:3000",
       },
     });
-    lambdaFunction = new compute.NodejsFunction(stack, "Fn", {
-      path: path.join(__dirname, "fixtures", "hello-world.ts"),
+    lambdaFunction = new compute.LambdaFunction(stack, "Fn", {
+      code: compute.Code.fromInline("foo"),
+      handler: "handler",
+      runtime: compute.Runtime.NODEJS_LATEST,
     });
   });
 

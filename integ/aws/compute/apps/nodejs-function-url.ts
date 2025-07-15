@@ -1,4 +1,3 @@
-import * as path from "path";
 import { App, LocalBackend } from "cdktf";
 import { aws, Duration } from "../../../../src";
 
@@ -23,8 +22,19 @@ new LocalBackend(stack, {
 });
 
 // add a public echo endpoint for network connectivity tests
-const echoLambda = new aws.compute.NodejsFunction(stack, "Echo", {
-  path: path.join(__dirname, "handlers", "echo", "index.ts"),
+const echoLambda = new aws.compute.LambdaFunction(stack, "Echo", {
+  // entry: path.join(__dirname, "handlers", "echo", "index.ts"),
+  runtime: aws.compute.Runtime.NODEJS_18_X,
+  handler: "index.handler",
+  code: aws.compute.Code.fromInline(`exports.handler = async (event) => {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        host: process.env.NAME || "unnamed",
+        ip: event.requestContext.http.sourceIp,
+      }),
+    };
+  };`),
   environment: {
     NAME: stackName,
   },

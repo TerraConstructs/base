@@ -13,18 +13,17 @@ import {
 } from "@cdktf/provider-aws";
 import { sleep } from "@cdktf/provider-time";
 import { Token } from "cdktf";
+// import { Fn } from "../../terra-func";
 import { Construct } from "constructs";
-import {
-  BucketSource,
-  BucketSourceProps,
-  WebsiteConfig,
-  CorsConfig,
-  LifecycleConfigurationRule,
-  OriginAccessIdentity,
-  BucketPolicy,
-  BucketNotifications,
-  IBucketNotificationDestination,
-} from ".";
+import { IBucketNotificationDestination } from "./bucket-destination";
+import { BucketNotifications } from "./bucket-notifications";
+import * as perms from "./bucket-perms";
+import { BucketPolicy } from "./bucket-policy";
+import { BucketSource, BucketSourceProps } from "./bucket-source";
+import { CorsConfig } from "./cors-config.generated";
+import { LifecycleConfigurationRule } from "./lifecycle-config.generated";
+import { OriginAccessIdentity } from "./origin-access-identity";
+import { WebsiteConfig } from "./website-config.generated";
 import {
   AwsConstructBase,
   IAwsConstruct,
@@ -32,13 +31,13 @@ import {
 } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
 import {
-  // s3StaticWebsiteEndpoint,
+  s3StaticWebsiteEndpoint,
+  s3StaticWebsiteHostedZoneId,
   parseBucketName,
-  // parseBucketArn,
+  parseBucketArn,
 } from "./util";
 import * as kms from "../encryption";
 import * as iam from "../iam";
-import * as perms from "./bucket-perms";
 
 export interface CloudfrontAccessConfig {
   /**
@@ -421,13 +420,14 @@ export interface IBucket extends IAwsConstruct {
   readonly bucketOutputs: BucketOutputs;
 
   /**
-   * AWS Bucket name
-   */
-  readonly bucketName: string;
-  /**
    * AWS Bucket arn
    */
   readonly bucketArn: string;
+
+  /**
+   * AWS Bucket name
+   */
+  readonly bucketName: string;
 
   /** Whether the bucket has versioning enabled */
   readonly versioned: boolean;
@@ -705,6 +705,8 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
   public abstract readonly bucketArn: string;
   public abstract readonly bucketName: string;
   public abstract readonly websiteDomainName?: string;
+  public abstract readonly bucketDomainName: string;
+  public abstract readonly bucketRegionalDomainName: string;
   public abstract readonly websiteEndpoint?: string;
   public abstract readonly public?: boolean;
   public abstract readonly versioned: boolean;
@@ -717,8 +719,8 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
     return {
       name: this.bucketName,
       arn: this.bucketArn,
-      domainName: this.resource.bucketDomainName,
-      regionalDomainName: this.resource.bucketRegionalDomainName,
+      domainName: this.bucketDomainName,
+      regionalDomainName: this.bucketRegionalDomainName,
       websiteDomainName: this.websiteDomainName,
       websiteUrl: this.websiteEndpoint,
       originAccessIdentity:
@@ -729,9 +731,9 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
   public get outputs(): Record<string, any> {
     return this.bucketOutputs;
   }
-  protected abstract readonly resource:
-    | s3Bucket.S3Bucket
-    | dataAwsS3Bucket.DataAwsS3Bucket;
+  // protected abstract readonly resource:
+  //   | s3Bucket.S3Bucket
+  //   | dataAwsS3Bucket.DataAwsS3Bucket;
   protected abstract readonly originAccessIdentity?: OriginAccessIdentity;
 
   /** @internal */
@@ -828,7 +830,7 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
       identity,
       perms.BUCKET_READ_ACTIONS,
       perms.KEY_READ_ACTIONS,
-      this.resource.arn,
+      this.bucketArn,
       this.arnForObjects(objectsKeyPattern),
     );
   }
@@ -846,7 +848,7 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
       identity,
       grantedWriteActions,
       perms.KEY_WRITE_ACTIONS,
-      this.resource.arn,
+      this.bucketArn,
       this.arnForObjects(objectsKeyPattern),
     );
   }
@@ -910,7 +912,7 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
       identity,
       bucketActions,
       keyActions,
-      this.resource.arn,
+      this.bucketArn,
       this.arnForObjects(objectsKeyPattern),
     );
   }
@@ -1202,7 +1204,7 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
    *
    */
   public arnForObjects(keyPattern: string): string {
-    return `${this.resource.arn}/${keyPattern}`;
+    return `${this.bucketArn}/${keyPattern}`;
   }
 
   // https://github.com/aws/aws-cdk/blob/v2.140.0/packages/aws-cdk-lib/aws-s3/lib/bucket.ts#L953
@@ -1292,9 +1294,9 @@ export class Bucket extends BucketBase implements IBucket {
     id: string,
     attrs: BucketAttributes,
   ): IBucket {
-    // const stack = AwsStack.ofAwsConstruct(scope);
-    // const region = attrs.region ?? stack.region;
-    // const urlSuffix = stack.urlSuffix;
+    const stack = AwsStack.ofAwsConstruct(scope);
+    const region = attrs.region ?? stack.region;
+    const urlSuffix = stack.urlSuffix;
 
     const bucketName = parseBucketName(scope, attrs);
     if (!bucketName) {
@@ -1302,7 +1304,7 @@ export class Bucket extends BucketBase implements IBucket {
     }
     Bucket.validateBucketName(bucketName, true);
 
-    // let staticDomainEndpoint = s3StaticWebsiteEndpoint(region);
+    let staticDomainEndpoint = s3StaticWebsiteEndpoint(region);
     // TODO: support lazy lookup based on Unresolved region
     // Lazy.stringValue({
     //   produce: () =>
@@ -1311,37 +1313,38 @@ export class Bucket extends BucketBase implements IBucket {
     //       newEndpoint,
     //     ),
     // });
-    // const websiteDomain = `${bucketName}.${staticDomainEndpoint}`;
+    const websiteDomain = `${bucketName}.${staticDomainEndpoint}`;
 
     class Import extends BucketBase {
-      public readonly resource = new dataAwsS3Bucket.DataAwsS3Bucket(
-        scope,
-        bucketName!, // make id is unique
-        {
-          bucket: bucketName!,
-        },
-      );
-      // public readonly bucketName = bucketName!;
-      public get bucketName(): string {
-        return this.resource.bucket;
-      }
-      // public readonly bucketArn = parseBucketArn(scope, attrs);
-      public get bucketArn(): string {
-        return this.resource.arn;
-      }
-      public get websiteDomainName(): string | undefined {
-        return this.resource.websiteDomain;
-      }
-      public get websiteEndpoint(): string | undefined {
-        return this.resource.websiteEndpoint;
-      }
+      public readonly bucketName = bucketName!;
+      public readonly bucketArn = parseBucketArn(scope, attrs);
+      public readonly bucketDomainName =
+        attrs.bucketDomainName || `${bucketName}.s3.${urlSuffix}`;
+      // NOTE previous versions error: resource.websiteDomain should be websiteEndpoint (without http://)
+      // Ref: https://github.com/hashicorp/terraform-provider-aws/blob/v6.0.0/internal/service/s3/bucket.go#L1708-L1712
+      public readonly websiteDomainName = staticDomainEndpoint;
+      // TODO: re-align to AWSCDK bucketWebsiteDomainName ...
+      // attrs.bucketWebsiteUrl
+      //   ? Fn.select(2, Fn.split("/", attrs.bucketWebsiteUrl)) // drop http://
+      //   : websiteDomain;
+      // TODO: Does not exist for AWSCDK
+      public readonly websiteEndpoint = websiteDomain;
+      public readonly bucketWebsiteUrl =
+        attrs.bucketWebsiteUrl || `http://${websiteDomain}`;
+      public readonly bucketRegionalDomainName =
+        attrs.bucketRegionalDomainName ||
+        `${bucketName}.s3.${region}.${urlSuffix}`;
+      public readonly bucketDualStackDomainName =
+        attrs.bucketDualStackDomainName ||
+        `${bucketName}.s3.dualstack.${region}.${urlSuffix}`;
+      public readonly encryptionKey = attrs.encryptionKey;
+
       public get hostedZoneId(): string {
-        return this.resource.hostedZoneId;
+        return s3StaticWebsiteHostedZoneId(region);
       }
       public readonly public = attrs.public ?? false;
       public readonly versioned = attrs.versioned ?? false;
       public policy?: BucketPolicy = undefined;
-      public readonly encryptionKey = attrs.encryptionKey;
       public readonly originAccessIdentity = attrs.originAccessIdentity;
       public readonly _isWebsite = !!attrs.isWebsite;
       protected autoCreatePolicy = false;
@@ -1458,6 +1461,12 @@ export class Bucket extends BucketBase implements IBucket {
   }
   public get bucketName(): string {
     return this.resource.bucket;
+  }
+  public get bucketDomainName(): string {
+    return this.resource.bucketDomainName;
+  }
+  public get bucketRegionalDomainName(): string {
+    return this.resource.bucketRegionalDomainName;
   }
   public get websiteDomainName(): string | undefined {
     return this.websiteConfig?.websiteDomain;

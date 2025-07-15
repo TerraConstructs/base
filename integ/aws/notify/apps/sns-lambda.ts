@@ -1,39 +1,38 @@
-// https://github.com/aws/aws-cdk/blob/v2.176.0/packages/%40aws-cdk-testing/framework-integ/test/aws-sns-subscriptions/test/integ.sns-aws.compute.ts
+// http://github.com/aws/aws-cdk/blob/v2.176.0/packages/%40aws-cdk-testing/framework-integ/test/aws-sns-subscriptions/test/integ.sns-lambda.ts
 
-import * as path from "path";
 import { App, LocalBackend } from "cdktf";
 import { aws } from "../../../../src";
+
+/**
+ * The standard nodejs runtime used for integration tests.
+ * Use this, unless specifically testing a certain runtime.
+ *
+ * The runtime should be the lowest runtime currently supported by the AWS CDK.
+ * Updating this value will require you to run a lot of integration tests.
+ */
+export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_18_X;
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
 const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
 const stackName = process.env.STACK_NAME ?? "sns-lambda";
 
-// import { STANDARD_NODEJS_RUNTIME } from "../../config";
-
 class SnsToLambda extends aws.AwsStack {
   constructor(scope: App, id: string, props: aws.AwsStackProps) {
     super(scope, id, props);
-
-    const handlerPath = path.join(
-      __dirname,
-      "handlers",
-      "log-event",
-      "index.ts",
-    );
 
     const topic = new aws.notify.Topic(this, "MyTopic", {
       registerOutputs: true,
       outputName: "my_topic",
     });
-    const func = new aws.compute.NodejsFunction(this, "Echo", {
-      runtime: "nodejs20.x",
-      path: handlerPath,
+    const func = new aws.compute.LambdaFunction(this, "Echo", {
       registerOutputs: true,
       outputName: "echo_function",
-      //   handler: "index.handler",
-      //   runtime: STANDARD_NODEJS_RUNTIME,
-      //   code: aws.compute.Code.fromInline(`exports.handler = ${handler.toString()}`),
+      handler: "index.handler",
+      runtime: STANDARD_NODEJS_RUNTIME,
+      code: aws.compute.Code.fromInline(
+        `exports.handler = ${handler.toString()}`,
+      ),
     });
 
     topic.addSubscription(
@@ -42,16 +41,14 @@ class SnsToLambda extends aws.AwsStack {
       }),
     );
 
-    const funcFiltered = new aws.compute.NodejsFunction(this, "Filtered", {
-      runtime: "nodejs20.x",
-      path: handlerPath,
+    const funcFiltered = new aws.compute.LambdaFunction(this, "Filtered", {
       registerOutputs: true,
       outputName: "filtered_function",
-      //   handler: "index.handler",
-      //   runtime: STANDARD_NODEJS_RUNTIME,
-      //   code: aws.compute.Code.fromInline(
-      //     `exports.handler = ${handler.toString()}`,
-      //   ),
+      handler: "index.handler",
+      runtime: STANDARD_NODEJS_RUNTIME,
+      code: aws.compute.Code.fromInline(
+        `exports.handler = ${handler.toString()}`,
+      ),
     });
 
     topic.addSubscription(
@@ -72,19 +69,17 @@ class SnsToLambda extends aws.AwsStack {
       }),
     );
 
-    const funcFilteredWithMessageBody = new aws.compute.NodejsFunction(
+    const funcFilteredWithMessageBody = new aws.compute.LambdaFunction(
       this,
       "FilteredMessageBody",
       {
-        runtime: "nodejs20.x",
-        path: handlerPath,
+        handler: "index.handler",
+        runtime: STANDARD_NODEJS_RUNTIME,
+        code: aws.compute.Code.fromInline(
+          `exports.handler = ${handler.toString()}`,
+        ),
         registerOutputs: true,
         outputName: "filtered_message_body_function",
-        // handler: "index.handler",
-        // runtime: STANDARD_NODEJS_RUNTIME,
-        // code: aws.compute.Code.fromInline(
-        //   `exports.handler = ${handler.toString()}`,
-        // ),
       },
     );
 
@@ -124,11 +119,10 @@ new LocalBackend(stack, {
 });
 app.synth();
 
-// TODO: Support compute.Code.Inline
-// function handler(event: any, _context: any, callback: any) {
-//   /* eslint-disable no-console */
-//   console.log('====================================================');
-//   console.log(JSON.stringify(event, undefined, 2));
-//   console.log('====================================================');
-//   return callback(undefined, event);
-// }
+function handler(event: any, _context: any, callback: any) {
+  /* eslint-disable no-console */
+  console.log("====================================================");
+  console.log(JSON.stringify(event, undefined, 2));
+  console.log("====================================================");
+  return callback(undefined, event);
+}

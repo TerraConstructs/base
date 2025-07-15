@@ -35,8 +35,10 @@ beforeEach(() => {
     gridBackendConfig,
   });
   // GIVEN
-  fn = new compute.NodejsFunction(stack, "HelloWorld", {
-    path: path.join(__dirname, "fixtures", "hello-world.ts"),
+  fn = new compute.LambdaFunction(stack, "HelloWorld", {
+    code: new compute.InlineCode("foo"),
+    handler: "index.handler",
+    runtime: compute.Runtime.NODEJS_LATEST,
   });
   logGroup = new logs.LogGroup(stack, "LogGroup");
 });

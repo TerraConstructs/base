@@ -19,6 +19,17 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - name: set up Docker
+        uses: docker/setup-buildx-action@v3
+      - name: Load docker images
+        id: docker-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.docker-images.tar
+          key: docker-cache-${{ runner.os }}
+      - name: Restore docker images
+        if: ${{ steps.docker-cache.outputs.cache-hit }}
+        run: docker image load --input ~/.docker-images.tar
       - uses: actions/setup-go@v5
         with:
           go-version: ^1.23.0
@@ -36,11 +47,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.20.5
+          node-version: 20.9.0
       - name: Install dependencies
         run: pnpm i --no-frozen-lockfile
       - name: build
         run: npx projen build
+      - name: Export Docker images
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        run: docker image save --output ~/.docker-images.tar $(docker image list --format '{{ if ne .Repository "<none>" }}{{ .Repository }}{{ if ne .Tag "<none>" }}:{{ .Tag }}{{ end }}{{ else }}{{ .ID }}{{ end }}')
+      - name: Cache Docker images
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.docker-images.tar
+          key: docker-cache-${{ runner.os }}
       - name: Find mutations
         id: self_mutation
         run: |-
@@ -109,7 +129,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: 18.20.5
+          node-version: 20.9.0
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -118,6 +138,17 @@ jobs:
       - name: Restore build artifact permissions
         run: cd dist && setfacl --restore=permissions-backup.acl
         continue-on-error: true
+      - name: set up Docker
+        uses: docker/setup-buildx-action@v3
+      - name: Load docker images
+        id: docker-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.docker-images.tar
+          key: docker-cache-${{ runner.os }}
+      - name: Restore docker images
+        if: ${{ steps.docker-cache.outputs.cache-hit }}
+        run: docker image load --input ~/.docker-images.tar
       - uses: actions/setup-go@v5
         with:
           go-version: ^1.23.0
