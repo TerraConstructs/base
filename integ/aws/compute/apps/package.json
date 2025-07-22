@@ -11,7 +11,10 @@
     "instance": "bun run ./instance.ts",
     "launch-template": "bun run ./launch-template.ts",
     "instance-public": "bun run ./instance-public.ts",
-    "machine-image": "bun run ./machine-image.ts"
+    "machine-image": "bun run ./machine-image.ts",
+    "apigw.request-authorizer": "bun run ./apigw.request-authorizer.ts",
+    "apigw.token-authorizer": "bun run ./apigw.token-authorizer.ts",
+    "apigw.token-authorizer-iam-role": "bun run ./apigw.token-authorizer-iam-role.ts"
   },
   "dependencies": {
     "@cdktf/provider-aws": "^20.1.0",

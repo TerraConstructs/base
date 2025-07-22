@@ -130,7 +130,12 @@ export interface IFunction extends IAwsConstruct, iam.IGrantable {
   /**
    * Qualified (`:QUALIFIER` or `:VERSION` suffix) ARN to be used for invoking Lambda Function from API Gateway.
    */
-  readonly functionQualifiedInvokeArn: string;
+  readonly functionQualifiedInvokeArn: string; // TODO: Deprecate? Seems unused
+
+  /**
+   * ARN to be used for invoking Lambda Function from API Gateway.
+   */
+  readonly functionInvokeArn: string;
 
   /**
    * Adds an event source that maps to this AWS Lambda function.
@@ -229,6 +234,11 @@ export abstract class LambdaFunctionBase
    * Qualified (`:QUALIFIER` or `:VERSION` suffix) ARN to be used for invoking Lambda Function from API Gateway. See also invoke_arn.
    */
   public abstract readonly functionQualifiedInvokeArn: string;
+
+  /**
+   * ARN to be used for invoking Lambda Function from API Gateway. See also invoke_arn.
+   */
+  public abstract readonly functionInvokeArn: string;
 
   /**
    * Latest published version of your Lambda Function.

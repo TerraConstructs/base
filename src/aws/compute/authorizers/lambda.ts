@@ -355,7 +355,7 @@ export class RequestAuthorizer extends LambdaAuthorizer {
  * constructs the authorizerURIArn.
  */
 function lambdaAuthorizerArn(handler: lambda.IFunction): string {
-  return handler.functionQualifiedInvokeArn;
+  return handler.functionInvokeArn;
 
   // The following code is commented out because it was moved to the imported LambdaFunction class.
   // const { region, partition } = Arn.split(

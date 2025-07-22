@@ -62,8 +62,7 @@ describe("lambda authorizer", () => {
         rest_api_id: stack.resolve(restApi.restApiId),
         identity_source: "method.request.header.Authorization",
         authorizer_result_ttl_in_seconds: 300,
-        // TODO: Should use tf provider functionQualifiedInvokeArn?
-        authorizer_uri: stack.resolve(func.functionQualifiedInvokeArn),
+        authorizer_uri: stack.resolve(func.functionInvokeArn),
         // // (NOTE: no resolver for handler.invokeArn...)
         // authorizer_uri:
         //   'arn:${element(split(":", aws_lambda_function.myfunction_9B95E948.arn), 1)}:apigateway:${element(split(":", aws_lambda_function.myfunction_9B95E948.arn), 3)}:lambda:path/2015-03-31/functions/${aws_lambda_function.myfunction_9B95E948.arn}/invocations',
@@ -112,7 +111,7 @@ describe("lambda authorizer", () => {
         type: "REQUEST",
         rest_api_id: stack.resolve(restApi.restApiId),
         authorizer_result_ttl_in_seconds: 0,
-        authorizer_uri: stack.resolve(func.functionQualifiedInvokeArn),
+        authorizer_uri: stack.resolve(func.functionInvokeArn),
       },
     );
     // Check that identity_source is not present or is null/empty
@@ -214,7 +213,7 @@ describe("lambda authorizer", () => {
         identity_validation_expression: "a-hacker",
         name: "myauthorizername",
         authorizer_result_ttl_in_seconds: 60,
-        authorizer_uri: stack.resolve(func.functionQualifiedInvokeArn),
+        authorizer_uri: stack.resolve(func.functionInvokeArn),
       },
     );
   });
@@ -247,7 +246,7 @@ describe("lambda authorizer", () => {
         identity_source: "method.request.header.whoami",
         name: "myauthorizername",
         authorizer_result_ttl_in_seconds: 60,
-        authorizer_uri: stack.resolve(func.functionQualifiedInvokeArn),
+        authorizer_uri: stack.resolve(func.functionInvokeArn),
       },
     );
   });
@@ -281,7 +280,7 @@ describe("lambda authorizer", () => {
       {
         type: "TOKEN",
         rest_api_id: stack.resolve(restApi.restApiId),
-        authorizer_uri: stack.resolve(func.functionQualifiedInvokeArn),
+        authorizer_uri: stack.resolve(func.functionInvokeArn),
         authorizer_credentials: stack.resolve(role.roleArn),
       },
     );
@@ -339,7 +338,7 @@ describe("lambda authorizer", () => {
       {
         type: "REQUEST",
         rest_api_id: stack.resolve(restApi.restApiId),
-        authorizer_uri: stack.resolve(func.functionQualifiedInvokeArn),
+        authorizer_uri: stack.resolve(func.functionInvokeArn),
         authorizer_credentials: stack.resolve(role.roleArn),
       },
     );

@@ -130,7 +130,7 @@ describe("lambda api", () => {
       {
         type: "AWS_PROXY",
         integration_http_method: "POST",
-        // uri: stack.resolve(alias.functionQualifiedInvokeArn),
+        // uri: stack.resolve(alias.functionInvokeArn),
         uri: [
           `arn:${stack.resolve(stack.partition)}:apigateway:${stack.resolve(stack.region)}`,
           `:lambda:path/2015-03-31/functions/${stack.resolve(alias.functionArn)}/invocations`,
