@@ -1,7 +1,10 @@
 import { spawnSync } from "child_process";
+import { join as pathtJoin } from "path";
+import { dataArchiveFile } from "@cdktf/provider-archive";
 import * as cdktf from "cdktf";
 import { Construct } from "constructs";
 import { DockerImage, DockerBuildOptions } from "../../bundling";
+import { md5hash } from "../../helpers-internal";
 import { AwsStack } from "../aws-stack";
 import { IKey } from "../encryption";
 import * as iam from "../iam";
@@ -187,7 +190,7 @@ export abstract class Code {
 
   /**
    * DEPRECATED
-   * @deprecated use `fromCfnParameters`
+   * @deprecated use `fromTerraformVariables`
    */
   public static terraformVariables(
     props?: TerraformVariablesCodeProps,
@@ -396,6 +399,7 @@ export class S3CodeV2 extends Code {
  */
 export class InlineCode extends Code {
   public readonly isInline = true;
+  private dataArchive?: dataArchiveFile.DataArchiveFile;
 
   constructor(private code: string) {
     super();
@@ -406,10 +410,53 @@ export class InlineCode extends Code {
     }
   }
 
-  public bind(_scope: Construct): CodeConfig {
+  public bind(scope: Construct): CodeConfig {
+    this.ensureDataArchive(scope);
     return {
-      inlineCode: this.code,
+      inlineCode: this.dataArchive!.outputPath,
+      sourceCodeHash: this.dataArchive!.outputBase64Sha256,
     };
+  }
+
+  /**
+   * Ugly hack to support inline code with Terraform.
+   *
+   * https://github.com/hashicorp/terraform-provider-aws/issues/9774#issuecomment-669356786
+   * @param scope
+   * @returns
+   */
+  private ensureDataArchive(scope: Construct) {
+    if (this.dataArchive) {
+      return;
+    }
+    // get the provider singleton
+    const provider = AwsStack.ofAwsConstruct(scope).archiveProvider;
+    // ensure the code is hashed for consistency
+    const id = AwsStack.ofAwsConstruct(scope).uniqueResourceName(
+      new cdktf.TerraformElement(scope, md5hash(this.code)),
+      {
+        maxLength: 64,
+        allowedSpecialCharacters: "-_",
+      },
+    );
+    // const id = md5hash(this.code);
+    const existing = scope.node.tryFindChild(id);
+    if (existing) {
+      this.dataArchive = existing as dataArchiveFile.DataArchiveFile;
+    } else {
+      this.dataArchive = new dataArchiveFile.DataArchiveFile(scope, id, {
+        outputPath: pathtJoin(
+          cdktf.Token.asString(cdktf.ref("path.root")),
+          ".archive_files",
+          `${id}.zip`,
+        ),
+        type: "zip",
+        sourceContent: this.code,
+        // TODO: what is filename?
+        sourceContentFilename: "index",
+        provider,
+      });
+    }
   }
 }
 

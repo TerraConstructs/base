@@ -33,6 +33,7 @@
     "organization": false
   },
   "devDependencies": {
+    "@cdktf/provider-archive": "11.0.0",
     "@cdktf/provider-aws": "20.1.0",
     "@cdktf/provider-cloudinit": "11.0.0",
     "@cdktf/provider-docker": "12.0.2",
@@ -68,6 +69,7 @@
     "typescript": "~5.7"
   },
   "peerDependencies": {
+    "@cdktf/provider-archive": "^11.0.0",
     "@cdktf/provider-aws": "^20.1.0",
     "@cdktf/provider-cloudinit": "^11.0.0",
     "@cdktf/provider-docker": "^12.0.2",

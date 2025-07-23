@@ -105,6 +105,27 @@ func TestApigwRequestAuthorizer(t *testing.T) {
 	})
 }
 
+func TestApigwLambda(t *testing.T) {
+	runComputeIntegrationTest(t, "apigw.lambda", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
+		// TODO: Find out why API Gateways fail until they are redeployed??
+		// force re-deployment of the API Gateway to ensure the latest changes are applied
+		util.ReplaceTerraformResource(t, tfWorkingDir, "aws_api_gateway_deployment", "")
+
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
+		assertApiResponses(t, apiUrl, []apiTestCase{
+			{
+				// GET should return 200 with JSON body {"message":"Hello"}
+				expectedStatusCode: 200,
+				expectedResponse:   `"message":"Hello"`,
+			},
+		})
+	})
+}
+
+// func TestApigwGrantExecute(t *testing.T) {
+// 	runComputeIntegrationTest(t, "apigw.grant-execute", region, func(t *testing.T, tfWorkingDir, awsRegion string) {}
+
 // apiTestCase defines a test case for the API Gateway
 type apiTestCase struct {
 	method             string     // HTTP method to use for the request

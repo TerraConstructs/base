@@ -1,3 +1,4 @@
+import { provider as archiveProvider } from "@cdktf/provider-archive";
 import {
   TerraformStack,
   TerraformElement,
@@ -118,6 +119,13 @@ export interface IStack extends IConstruct {
   readonly environmentName: string;
   readonly gridUUID: string;
   readonly gridBackend?: HttpBackend;
+  /**
+   * A singleton Archive Provider used to archive assets.
+   * This is used for example for inline Code content in aws Lambda Functions.
+   *
+   * ref: https://github.com/hashicorp/terraform-provider-aws/issues/9774#issuecomment-669356786
+   */
+  readonly archiveProvider: archiveProvider.ArchiveProvider;
   resolve(obj: any, preparing?: boolean): any;
   uniqueResourceName(
     tfElement: TerraformElement | Node,
@@ -205,6 +213,17 @@ export abstract class StackBase extends TerraformStack implements IStack {
    * The grid provided backend for state storage
    */
   public readonly gridBackend?: HttpBackend;
+
+  private archiveProviderSingleton?: archiveProvider.ArchiveProvider;
+  public get archiveProvider(): archiveProvider.ArchiveProvider {
+    if (!this.archiveProviderSingleton) {
+      this.archiveProviderSingleton = new archiveProvider.ArchiveProvider(
+        this,
+        "ArchiveProvider",
+      );
+    }
+    return this.archiveProviderSingleton;
+  }
 
   constructor(scope: Construct, id: string, props: StackBaseProps) {
     super(scope, id);
