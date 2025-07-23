@@ -23,6 +23,7 @@ import (
 var (
 	terratestLogger                               = loggers.Default
 	invocationTypeEvent util.InvocationTypeOption = util.InvocationTypeEvent
+	region                                        = "us-east-1"
 )
 
 // Test the simple-ipv4-vpc app

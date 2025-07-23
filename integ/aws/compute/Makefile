@@ -39,3 +39,19 @@ instance-public: ## Test Compute Instance with public IP
 machine-image: ## Test Machine Image
 	go test -v -count 1 -timeout 15m ./... -run ^TestMachineImage$
 .PHONY: machine-image
+
+apigw-authorizer: ## Test All API Gateway Authorizer tests (sequential)
+	go test -v -count 1 -p 1 -parallel 1 -timeout 15m ./... -run '^TestApigw.*Authorizer.*$$'
+.PHONY: apigw-authorizer
+
+apigw-token-authorizer: ## Test API Gateway with Token Authorizer
+	go test -v -count 1 -timeout 15m ./... -run ^TestApigwTokenAuthorizer$
+.PHONY: apigw-token-authorizer
+
+apigw-token-authorizer-iam-role: ## Test API Gateway with Token Authorizer and IAM Role
+	go test -v -count 1 -timeout 15m ./... -run ^TestApigwTokenAuthorizerIamRole$
+.PHONY: apigw-token-authorizer-iam-role
+
+apigw-request-authorizer: ## Test API Gateway with Request Authorizer
+	go test -v -count 1 -timeout 15m ./... -run ^TestApigwRequestAuthorizer$
+.PHONY: apigw-request-authorizer

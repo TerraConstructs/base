@@ -390,6 +390,13 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
         );
         return `arn:${partition}:apigateway:${region}:lambda:path/2015-03-31/functions/${functionArn}/invocations`;
       }
+      public get functionInvokeArn(): string {
+        const { region, partition } = Arn.split(
+          functionArn,
+          ArnFormat.COLON_RESOURCE_NAME,
+        );
+        return `arn:${partition}:apigateway:${region}:lambda:path/2015-03-31/functions/${functionArn}/invocations`;
+      }
       // TODO: Resolve role and principal resolve from TF data source?
       public readonly grantPrincipal: iam.IPrincipal;
       public readonly role = role;
@@ -486,10 +493,21 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
   }
 
   /**
-   * The ARN fo the function.
+   * The Fully Qualified Invoke ARN fo the function to be used from API Gateway.
+   *
+   * NOTE: This does not seem to work with Authorizers
    */
   public get functionQualifiedInvokeArn(): string {
     return this.resource.qualifiedInvokeArn;
+  }
+
+  /**
+   * The Invoke ARN fo the function to be used from API Gateway.
+   *
+   * NOTE: Use this for Authorizers
+   */
+  public get functionInvokeArn(): string {
+    return this.resource.invokeArn;
   }
 
   /**
