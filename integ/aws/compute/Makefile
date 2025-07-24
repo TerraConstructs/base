@@ -55,3 +55,7 @@ apigw-token-authorizer-iam-role: ## Test API Gateway with Token Authorizer and I
 apigw-request-authorizer: ## Test API Gateway with Request Authorizer
 	go test -v -count 1 -timeout 15m ./... -run ^TestApigwRequestAuthorizer$
 .PHONY: apigw-request-authorizer
+
+apigw-lambda: ## Test API Gateway with Lambda Integration
+	go test -v -count 1 -timeout 15m ./... -run ^TestApigwLambda$
+.PHONY: apigw-lambda

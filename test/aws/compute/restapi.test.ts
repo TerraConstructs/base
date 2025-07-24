@@ -116,7 +116,10 @@ describe("restapi", () => {
         },
         aws_api_gateway_deployment: {
           "my-api_Deployment_92F2CB49": {
-            depends_on: ["aws_api_gateway_method.my-api_GET_F990CE3C"],
+            depends_on: [
+              "aws_api_gateway_method.my-api_GET_F990CE3C",
+              "aws_api_gateway_integration.my-api_GET_Integration_945CAFC2",
+            ],
             description: "Automatically created by the RestApi construct",
             lifecycle: {
               create_before_destroy: true,

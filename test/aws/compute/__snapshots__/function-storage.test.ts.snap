@@ -3,6 +3,15 @@
 exports[`Function with Storage Should synth and match SnapShot 1`] = `
 "{
   "data": {
+    "archive_file": {
+      "HelloWorld_TestStackHelloWorldacbd18db4cc2f85cedef654fccc4a4d8D135A4C7_9A2A35D2": {
+        "output_path": "\${path.root}/.archive_files/TestStackHelloWorldacbd18db4cc2f85cedef654fccc4a4d8D135A4C7.zip",
+        "provider": "archive",
+        "source_content": "foo",
+        "source_content_filename": "index",
+        "type": "zip"
+      }
+    },
     "aws_caller_identity": {
       "CallerIdentity": {
         "provider": "aws"
@@ -66,6 +75,10 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
     }
   },
   "provider": {
+    "archive": [
+      {
+      }
+    ],
     "aws": [
       {
         "region": "us-east-1"
@@ -121,12 +134,13 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
           "variables": {
           }
         },
-        "filename": "foo",
+        "filename": "\${data.archive_file.HelloWorld_TestStackHelloWorldacbd18db4cc2f85cedef654fccc4a4d8D135A4C7_9A2A35D2.output_path}",
         "function_name": "123e4567-e89b-12d3-TestStackHelloWorld",
         "handler": "index.handler",
         "memory_size": 128,
         "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.arn}",
         "runtime": "nodejs18.x",
+        "source_code_hash": "\${data.archive_file.HelloWorld_TestStackHelloWorldacbd18db4cc2f85cedef654fccc4a4d8D135A4C7_9A2A35D2.output_base64sha256}",
         "tags": {
           "Name": "Test-HelloWorld",
           "grid:EnvironmentName": "Test",
@@ -156,6 +170,10 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
       }
     },
     "required_providers": {
+      "archive": {
+        "source": "hashicorp/archive",
+        "version": "2.7.1"
+      },
       "aws": {
         "source": "aws",
         "version": "5.100.0"
@@ -215,6 +233,14 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
     "aws_service_principal": {
       "aws_svcp_default_region_lambda": {
         "service_name": "lambda"
+      }
+    },
+    "terraform_remote_state": {
+      "cross-stack-reference-input-TestStack": {
+        "backend": "http",
+        "config": {
+          "address": "http://localhost:3000"
+        }
       }
     }
   },
@@ -293,12 +319,13 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
           "variables": {
           }
         },
-        "filename": "foo",
+        "filename": "\${data.terraform_remote_state.cross-stack-reference-input-TestStack.outputs.cross-stack-output-dataarchive_fileHelloWorld_TestStackHelloWorldacbd18db4cc2f85cedef654fccc4a4d8D135A4C7_9A2A35D2output_path}",
         "function_name": "123e4567-e89b-12d3-TestStackHelloWorld",
         "handler": "index.handler",
         "memory_size": 128,
         "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.arn}",
         "runtime": "nodejs18.x",
+        "source_code_hash": "\${data.terraform_remote_state.cross-stack-reference-input-TestStack.outputs.cross-stack-output-dataarchive_fileHelloWorld_TestStackHelloWorldacbd18db4cc2f85cedef654fccc4a4d8D135A4C7_9A2A35D2output_base64sha256}",
         "tags": {
           "Name": "Test-HelloWorld",
           "grid:EnvironmentName": "Test",
