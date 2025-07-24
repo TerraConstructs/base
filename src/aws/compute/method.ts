@@ -306,7 +306,7 @@ export class Method extends AwsConstructBase {
       this.api._attachMethod(this);
     }
 
-    const deployment = props.resource.api.latestDeployment;
+    const deployment = this.api.latestDeployment;
     if (deployment) {
       deployment.node.addDependency(this.methodResource);
       // Fn.sha1(Fn.jsonencode()) causes nested Tokens and Resolver errors?
@@ -584,6 +584,8 @@ export class Method extends AwsConstructBase {
       return {};
     }
 
+    const deployment = this.api.latestDeployment;
+
     // NOTE: The TerraformDependendableAspect will propgate construct tree dependencies
     const methodResponses: Record<
       string,
@@ -622,19 +624,22 @@ export class Method extends AwsConstructBase {
           integrationId,
           this.renderIntegration(this.bindResult),
         );
+      deployment?.node.addDependency(integrationResource);
       // add integration responses (with dependencies on integration)
       this.bindResult.options?.integrationResponses?.forEach((ir) => {
         const irId = `IntegrationResponse${ir.statusCode}`;
         if (this.node.tryFindChild(irId)) return;
-        new apiGatewayIntegrationResponse.ApiGatewayIntegrationResponse(
-          this,
-          irId,
-          this.renderIntegrationResponse(
-            integrationResource,
-            ir,
-            methodResponses,
-          ),
-        );
+        const integrationResponse =
+          new apiGatewayIntegrationResponse.ApiGatewayIntegrationResponse(
+            this,
+            irId,
+            this.renderIntegrationResponse(
+              integrationResource,
+              ir,
+              methodResponses,
+            ),
+          );
+        deployment?.node.addDependency(integrationResponse);
       });
     }
 

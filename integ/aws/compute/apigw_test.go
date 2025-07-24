@@ -16,10 +16,9 @@ import (
 // Test the apigw.token-authorizer app
 func TestApigwTokenAuthorizer(t *testing.T) {
 	runComputeIntegrationTest(t, "apigw.token-authorizer", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
-
-		// TODO: Find out why API Gateways fail until they are redeployed??
-		// force re-deployment of the API Gateway to ensure the latest changes are applied
-		util.ReplaceTerraformResource(t, tfWorkingDir, "aws_api_gateway_deployment", "")
+		// Optionally force re-deployment of the API Gateway to ensure the latest changes
+		// are applied. (no longer needed)
+		// util.ReplaceTerraformResource(t, tfWorkingDir, "aws_api_gateway_deployment", "")
 
 		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
@@ -50,10 +49,6 @@ func TestApigwTokenAuthorizer(t *testing.T) {
 // Test the apigw.token-authorizer-iam-role app
 func TestApigwTokenAuthorizerIamRole(t *testing.T) {
 	runComputeIntegrationTest(t, "apigw.token-authorizer-iam-role", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
-		// TODO: Find out why API Gateways fail until they are redeployed??
-		// force re-deployment of the API Gateway to ensure the latest changes are applied
-		util.ReplaceTerraformResource(t, tfWorkingDir, "aws_api_gateway_deployment", "")
-
 		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
 		assertApiResponses(t, apiUrl, []apiTestCase{
@@ -79,10 +74,6 @@ func TestApigwTokenAuthorizerIamRole(t *testing.T) {
 // Test the apigw.request-authorizer app
 func TestApigwRequestAuthorizer(t *testing.T) {
 	runComputeIntegrationTest(t, "apigw.request-authorizer", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
-		// TODO: Find out why API Gateways fail until they are redeployed??
-		// force re-deployment of the API Gateway to ensure the latest changes are applied
-		util.ReplaceTerraformResource(t, tfWorkingDir, "aws_api_gateway_deployment", "")
-
 		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
 		assertApiResponses(t, apiUrl, []apiTestCase{
@@ -107,10 +98,6 @@ func TestApigwRequestAuthorizer(t *testing.T) {
 
 func TestApigwLambda(t *testing.T) {
 	runComputeIntegrationTest(t, "apigw.lambda", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
-		// TODO: Find out why API Gateways fail until they are redeployed??
-		// force re-deployment of the API Gateway to ensure the latest changes are applied
-		util.ReplaceTerraformResource(t, tfWorkingDir, "aws_api_gateway_deployment", "")
-
 		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
 		assertApiResponses(t, apiUrl, []apiTestCase{
