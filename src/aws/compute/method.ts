@@ -11,6 +11,7 @@ import { Construct } from "constructs";
 import { ApiGatewayMetrics } from "./apigateway-canned-metrics.generated";
 import { validateHttpMethod } from "./apigateway-util";
 import { Authorizer, IAuthorizer } from "./authorizer";
+import { Deployment } from "./deployment";
 import {
   Integration,
   IntegrationConfig,
@@ -185,6 +186,8 @@ export class Method extends AwsConstructBase {
    */
   public readonly api: IRestApi;
 
+  private readonly _deployments = new Array<Deployment>();
+
   private readonly _methodResponses: MethodResponse[] = [];
   private readonly methodResource: apiGatewayMethod.ApiGatewayMethod;
   private readonly bindResult?: IntegrationConfig;
@@ -308,6 +311,8 @@ export class Method extends AwsConstructBase {
 
     const deployment = this.api.latestDeployment;
     if (deployment) {
+      // for CDKTF we need to track deployments as well for integration dependencies
+      this._attachDeployment(deployment);
       deployment.node.addDependency(this.methodResource);
       // Fn.sha1(Fn.jsonencode()) causes nested Tokens and Resolver errors?
       deployment.addToTriggers({
@@ -324,6 +329,14 @@ export class Method extends AwsConstructBase {
       //   },
       // });
     }
+  }
+
+  /** @internal */
+  public _attachDeployment(deployment: Deployment) {
+    // these deployments are used in the toTerraform() method
+    // to ensure generated integration resources are defined
+    // as dependencies on the deployments.
+    this._deployments.push(deployment);
   }
 
   /**
@@ -584,8 +597,6 @@ export class Method extends AwsConstructBase {
       return {};
     }
 
-    const deployment = this.api.latestDeployment;
-
     // NOTE: The TerraformDependendableAspect will propgate construct tree dependencies
     const methodResponses: Record<
       string,
@@ -624,7 +635,10 @@ export class Method extends AwsConstructBase {
           integrationId,
           this.renderIntegration(this.bindResult),
         );
-      deployment?.node.addDependency(integrationResource);
+      // call node.addDependency on every deployment tracked
+      for (const deployment of this._deployments) {
+        deployment.node.addDependency(integrationResource);
+      }
       // add integration responses (with dependencies on integration)
       this.bindResult.options?.integrationResponses?.forEach((ir) => {
         const irId = `IntegrationResponse${ir.statusCode}`;
@@ -639,7 +653,11 @@ export class Method extends AwsConstructBase {
               methodResponses,
             ),
           );
-        deployment?.node.addDependency(integrationResponse);
+
+        // call node.addDependency on every deployment tracked
+        for (const deployment of this._deployments) {
+          deployment.node.addDependency(integrationResponse);
+        }
       });
     }
 

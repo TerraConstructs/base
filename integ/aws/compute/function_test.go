@@ -28,17 +28,26 @@ var (
 
 // Test the simple-ipv4-vpc app
 func TestNodeJsFunctionUrl(t *testing.T) {
-	runComputeIntegrationTestWithRename(t, "nodejs-function-url", "us-east-1", testFunctionUrl)
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTestWithRename(t, "nodejs-function-url", options, testFunctionUrl)
 }
 
 // Test the destinations integrations
 func TestDestinations(t *testing.T) {
-	runComputeIntegrationTest(t, "destinations", "us-east-1", validateDestinations)
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "destinations", options, validateDestinations)
 }
 
 // Test the lambda-chain integration
 func TestLambdaChain(t *testing.T) {
-	runComputeIntegrationTest(t, "lambda-chain", "us-east-1", func(t *testing.T, tfWorkingDir, awsRegion string) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "lambda-chain", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
 		// sleep for event bridge rules to be ready
 		time.Sleep(10 * time.Second)
 		validateLambdaChainSuccess(t, tfWorkingDir, awsRegion)
@@ -48,17 +57,26 @@ func TestLambdaChain(t *testing.T) {
 
 // Test the event-source-sqs integration
 func TestEventSourceSqs(t *testing.T) {
-	runComputeIntegrationTest(t, "event-source-sqs", "us-east-1", validateEventSourceSqs)
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "event-source-sqs", options, validateEventSourceSqs)
 }
 
 // Test the event-source-sqs-filtered integration
 func TestEventSourceSqsFiltered(t *testing.T) {
-	runComputeIntegrationTest(t, "event-source-sqs-filtered", "us-east-1", validateEventSourceSqsFiltered)
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "event-source-sqs-filtered", options, validateEventSourceSqsFiltered)
 }
 
 // Test the event-source-s3 integration
 func TestEventSourceS3(t *testing.T) {
-	runComputeIntegrationTest(t, "event-source-s3", "us-east-1", validateEventSourceS3)
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "event-source-s3", options, validateEventSourceS3)
 }
 
 // Ensure Function URL works
@@ -214,12 +232,17 @@ func assertFunctionLogMessage(t *testing.T, awsRegion string, functionLogGroup s
 	}
 }
 
+type integrationTestOptions struct {
+	Region           string
+	AdditionalAssets []string
+}
+
 // run integration test
-func runComputeIntegrationTest(t *testing.T, testApp, awsRegion string, validate func(t *testing.T, tfWorkingDir string, awsRegion string)) {
+func runComputeIntegrationTest(t *testing.T, testApp string, options integrationTestOptions, validate func(t *testing.T, tfWorkingDir string, awsRegion string)) {
 	t.Parallel()
 	tfWorkingDir := filepath.Join("tf", testApp)
 	envVars := executors.EnvMap(os.Environ())
-	envVars["AWS_REGION"] = awsRegion
+	envVars["AWS_REGION"] = options.Region
 	envVars["ENVIRONMENT_NAME"] = "test"
 	envVars["STACK_NAME"] = testApp
 
@@ -227,8 +250,13 @@ func runComputeIntegrationTest(t *testing.T, testApp, awsRegion string, validate
 		util.UndeployUsingTerraform(t, tfWorkingDir)
 	})
 
+	assets := []string{"handlers"}
+	if len(options.AdditionalAssets) > 0 {
+		assets = append(assets, options.AdditionalAssets...)
+	}
+
 	test_structure.RunTestStage(t, "synth_app", func() {
-		util.SynthApp(t, testApp, tfWorkingDir, envVars, "handlers")
+		util.SynthApp(t, testApp, tfWorkingDir, envVars, assets...)
 	})
 	test_structure.RunTestStage(t, "deploy_terraform", func() {
 		util.DeployUsingTerraform(t, tfWorkingDir, map[string]string{
@@ -237,16 +265,16 @@ func runComputeIntegrationTest(t *testing.T, testApp, awsRegion string, validate
 		})
 	})
 	test_structure.RunTestStage(t, "validate", func() {
-		validate(t, tfWorkingDir, awsRegion)
+		validate(t, tfWorkingDir, options.Region)
 	})
 }
 
 // run integration test and validate renaming the environment works without replacing any resources
-func runComputeIntegrationTestWithRename(t *testing.T, testApp, awsRegion string, validate func(t *testing.T, tfWorkingDir string, awsRegion string)) {
+func runComputeIntegrationTestWithRename(t *testing.T, testApp string, options integrationTestOptions, validate func(t *testing.T, tfWorkingDir string, awsRegion string)) {
 	t.Parallel()
 	tfWorkingDir := filepath.Join("tf", testApp)
 	envVars := executors.EnvMap(os.Environ())
-	envVars["AWS_REGION"] = awsRegion
+	envVars["AWS_REGION"] = options.Region
 	envVars["ENVIRONMENT_NAME"] = "test"
 	envVars["STACK_NAME"] = testApp
 
@@ -264,7 +292,7 @@ func runComputeIntegrationTestWithRename(t *testing.T, testApp, awsRegion string
 		})
 	})
 	test_structure.RunTestStage(t, "validate", func() {
-		validate(t, tfWorkingDir, awsRegion)
+		validate(t, tfWorkingDir, options.Region)
 	})
 
 	// rename the environment name

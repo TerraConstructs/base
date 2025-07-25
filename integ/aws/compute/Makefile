@@ -59,3 +59,11 @@ apigw-request-authorizer: ## Test API Gateway with Request Authorizer
 apigw-lambda: ## Test API Gateway with Lambda Integration
 	go test -v -count 1 -timeout 15m ./... -run ^TestApigwLambda$
 .PHONY: apigw-lambda
+
+apigw-sfn: ## Test API Gateway with Step Function Integration
+	go test -v -count 1 -timeout 15m ./... -run ^TestApigwStepFunctions$
+.PHONY: apigw-sfn
+
+apigw-definition-asset: ## Test API Gateway with definition asset
+	go test -v -count 1 -timeout 15m ./... -run ^TestApiDefinitionAsset$
+.PHONY: apigw-definition-asset

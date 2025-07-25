@@ -7,6 +7,7 @@ import (
 	"time"
 
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
+	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
@@ -15,7 +16,10 @@ import (
 
 // Test the apigw.token-authorizer app
 func TestApigwTokenAuthorizer(t *testing.T) {
-	runComputeIntegrationTest(t, "apigw.token-authorizer", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.token-authorizer", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
 		// Optionally force re-deployment of the API Gateway to ensure the latest changes
 		// are applied. (no longer needed)
 		// util.ReplaceTerraformResource(t, tfWorkingDir, "aws_api_gateway_deployment", "")
@@ -48,7 +52,10 @@ func TestApigwTokenAuthorizer(t *testing.T) {
 
 // Test the apigw.token-authorizer-iam-role app
 func TestApigwTokenAuthorizerIamRole(t *testing.T) {
-	runComputeIntegrationTest(t, "apigw.token-authorizer-iam-role", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.token-authorizer-iam-role", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
 		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
 		assertApiResponses(t, apiUrl, []apiTestCase{
@@ -73,7 +80,14 @@ func TestApigwTokenAuthorizerIamRole(t *testing.T) {
 
 // Test the apigw.request-authorizer app
 func TestApigwRequestAuthorizer(t *testing.T) {
-	runComputeIntegrationTest(t, "apigw.request-authorizer", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.request-authorizer", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
+		// TODO: Find out why API Gateways fail until they are redeployed??
+		// force re-deployment of the API Gateway to ensure the latest changes are applied
+		util.ReplaceTerraformResource(t, tfWorkingDir, "aws_api_gateway_deployment", "")
+
 		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
 		assertApiResponses(t, apiUrl, []apiTestCase{
@@ -97,7 +111,14 @@ func TestApigwRequestAuthorizer(t *testing.T) {
 }
 
 func TestApigwLambda(t *testing.T) {
-	runComputeIntegrationTest(t, "apigw.lambda", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.lambda", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
+		// TODO: Find out why API Gateways fail until they are redeployed??
+		// force re-deployment of the API Gateway to ensure the latest changes are applied
+		util.ReplaceTerraformResource(t, tfWorkingDir, "aws_api_gateway_deployment", "")
+
 		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
 		assertApiResponses(t, apiUrl, []apiTestCase{
@@ -105,6 +126,50 @@ func TestApigwLambda(t *testing.T) {
 				// GET should return 200 with JSON body {"message":"Hello"}
 				expectedStatusCode: 200,
 				expectedResponse:   `"message":"Hello"`,
+			},
+		})
+	})
+}
+
+func TestApigwStepFunctions(t *testing.T) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.stepfunctions", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
+
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
+		assertApiResponses(t, apiUrl, []apiTestCase{
+			{
+				method:             "POST",
+				expectedStatusCode: 200,
+				expectedResponse:   "Hello",
+			},
+		})
+	})
+}
+
+func TestApiDefinitionAsset(t *testing.T) {
+	options := integrationTestOptions{
+		Region:           region,
+		AdditionalAssets: []string{"sample-definition.yaml"},
+	}
+	runComputeIntegrationTest(t, "apigw.definition-asset", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+		// Test individual endpoint URLs from TerraformOutputs
+		outputs := terraform.OutputAll(t, terraformOptions)
+
+		petsUrl := outputs["PetsURL"].(string)
+		assertApiResponses(t, petsUrl, []apiTestCase{
+			{
+				expectedStatusCode: 200,
+			},
+		})
+
+		booksUrl := outputs["BooksURL"].(string)
+		assertApiResponses(t, booksUrl, []apiTestCase{
+			{
+				expectedStatusCode: 200,
 			},
 		})
 	})

@@ -1043,6 +1043,8 @@ export class RestApi extends RestApiBase {
     // this method will be added there.
     for (const dep of this.deployments) {
       dep._addMethodDependency(method);
+      // ensure the method has a reference for any pre-synth activities
+      method._attachDeployment(dep);
     }
   }
 
@@ -1052,6 +1054,8 @@ export class RestApi extends RestApiBase {
     this.deployments.push(deployment);
     for (const method of this.methods) {
       deployment._addMethodDependency(method);
+      // ensure the method has a reference for any pre-synth activities
+      method._attachDeployment(deployment);
     }
   }
 

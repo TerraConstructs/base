@@ -79,7 +79,10 @@ describe("deployment", () => {
         aws_api_gateway_deployment: {
           deployment_33381975: {
             rest_api_id: stack.resolve(api.restApiId), //"${aws_api_gateway_rest_api.api_C8550315.id}",
-            depends_on: ["aws_api_gateway_method.api_GET_ECF0BD67"],
+            depends_on: [
+              "aws_api_gateway_method.api_GET_ECF0BD67",
+              "aws_api_gateway_integration.api_GET_Integration_45D1407B",
+            ],
             lifecycle: {
               create_before_destroy: true,
             },
@@ -175,7 +178,10 @@ describe("deployment", () => {
       stage_name: "dev",
       deployment_id: stack.resolve(d.deploymentId),
       rest_api_id: stack.resolve(api.restApiId),
-      depends_on: ["aws_api_gateway_method.api_GET_ECF0BD67"],
+      depends_on: [
+        "aws_api_gateway_method.api_GET_ECF0BD67",
+        "aws_api_gateway_integration.api_GET_Integration_45D1407B",
+      ],
     });
   });
 
@@ -301,6 +307,7 @@ describe("deployment", () => {
         depends_on: [
           "aws_api_gateway_method.api_GET_ECF0BD67",
           terraformResourceType + ".MyResource",
+          "aws_api_gateway_integration.api_GET_Integration_45D1407B",
         ],
       },
     );
@@ -394,6 +401,9 @@ describe("deployment", () => {
           "aws_api_gateway_method.myapi_GET_9B7CD29E",
           "aws_api_gateway_method.myapi_POST_23417BD2",
           "aws_api_gateway_method.myapi_myresource_GET_732851A5",
+          "aws_api_gateway_integration.myapi_GET_Integration_7EE7698E",
+          "aws_api_gateway_integration.myapi_POST_Integration_5633BDB7",
+          "aws_api_gateway_integration.myapi_myresource_GET_Integration_D4EE2AA0",
         ],
       },
     );

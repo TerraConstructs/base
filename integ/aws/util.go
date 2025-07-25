@@ -56,7 +56,7 @@ var (
 )
 
 // Synth app relative to the integration namespace
-func SynthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string, additionalAppDirs ...string) {
+func SynthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string, additionalAsset ...string) {
 	zapLogger := ForwardingLogger(t, terratestLogger)
 	ctx := context.Background()
 	// path from integ/aws/*/apps/*.ts to repo root src
@@ -91,10 +91,25 @@ func SynthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string,
 					return err
 				}
 			}
-			for _, dirName := range additionalAppDirs {
-				relDir := filepath.Join("apps", dirName)
-				if err := e.CopyFrom(ctx, thisFs, relDir, dirName, defaultCopyOptions); err != nil {
-					return err
+			for _, assetName := range additionalAsset {
+				// stat if asset is directory or file
+				relAsset := filepath.Join("apps", assetName)
+				var info os.FileInfo
+				if info, err = os.Stat(relAsset); err != nil {
+					return fmt.Errorf("failed to stat %s: %w", relAsset, err)
+				}
+				// if it is a directory, copy it to the synth app fs
+				// otherwise, copy it as a file
+				if info.IsDir() {
+					// copy the directory to the synth app fs
+					if err := e.CopyFrom(ctx, thisFs, relAsset, assetName, defaultCopyOptions); err != nil {
+						return err
+					}
+				} else {
+					// copy the file to the synth app fs
+					if err := e.CopyFileFrom(ctx, thisFs, relAsset, assetName); err != nil {
+						return err
+					}
 				}
 			}
 			return e.CopyFrom(ctx, thisFs, repoRoot, relPath, defaultCopyOptions)

@@ -7,6 +7,7 @@ import {
   // apiGatewayResource,
   apiGatewayMethodResponse,
   apiGatewayIntegrationResponse,
+  apiGatewayDeployment,
 } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
@@ -20,6 +21,9 @@ import {
   StepFunctionsIntegration,
   MethodOptions,
   IntegrationOptions,
+  StepFunctionsRestApi,
+  Deployment,
+  Stage,
 } from "../../../../src/aws/compute";
 import { Template } from "../../../assertions";
 
@@ -637,6 +641,62 @@ describe("StepFunctionsIntegration", () => {
         // integration response depends on the integration
         depends_on: [
           "aws_api_gateway_integration.my-rest-api_POST_Integration_AAC8CBCD",
+        ],
+      },
+    );
+  });
+
+  test("deployments depend on integrations", () => {
+    //GIVEN
+    const app = Testing.app();
+    const stack = new AwsStack(app, "MyStack", {
+      environmentName,
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
+    // Create the set up take reference from integ/aws/compute/apps/apigw.stepfunctions.ts
+    const passTask = new Pass(stack, "PassTask", {
+      result: { value: "Hello" },
+    });
+
+    const stateMachine = new StateMachine(stack, "StateMachine", {
+      stateMachineName: "StepFunctionsApiTest",
+      definitionBody: DefinitionBody.fromChainable(passTask),
+      stateMachineType: StateMachineType.EXPRESS,
+    });
+
+    const api = new StepFunctionsRestApi(stack, "StepFunctionsRestApi", {
+      restApiName: "step-functions-api-test",
+      deploy: false,
+      cloudWatchRole: true,
+      stateMachine: stateMachine,
+      headers: true,
+      path: false,
+      querystring: false,
+      requestContext: {
+        accountId: true,
+        userArn: true,
+      },
+    });
+
+    // THEN
+    // ensure that deployments depend on integrations (even if they're added after apigw was created)
+    api.deploymentStage = new Stage(stack, "stage", {
+      deployment: new Deployment(stack, "deployment", {
+        api: api,
+      }),
+    });
+
+    Template.synth(stack).toHaveResourceWithProperties(
+      apiGatewayDeployment.ApiGatewayDeployment,
+      {
+        depends_on: [
+          "aws_api_gateway_method.StepFunctionsRestApi_ANY_7699CA92",
+          "aws_api_gateway_integration.StepFunctionsRestApi_ANY_Integration_7A633F8C",
+          "aws_api_gateway_integration_response.StepFunctionsRestApi_ANY_IntegrationResponse200_27690845",
+          "aws_api_gateway_integration_response.StepFunctionsRestApi_ANY_IntegrationResponse400_3482DF99",
+          "aws_api_gateway_integration_response.StepFunctionsRestApi_ANY_IntegrationResponse500_BCD6D106",
         ],
       },
     );

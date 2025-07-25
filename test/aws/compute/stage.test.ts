@@ -74,7 +74,10 @@ describe("stage", () => {
         },
         aws_api_gateway_deployment: {
           "my-deployment_71ED3B4B": {
-            depends_on: ["aws_api_gateway_method.test-api_GET_D8DE4ED1"],
+            depends_on: [
+              "aws_api_gateway_method.test-api_GET_D8DE4ED1",
+              "aws_api_gateway_integration.test-api_GET_Integration_BBB378EA",
+            ],
             lifecycle: {
               create_before_destroy: true,
             },
