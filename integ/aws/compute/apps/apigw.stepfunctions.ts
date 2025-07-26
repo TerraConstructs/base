@@ -1,4 +1,4 @@
-// https://github.com/aws/aws-cdk/blob/v2.168.0/packages/%40aws-cdk-testing/framework-integ/test/aws-apigateway/test/integ.stepfunctions-api.ts
+// https://github.com/aws/aws-cdk/blob/v2.186.0/packages/%40aws-cdk-testing/framework-integ/test/aws-apigateway/test/integ.stepfunctions-api.ts
 
 import { App, LocalBackend } from "cdktf";
 import { Construct } from "constructs";
@@ -7,7 +7,7 @@ import { aws } from "../../../../src";
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
 const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
-const stackName = process.env.STACK_NAME ?? "api-stepfunctions";
+const stackName = process.env.STACK_NAME ?? "apigw.stepfunctions";
 
 /**
  * Stack verification steps:

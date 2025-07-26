@@ -233,7 +233,13 @@ func assertFunctionLogMessage(t *testing.T, awsRegion string, functionLogGroup s
 }
 
 type integrationTestOptions struct {
-	Region           string
+	// Region is the AWS region to run the test in.
+	//
+	// This is used to set the AWS_REGION environment variable
+	Region string
+	// AdditionalAssets are additional assets to be copied to the working directory.
+	//
+	// "handlers" is always included, so this is for additional files
 	AdditionalAssets []string
 }
 
