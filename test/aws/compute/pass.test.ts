@@ -1,7 +1,7 @@
 import { Result } from "../../../src/aws/compute";
 
 describe("Pass State", () => {
-  test("fromString has proper value", () => {
+  (test("fromString has proper value", () => {
     const testValue = "test string";
     const result = Result.fromString(testValue);
     expect(result.value).toEqual(testValue);
@@ -25,5 +25,5 @@ describe("Pass State", () => {
       const testValue = [1];
       const result = Result.fromArray(testValue);
       expect(result.value).toEqual(testValue);
-    });
+    }));
 });
