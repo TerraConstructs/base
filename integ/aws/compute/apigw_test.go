@@ -1,12 +1,14 @@
 package test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"testing"
 	"time"
 
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
+	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
@@ -15,7 +17,10 @@ import (
 
 // Test the apigw.token-authorizer app
 func TestApigwTokenAuthorizer(t *testing.T) {
-	runComputeIntegrationTest(t, "apigw.token-authorizer", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.token-authorizer", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
 		// Optionally force re-deployment of the API Gateway to ensure the latest changes
 		// are applied. (no longer needed)
 		// util.ReplaceTerraformResource(t, tfWorkingDir, "aws_api_gateway_deployment", "")
@@ -48,7 +53,10 @@ func TestApigwTokenAuthorizer(t *testing.T) {
 
 // Test the apigw.token-authorizer-iam-role app
 func TestApigwTokenAuthorizerIamRole(t *testing.T) {
-	runComputeIntegrationTest(t, "apigw.token-authorizer-iam-role", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.token-authorizer-iam-role", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
 		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
 		assertApiResponses(t, apiUrl, []apiTestCase{
@@ -73,7 +81,10 @@ func TestApigwTokenAuthorizerIamRole(t *testing.T) {
 
 // Test the apigw.request-authorizer app
 func TestApigwRequestAuthorizer(t *testing.T) {
-	runComputeIntegrationTest(t, "apigw.request-authorizer", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.request-authorizer", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
 		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
 		assertApiResponses(t, apiUrl, []apiTestCase{
@@ -97,7 +108,10 @@ func TestApigwRequestAuthorizer(t *testing.T) {
 }
 
 func TestApigwLambda(t *testing.T) {
-	runComputeIntegrationTest(t, "apigw.lambda", region, func(t *testing.T, tfWorkingDir, awsRegion string) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.lambda", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
 		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
 		assertApiResponses(t, apiUrl, []apiTestCase{
@@ -110,12 +124,57 @@ func TestApigwLambda(t *testing.T) {
 	})
 }
 
+func TestApigwStepFunctions(t *testing.T) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.stepfunctions", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+		apiUrl := util.LoadOutputAttribute(t, terraformOptions, "api", "url")
+		assertApiResponses(t, apiUrl, []apiTestCase{
+			{
+				body:               map[string]string{"key": "Hello"},
+				expectedStatusCode: 200,
+				expectedResponse:   "Hello",
+			},
+		})
+	})
+}
+
+func TestApiDefinitionAsset(t *testing.T) {
+	options := integrationTestOptions{
+		Region:           region,
+		AdditionalAssets: []string{"sample-definition.yaml"},
+	}
+	runComputeIntegrationTest(t, "apigw.definition-asset", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+		// Test individual endpoint URLs from TerraformOutputs
+		outputs := terraform.OutputAll(t, terraformOptions)
+
+		petsUrl := outputs["PetsURL"].(string)
+		assertApiResponses(t, petsUrl, []apiTestCase{
+			{
+				expectedStatusCode: 200,
+			},
+		})
+
+		booksUrl := outputs["BooksURL"].(string)
+		assertApiResponses(t, booksUrl, []apiTestCase{
+			{
+				expectedStatusCode: 200,
+			},
+		})
+	})
+}
+
 // func TestApigwGrantExecute(t *testing.T) {
 // 	runComputeIntegrationTest(t, "apigw.grant-execute", region, func(t *testing.T, tfWorkingDir, awsRegion string) {}
 
 // apiTestCase defines a test case for the API Gateway
 type apiTestCase struct {
+	testName           string     // Name of the test case, used for test identification
 	method             string     // HTTP method to use for the request
+	body               any        // Data to send in the body of POST/PUT requests
 	authHeader         string     // Value for the Authorization header, if any
 	expectedStatusCode int        // Expected HTTP status code from the response
 	expectedResponse   string     // Expected substring in the response body
@@ -128,7 +187,21 @@ type apiTestCase struct {
 func assertApiResponses(t *testing.T, apiUrl string, testCases []apiTestCase) {
 	for _, tc := range testCases {
 		tc := tc // capture range variable
+		headers := map[string]string{}
 		method := tc.method
+		var bodyBytes []byte
+		if tc.body != nil {
+			if method == "" {
+				method = "POST" // Use POST if body is provided
+			} else if method != "POST" && method != "PUT" {
+				t.Fatalf("body is only supported for POST or PUT requests, got %s", method)
+			}
+			var err error
+			bodyBytes, err = json.Marshal(tc.body)
+			require.NoError(t, err, "Failed to marshal body to JSON")
+			// ensure Content-Type is set for JSON body
+			headers["Content-Type"] = "application/json"
+		}
 		if method == "" {
 			method = "GET" // Default to GET if no method is specified
 		}
@@ -144,13 +217,16 @@ func assertApiResponses(t *testing.T, apiUrl string, testCases []apiTestCase) {
 			testName += "_query_" + tc.queryParams.Encode()
 		}
 
+		// If a specific test name is provided, use it
+		if tc.testName != "" {
+			testName = tc.testName
+		}
 		t.Run(testName, func(t *testing.T) {
-			headers := map[string]string{}
 			if tc.authHeader != "" {
 				headers["Authorization"] = tc.authHeader
 			}
 			respBody := http_helper.HTTPDoWithRetry(t,
-				method, testUrl, nil, headers, tc.expectedStatusCode, 5, time.Second*15, nil)
+				method, testUrl, bodyBytes, headers, tc.expectedStatusCode, 5, time.Second*15, nil)
 			if tc.expectedResponse != "" {
 				require.Contains(t, respBody, tc.expectedResponse,
 					"Expected response body to contain %q, got: %s", tc.expectedResponse, respBody)

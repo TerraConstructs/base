@@ -1,0 +1,32 @@
+# https://github.com/aws/aws-cdk/blob/v2.186.0/packages/%40aws-cdk-testing/framework-integ/test/aws-apigateway/test/sample-definition.yaml
+
+openapi: "3.0.2"
+info:
+  version: 1.0.0
+  title: Test API for CDK
+paths:
+  /pets:
+    get:
+      summary: Test Method
+      operationId: testMethod
+      responses:
+        "200":
+          description: A paged array of pets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        passthroughBehavior: when_no_match
+        type: mock
+
+components:
+  schemas:
+    Empty:
+      title: Empty Schema
+      type: object

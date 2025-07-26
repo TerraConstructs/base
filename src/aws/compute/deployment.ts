@@ -217,8 +217,6 @@ export class Deployment extends AwsConstructBase {
     this.node.addDependency(
       method.node.defaultChild as apiGatewayMethod.ApiGatewayMethod,
     );
-
-    // TODO: Triggers are recommended instead of dependencies?
   }
 
   public get outputs(): Record<string, any> {
