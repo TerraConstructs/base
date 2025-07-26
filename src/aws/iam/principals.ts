@@ -236,8 +236,9 @@ export function toPrincipalJson(
     principalProps[0].type === PrincipalType.ANY &&
     principalProps[0].identifiers.length === 1 &&
     principalProps[0].identifiers[0] === "*"
-  )
+  ) {
     return "*";
+  }
 
   const result: { [key: string]: string | string[] } = {};
   for (const principal of principalProps) {
