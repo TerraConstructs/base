@@ -1,6 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.164.1/packages/%40aws-cdk-testing/framework-integ/test/aws-ec2/test/integ.instance.ts
 
 import { CloudinitProvider } from "@cdktf/provider-cloudinit/lib/provider";
+import { signal, provider } from "@tcons/provider-tconsaws";
 import { App, LocalBackend } from "cdktf";
 import { aws } from "../../../../src";
 
@@ -21,10 +22,14 @@ const stack = new aws.AwsStack(app, stackName, {
   },
 });
 new CloudinitProvider(stack, "CloudInit");
+new provider.TconsawsProvider(stack, "Tconsaws", {
+  region,
+});
 new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
 
+const queue = new aws.notify.Queue(stack, "Queue");
 const vpc = new aws.compute.Vpc(stack, "VPC");
 const securityGroup = new aws.compute.SecurityGroup(stack, "IntegSg", {
   vpc,
@@ -54,7 +59,31 @@ instance.addToRolePolicy(
 
 instance.connections.allowFromAnyIpv4(aws.compute.Port.icmpPing());
 
-instance.addUserData("yum install -y");
+const signalId = "deployment-abc124";
+instance.addUserData(
+  "yum update -y",
+  "yum install -y httpd",
+  "systemctl start httpd",
+  "systemctl enable httpd",
+  // Download and install tcsignal-aws binary
+  'curl -L -o /usr/local/bin/tcsignal-aws.tgz "https://github.com/TerraConstructs/signal-aws/releases/download/v1.1.0/signal-aws_Linux_x86_64.tar.gz"',
+  "tar -xzf /usr/local/bin/tcsignal-aws.tgz -C /usr/local/bin",
+  "rm /usr/local/bin/tcsignal-aws.tgz",
+  // Signal success when ready
+  `/usr/local/bin/tcsignal-aws --queue-url "${queue.queueUrl}" --id "${signalId}" --status SUCCESS`,
+);
+queue.grantSendMessages(instance);
+// wait for instance to signal success
+const instanceReady = new signal.Signal(stack, "Signal", {
+  signalId,
+  expectedCount: 1,
+  queueUrl: queue.queueUrl,
+  timeouts: {
+    create: "10m",
+  },
+  // triggers should checksum the instance configuration
+});
+instanceReady.node.addDependency(instance);
 
 app.synth();
 

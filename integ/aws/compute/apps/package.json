@@ -19,6 +19,7 @@
   "dependencies": {
     "@cdktf/provider-aws": "^20.1.0",
     "@cdktf/provider-cloudinit": "^11.0.0",
+    "@tcons/provider-tconsaws": "^0.0.1",
     "@types/aws-lambda": "^8.10.76",
     "cdktf": "^0.21.0",
     "constructs": "^10.4.2"
