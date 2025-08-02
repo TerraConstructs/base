@@ -46,7 +46,7 @@ describe("Kinesis data streams", () => {
     });
   });
 
-  test("default stream", () => {
+  (test("default stream", () => {
     new Stream(stack, "MyStream");
 
     const t = new Template(stack);
@@ -115,7 +115,7 @@ describe("Kinesis data streams", () => {
       });
 
       expect(imported.env.account).toEqual("999999999999");
-    });
+    }));
 
   test("sets region for imported stream env by fromStreamAttributes", () => {
     const imported = Stream.fromStreamAttributes(stack, "Imported", {
@@ -146,7 +146,7 @@ describe("Kinesis data streams", () => {
     expect(imported.env.region).toEqual("us-west-2");
   });
 
-  test("uses explicit shard count", () => {
+  (test("uses explicit shard count", () => {
     new Stream(stack, "MyStream", {
       shardCount: 2,
     });
@@ -271,7 +271,7 @@ describe("Kinesis data streams", () => {
           stream_mode: StreamMode.PROVISIONED,
         },
       });
-    });
+    }));
 
   test("uses explicit on-demand streamMode", () => {
     new Stream(stack, "MyStream", {
@@ -360,7 +360,7 @@ describe("Kinesis data streams", () => {
     });
   });
 
-  test("grantRead creates and associates a policy with read only access to Stream", () => {
+  (test("grantRead creates and associates a policy with read only access to Stream", () => {
     const stream = new Stream(stack, "MyStream");
     const role = new iam.Role(stack, "Role", {
       assumedBy: new iam.AccountPrincipal("000000000000"),
@@ -691,7 +691,7 @@ describe("Kinesis data streams", () => {
           },
         },
       });
-    });
+    }));
 
   test("accepts if retentionPeriodHours is a Token", () => {
     const retentionPeriodVar = new TerraformVariable(
