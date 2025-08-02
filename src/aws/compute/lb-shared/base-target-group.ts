@@ -671,10 +671,11 @@ export abstract class TargetGroupBase
         Attribute.stickinessType,
       );
       // tf requires type to be set
-      if (!type)
+      if (!type) {
         throw new Error(
           "stickiness.type is required if any stickiness attribute is set",
         );
+      }
       this.resource.putStickiness({
         type,
         enabled: lookupBoolAttribute(
