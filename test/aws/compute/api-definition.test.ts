@@ -1,6 +1,6 @@
 import * as path from "path";
 import { apiGatewayRestApi, s3Bucket } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
+import { App, Fn, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 // import * as storage from "../../../src/aws/storage";
@@ -48,8 +48,40 @@ describe("api definition", () => {
       };
       const apiDef = ApiDefinition.fromInline(definition);
       const config: ApiDefinitionConfig = apiDef.bind(stack);
-      expect(config.inlineDefinition).toEqual(definition);
+      expect(stack.resolve(config.inlineDefinition)).toEqual(
+        '${jsonencode({"key1" = "val1"})}',
+      );
       // expect(config.s3Location).toBeUndefined();
+    });
+
+    test("inline usage in RestApi body - check body", () => {
+      // This test will check if the resulting body property is a encoded JSON string at the end.
+      const api1 = new SpecRestApi(stack, "API1", {
+        apiDefinition: ApiDefinition.fromInline({ foo: "bar" }),
+      });
+
+      const restApiSwaggerDefinition = {
+        restApiId: api1.restApiId,
+      };
+      const apiDef = ApiDefinition.fromInline(restApiSwaggerDefinition);
+      const api2 = new SpecRestApi(stack, "API2", {
+        apiDefinition: apiDef,
+      });
+
+      const config = apiDef.bind(api2); // Bind to the API scope
+      const expectedBody = stack.resolve(config.inlineDefinition);
+      expect(expectedBody).toEqual(expect.any(String));
+      expect(expectedBody).toEqual(
+        stack.resolve(Fn.jsonencode(restApiSwaggerDefinition)),
+      );
+
+      const template = new Template(stack);
+      template.expect.toHaveResourceWithProperties(
+        apiGatewayRestApi.ApiGatewayRestApi,
+        {
+          body: expectedBody,
+        },
+      );
     });
 
     test("fails if Json definition is empty", () => {
