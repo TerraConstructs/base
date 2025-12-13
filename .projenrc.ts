@@ -212,4 +212,9 @@ new SqsQueueConfigStructBuilder(project);
 new LbListenerConfigStructBuilder(project);
 new LbTargetGroupAttachmentConfigStructBuilder(project);
 
+// Copy non-TypeScript resource files (e.g., .vtl templates) to lib/ after compilation
+project.compileTask.exec(
+  'find src -name "*.vtl" -or -name "Dockerfile" -type f -exec sh -c \'mkdir -p "lib/$(dirname "${1#src/}")" && cp "$1" "lib/${1#src/}"\' _ {} \\;',
+);
+
 project.synth();
