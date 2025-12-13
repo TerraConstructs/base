@@ -167,6 +167,24 @@ func TestApiDefinitionAsset(t *testing.T) {
 	})
 }
 
+func TestApiDefinitionInline(t *testing.T) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.definition-inline", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+		// Test individual endpoint URLs from TerraformOutputs
+		outputs := terraform.OutputAll(t, terraformOptions)
+
+		petsUrl := outputs["PetsURL"].(string)
+		assertApiResponses(t, petsUrl, []apiTestCase{
+			{
+				expectedStatusCode: 200,
+			},
+		})
+	})
+}
+
 // func TestApigwGrantExecute(t *testing.T) {
 // 	runComputeIntegrationTest(t, "apigw.grant-execute", region, func(t *testing.T, tfWorkingDir, awsRegion string) {}
 
