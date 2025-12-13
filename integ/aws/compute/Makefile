@@ -67,3 +67,7 @@ apigw-sfn: ## Test API Gateway with Step Function Integration
 apigw-definition-asset: ## Test API Gateway with definition asset
 	go test -v -count 1 -timeout 15m ./... -run ^TestApiDefinitionAsset$
 .PHONY: apigw-definition-asset
+
+apigw-definition-inline: ## Test API Gateway with inline definition
+	go test -v -count 1 -timeout 15m ./... -run ^TestApiDefinitionInline$
+.PHONY: apigw-definition-inline
