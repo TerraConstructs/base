@@ -8,6 +8,7 @@ import { ArnFormat } from "../arn";
 import { AwsConstructBase, IAwsConstruct } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
 import { Architecture } from "./architecture";
+import { Connections } from "./connections";
 import {
   EventInvokeConfig,
   EventInvokeConfigOptions,
@@ -22,6 +23,7 @@ import {
   FunctionUrl,
   FunctionUrlAuthType,
 } from "./function-url";
+import { ValidationError } from "../../errors";
 import * as iam from "../iam";
 
 // TODO: re-add ec2.IConnectable?
@@ -295,6 +297,14 @@ export abstract class LambdaFunctionBase
   protected readonly _skipPermissions?: boolean;
 
   /**
+   * Actual connections object for this Lambda
+   *
+   * May be unset, in which case this Lambda is not configured use in a VPC.
+   * @internal
+   */
+  protected _connections?: Connections;
+
+  /**
    * Mapping of invocation principals to grants. Used to de-dupe `grantInvoke()` calls.
    * @internal
    */
@@ -374,6 +384,30 @@ export abstract class LambdaFunctionBase
     }
 
     this.role.addToPrincipalPolicy(statement);
+  }
+
+  /**
+   * Access the Connections object
+   *
+   * Will fail if not a VPC-enabled Lambda Function
+   */
+  public get connections(): Connections {
+    if (!this._connections) {
+      throw new ValidationError(
+        'Only VPC-associated Lambda Functions have security groups to manage. Supply the "vpc" parameter when creating the Lambda, or "securityGroupId" when importing it.',
+        this,
+      );
+    }
+    return this._connections;
+  }
+
+  /**
+   * Whether or not this Lambda function was bound to a VPC
+   *
+   * If this is is `false`, trying to access the `connections` object will fail.
+   */
+  public get isBoundToVpc(): boolean {
+    return !!this._connections;
   }
 
   public addEventSourceMapping(

@@ -438,14 +438,7 @@ test("NodejsFunction in a VPC", () => {
   const vpc = new Vpc(stack, "Vpc");
 
   // WHEN
-  // TODO: Support passing VPC as a prop
-  // new NodejsFunction(stack, "handler1", { vpc });
-  new NodejsFunction(stack, "handler1", {
-    networkConfig: {
-      vpcId: vpc.vpcId,
-      subnetIds: vpc.selectSubnets().subnetIds,
-    },
-  });
+  new NodejsFunction(stack, "handler1", { vpc });
 
   // THEN
   Template.synth(stack).toHaveResourceWithProperties(
@@ -453,7 +446,7 @@ test("NodejsFunction in a VPC", () => {
     {
       vpc_config: {
         security_group_ids: [
-          "${aws_security_group.handler1_SecurityGroup_BC1FBD70.id}",
+          "${aws_security_group.handler1_SecurityGroup_30688A62.id}",
         ],
         subnet_ids: [
           "${aws_subnet.Vpc_PrivateSubnet1_F6513F49.id}",
