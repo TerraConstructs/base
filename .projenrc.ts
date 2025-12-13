@@ -14,6 +14,7 @@ import {
 
 // set strict node version compatible with webcontainers.io
 const nodeVersion = ">=20.9.0";
+const pnpmVersion = "10.25.0";
 const workflowNodeVersion = "24.12.0";
 
 const project = new cdk.JsiiProject({
@@ -27,7 +28,7 @@ const project = new cdk.JsiiProject({
   typescriptVersion: "~5.9",
   jsiiVersion: "~5.9",
   packageManager: javascript.NodePackageManager.PNPM,
-  pnpmVersion: "10",
+  pnpmVersion,
   projenrcTs: true,
   prettier: true,
   eslint: true,
@@ -173,6 +174,11 @@ const project = new cdk.JsiiProject({
   autoMerge: false,
 });
 
+const releaseWorkflow = project.tryFindObjectFile(
+  ".github/workflows/release.yml",
+);
+releaseWorkflow?.addOverride("jobs.release.runs-on", "custom-linux-l");
+
 project.prettier?.addIgnorePattern("*.generated.ts");
 
 project.gitignore.exclude(".env");
@@ -187,7 +193,7 @@ project.testTask.updateStep(0, {
   receiveArgs: true,
 });
 
-project.package.addField("packageManager", "pnpm@10.25.0"); // silence COREPACK_ENABLE_AUTO_PIN warning
+project.package.addField("packageManager", `pnpm@${pnpmVersion}`); // silence COREPACK_ENABLE_AUTO_PIN warning
 project.package.addEngine("node", nodeVersion);
 new TextFile(project, ".nvmrc", {
   lines: [workflowNodeVersion],
