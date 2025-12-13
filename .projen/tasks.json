@@ -89,6 +89,9 @@
       "steps": [
         {
           "exec": "jsii --silence-warnings=reserved-word"
+        },
+        {
+          "exec": "find src -name \"*.vtl\" -or -name \"Dockerfile\" -type f -exec sh -c 'mkdir -p \"lib/$(dirname \"${1#src/}\")\" && cp \"$1\" \"lib/${1#src/}\"' _ {} \\;"
         }
       ]
     },
