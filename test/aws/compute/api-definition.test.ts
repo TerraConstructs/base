@@ -1,6 +1,8 @@
+// https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-apigateway/test/api-definition.test.ts
+
 import * as path from "path";
-import { apiGatewayRestApi, s3Bucket } from "@cdktf/provider-aws";
-import { App, Fn, Testing } from "cdktf";
+import { apiGatewayRestApi } from "@cdktf/provider-aws";
+import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 // import * as storage from "../../../src/aws/storage";
@@ -48,9 +50,7 @@ describe("api definition", () => {
       };
       const apiDef = ApiDefinition.fromInline(definition);
       const config: ApiDefinitionConfig = apiDef.bind(stack);
-      expect(stack.resolve(config.inlineDefinition)).toEqual(
-        '${jsonencode({"key1" = "val1"})}',
-      );
+      expect(config.inlineDefinition).toEqual(JSON.stringify(definition));
       // expect(config.s3Location).toBeUndefined();
     });
 
@@ -72,7 +72,7 @@ describe("api definition", () => {
       const expectedBody = stack.resolve(config.inlineDefinition);
       expect(expectedBody).toEqual(expect.any(String));
       expect(expectedBody).toEqual(
-        stack.resolve(Fn.jsonencode(restApiSwaggerDefinition)),
+        JSON.stringify(stack.resolve(restApiSwaggerDefinition)),
       );
 
       const template = new Template(stack);

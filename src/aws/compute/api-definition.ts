@@ -194,7 +194,7 @@ export class InlineApiDefinition extends ApiDefinition {
 
   public bind(_scope: Construct): ApiDefinitionConfig {
     return {
-      inlineDefinition: Fn.jsonencode(this.definition),
+      inlineDefinition: JSON.stringify(this.definition),
     };
   }
 }
