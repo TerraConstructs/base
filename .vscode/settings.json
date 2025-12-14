@@ -1,6 +1,6 @@
 {
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "Prettier.prettier-vscode",
+  "editor.defaultFormatter": "prettier.prettier-vscode",
   "[go]": {
     "editor.defaultFormatter": "golang.go"
   }

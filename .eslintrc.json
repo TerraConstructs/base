@@ -44,11 +44,7 @@
     "!projenrc/**/*.ts"
   ],
   "rules": {
-    "curly": [
-      "error",
-      "multi-line",
-      "consistent"
-    ],
+    "curly": "off",
     "@typescript-eslint/no-require-imports": "error",
     "import/no-extraneous-dependencies": [
       "error",

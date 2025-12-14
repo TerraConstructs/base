@@ -72,6 +72,10 @@ const project = new cdk.JsiiProject({
     "@types/mime-types",
     "fast-check@^3.23.2",
     "delay@^5.0.0",
+    // TODO: replace eslint/prettier headacheswith biome
+    // pinned due to https://prettier.io/blog/2025/11/27/3.7.0
+    "prettier@3.3.3", // Exact pin, no caret
+    "eslint-plugin-prettier@5.2.1", // Match version from before upgrade
   ],
   bundledDeps: [
     // TODO: remove esbuild-wasm
@@ -180,6 +184,9 @@ const releaseWorkflow = project.tryFindObjectFile(
 releaseWorkflow?.addOverride("jobs.release.runs-on", "custom-linux-l");
 
 project.prettier?.addIgnorePattern("*.generated.ts");
+project.eslint?.addRules({
+  curly: "off",
+});
 
 project.gitignore.exclude(".env");
 
