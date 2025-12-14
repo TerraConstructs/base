@@ -613,6 +613,11 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
   public readonly role?: iam.IRole;
 
   /**
+   * The runtime configured for this lambda.
+   */
+  public readonly runtime: Runtime;
+
+  /**
    * The DLQ (as queue) associated with this Lambda Function (this is an optional attribute).
    */
   public readonly deadLetterQueue?: IQueue;
@@ -822,6 +827,8 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
       this.role.addToPrincipalPolicy(statement);
     }
 
+    // Must set runtime property used by bind
+    this.runtime = props.runtime;
     const code = props.code.bind(this);
     verifyCodeConfig(code, props);
 
@@ -917,6 +924,7 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
     this.resource.node.addDependency(this.role);
 
     this.timeout = props.timeout;
+
     this.architecture = props.architecture ?? Architecture.X86_64;
 
     // TODO: Add aws_lambda_provisioned_concurrency_config

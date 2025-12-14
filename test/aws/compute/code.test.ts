@@ -8,6 +8,7 @@ import {
   lambdaFunction,
   s3Object,
 } from "@cdktf/provider-aws";
+import { dataArchiveFile } from "@cdktf/provider-archive";
 import { App, Testing, TerraformVariable } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
@@ -37,6 +38,61 @@ describe("code", () => {
       expect(() =>
         defineFunction(compute.Code.fromInline("boom"), compute.Runtime.JAVA_8),
       ).toThrow(/Inline source not allowed for java8/);
+    });
+
+    describe("uses correct file extension for", () => {
+      let app: App;
+      let stack: AwsStack;
+
+      beforeEach(() => {
+        app = Testing.stubVersion(
+          new App({
+            stackTraces: false,
+            context: {
+              cdktfJsonPath: path.resolve(__dirname, CDKTFJSON_PATH),
+            },
+          }),
+        );
+        stack = new AwsStack(app, "MyStack", {
+          environmentName,
+          gridUUID,
+          providerConfig,
+          gridBackendConfig,
+        });
+      });
+
+      test("Python runtime", () => {
+        new compute.LambdaFunction(stack, "Func", {
+          handler: "index.main",
+          code: compute.Code.fromInline("def main(event, context): pass"),
+          runtime: compute.Runtime.PYTHON_3_9,
+        });
+
+        const template = new Template(stack);
+        template.expect.toHaveDataSourceWithProperties(
+          dataArchiveFile.DataArchiveFile,
+          {
+            source_content: "def main(event, context): pass",
+            source_content_filename: "index.py",
+          },
+        );
+      });
+      test("Node.js runtime", () => {
+        new compute.LambdaFunction(stack, "Func", {
+          handler: "index.handler",
+          code: compute.Code.fromInline("exports.handler = async () => {}"),
+          runtime: compute.Runtime.NODEJS_18_X,
+        });
+
+        const template = new Template(stack);
+        template.expect.toHaveDataSourceWithProperties(
+          dataArchiveFile.DataArchiveFile,
+          {
+            source_content: "exports.handler = async () => {}",
+            source_content_filename: "index.js",
+          },
+        );
+      });
     });
   });
 

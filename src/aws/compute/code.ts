@@ -12,6 +12,7 @@ import * as storage from "../storage";
 // import { IAwsConstruct } from "../aws-construct";
 import * as ecr_assets from "../storage/assets/image-asset";
 import * as s3_assets from "../storage/assets/s3";
+import { Runtime, RuntimeFamily } from "./runtime";
 // TODO: Adopt UnscopedValidationError
 // - https://github.com/aws/aws-cdk/pull/33382/
 // - https://github.com/aws/aws-cdk/pull/33045
@@ -395,6 +396,34 @@ export class S3CodeV2 extends Code {
 }
 
 /**
+ * Get the file extension for inline code based on the runtime family
+ */
+function getInlineCodeFileExtension(runtime?: Runtime): string {
+  if (!runtime) {
+    // Default to .js for backwards compatibility
+    return ".js";
+  }
+
+  switch (runtime.family) {
+    case RuntimeFamily.NODEJS:
+      return ".js";
+    case RuntimeFamily.PYTHON:
+      return ".py";
+    case RuntimeFamily.JAVA:
+      return ".java";
+    case RuntimeFamily.DOTNET_CORE:
+      return ".cs";
+    case RuntimeFamily.GO:
+      return ".go";
+    case RuntimeFamily.RUBY:
+      return ".rb";
+    default:
+      // Default to .js for unknown runtimes
+      return ".js";
+  }
+}
+
+/**
  * Lambda code from an inline string.
  */
 export class InlineCode extends Code {
@@ -444,6 +473,14 @@ export class InlineCode extends Code {
     if (existing) {
       this.dataArchive = existing as dataArchiveFile.DataArchiveFile;
     } else {
+      // Determine the file extension based on the runtime
+      // The scope should be a LambdaFunction when bind is called
+      let runtime: Runtime | undefined;
+      if ("runtime" in scope && scope.runtime instanceof Runtime) {
+        runtime = scope.runtime;
+      }
+      const extension = getInlineCodeFileExtension(runtime);
+
       this.dataArchive = new dataArchiveFile.DataArchiveFile(scope, id, {
         outputPath: pathtJoin(
           cdktf.Token.asString(cdktf.ref("path.root")),
@@ -452,8 +489,7 @@ export class InlineCode extends Code {
         ),
         type: "zip",
         sourceContent: this.code,
-        // TODO: what is filename?
-        sourceContentFilename: "index",
+        sourceContentFilename: `index${extension}`,
         provider,
       });
     }
