@@ -14,7 +14,8 @@ import {
 
 // set strict node version compatible with webcontainers.io
 const nodeVersion = ">=20.9.0";
-const workflowNodeVersion = "20.9.0";
+const pnpmVersion = "10.25.0";
+const workflowNodeVersion = "24.12.0";
 
 const project = new cdk.JsiiProject({
   name: "terraconstructs",
@@ -24,10 +25,10 @@ const project = new cdk.JsiiProject({
   repositoryUrl: "https://github.com/TerraConstructs/base",
   keywords: ["terraconstructs"],
   defaultReleaseBranch: "main",
-  typescriptVersion: "~5.7",
-  jsiiVersion: "~5.7",
+  typescriptVersion: "~5.9",
+  jsiiVersion: "~5.9",
   packageManager: javascript.NodePackageManager.PNPM,
-  pnpmVersion: "9",
+  pnpmVersion,
   projenrcTs: true,
   prettier: true,
   eslint: true,
@@ -35,12 +36,14 @@ const project = new cdk.JsiiProject({
     compilerOptions: {
       target: "ES2020",
       lib: ["es2020"],
+      isolatedModules: true,
     },
   },
 
   // release config
   release: true,
   releaseToNpm: true,
+  npmTrustedPublishing: true,
   // disable auto generation of API reference for now
   docgen: false,
 
@@ -69,6 +72,10 @@ const project = new cdk.JsiiProject({
     "@types/mime-types",
     "fast-check@^3.23.2",
     "delay@^5.0.0",
+    // TODO: replace eslint/prettier headacheswith biome
+    // pinned due to https://prettier.io/blog/2025/11/27/3.7.0
+    "prettier@3.3.3", // Exact pin, no caret
+    "eslint-plugin-prettier@5.2.1", // Match version from before upgrade
   ],
   bundledDeps: [
     // TODO: remove esbuild-wasm
@@ -160,12 +167,6 @@ const project = new cdk.JsiiProject({
       testEnvironment: "node",
     },
   },
-  tsJestOptions: {
-    transformOptions: {
-      // Skips type checking, speeds up tests significantly
-      isolatedModules: true,
-    },
-  },
 
   licensed: true,
   license: "Apache-2.0",
@@ -177,7 +178,15 @@ const project = new cdk.JsiiProject({
   autoMerge: false,
 });
 
+const releaseWorkflow = project.tryFindObjectFile(
+  ".github/workflows/release.yml",
+);
+releaseWorkflow?.addOverride("jobs.release.runs-on", "custom-linux-l");
+
 project.prettier?.addIgnorePattern("*.generated.ts");
+project.eslint?.addRules({
+  curly: "off",
+});
 
 project.gitignore.exclude(".env");
 
@@ -191,7 +200,7 @@ project.testTask.updateStep(0, {
   receiveArgs: true,
 });
 
-project.package.addField("packageManager", "pnpm@9.9.0"); // silence COREPACK_ENABLE_AUTO_PIN warning
+project.package.addField("packageManager", `pnpm@${pnpmVersion}`); // silence COREPACK_ENABLE_AUTO_PIN warning
 project.package.addEngine("node", nodeVersion);
 new TextFile(project, ".nvmrc", {
   lines: [workflowNodeVersion],
