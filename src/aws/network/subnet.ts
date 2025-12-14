@@ -127,6 +127,9 @@ export interface PublicSubnetProps extends BaseSubnetProps {
   readonly defaultRouteTableId: string;
 }
 
+/**
+ * @deprecated: use compute/subnets instead
+ */
 export class PublicSubnet extends BaseSubnet {
   private readonly natGateway?: natGateway.NatGateway;
   private readonly eip?: eip.Eip | dataAwsEip.DataAwsEip;
@@ -167,6 +170,9 @@ export interface PrivateSubnetProps extends BaseSubnetProps {
   readonly routeTable: routeTable.RouteTable;
 }
 
+/**
+ * @deprecated: use compute/subnets instead
+ */
 export class PrivateSubnet extends BaseSubnet {
   private readonly routeTable: routeTable.RouteTable;
 
@@ -189,6 +195,9 @@ export class PrivateSubnet extends BaseSubnet {
   }
 }
 
+/**
+ * @deprecated: use compute/subnets instead
+ */
 export class DataSubnet extends BaseSubnet {
   private readonly routeTable: routeTable.RouteTable;
 

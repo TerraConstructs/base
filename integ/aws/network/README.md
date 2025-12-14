@@ -1,5 +1,7 @@
 # Network e2e tests
 
+> [!WARNING]
+> Deprecated: Use `aws/compute` Vpc and VpcV2 instead
 
 > [!IMPORTANT]
 > Terratest uses compiled package from `lib` directory, run `pnpm compile` after making changes!

@@ -65,6 +65,7 @@ export interface SimpleIPv4Props extends AwsConstructProps {
  *
  * @resource aws_vpc
  * @beacon-class network.SimpleIPv4Vpc
+ * @deprecated use compute/vpc instead
  */
 export class SimpleIPv4Vpc extends AwsConstructBase implements INetwork {
   private readonly _props: SimpleIPv4Props;
