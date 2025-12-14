@@ -2,13 +2,13 @@
 
 import * as child_process from "child_process";
 import * as path from "path";
+import { dataArchiveFile } from "@cdktf/provider-archive";
 import {
   dataAwsIamPolicyDocument,
   ecrRepositoryPolicy,
   lambdaFunction,
   s3Object,
 } from "@cdktf/provider-aws";
-import { dataArchiveFile } from "@cdktf/provider-archive";
 import { App, Testing, TerraformVariable } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";

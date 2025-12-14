@@ -10,9 +10,9 @@ import { IKey } from "../encryption";
 import * as iam from "../iam";
 import * as storage from "../storage";
 // import { IAwsConstruct } from "../aws-construct";
+import { Runtime, RuntimeFamily } from "./runtime";
 import * as ecr_assets from "../storage/assets/image-asset";
 import * as s3_assets from "../storage/assets/s3";
-import { Runtime, RuntimeFamily } from "./runtime";
 // TODO: Adopt UnscopedValidationError
 // - https://github.com/aws/aws-cdk/pull/33382/
 // - https://github.com/aws/aws-cdk/pull/33045
