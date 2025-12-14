@@ -4,11 +4,10 @@ import * as path from "path";
 import { Construct } from "constructs";
 import * as s3 from "..";
 import * as cdk from "../../..";
+import { ValidationError } from "../../../errors";
 import { AwsStack } from "../../aws-stack";
 import * as kms from "../../encryption";
 import * as iam from "../../iam";
-
-// import { ValidationError } from "../../core/lib/errors";
 
 export interface AssetOptions extends cdk.FileCopyOptions, cdk.AssetOptions {
   /**
@@ -148,8 +147,7 @@ export class Asset extends Construct implements cdk.IAsset {
     super(scope, id);
 
     if (!props.path) {
-      // throw new ValidationError("Asset path cannot be empty", this);
-      throw new Error("Asset path cannot be empty");
+      throw new ValidationError("Asset path cannot be empty", this);
     }
 
     // this.isBundled = props.bundling != null;

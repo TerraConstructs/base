@@ -9,6 +9,7 @@ import { Construct } from "constructs";
 import { BasePathMapping, BasePathMappingOptions } from "./base-path-mapping"; // Assuming this will be converted
 import { EndpointType, IRestApi } from "./restapi"; // Assuming these will be converted/available
 import { IStage } from "./stage"; // Assuming this will be converted/available
+import { UnscopedValidationError } from "../../errors";
 import {
   AwsConstructBase,
   AwsConstructProps,
@@ -17,7 +18,6 @@ import {
 import { AwsStack } from "../aws-stack";
 import * as acm from "../edge";
 import { IBucket } from "../storage";
-// import { ValidationError } from "../../core/lib/errors"; // TODO: Implement advanced error handling
 
 /**
  * Options for creating an api mapping
@@ -183,9 +183,9 @@ export class DomainName extends AwsConstructBase implements IDomainName {
       !Token.isUnresolved(props.domainName) &&
       /[A-Z]/.test(props.domainName)
     ) {
-      throw new Error(
+      throw new UnscopedValidationError(
         `Domain name does not support uppercase letters. Got: ${props.domainName}`,
-      ); // TODO: Implement UnscopedValidationError
+      );
     }
 
     const mtlsConfig = this.configureMTLS(props.mtls);
@@ -229,17 +229,17 @@ export class DomainName extends AwsConstructBase implements IDomainName {
   private validateBasePath(path?: string): boolean {
     if (this.isMultiLevel(path)) {
       if (this.endpointType === EndpointType.EDGE) {
-        throw new Error(
+        throw new UnscopedValidationError(
           "multi-level basePath is only supported when endpointType is EndpointType.REGIONAL",
-        ); // TODO: Implement UnscopedValidationError
+        );
       }
       if (
         this.securityPolicy &&
         this.securityPolicy !== SecurityPolicy.TLS_1_2
       ) {
-        throw new Error(
+        throw new UnscopedValidationError(
           "securityPolicy must be set to TLS_1_2 if multi-level basePath is provided",
-        ); // TODO: Implement UnscopedValidationError
+        );
       }
       return true;
     }
@@ -255,14 +255,14 @@ export class DomainName extends AwsConstructBase implements IDomainName {
     options: BasePathMappingOptions = {},
   ): BasePathMapping {
     if (this.basePaths.has(options.basePath)) {
-      throw new Error(
+      throw new UnscopedValidationError(
         `DomainName ${this.friendlyName} already has a mapping for path ${options.basePath}`,
-      ); // TODO: Implement UnscopedValidationError
+      );
     }
     if (this.isMultiLevel(options.basePath)) {
-      throw new Error(
+      throw new UnscopedValidationError(
         'BasePathMapping does not support multi-level paths. Use "addApiMapping instead.',
-      ); // TODO: Implement UnscopedValidationError
+      );
     }
 
     this.basePaths.add(options.basePath);
@@ -284,9 +284,9 @@ export class DomainName extends AwsConstructBase implements IDomainName {
     options: ApiMappingOptions = {},
   ): void {
     if (this.basePaths.has(options.basePath)) {
-      throw new Error(
+      throw new UnscopedValidationError(
         `DomainName ${this.node.id} already has a mapping for path ${options.basePath}. (${this.node.path})`,
-      ); // TODO: Implement UnscopedValidationError
+      );
     }
     this.validateBasePath(options.basePath);
     this.basePaths.add(options.basePath);

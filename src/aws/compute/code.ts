@@ -4,6 +4,7 @@ import { dataArchiveFile } from "@cdktf/provider-archive";
 import * as cdktf from "cdktf";
 import { Construct } from "constructs";
 import { DockerImage, DockerBuildOptions } from "../../bundling";
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import { md5hash } from "../../helpers-internal";
 import { AwsStack } from "../aws-stack";
 import { IKey } from "../encryption";
@@ -13,13 +14,6 @@ import * as storage from "../storage";
 import { Runtime, RuntimeFamily } from "./runtime";
 import * as ecr_assets from "../storage/assets/image-asset";
 import * as s3_assets from "../storage/assets/s3";
-// TODO: Adopt UnscopedValidationError
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import {
-//   UnscopedValidationError,
-//   ValidationError,
-// } from "../../core/lib/errors";
 
 /**
  * Represents the Lambda Handler Code.
@@ -111,8 +105,7 @@ export abstract class Code {
     options?: CustomCommandOptions,
   ): AssetCode {
     if (command.length === 0) {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         'command must contain at least one argument. For example, ["node", "buildFile.js"].',
       );
     }
@@ -126,12 +119,12 @@ export abstract class Code {
         : spawnSync(cmd, commandArguments, options.commandOptions);
 
     if (proc.error) {
-      // throw new UnscopedValidationError(
-      throw new Error(`Failed to execute custom command: ${proc.error}`);
+      throw new UnscopedValidationError(
+        `Failed to execute custom command: ${proc.error}`,
+      );
     }
     if (proc.status !== 0) {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         `${command.join(" ")} exited with status: ${proc.status}\n\nstdout: ${proc.stdout?.toString().trim()}\n\nstderr: ${proc.stderr?.toString().trim()}`,
       );
     }
@@ -338,10 +331,9 @@ export class S3Code extends Code {
     super();
 
     if (!bucket.bucketName) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "bucketName is undefined for the provided bucket",
-        // bucket,
+        bucket,
       );
     }
 
@@ -373,10 +365,9 @@ export class S3CodeV2 extends Code {
   ) {
     super();
     if (!bucket.bucketName) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "bucketName is undefined for the provided bucket",
-        // bucket,
+        bucket,
       );
     }
 
@@ -434,8 +425,7 @@ export class InlineCode extends Code {
     super();
 
     if (code.length === 0) {
-      // throw new UnscopedValidationError(
-      throw new Error("Lambda inline code cannot be empty");
+      throw new UnscopedValidationError("Lambda inline code cannot be empty");
     }
   }
 
@@ -524,19 +514,17 @@ export class AssetCode extends Code {
     } else if (
       AwsStack.ofAwsConstruct(this.asset) !== AwsStack.ofAwsConstruct(scope)
     ) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Asset is already associated with another stack '${AwsStack.ofAwsConstruct(this.asset).gridUUID}'. ` +
           "Create a new Code instance for every stack.",
-        // scope,
+        scope,
       );
     }
 
     if (!this.asset.isZipArchive) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Asset must be a .zip file or a directory (${this.path})`,
-        // scope,
+        scope,
       );
     }
 
@@ -554,10 +542,9 @@ export class AssetCode extends Code {
   //   options: ResourceBindOptions = {},
   // ) {
   //   if (!this.asset) {
-  //     // throw new ValidationError(
-  //     throw new Error(
+  //     throw new ValidationError(
   //       "bindToResource() must be called after bind()",
-  //       // resource,
+  //       resource,
   //     );
   //   }
 
@@ -676,8 +663,7 @@ export class TerraformVariablesCode extends Code {
     if (this._bucketNameVar) {
       return this._bucketNameVar.fqn;
     } else {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         "Pass TerraformVariablesCode to a Lambda Function before accessing the bucketNameVar property",
       );
     }
@@ -687,8 +673,7 @@ export class TerraformVariablesCode extends Code {
     if (this._objectKeyVar) {
       return this._objectKeyVar.fqn;
     } else {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         "Pass TerraformVariablesCode to a Lambda Function before accessing the objectKeyVar property",
       );
     }
@@ -825,11 +810,10 @@ export class AssetImageCode extends Code {
     } else if (
       AwsStack.ofAwsConstruct(this.asset) !== AwsStack.ofAwsConstruct(scope)
     ) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Asset is already associated with another stack '${AwsStack.ofAwsConstruct(this.asset).gridUUID}'. ` +
           "Create a new Code instance for every stack.",
-        // scope,
+        scope,
       );
     }
 
@@ -849,8 +833,7 @@ export class AssetImageCode extends Code {
   //   options: ResourceBindOptions = {},
   // ) {
   //   if (!this.asset) {
-  //     // throw new ValidationError(
-  //     throw new Error("bindToResource() must be called after bind()"); //, resource);
+  //     throw new ValidationError("bindToResource() must be called after bind()", resource);
   //   }
 
   //   // const resourceProperty = _options.resourceProperty || "Code.ImageUri";

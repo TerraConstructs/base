@@ -10,6 +10,7 @@ import {
 import { TopicPolicy } from "./policy";
 import { ITopicSubscription } from "./subscriber";
 import { Subscription } from "./subscription";
+import { ValidationError } from "../../errors";
 import {
   IAwsConstruct,
   AwsConstructBase,
@@ -17,10 +18,6 @@ import {
 } from "../aws-construct";
 import { IKey } from "../encryption";
 import * as iam from "../iam";
-// TODO: Adopt ValidationError
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import { ValidationError } from "../../core/lib/errors";
 
 /**
  * Outputs for the Subscription construct.
@@ -175,9 +172,9 @@ export abstract class TopicBase extends AwsConstructBase implements ITopic {
     // We use the subscriber's id as the construct id. There's no meaning
     // to subscribing the same subscriber twice on the same topic.
     if (scope.node.tryFindChild(id)) {
-      // TODO: Adopt ValidationError
-      throw new Error(
+      throw new ValidationError(
         `A subscription with id "${id}" already exists under the scope ${scope.node.path}`,
+        scope,
       );
     }
 

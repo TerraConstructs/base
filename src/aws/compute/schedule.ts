@@ -3,10 +3,7 @@
 import { Annotations } from "cdktf";
 import { Construct } from "constructs";
 import { Duration } from "../../duration";
-// TODO Adupt ValidationError is available, otherwise use standard Error
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import { UnscopedValidationError } from "../../errors";
+import { UnscopedValidationError } from "../../errors";
 
 /**
  * Schedule for scheduled scaling actions
@@ -35,16 +32,14 @@ export abstract class Schedule {
         "days",
       ];
       if (!validDurationUnit.includes(duration.unitLabel())) {
-        // throw new UnscopedValidationError(
-        throw new Error(
+        throw new UnscopedValidationError(
           "Allowed units for scheduling are: 'minute', 'minutes', 'hour', 'hours', 'day' or 'days'",
         );
       }
       return new LiteralSchedule(`rate(${duration.formatTokenToNumber()})`);
     }
     if (duration.toSeconds() === 0) {
-      // throw new UnscopedValidationError(
-      throw new Error("Duration cannot be 0");
+      throw new UnscopedValidationError("Duration cannot be 0");
     }
 
     let rate = maybeRate(duration.toDays({ integral: false }), "day");
@@ -69,8 +64,7 @@ export abstract class Schedule {
    */
   public static cron(options: CronOptions): Schedule {
     if (options.weekDay !== undefined && options.day !== undefined) {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         "Cannot supply both 'day' and 'weekDay', use at most one",
       );
     }

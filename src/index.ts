@@ -5,6 +5,7 @@ export * from "./time-zone";
 export * from "./expiration";
 export * from "./size";
 export * from "./terra-func";
+export * from "./errors";
 
 // AWS CDK Bundling
 export * from "./assets";

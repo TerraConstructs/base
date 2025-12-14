@@ -7,6 +7,7 @@ import {
   AwsConstructBase,
   AwsConstructProps,
 } from "../";
+import { ValidationError } from "../../errors";
 import * as ec2 from "../compute";
 import { INetwork } from "../network";
 
@@ -240,7 +241,7 @@ export class DnsZone extends AwsConstructBase implements IDnsZone {
   constructor(scope: Construct, id: string, props: DnsZoneProps) {
     super(scope, id, props);
 
-    validateZoneName(props.zoneName);
+    validateZoneName(this, props.zoneName);
 
     // Add a dot at the end if the addTrailingDot property is not false.
     const zoneName =
@@ -331,16 +332,23 @@ export function makeHostedZoneArn(
  * @returns +zoneName+
  * @throws ValidationError if the name is not valid.
  */
-export function validateZoneName(zoneName: string) {
+export function validateZoneName(scope: Construct, zoneName: string) {
   if (zoneName.length > 255) {
-    throw new Error("zone name cannot be more than 255 bytes long");
+    throw new ValidationError(
+      "zone name cannot be more than 255 bytes long",
+      scope,
+    );
   }
   if (zoneName.split(".").find((label) => label.length > 63)) {
-    throw new Error("zone name labels cannot be more than 63 bytes long");
+    throw new ValidationError(
+      "zone name labels cannot be more than 63 bytes long",
+      scope,
+    );
   }
   if (!zoneName.match(/^[a-z0-9!"#$%&'()*+,/:;<=>?@[\\\]^_`{|}~.-]+$/i)) {
-    throw new Error(
+    throw new ValidationError(
       "zone names can only contain a-z, 0-9, -, ! \" # $ % & ' ( ) * + , - / : ; < = > ? @ [  ] ^ _ ` { | } ~ .",
+      scope,
     );
   }
 }

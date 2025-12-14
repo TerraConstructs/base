@@ -15,6 +15,7 @@ import {
   UsagePlan,
   UsagePlanPerApiStage,
 } from "./usage-plan";
+import { ValidationError } from "../../errors";
 import * as iam from "../iam";
 
 /**
@@ -241,10 +242,9 @@ export class ApiKey extends ApiKeyBase {
     }
 
     if (resources && stages) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Only one of "resources" or "stages" should be provided. (${this.node.path})`,
-        // this,
+        this,
       );
     }
 
@@ -255,11 +255,10 @@ export class ApiKey extends ApiKeyBase {
       resources.forEach((resource: IRestApi) => {
         const restApi = resource;
         if (!restApi.deploymentStage) {
-          // throw new ValidationError(
-          throw new Error(
+          throw new ValidationError(
             'Cannot add an ApiKey to a RestApi that does not contain a "deploymentStage".\n' +
               "Either set the RestApi.deploymentStage or create an ApiKey from a Stage",
-            // this,
+            this,
           );
         }
         apiStages.push({

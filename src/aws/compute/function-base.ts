@@ -542,8 +542,9 @@ export abstract class LambdaFunctionBase
 
   public configureAsyncInvoke(options: EventInvokeConfigOptions): void {
     if (this.node.tryFindChild("EventInvokeConfig") !== undefined) {
-      throw new Error(
+      throw new ValidationError(
         `An EventInvokeConfig has already been configured for the function at ${this.node.path}`,
+        this,
       );
     }
 
@@ -629,10 +630,11 @@ export abstract class LambdaFunctionBase
 
           const permissionNode = this._functionNode().tryFindChild(identifier);
           if (!permissionNode && !this._skipPermissions) {
-            throw new Error(
+            throw new ValidationError(
               "Cannot modify permission to lambda function. Function is either imported or $LATEST version.\n" +
                 "If the function is imported from the same account use `fromFunctionAttributes()` API with the `sameEnvironment` flag.\n" +
                 "If the function is imported from a different account and already has the correct permissions use `fromFunctionAttributes()` API with the `skipPermissions` flag.",
+              this,
             );
           }
           return { statementAdded: true, policyDependable: permissionNode };
@@ -712,9 +714,10 @@ export abstract class LambdaFunctionBase
       }
     }
 
-    throw new Error(
+    throw new ValidationError(
       `Invalid principal type for Lambda permission statement: ${principal.constructor.name}. ` +
         "Supported: AccountPrincipal, ArnPrincipal, ServicePrincipal, OrganizationPrincipal",
+      this,
     );
 
     /**
@@ -780,8 +783,9 @@ export abstract class LambdaFunctionBase
 
     // PrincipalOrgID cannot be combined with any other conditions
     if (principalOrgID && (sourceArn || sourceAccount)) {
-      throw new Error(
+      throw new ValidationError(
         "PrincipalWithConditions had unsupported condition combinations for Lambda permission statement: principalOrgID cannot be set with other conditions.",
+        this,
       );
     }
 
@@ -827,9 +831,10 @@ export abstract class LambdaFunctionBase
       if (unsupportedConditions.length == 0) {
         return conditions;
       } else {
-        throw new Error(
+        throw new ValidationError(
           `PrincipalWithConditions had unsupported conditions for Lambda permission statement: ${JSON.stringify(unsupportedConditions)}. ` +
             `Supported operator/condition pairs: ${JSON.stringify(supportedPrincipalConditions)}`,
+          this,
         );
       }
     }
@@ -854,8 +859,9 @@ export abstract class QualifiedFunctionBase extends LambdaFunctionBase {
 
   public configureAsyncInvoke(options: EventInvokeConfigOptions): void {
     if (this.node.tryFindChild("EventInvokeConfig") !== undefined) {
-      throw new Error(
+      throw new ValidationError(
         `An EventInvokeConfig has already been configured for the qualified function at ${this.node.path}`,
+        this,
       );
     }
 

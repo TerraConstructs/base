@@ -6,6 +6,7 @@ import * as os from "os";
 // import { AssetStaging } from "../asset-staging";
 import { AssetStaging } from "../asset-staging";
 import { BundlingOptions } from "../bundling";
+import { ExecutionError } from "../errors";
 
 /**
  * Options for Docker based bundling of assets
@@ -245,7 +246,7 @@ export function dockerExec(args: string[], options?: SpawnSyncOptions) {
         .map((line, idx) => `${idx === 0 ? firstLine : padding}${line}`);
     }
 
-    throw new Error(
+    throw new ExecutionError(
       [
         `${prog} exited with ${reason}`,
         ...(prependLines("--> STDOUT:  ", proc.stdout) ?? []),

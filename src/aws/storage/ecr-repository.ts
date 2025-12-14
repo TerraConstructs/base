@@ -9,6 +9,7 @@ import {
 import { Annotations, Token } from "cdktf";
 import { IConstruct, Construct } from "constructs";
 import { LifecycleRule, TagStatus } from "./ecr-lifecycle";
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import { ArnFormat } from "../arn";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
@@ -580,8 +581,7 @@ export class Repository extends RepositoryBase {
     repositoryArn: string,
   ): IRepository {
     if (Token.isUnresolved(repositoryArn)) {
-      // TODO: UnscopedValidationError
-      throw new Error(
+      throw new UnscopedValidationError(
         '"repositoryArn" is a late-bound value, and therefore "repositoryName" is required. Use `fromRepositoryAttributes` instead',
       );
     }
@@ -610,8 +610,7 @@ export class Repository extends RepositoryBase {
       const splitArn = repositoryArn.split(":");
 
       if (!splitArn[splitArn.length - 1].startsWith("repository/")) {
-        // TODO: UnscopedValidationError
-        throw new Error(
+        throw new UnscopedValidationError(
           `Repository arn should be in the format 'arn:<PARTITION>:ecr:<REGION>:<ACCOUNT>:repository/<NAME>', got ${repositoryArn}.`,
         );
       }
@@ -685,8 +684,7 @@ export class Repository extends RepositoryBase {
     }
 
     if (errors.length > 0) {
-      // TODO: UnscopedValidationError
-      throw new Error(
+      throw new UnscopedValidationError(
         `Invalid ECR repository name (value: ${repositoryName})${EOL}${errors.join(
           EOL,
         )}`,
@@ -746,9 +744,9 @@ export class Repository extends RepositoryBase {
     this.repositoryArn = this.resource.arn;
 
     if (props.emptyOnDelete === false && props.autoDeleteImages) {
-      // TODO: ValidationError
-      throw new Error(
+      throw new ValidationError(
         "Cannot use 'autoDeleteImages' property on a repository without setting forceDelete to 'true'.",
+        this,
       );
     } else if (props.autoDeleteImages) {
       // TODO: Implement Custom Resource for auto-deleting images.
@@ -843,35 +841,35 @@ export class Repository extends RepositoryBase {
       (rule.tagPrefixList === undefined || rule.tagPrefixList.length === 0) &&
       (rule.tagPatternList === undefined || rule.tagPatternList.length === 0)
     ) {
-      // TODO: ValidationError
-      throw new Error(
+      throw new ValidationError(
         "TagStatus.Tagged requires the specification of a tagPrefixList or a tagPatternList",
+        this,
       );
     }
     if (
       rule.tagStatus !== TagStatus.TAGGED &&
       (rule.tagPrefixList !== undefined || rule.tagPatternList !== undefined)
     ) {
-      // TODO: ValidationError
-      throw new Error(
+      throw new ValidationError(
         "tagPrefixList and tagPatternList can only be specified when tagStatus is set to Tagged",
+        this,
       );
     }
     if (rule.tagPrefixList !== undefined && rule.tagPatternList !== undefined) {
-      // TODO: ValidationError
-      throw new Error(
+      throw new ValidationError(
         "Both tagPrefixList and tagPatternList cannot be specified together in a rule",
+        this,
       );
     }
     if (rule.tagPatternList !== undefined) {
       rule.tagPatternList.forEach((pattern) => {
         const splitPatternLength = pattern.split("*").length;
         if (splitPatternLength > 5) {
-          // TODO: ValidationError
-          throw new Error(
+          throw new ValidationError(
             `A tag pattern cannot contain more than four wildcard characters (*), pattern: ${pattern}, counts: ${
               splitPatternLength - 1
             }`,
+            this,
           );
         }
       });
@@ -880,11 +878,11 @@ export class Repository extends RepositoryBase {
       (rule.maxImageAge !== undefined) ===
       (rule.maxImageCount !== undefined)
     ) {
-      // TODO: ValidationError
-      throw new Error(
+      throw new ValidationError(
         `Life cycle rule must contain exactly one of 'maxImageAge' and 'maxImageCount', got: ${JSON.stringify(
           rule,
         )}`,
+        this,
       );
     }
 
@@ -893,8 +891,10 @@ export class Repository extends RepositoryBase {
       this.lifecycleRules.filter((r) => r.tagStatus === TagStatus.ANY).length >
         0
     ) {
-      // TODO: ValidationError
-      throw new Error("Life cycle can only have one TagStatus.Any rule");
+      throw new ValidationError(
+        "Life cycle can only have one TagStatus.Any rule",
+        this,
+      );
     }
 
     this.lifecycleRules.push({ ...rule });
@@ -940,9 +940,9 @@ export class Repository extends RepositoryBase {
       autoPrioritizedRules.length > 0
     ) {
       // Supporting this is too complex for very little value. We just prohibit it.
-      // TODO: ValidationError
-      throw new Error(
+      throw new ValidationError(
         "Cannot combine prioritized TagStatus.Any rule with unprioritized rules. Remove rulePriority from the 'Any' rule.",
+        this,
       );
     }
 
@@ -980,9 +980,9 @@ export class Repository extends RepositoryBase {
 
     // if encryption key is set, encryption must be set to KMS.
     if (encryptionType !== RepositoryEncryption.KMS && props.encryptionKey) {
-      // TODO: ValidationError
-      throw new Error(
+      throw new ValidationError(
         `encryptionKey is specified, so 'encryption' must be set to KMS (value: ${encryptionType.value})`,
+        this,
       );
     }
 
@@ -999,8 +999,10 @@ export class Repository extends RepositoryBase {
       ];
     }
 
-    // TODO: ValidationError
-    throw new Error(`Unexpected 'encryptionType': ${encryptionType}`);
+    throw new ValidationError(
+      `Unexpected 'encryptionType': ${encryptionType}`,
+      this,
+    );
   }
 
   /**
@@ -1029,8 +1031,7 @@ function validateAnyRuleLast(rules: LifecycleRule[]) {
   if (anyRules.length === 1) {
     const maxPrio = Math.max(...rules.map((r) => r.rulePriority!));
     if (anyRules[0].rulePriority !== maxPrio) {
-      // TODO: UnscopedValidationError
-      throw new Error(
+      throw new UnscopedValidationError(
         `TagStatus.Any rule must have highest priority, has ${anyRules[0].rulePriority} which is smaller than ${maxPrio}`,
       );
     }

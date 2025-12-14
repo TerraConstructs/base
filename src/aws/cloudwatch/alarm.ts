@@ -20,6 +20,7 @@ import { dispatchMetric, metricPeriod } from "./private/metric-util";
 import { dropUndefined } from "./private/object";
 import { MetricSet } from "./private/rendering";
 import { normalizeStatistic, parseStatistic } from "./private/statistic";
+import { ValidationError } from "../../errors";
 
 /**
  * Properties for Alarms
@@ -322,8 +323,9 @@ export class Alarm extends AlarmBase {
         Object.keys(dimensions).length !== 1 ||
         !("InstanceId" in dimensions)
       ) {
-        throw new Error(
+        throw new ValidationError(
           `EC2 alarm actions requires an EC2 Per-Instance Metric. (${JSON.stringify(metricConfig)} does not have an 'InstanceId' dimension)`,
+          this,
         );
       }
     }
@@ -413,7 +415,7 @@ export class Alarm extends AlarmBase {
                   const hasSubmetrics = mathExprHasSubmetrics(expr);
 
                   if (hasSubmetrics) {
-                    assertSubmetricsCount(expr);
+                    assertSubmetricsCount(self, expr);
                   }
 
                   self.validateMetricExpression(expr);
@@ -440,8 +442,9 @@ export class Alarm extends AlarmBase {
     const stack = AwsStack.ofAwsConstruct(this);
 
     if (definitelyDifferent(stat.region, stack.region)) {
-      throw new Error(
+      throw new ValidationError(
         `Cannot create an Alarm in region '${stack.region}' based on metric '${metric}' in '${stat.region}'`,
+        this,
       );
     }
   }
@@ -452,8 +455,9 @@ export class Alarm extends AlarmBase {
    */
   private validateMetricExpression(expr: MetricExpressionConfig) {
     if (expr.searchAccount !== undefined || expr.searchRegion !== undefined) {
-      throw new Error(
+      throw new ValidationError(
         "Cannot create an Alarm based on a MathExpression which specifies a searchAccount or searchRegion",
+        this,
       );
     }
   }
@@ -535,11 +539,12 @@ function mathExprHasSubmetrics(expr: MetricExpressionConfig) {
   return Object.keys(expr.usingMetrics).length > 0;
 }
 
-function assertSubmetricsCount(expr: MetricExpressionConfig) {
+function assertSubmetricsCount(scope: Construct, expr: MetricExpressionConfig) {
   if (Object.keys(expr.usingMetrics).length > 10) {
     // https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarms-on-metric-math-expressions
-    throw new Error(
+    throw new ValidationError(
       "Alarms on math expressions cannot contain more than 10 individual metrics",
+      scope,
     );
   }
 }

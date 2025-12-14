@@ -1255,8 +1255,9 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
     //   props.deadLetterTopic &&
     //   (props.deadLetterQueue || props.deadLetterQueueEnabled !== undefined)
     // ) {
-    //   throw new Error(
+    //   throw new ValidationError(
     //     "deadLetterQueue and deadLetterTopic cannot be specified together at the same time",
+    //     this,
     //   );
     // }
 
