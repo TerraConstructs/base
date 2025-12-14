@@ -12,6 +12,10 @@ lambda-chain: ## Test chain of lambda functions
 	go test -v -count 1 -timeout 15m ./... -run ^TestLambdaChain$
 .PHONY: lambda-chain
 
+lambda-vpc: ## Test lambda in Vpc
+	go test -v -count 1 -timeout 60m ./... -run ^TestLambdaVpc$
+.PHONY: lambda-vpc
+
 event-source-sqs: ## Test sqs event source with lambda
 	go test -v -count 1 -timeout 15m ./... -run ^TestEventSourceSqs$
 .PHONY: event-source-sqs

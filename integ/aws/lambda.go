@@ -32,6 +32,10 @@ type LambdaOptions struct {
 	//      returns a response or times out.
 	//    * InvocationTypeDryRun - Validate parameter values and verify
 	//      that the user or role has permission to invoke the function.
+	//    * InvocationTypeEvent – Invoke the function asynchronously.
+	//      Send events that fail multiple times to the function's
+	//      dead-letter queue (if one is configured). The API response
+	//      only includes a status code.
 	InvocationType *InvocationTypeOption
 
 	// Lambda function input; will be converted to JSON.
@@ -56,12 +60,26 @@ func (itype *InvocationTypeOption) Value() (string, error) {
 	return string(InvocationTypeRequestResponse), nil
 }
 
+// InvokeFunctionSync invokes a lambda function synchronously. Keep the connection open until the function
+// returns a response or times out. Checks for failure using "require".
+func InvokeFunctionSync(t testing.TestingT, region, functionName string) *terratestaws.LambdaOutput {
+	invokeSync := InvocationTypeRequestResponse
+	input := LambdaOptions{
+		InvocationType: &invokeSync,
+		Payload:        nil,
+	}
+	return InvokeFunctionWithParams(t, region, functionName, &input)
+}
+
 // InvokeFunctionWithParams invokes a lambda function using parameters
 // supplied in the LambdaOptions struct and returns values in a LambdaOutput
-// struct.  Checks for failure using "require".
+// struct. Checks for failure using "require".
 func InvokeFunctionWithParams(t testing.TestingT, region, functionName string, input *LambdaOptions) *terratestaws.LambdaOutput {
 	out, err := InvokeFunctionWithParamsE(t, region, functionName, input)
-	require.NoError(t, err)
+	if err != nil && out.Payload != nil {
+		terratestLogger.Logf(t, "out: %q", string(out.Payload))
+	}
+	require.NoError(t, err, "Error invoking function %s: %q", functionName, err)
 	return out
 }
 
