@@ -88,23 +88,22 @@ describe("event bus", () => {
     );
   });
 
-  // // TODO: Event Bus Description is not supported by terraform-provider-aws
-  // test("event bus with description", () => {
-  //   // GIVEN
+  test("event bus with description", () => {
+    // GIVEN
 
-  //   // WHEN
-  //   new EventBus(stack, "myEventBus", {
-  //     description: "myEventBusDescription",
-  //   });
+    // WHEN
+    new EventBus(stack, "myEventBus", {
+      description: "myEventBusDescription",
+    });
 
-  //   // THEN
-  //   Template.synth(stack).toHaveResourceWithProperties(
-  //     cloudwatchEventBus.CloudwatchEventBus,
-  //     {
-  //       description: "myEventBusDescription",
-  //     },
-  //   );
-  // });
+    // THEN
+    Template.synth(stack).toHaveResourceWithProperties(
+      cloudwatchEventBus.CloudwatchEventBus,
+      {
+        description: "myEventBusDescription",
+      },
+    );
+  });
 
   test("partner event bus", () => {
     // GIVEN
@@ -674,24 +673,21 @@ describe("event bus", () => {
     ).toThrow("Event Bus policy statements must have a sid");
   });
 
-  // TODO: Event Bus DQL is not supported by terraform-provider-aws
-  // test("set dead letter queue", () => {
-  //   const dlq = new sqs.Queue(stack, "DLQ");
-  //   new EventBus(stack, "Bus", {
-  //     deadLetterQueue: dlq,
-  //   });
+  test("set dead letter queue", () => {
+    const dlq = new sqs.Queue(stack, "DLQ");
+    new EventBus(stack, "Bus", {
+      deadLetterQueue: dlq,
+    });
 
-  //   Template.synth(stack).toHaveResourceWithProperties(
-  //     cloudwatchEventBus.CloudwatchEventBus,
-  //     {
-  //       DeadLetterConfig: {
-  //         Arn: {
-  //           "Fn::GetAtt": ["DLQ581697C4", "Arn"],
-  //         },
-  //       },
-  //     },
-  //   );
-  // });
+    Template.synth(stack).toHaveResourceWithProperties(
+      cloudwatchEventBus.CloudwatchEventBus,
+      {
+        dead_letter_config: {
+          arn: "${aws_sqs_queue.DLQ_581697C4.arn}",
+        },
+      },
+    );
+  });
 
   test("Event Bus with a customer managed key", () => {
     // GIVEN
