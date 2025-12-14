@@ -4,12 +4,9 @@ import { appautoscalingPolicy } from "@cdktf/provider-aws";
 import { Construct } from "constructs";
 import { IScalableTarget } from "./scalable-target";
 import { Duration } from "../../duration";
+import { ValidationError } from "../../errors";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import * as cloudwatch from "../cloudwatch";
-// TODO Adupt ValidationError is available, otherwise use standard Error
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import { ValidationError } from "../core/errors";
 
 /**
  * Base interface for target tracking props
@@ -154,16 +151,16 @@ export class TargetTrackingScalingPolicy extends AwsConstructBase {
       (props.customMetric === undefined) ===
       (props.predefinedMetric === undefined)
     ) {
-      // Assuming ValidationError is available, otherwise use standard Error
-      throw new Error(
+      throw new ValidationError(
         "Exactly one of 'customMetric' or 'predefinedMetric' must be specified.",
+        this,
       );
     }
 
     if (props.customMetric && !props.customMetric.toMetricConfig().metricStat) {
-      // Assuming ValidationError is available, otherwise use standard Error
-      throw new Error(
+      throw new ValidationError(
         "Only direct metrics are supported for Target Tracking. Use Step Scaling or supply a Metric object.",
+        this,
       );
     }
 
@@ -186,7 +183,10 @@ export class TargetTrackingScalingPolicy extends AwsConstructBase {
         scalableDimension: props.scalingTarget.scalableDimension,
         serviceNamespace: props.scalingTarget.serviceNamespace,
         targetTrackingScalingPolicyConfiguration: {
-          customizedMetricSpecification: renderCustomMetric(props.customMetric),
+          customizedMetricSpecification: renderCustomMetric(
+            this,
+            props.customMetric,
+          ),
           disableScaleIn: props.disableScaleIn,
           predefinedMetricSpecification:
             predefinedMetricValue !== undefined
@@ -207,6 +207,7 @@ export class TargetTrackingScalingPolicy extends AwsConstructBase {
 }
 
 function renderCustomMetric(
+  scope: Construct,
   metric?: cloudwatch.IMetric,
 ):
   | appautoscalingPolicy.AppautoscalingPolicyTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification
@@ -218,17 +219,17 @@ function renderCustomMetric(
 
   // Target tracking only supports metrics with a single metric stat
   if (!metricConfig.metricStat) {
-    // Assuming ValidationError is available, otherwise use standard Error
-    throw new Error(
+    throw new ValidationError(
       "Target tracking custom metric must be a single metric stat.",
+      scope,
     );
   }
   const c = metricConfig.metricStat;
 
   if (c.statistic.startsWith("p")) {
-    // Assuming ValidationError is available, otherwise use standard Error
-    throw new Error(
+    throw new ValidationError(
       `Cannot use statistic '${c.statistic}' for Target Tracking: only 'Average', 'Minimum', 'Maximum', 'SampleCount', and 'Sum' are supported.`,
+      scope,
     );
   }
 

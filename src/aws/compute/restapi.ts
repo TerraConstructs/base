@@ -18,6 +18,7 @@ import { Model, ModelOptions } from "./model";
 import { RequestValidator, RequestValidatorOptions } from "./requestvalidator";
 import { IResource, ResourceBase, ResourceOptions } from "./resource";
 import { Stage, StageOptions } from "./stage";
+import { ValidationError } from "../../errors";
 import { Size } from "../../size";
 import { ArnFormat } from "../arn";
 import { UsagePlan, UsagePlanProps } from "./usage-plan";
@@ -377,9 +378,9 @@ export abstract class RestApiBase
    */
   public urlForPath(path: string = "/"): string {
     if (!this.deploymentStage) {
-      // TODO throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         'Cannot determine deployment stage for API from "deploymentStage". Use "deploy" or explicitly set "deploymentStage"',
+        this,
       );
     }
     return this.deploymentStage.urlForPath(path);
@@ -414,7 +415,10 @@ export abstract class RestApiBase
     stage: string = "*",
   ) {
     if (!Token.isUnresolved(path) && !path.startsWith("/")) {
-      throw new Error(`"path" must begin with a "/": '${path}'`);
+      throw new ValidationError(
+        `"path" must begin with a "/": '${path}'`,
+        this,
+      );
     }
 
     if (method.toUpperCase() === "ANY") {
@@ -698,7 +702,10 @@ export abstract class RestApiBase
       });
     } else {
       if (props.deployOptions) {
-        throw new Error("Cannot set 'deployOptions' if 'deploy' is disabled");
+        throw new ValidationError(
+          "Cannot set 'deployOptions' if 'deploy' is disabled",
+          this,
+        );
       }
     }
   }
@@ -710,9 +717,9 @@ export abstract class RestApiBase
     props: RestApiBaseProps,
   ): apiGatewayRestApi.ApiGatewayRestApiEndpointConfiguration | undefined {
     if (props.endpointTypes && props.endpointConfiguration) {
-      // TODO: throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "Only one of the RestApi props, endpointTypes or endpointConfiguration, is allowed",
+        this,
       );
     }
     if (props.endpointConfiguration) {

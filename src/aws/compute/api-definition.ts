@@ -4,9 +4,9 @@ import {
   // Node
 } from "constructs";
 import { IRestApi } from "./restapi"; // Assuming IRestApi is in the same directory structure as in CDK
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import { AssetOptions } from "../storage/assets";
 // import * as s3 from "../storage";
-// import { UnscopedValidationError, ValidationError } from '../../core'; // TODO: Import from core/lib/errors if available
 // import * as cxapi from '../../core'; // TODO: Import from core if cxapi is needed and available
 
 /**
@@ -156,8 +156,7 @@ export interface ApiDefinitionConfig {
 //     super();
 
 //     if (!bucket.bucketName) {
-//       // TODO: Use specific error type from core/lib/errors if available (e.g., ValidationError)
-//       throw new Error("bucketName is undefined for the provided bucket");
+//       throw new ValidationError('bucketName is undefined for the provided bucket', bucket);
 //     }
 
 //     this.bucketName = bucket.bucketName;
@@ -182,13 +181,11 @@ export class InlineApiDefinition extends ApiDefinition {
     super();
 
     if (typeof definition !== "object") {
-      // TODO: Use specific error type from core/lib/errors if available (e.g., UnscopedValidationError)
-      throw new Error("definition should be of type object");
+      throw new UnscopedValidationError("definition should be of type object");
     }
 
     if (Object.keys(definition).length === 0) {
-      // TODO: Use specific error type from core/lib/errors if available (e.g., UnscopedValidationError)
-      throw new Error("JSON definition cannot be empty");
+      throw new UnscopedValidationError("JSON definition cannot be empty");
     }
   }
 
@@ -225,9 +222,9 @@ export class AssetApiDefinition extends ApiDefinition {
       this.asset.type === AssetType.DIRECTORY ||
       this.asset.type === AssetType.ARCHIVE
     ) {
-      // TODO: Use specific error type from core/lib/errors if available (e.g., ValidationError)
-      throw new Error(
+      throw new ValidationError(
         `Asset cannot be a .zip file or a directory (${this.path})`,
+        scope,
       );
     }
 
@@ -236,7 +233,7 @@ export class AssetApiDefinition extends ApiDefinition {
     };
   }
 
-  public bindAfterCreate(_scope: Construct, _restApi: IRestApi): void {
+  public bindAfterCreate(scope: Construct, _restApi: IRestApi): void {
     // TODO: Implement ContextProvider lookup for cxapi.ASSET_RESOURCE_METADATA_ENABLED_CONTEXT if asset metadata is needed.
     // The original CDK code uses context to check if asset metadata should be added.
     // Example from CDK:
@@ -245,8 +242,10 @@ export class AssetApiDefinition extends ApiDefinition {
     // }
 
     if (!this.asset) {
-      // TODO: Use specific error type from core/lib/errors if available (e.g., ValidationError)
-      throw new Error("bindAfterCreate() must be called after bind()");
+      throw new ValidationError(
+        "bindAfterCreate() must be called after bind()",
+        scope,
+      );
     }
 
     // TODO: Implement asset metadata binding if required by TerraConstructs.

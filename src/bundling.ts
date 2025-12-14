@@ -4,6 +4,7 @@ import { spawnSync } from "child_process";
 import * as crypto from "crypto";
 import { isAbsolute, join } from "path";
 import { DockerCacheOption } from "./assets";
+import { ExecutionError } from "./errors";
 import { FileSystem } from "./fs";
 // TODO: Replace with @cdktf/provider-docker?
 import { dockerExec } from "./private/asset-staging";
@@ -313,7 +314,7 @@ export class BundlingDockerImage {
     const { stdout } = dockerExec(["create", this.image], {}); // Empty options to avoid stdout redirect here
     const match = stdout.toString().match(/([0-9a-f]{16,})/);
     if (!match) {
-      throw new Error(
+      throw new ExecutionError(
         "Failed to extract container ID from Docker create output",
       );
     }
@@ -325,7 +326,7 @@ export class BundlingDockerImage {
       dockerExec(["cp", containerPath, destPath]);
       return destPath;
     } catch (err) {
-      throw new Error(
+      throw new ExecutionError(
         `Failed to copy files from ${containerPath} to ${destPath}: ${err}`,
       );
     } finally {

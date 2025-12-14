@@ -1,5 +1,6 @@
 import * as cdk from "cdktf";
 import { IConstruct } from "constructs";
+import { UnscopedValidationError } from "../../../errors";
 import { ArnFormat } from "../../arn";
 import { AwsStack } from "../../aws-stack";
 import { parseAwsApiCall } from "../apigateway-util";
@@ -10,10 +11,6 @@ import {
   IntegrationType,
 } from "../integration";
 import { Method } from "../method";
-// TODO: Adopt UnscopedValidationError
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import { UnscopedValidationError } from "../../../core/lib/errors";
 
 export interface AwsIntegrationProps {
   /**
@@ -106,8 +103,9 @@ export class AwsIntegration extends Integration {
       uri: cdk.Lazy.stringValue({
         produce: () => {
           if (!this.scope) {
-            // throw new UnscopedValidationError(
-            throw new Error("AwsIntegration must be used in API");
+            throw new UnscopedValidationError(
+              "AwsIntegration must be used in API",
+            );
           }
           return AwsStack.ofAwsConstruct(this.scope).formatArn({
             service: "apigateway",

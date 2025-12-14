@@ -2,14 +2,8 @@ import { Lazy } from "cdktf";
 import { Method } from "./method";
 import { IVpcLink, VpcLink } from "./vpc-link";
 import { Duration } from "../../duration";
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import * as iam from "../iam";
-// TODO: Adopt UnscopedValidationError
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import {
-//   UnscopedValidationError,
-//   ValidationError,
-// } from "../../core/lib/errors";
 
 export interface IntegrationOptions {
   /**
@@ -210,8 +204,7 @@ export class Integration {
       options.credentialsPassthrough !== undefined &&
       options.credentialsRole !== undefined
     ) {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         "'credentialsPassthrough' and 'credentialsRole' are mutually exclusive",
       );
     }
@@ -220,8 +213,7 @@ export class Integration {
       options.connectionType === ConnectionType.VPC_LINK &&
       options.vpcLink === undefined
     ) {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         "'connectionType' of VPC_LINK requires 'vpcLink' prop to be set",
       );
     }
@@ -230,8 +222,7 @@ export class Integration {
       options.connectionType === ConnectionType.INTERNET &&
       options.vpcLink !== undefined
     ) {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         "cannot set 'vpcLink' where 'connectionType' is INTERNET",
       );
     }
@@ -241,15 +232,13 @@ export class Integration {
       !options.timeout.isUnresolved() &&
       options.timeout.toMilliseconds() < 50
     ) {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         "Integration timeout must be greater than 50 milliseconds.",
       );
     }
 
     if (props.type !== IntegrationType.MOCK && !props.integrationHttpMethod) {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         "integrationHttpMethod is required for non-mock integration types.",
       );
     }
@@ -274,19 +263,17 @@ export class Integration {
           if (vpcLink instanceof VpcLink) {
             const targets = vpcLink._targetDnsNames;
             if (targets.length > 1) {
-              // throw new ValidationError(
-              throw new Error(
+              throw new ValidationError(
                 `'uri' is required when there are more than one NLBs in the VPC Link (${method.node.path})`,
-                // method,
+                method,
               );
             } else {
               return `http://${targets[0]}`;
             }
           } else {
-            // throw new ValidationError(
-            throw new Error(
+            throw new ValidationError(
               `'uri' is required when the 'connectionType' is VPC_LINK (${method.node.path})`,
-              // method,
+              method,
             );
           }
         },

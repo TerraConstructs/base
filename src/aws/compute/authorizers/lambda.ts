@@ -8,6 +8,7 @@ import { Construct } from "constructs";
 import * as lambda from "..";
 import { Duration } from "../../../duration";
 // import { Fn } from "../../../terra-func";
+import { UnscopedValidationError, ValidationError } from "../../../errors";
 import { ArnFormat } from "../../arn";
 import { AwsConstructProps } from "../../aws-construct";
 import * as iam from "../../iam";
@@ -83,9 +84,9 @@ abstract class LambdaAuthorizer extends Authorizer implements IAuthorizer {
     this.role = props.assumeRole;
 
     if (props.resultsCacheTtl && props.resultsCacheTtl.toSeconds() > 3600) {
-      // TODO: Use ValidationError from core/lib/errors
-      throw new Error(
+      throw new ValidationError(
         `Lambda authorizer property 'resultsCacheTtl' must not be greater than 3600 seconds (1 hour). (${scope.node.path})`,
+        scope,
       );
     }
   }
@@ -96,9 +97,9 @@ abstract class LambdaAuthorizer extends Authorizer implements IAuthorizer {
    */
   public _attachToApi(restApi: IRestApi) {
     if (this.restApiId && this.restApiId !== restApi.restApiId) {
-      // TODO: Use ValidationError from core/lib/errors
-      throw new Error(
+      throw new ValidationError(
         `Cannot attach authorizer to two different rest APIs. (${this.node.path})`,
+        this,
       );
     }
     this.restApiId = restApi.restApiId;
@@ -175,8 +176,7 @@ abstract class LambdaAuthorizer extends Authorizer implements IAuthorizer {
     return Lazy.stringValue({
       produce: () => {
         if (!this.restApiId) {
-          // TODO: Use UnscopedValidationError from core/lib/errors
-          throw new Error(
+          throw new UnscopedValidationError(
             `Authorizer (${this.node.path}) must be attached to a RestApi`,
           );
         }
@@ -304,9 +304,9 @@ export class RequestAuthorizer extends LambdaAuthorizer {
         props.resultsCacheTtl.toSeconds() !== 0) &&
       props.identitySources.length === 0
     ) {
-      // TODO: Use ValidationError from core/lib/errors
-      throw new Error(
+      throw new ValidationError(
         "At least one Identity Source is required for a REQUEST-based Lambda authorizer if caching is enabled.",
+        scope,
       );
     }
 

@@ -13,11 +13,8 @@ import {
   StepScalingAction,
 } from "./step-scaling-action";
 import { Duration } from "../../duration";
+import { ValidationError } from "../../errors";
 import * as cloudwatch from "../cloudwatch";
-// TODO Adupt ValidationError is available, otherwise use standard Error
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import { ValidationError } from "../../errors";
 
 export interface BasicStepScalingPolicyProps {
   /**
@@ -124,18 +121,16 @@ export class StepScalingPolicy extends Construct {
     super(scope, id);
 
     if (props.scalingSteps.length < 2) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "You must supply at least 2 intervals for autoscaling",
-        // scope,
+        scope,
       );
     }
 
     if (props.scalingSteps.length > 40) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `'scalingSteps' can have at most 40 steps, got ${props.scalingSteps.length}`,
-        // scope,
+        scope,
       );
     }
 
@@ -144,28 +139,25 @@ export class StepScalingPolicy extends Construct {
       !Token.isUnresolved(props.evaluationPeriods) &&
       props.evaluationPeriods < 1
     ) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `evaluationPeriods cannot be less than 1, got: ${props.evaluationPeriods}`,
-        // scope,
+        scope,
       );
     }
     if (props.datapointsToAlarm !== undefined) {
       if (props.evaluationPeriods === undefined) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           "evaluationPeriods must be set if datapointsToAlarm is set",
-          // scope,
+          scope,
         );
       }
       if (
         !Token.isUnresolved(props.datapointsToAlarm) &&
         props.datapointsToAlarm < 1
       ) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           `datapointsToAlarm cannot be less than 1, got: ${props.datapointsToAlarm}`,
-          // scope,
+          scope,
         );
       }
       if (
@@ -173,10 +165,9 @@ export class StepScalingPolicy extends Construct {
         !Token.isUnresolved(props.evaluationPeriods) &&
         props.evaluationPeriods < props.datapointsToAlarm
       ) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           `datapointsToAlarm must be less than or equal to evaluationPeriods, got datapointsToAlarm: ${props.datapointsToAlarm}, evaluationPeriods: ${props.evaluationPeriods}`,
-          // scope,
+          scope,
         );
       }
     }

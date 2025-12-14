@@ -4,6 +4,7 @@ import { Construct } from "constructs";
 import { IDomainName } from "./domain-name";
 import { IRestApi } from "./restapi";
 import { Stage } from "./stage";
+import { UnscopedValidationError } from "../../errors";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 
 export interface BasePathMappingOptions {
@@ -63,20 +64,17 @@ export class BasePathMapping extends AwsConstructBase {
 
     if (props.basePath && !Token.isUnresolved(props.basePath)) {
       if (props.basePath.startsWith("/") || props.basePath.endsWith("/")) {
-        // TODO: UnscopedValidationError
-        throw new Error(
+        throw new UnscopedValidationError(
           `A base path cannot start or end with /", received: ${props.basePath}`,
         );
       }
       if (props.basePath.match(/\/{2,}/)) {
-        // TODO: UnscopedValidationError
-        throw new Error(
+        throw new UnscopedValidationError(
           `A base path cannot have more than one consecutive /", received: ${props.basePath}`,
         );
       }
       if (!props.basePath.match(/^[a-zA-Z0-9$_.+!*'()-/]+$/)) {
-        // TODO: UnscopedValidationError
-        throw new Error(
+        throw new UnscopedValidationError(
           `A base path may only contain letters, numbers, and one of "$-_.+!*'()", received: ${props.basePath}`,
         );
       }

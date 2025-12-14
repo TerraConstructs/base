@@ -32,6 +32,7 @@ import {
   StreamViewType,
   PointInTimeRecoverySpecification,
 } from "./shared";
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import * as cloudwatch from "../cloudwatch";
 import * as appscaling from "../compute";
 import * as kms from "../encryption";
@@ -40,14 +41,6 @@ import * as kinesis from "../notify";
 // Missing in Terraform DynamoDb Replica Configuration block
 // https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/resources/dynamodb_table#replica
 // import { Duration } from "../../duration";
-
-// TODO Adopt UnscopedValidationError, ValidationError when available:
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import {
-//   UnscopedValidationError,
-//   ValidationError,
-// } from "../../core/lib/errors";
 
 const HASH_KEY_TYPE = "HASH";
 const RANGE_KEY_TYPE = "RANGE";
@@ -166,8 +159,7 @@ export abstract class InputFormat {
       (!this.validCsvDelimiters.includes(options.delimiter) ||
         options.delimiter.length !== 1)
     ) {
-      // throw new UnscopedValidationError(
-      throw new Error(
+      throw new UnscopedValidationError(
         [
           "Delimiter must be a single character and one of the following:",
           `${this.readableValidCsvDelimiters.join(", ")},`,
@@ -633,10 +625,9 @@ export abstract class TableBase
 
   public grantStream(grantee: iam.IGrantable, ...actions: string[]): iam.Grant {
     if (!this.tableStreamArn) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `DynamoDB Streams must be enabled on the table ${this.node.path}`,
-        // this,
+        this,
       );
     }
 
@@ -670,10 +661,9 @@ export abstract class TableBase
 
   public grantTableListStreams(grantee: iam.IGrantable): iam.Grant {
     if (!this.tableStreamArn) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `DynamoDB Streams must be enabled on the table ${this.node.path}`,
-        // this,
+        this,
       );
     }
 
@@ -776,10 +766,9 @@ export abstract class TableBase
   ): cloudwatch.Metric {
     if (!props?.dimensionsMap?.Operation) {
       // 'Operation' must be passed because its an operational metric.
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "'Operation' dimension must be passed for the 'SystemErrors' metric.",
-        // this,
+        this,
       );
     }
 
@@ -797,10 +786,9 @@ export abstract class TableBase
 
   public metricUserErrors(props?: cloudwatch.MetricOptions): cloudwatch.Metric {
     if (props?.dimensionsMap) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "'dimensionsMap' is not supported for the 'UserErrors' metric",
-        // this,
+        this,
       );
     }
     return this.metric("UserErrors", {
@@ -830,10 +818,9 @@ export abstract class TableBase
     props?: cloudwatch.MetricOptions,
   ): cloudwatch.Metric {
     if (!props?.dimensionsMap?.Operation) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "'Operation' dimension must be passed for the 'SuccessfulRequestLatency' metric.",
-        // this,
+        this,
       );
     }
 
@@ -888,10 +875,9 @@ export abstract class TableBase
     props?: OperationsMetricOptions,
   ): cloudwatch.IMetric {
     if (props?.dimensionsMap?.Operation) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "The Operation dimension is not supported. Use the 'operations' property.",
-        // this,
+        this,
       );
     }
 
@@ -920,10 +906,9 @@ export abstract class TableBase
     const mapper = metricNameMapper ?? ((op) => op.toLowerCase());
 
     if (props?.dimensionsMap?.Operation) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "Invalid properties. Operation dimension is not supported when calculating operational metrics",
-        // this,
+        this,
       );
     }
 
@@ -942,10 +927,9 @@ export abstract class TableBase
 
       if (firstChar === firstChar.toUpperCase()) {
         // https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/using-metric-math.html#metric-math-syntax
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           `Mapper generated an illegal operation metric name: ${operationMetricName}. Must start with a lowercase letter`,
-          // this,
+          this,
         );
       }
       metrics[operationMetricName] = metric;
@@ -991,10 +975,9 @@ export abstract class TableBase
 
     if (opts.streamActions) {
       if (!this.tableStreamArn) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           `DynamoDB Streams must be enabled on the table ${this.node.path}`,
-          // this,
+          this,
         );
       }
       const ret = iam.Grant.addToPrincipalOrResource({
@@ -1005,10 +988,9 @@ export abstract class TableBase
       });
       return ret;
     }
-    // throw new ValidationError(
-    throw new Error(
+    throw new ValidationError(
       `Unexpected grant combination, actions must be provided for table or stream.`,
-      // this,
+      this,
     );
   }
 
@@ -1112,10 +1094,9 @@ export class Table extends TableBase {
     const stack = AwsStack.ofAwsConstruct(scope);
     if (!attrs.tableName) {
       if (!attrs.tableArn) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           "One of tableName or tableArn is required!",
-          // scope,
+          scope,
         );
       }
       arn = attrs.tableArn;
@@ -1124,19 +1105,17 @@ export class Table extends TableBase {
         ArnFormat.SLASH_RESOURCE_NAME,
       ).resourceName;
       if (!maybeTableName) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           "ARN for DynamoDB table must be in the form: arn:<partition>:dynamodb:<region>:<account>:table/<table-name>",
-          // scope,
+          scope,
         );
       }
       name = maybeTableName;
     } else {
       if (attrs.tableArn) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           "Only one of tableArn or tableName can be provided",
-          // scope,
+          scope,
         );
       }
       name = attrs.tableName;
@@ -1204,10 +1183,9 @@ export class Table extends TableBase {
 
     // error if both replicationRegions and replicaSpecification are specified
     if (props.replicationRegions && props.replicaSpecification) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "You cannot specify both `replicationRegions` and `replicaSpecification`",
-        // this,
+        this,
       );
     }
 
@@ -1222,10 +1200,9 @@ export class Table extends TableBase {
       (props.replicaSpecification && props.replicaSpecification.length > 0)
     ) {
       if (props.stream && props.stream !== StreamViewType.NEW_AND_OLD_IMAGES) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           "`stream` must be set to `NEW_AND_OLD_IMAGES` when specifying `replicationRegions`",
-          // this,
+          this,
         );
       }
       this.billingMode = props.billingMode ?? BillingMode.PAY_PER_REQUEST;
@@ -1431,10 +1408,9 @@ export class Table extends TableBase {
     this.validateIndexName(props.indexName);
 
     if (!this.tablePartitionKey) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "Table partition key must be defined before adding local secondary index",
-        // this,
+        this,
       );
     }
     this.registerAttribute(this.tablePartitionKey);
@@ -1459,17 +1435,15 @@ export class Table extends TableBase {
     props: EnableScalingProps,
   ): IScalableTableAttribute {
     if (this.tableScaling.scalableReadAttribute) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "Read AutoScaling already enabled for this table",
-        // this,
+        this,
       );
     }
     if (this.billingMode === BillingMode.PAY_PER_REQUEST) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "AutoScaling is not available for tables with PAY_PER_REQUEST billing mode",
-        // this,
+        this,
       );
     }
 
@@ -1487,17 +1461,15 @@ export class Table extends TableBase {
     props: EnableScalingProps,
   ): IScalableTableAttribute {
     if (this.tableScaling.scalableWriteAttribute) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "Write AutoScaling already enabled for this table",
-        // this,
+        this,
       );
     }
     if (this.billingMode === BillingMode.PAY_PER_REQUEST) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "AutoScaling is not available for tables with PAY_PER_REQUEST billing mode",
-        // this,
+        this,
       );
     }
 
@@ -1523,25 +1495,22 @@ export class Table extends TableBase {
     props: EnableScalingProps,
   ): IScalableTableAttribute {
     if (this.billingMode === BillingMode.PAY_PER_REQUEST) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "AutoScaling is not available for tables with PAY_PER_REQUEST billing mode",
-        // this,
+        this,
       );
     }
     const attributePair = this.indexScaling.get(indexName);
     if (!attributePair) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `No global secondary index with name ${indexName}`,
-        // this,
+        this,
       );
     }
     if (attributePair.scalableReadAttribute) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "Read AutoScaling already enabled for this index",
-        // this,
+        this,
       );
     }
 
@@ -1563,25 +1532,22 @@ export class Table extends TableBase {
     props: EnableScalingProps,
   ): IScalableTableAttribute {
     if (this.billingMode === BillingMode.PAY_PER_REQUEST) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "AutoScaling is not available for tables with PAY_PER_REQUEST billing mode",
-        // this,
+        this,
       );
     }
     const attributePair = this.indexScaling.get(indexName);
     if (!attributePair) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `No global secondary index with name ${indexName}`,
-        // this,
+        this,
       );
     }
     if (attributePair.scalableWriteAttribute) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "Write AutoScaling already enabled for this index",
-        // this,
+        this,
       );
     }
 
@@ -1607,10 +1573,9 @@ export class Table extends TableBase {
     }
     const schema = this.secondaryIndexSchemas.get(indexName);
     if (!schema) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Cannot find schema for index: ${indexName}. Use 'addGlobalSecondaryIndex' or 'addLocalSecondaryIndex' to add index`,
-        // this,
+        this,
       );
     }
     return schema;
@@ -1656,10 +1621,9 @@ export class Table extends TableBase {
         props.readCapacity !== undefined ||
         props.writeCapacity !== undefined
       ) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           "You cannot provision read and write capacity for a table with PAY_PER_REQUEST billing mode",
-          // this,
+          this,
         );
       }
     }
@@ -1671,10 +1635,9 @@ export class Table extends TableBase {
         props.readCapacity !== undefined ||
         props.writeCapacity !== undefined
       ) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           "You cannot provision read and write capacity for a GSI with PAY_PER_REQUEST billing mode on the table",
-          // this,
+          this,
         );
       }
     }
@@ -1682,10 +1645,9 @@ export class Table extends TableBase {
 
   private validateIndexName(indexName: string) {
     if (this.secondaryIndexSchemas.has(indexName)) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `A duplicate index name, ${indexName}, is not allowed`,
-        // this,
+        this,
       );
     }
   }
@@ -1706,10 +1668,9 @@ export class Table extends TableBase {
       props.pointInTimeRecoverySpecification !== undefined &&
       props.pointInTimeRecovery !== undefined
     ) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "`pointInTimeRecoverySpecification` and `pointInTimeRecovery` are set. Use `pointInTimeRecoverySpecification` only.",
-        // this,
+        this,
       );
     }
 
@@ -1737,20 +1698,18 @@ export class Table extends TableBase {
       props.projectionType === ProjectionType.INCLUDE &&
       !props.nonKeyAttributes
     ) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Non-key attributes should be specified when using ${ProjectionType.INCLUDE} projection type`,
-        // this,
+        this,
       );
     }
     if (
       props.projectionType !== ProjectionType.INCLUDE &&
       props.nonKeyAttributes
     ) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Non-key attributes should not be specified when not using ${ProjectionType.INCLUDE} projection type`,
-        // this,
+        this,
       );
     }
     if (props.nonKeyAttributes) {
@@ -1768,10 +1727,9 @@ export class Table extends TableBase {
       (def) => def.name === attribute.name,
     );
     if (existingAttr && existingAttr.type !== attribute.type) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Unable to specify ${attribute.name} as ${attribute.type} because it was already defined as ${existingAttr.type}`,
-        // this,
+        this,
       );
     }
     if (!existingAttr) {
@@ -1789,10 +1747,9 @@ export class Table extends TableBase {
       (def) => def.name === attribute.name,
     );
     if (existingDef && existingDef.type !== attribute.type) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Unable to specify ${attribute.name} as ${attribute.type} because it was already defined as ${existingDef.type}`,
-        // this,
+        this,
       );
     }
     if (!existingDef) {
@@ -1840,10 +1797,9 @@ export class Table extends TableBase {
           (replica) => replica.regionName === this.stack.region,
         )
       ) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           "`replicaSpecification` cannot include the region where this stack is deployed.",
-          // this,
+          this,
         );
       }
       return replicaSpecification.map((replica) => ({
@@ -1859,10 +1815,9 @@ export class Table extends TableBase {
       !Token.isUnresolved(this.stack.region) &&
       regions.includes(this.stack.region)
     ) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "`replicationRegions` cannot include the region where this stack is deployed.",
-        // this,
+        this,
       );
     }
 
@@ -1885,17 +1840,15 @@ export class Table extends TableBase {
   } {
     let encryptionType = props.encryption;
     if (encryptionType != null && props.serverSideEncryption != null) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "Only one of encryption and serverSideEncryption can be specified, but both were provided",
-        // this,
+        this,
       );
     }
     if (props.serverSideEncryption && props.encryptionKey) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "encryptionKey cannot be specified when serverSideEncryption is specified. Use encryption instead",
-        // this,
+        this,
       );
     }
 
@@ -1912,10 +1865,9 @@ export class Table extends TableBase {
       encryptionType !== TableEncryption.CUSTOMER_MANAGED &&
       props.encryptionKey
     ) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `encryptionKey cannot be specified unless encryption is set to TableEncryption.CUSTOMER_MANAGED (it was set to ${encryptionType})`,
-        // this,
+        this,
       );
     }
 
@@ -1924,10 +1876,9 @@ export class Table extends TableBase {
       encryptionType === TableEncryption.CUSTOMER_MANAGED &&
       props.replicationRegions
     ) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         "TableEncryption.CUSTOMER_MANAGED is not supported by DynamoDB Global Tables (where replicationRegions was set)",
-        // this,
+        this,
       );
     }
 
@@ -1941,10 +1892,9 @@ export class Table extends TableBase {
           (replica) => !replica.encryptionKey, // Check if any replica is missing an encryption key
         )
       ) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           "When using replicaSpecification, each replica must specify an encryptionKey if TableEncryption.CUSTOMER_MANAGED is used",
-          // this,
+          this,
         );
       }
 
@@ -1956,10 +1906,9 @@ export class Table extends TableBase {
             replica.encryptionKey.env.region !== replica.regionName,
         )
       ) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           "When using replicaSpecification, each replica's encryptionKey must be in the same region as its replica",
-          // this,
+          this,
         );
       }
     }
@@ -1983,10 +1932,9 @@ export class Table extends TableBase {
       case undefined:
         return { sseSpecification: undefined }; // Defaults to AWS-owned key
       default:
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           `Unexpected 'encryptionType': ${encryptionType}`,
-          // this,
+          this,
         );
     }
   }

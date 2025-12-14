@@ -8,6 +8,7 @@ import { parseMethodOptionsPath } from "./apigateway-util";
 import { Deployment } from "./deployment";
 import { IRestApi, RestApiBase } from "./restapi";
 import { Duration } from "../../duration";
+import { ValidationError } from "../../errors";
 import { ArnFormat } from "../arn";
 import {
   AwsConstructBase,
@@ -16,7 +17,6 @@ import {
 } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
 import * as cloudwatch from "../cloudwatch";
-// import { ValidationError } from "../../core/lib/errors"; // Use throw new Error()
 
 /**
  * Represents an APIGateway Stage.
@@ -333,8 +333,7 @@ export abstract class StageBase extends AwsConstructBase implements IStage {
    */
   public urlForPath(path: string = "/"): string {
     if (!path.startsWith("/")) {
-      // TODO: Use ValidationError from core/lib/errors
-      throw new Error(`Path must begin with \"/\": ${path}`);
+      throw new ValidationError(`Path must begin with \"/\": ${path}`, this);
     }
     const stack = AwsStack.ofAwsConstruct(this);
     // For imported APIs, restApiId might be a token. For new APIs, it's resolved.
@@ -540,14 +539,16 @@ export class Stage extends StageBase {
           accessLogFormat.toString(),
         )
       ) {
-        // TODO: Use ValidationError from core/lib/errors
-        throw new Error(
+        throw new ValidationError(
           "Access log must include either `AccessLogFormat.contextRequestId()` or `AccessLogFormat.contextExtendedRequestId()`",
+          this,
         );
       }
       if (accessLogFormat !== undefined && accessLogDestination === undefined) {
-        // TODO: Use ValidationError from core/lib/errors
-        throw new Error("Access log format is specified without a destination");
+        throw new ValidationError(
+          "Access log format is specified without a destination",
+          this,
+        );
       }
 
       accessLogSettings = {
@@ -561,9 +562,9 @@ export class Stage extends StageBase {
       if (this.enableCacheCluster === undefined) {
         this.enableCacheCluster = true;
       } else if (this.enableCacheCluster === false) {
-        // TODO: Use ValidationError from core/lib/errors
-        throw new Error(
+        throw new ValidationError(
           `Cannot set "cacheClusterSize" to ${props.cacheClusterSize} and "cacheClusterEnabled" to "false". (${this.node.path})`,
+          this,
         );
       }
     }

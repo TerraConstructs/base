@@ -5,8 +5,8 @@ import { Token } from "cdktf";
 import { RequestContext } from ".";
 import * as sfn from "..";
 import { AwsIntegration } from "./aws";
+import { ValidationError } from "../../../errors";
 import * as iam from "../../iam";
-// import { ValidationError } from "../../../core/lib/errors";
 import {
   IntegrationConfig,
   IntegrationOptions,
@@ -167,10 +167,9 @@ class StepFunctionsExecutionIntegration extends AwsIntegration {
       const stateMachineType = (this.stateMachine as sfn.StateMachine)
         .stateMachineType;
       if (stateMachineType !== sfn.StateMachineType.EXPRESS) {
-        // throw new ValidationError(
-        throw new Error(
+        throw new ValidationError(
           'State Machine must be of type "EXPRESS". Please use StateMachineType.EXPRESS as the stateMachineType',
-          // method,
+          method,
         );
       }
 

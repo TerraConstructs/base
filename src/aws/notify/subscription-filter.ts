@@ -1,9 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/7452462550a100f5bd2dcab6f495c9f68bf0db4a/packages/aws-cdk-lib/aws-sns/lib/subscription-filter.ts
 
-// TODO: Adopt UnscopedValidationError
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import { UnscopedValidationError } from "../../core/lib/errors";
+import { UnscopedValidationError } from "../../errors";
 
 /**
  * Conditions that can be applied to string attributes.
@@ -138,14 +135,12 @@ export class SubscriptionFilter {
     const conditions = new Array<any>();
 
     if (stringConditions.whitelist && stringConditions.allowlist) {
-      // TODO: Adopt UnscopedValidationError
-      throw new Error(
+      throw new UnscopedValidationError(
         "`whitelist` is deprecated; please use `allowlist` instead",
       );
     }
     if (stringConditions.blacklist && stringConditions.denylist) {
-      // TODO: Adopt UnscopedValidationError
-      throw new Error(
+      throw new UnscopedValidationError(
         "`blacklist` is deprecated; please use `denylist` instead",
       );
     }
@@ -182,8 +177,7 @@ export class SubscriptionFilter {
     const conditions = new Array<any>();
 
     if (numericConditions.whitelist && numericConditions.allowlist) {
-      // TODO: Adopt UnscopedValidationError
-      throw new Error(
+      throw new UnscopedValidationError(
         "`whitelist` is deprecated; please use `allowlist` instead",
       );
     }

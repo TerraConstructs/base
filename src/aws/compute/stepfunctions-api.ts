@@ -7,10 +7,7 @@ import * as sfn from ".";
 import { RequestContext } from "./integrations";
 import * as iam from "../iam";
 import { StepFunctionsIntegration } from "./integrations/stepfunctions";
-// TODO: Adopt UnscopedValidationError
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import { ValidationError } from "../../core/lib/errors";
+import { ValidationError } from "../../errors";
 
 /**
  * Properties for StepFunctionsRestApi
@@ -118,10 +115,9 @@ export interface StepFunctionsRestApiProps extends RestApiProps {
 export class StepFunctionsRestApi extends RestApi {
   constructor(scope: Construct, id: string, props: StepFunctionsRestApiProps) {
     if (props.defaultIntegration) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Cannot specify "defaultIntegration" since Step Functions integration is automatically defined. (${scope.node.path})`,
-        // scope,
+        scope,
       );
     }
 
@@ -129,10 +125,9 @@ export class StepFunctionsRestApi extends RestApi {
       (props.stateMachine.node.defaultChild as sfnStateMachine.SfnStateMachine)
         .typeInput !== sfn.StateMachineType.EXPRESS
     ) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `State Machine must be of type "EXPRESS". Please use StateMachineType.EXPRESS as the stateMachineType. (${scope.node.path})`,
-        // scope,
+        scope,
       );
     }
 

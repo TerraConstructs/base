@@ -2,12 +2,8 @@ import { kinesisFirehoseDeliveryStream } from "@cdktf/provider-aws";
 import { IStage } from "./stage";
 // import * as firehose from "../../aws-kinesisfirehose";
 // import * as firehose from "../notify/firehose";
+import { ValidationError } from "../../errors";
 import { ILogGroup } from "../cloudwatch";
-
-// TODO: Adopt UnscopedValidationError
-// - https://github.com/aws/aws-cdk/pull/33382/
-// - https://github.com/aws/aws-cdk/pull/33045
-// import { ValidationError } from '../../core/lib/errors';
 
 /**
  * Access log destination for a RestApi Stage.
@@ -58,10 +54,9 @@ export class FirehoseLogDestination implements IAccessLogDestination {
    */
   public bind(_stage: IStage): AccessLogDestinationConfig {
     if (!this.stream.nameInput?.startsWith("amazon-apigateway-")) {
-      // throw new ValidationError(
-      throw new Error(
+      throw new ValidationError(
         `Firehose delivery stream name for access log destination must begin with 'amazon-apigateway-', got '${this.stream.nameInput}'`,
-        // _stage,
+        _stage,
       );
     }
     return {

@@ -5,6 +5,7 @@ import { Construct } from "constructs";
 import { DeliveryPolicy } from "./delivery-policy";
 import { SubscriptionFilter } from "./subscription-filter";
 import { ITopic } from "./topic-base";
+import { ValidationError } from "../../errors";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import * as iam from "../iam";
 import * as notify from "../notify";
@@ -135,9 +136,9 @@ export class Subscription extends AwsConstructBase {
         SubscriptionProtocol.FIREHOSE,
       ].indexOf(props.protocol) < 0
     ) {
-      // TODO: re-add ValidationError
-      throw new Error(
+      throw new ValidationError(
         "Raw message delivery can only be enabled for HTTP, HTTPS, SQS, and Firehose subscriptions.",
+        this,
       );
     }
 
@@ -153,8 +154,9 @@ export class Subscription extends AwsConstructBase {
 
     if (props.filterPolicy) {
       if (Object.keys(props.filterPolicy).length > 5) {
-        throw new Error(
+        throw new ValidationError(
           "A filter policy can have a maximum of 5 attribute names.",
+          this,
         );
       }
 
@@ -168,17 +170,18 @@ export class Subscription extends AwsConstructBase {
         total *= filter.length;
       });
       if (total > 150) {
-        // TODO: re-add ValidationError
-        throw new Error(
+        throw new ValidationError(
           `The total combination of values (${total}) must not exceed 150.`,
+          this,
         );
       }
       filterPolicyJson = JSON.stringify(filterPolicyConditions);
       filterPolicyScope = "MessageAttributes"; // Default scope
     } else if (props.filterPolicyWithMessageBody) {
       if (Object.keys(props.filterPolicyWithMessageBody).length > 5) {
-        throw new Error(
+        throw new ValidationError(
           "A filter policy can have a maximum of 5 attribute names.",
+          this,
         );
       }
       const builtPolicy = buildFilterPolicyWithMessageBody(
@@ -193,8 +196,9 @@ export class Subscription extends AwsConstructBase {
       props.protocol === SubscriptionProtocol.FIREHOSE &&
       !props.subscriptionRoleArn
     ) {
-      throw new Error(
+      throw new ValidationError(
         "Subscription role arn is required field for subscriptions with a firehose protocol.",
+        this,
       );
     }
 
@@ -234,14 +238,14 @@ export class Subscription extends AwsConstructBase {
     deliveryPolicy: DeliveryPolicy,
     protocol: SubscriptionProtocol,
   ): string {
-    // TODO: re-add ValidationError(s)
     if (
       ![SubscriptionProtocol.HTTP, SubscriptionProtocol.HTTPS].includes(
         protocol,
       )
     ) {
-      throw new Error(
+      throw new ValidationError(
         `Delivery policy is only supported for HTTP and HTTPS subscriptions, got: ${protocol}`,
+        this,
       );
     }
     const { healthyRetryPolicy, throttlePolicy, requestPolicy } =
@@ -254,8 +258,9 @@ export class Subscription extends AwsConstructBase {
       const maxDelayTarget = healthyRetryPolicy.maxDelayTarget;
       if (minDelayTarget !== undefined) {
         if (minDelayTarget.toMilliseconds() % 1000 !== 0) {
-          throw new Error(
+          throw new ValidationError(
             `minDelayTarget must be a whole number of seconds, got: ${minDelayTarget}`,
+            this,
           );
         }
         const minDelayTargetSecs = minDelayTarget.toSeconds();
@@ -263,15 +268,17 @@ export class Subscription extends AwsConstructBase {
           minDelayTargetSecs < 1 ||
           minDelayTargetSecs > delayTargetLimitSecs
         ) {
-          throw new Error(
+          throw new ValidationError(
             `minDelayTarget must be between 1 and ${delayTargetLimitSecs} seconds inclusive, got: ${minDelayTargetSecs}s`,
+            this,
           );
         }
       }
       if (maxDelayTarget !== undefined) {
         if (maxDelayTarget.toMilliseconds() % 1000 !== 0) {
-          throw new Error(
+          throw new ValidationError(
             `maxDelayTarget must be a whole number of seconds, got: ${maxDelayTarget}`,
+            this,
           );
         }
         const maxDelayTargetSecs = maxDelayTarget.toSeconds();
@@ -279,15 +286,19 @@ export class Subscription extends AwsConstructBase {
           maxDelayTargetSecs < 1 ||
           maxDelayTargetSecs > delayTargetLimitSecs
         ) {
-          throw new Error(
+          throw new ValidationError(
             `maxDelayTarget must be between 1 and ${delayTargetLimitSecs} seconds inclusive, got: ${maxDelayTargetSecs}s`,
+            this,
           );
         }
         if (
           minDelayTarget !== undefined &&
           minDelayTarget.toSeconds() > maxDelayTargetSecs
         ) {
-          throw new Error("minDelayTarget must not exceed maxDelayTarget");
+          throw new ValidationError(
+            "minDelayTarget must not exceed maxDelayTarget",
+            this,
+          );
         }
       }
 
@@ -297,8 +308,9 @@ export class Subscription extends AwsConstructBase {
         (healthyRetryPolicy.numRetries < 0 ||
           healthyRetryPolicy.numRetries > numRetriesLimit)
       ) {
-        throw new Error(
+        throw new ValidationError(
           `numRetries must be between 0 and ${numRetriesLimit} inclusive, got: ${healthyRetryPolicy.numRetries}`,
+          this,
         );
       }
       const { numNoDelayRetries, numMinDelayRetries, numMaxDelayRetries } =
@@ -307,24 +319,27 @@ export class Subscription extends AwsConstructBase {
         numNoDelayRetries &&
         (numNoDelayRetries < 0 || !Number.isInteger(numNoDelayRetries))
       ) {
-        throw new Error(
+        throw new ValidationError(
           `numNoDelayRetries must be an integer zero or greater, got: ${numNoDelayRetries}`,
+          this,
         );
       }
       if (
         numMinDelayRetries &&
         (numMinDelayRetries < 0 || !Number.isInteger(numMinDelayRetries))
       ) {
-        throw new Error(
+        throw new ValidationError(
           `numMinDelayRetries must be an integer zero or greater, got: ${numMinDelayRetries}`,
+          this,
         );
       }
       if (
         numMaxDelayRetries &&
         (numMaxDelayRetries < 0 || !Number.isInteger(numMaxDelayRetries))
       ) {
-        throw new Error(
+        throw new ValidationError(
           `numMaxDelayRetries must be an integer zero or greater, got: ${numMaxDelayRetries}`,
+          this,
         );
       }
 
@@ -354,8 +369,9 @@ export class Subscription extends AwsConstructBase {
         maxReceivesPerSecond !== undefined &&
         (maxReceivesPerSecond < 1 || !Number.isInteger(maxReceivesPerSecond))
       ) {
-        throw new Error(
+        throw new ValidationError(
           `maxReceivesPerSecond must be an integer greater than zero, got: ${maxReceivesPerSecond}`,
+          this,
         );
       }
       renderedPolicy.throttlePolicy = {
@@ -487,8 +503,9 @@ function buildFilterPolicyWithMessageBody(
 
   // https://docs.aws.amazon.com/sns/latest/dg/subscription-filter-policy-constraints.html
   if (totalCombinationValues[0] > 150) {
-    throw new Error(
+    throw new ValidationError(
       `The total combination of values (${totalCombinationValues}) must not exceed 150.`,
+      scope,
     );
   }
 
