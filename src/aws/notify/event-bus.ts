@@ -7,13 +7,14 @@ import {
 } from "@cdktf/provider-aws";
 import { Lazy, Token } from "cdktf";
 import { Construct } from "constructs";
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import { ArnFormat } from "../arn";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
 import { Archive, BaseArchiveProps } from "./archive";
-// import { IQueue } from "./queue";
 import * as encryption from "../encryption";
 import * as iam from "../iam";
+import { IQueue } from "./queue";
 
 /**
  * Outputs to register with the Grid
@@ -104,15 +105,25 @@ export interface EventBusProps extends AwsConstructProps {
    */
   readonly eventSourceName?: string;
 
-  // // TODO: Dead-letter queue is not supported by terraform-provider-aws
-  // /**
-  //  * Dead-letter queue for the event bus
-  //  *
-  //  * @see https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rule-event-delivery.html#eb-rule-dlq
-  //  *
-  //  * @default - no dead-letter queue
-  //  */
-  // readonly deadLetterQueue?: IQueue;
+  /**
+   * Dead-letter queue for the event bus
+   *
+   * @see https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rule-event-delivery.html#eb-rule-dlq
+   *
+   * @default - no dead-letter queue
+   */
+  readonly deadLetterQueue?: IQueue;
+
+  /**
+   * The event bus description.
+   *
+   * The description can be up to 512 characters long.
+   *
+   * @see http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-events-eventbus.html#cfn-events-eventbus-description
+   *
+   * @default - no description
+   */
+  readonly description?: string;
 
   /**
    * The customer managed key that encrypt events on this event bus.
@@ -120,18 +131,6 @@ export interface EventBusProps extends AwsConstructProps {
    * @default - Use an AWS managed key
    */
   readonly kmsKey?: encryption.IKey;
-
-  // // TODO: Description is not supported by terraform-provider-aws
-  // /**
-  //  * The event bus description.
-  //  *
-  //  * The description can be up to 512 characters long.
-  //  *
-  //  * @see http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-events-eventbus.html#cfn-events-eventbus-description
-  //  *
-  //  * @default - no description
-  //  */
-  // readonly description?: string;
 }
 
 /**
@@ -306,7 +305,7 @@ export class EventBus extends EventBusBase {
     const eventBusNameRegex = /^[\/\.\-_A-Za-z0-9]{1,256}$/;
 
     if (eventBusName !== undefined && eventSourceName !== undefined) {
-      throw new Error(
+      throw new UnscopedValidationError(
         "'eventBusName' and 'eventSourceName' cannot both be provided",
       );
     }
@@ -314,11 +313,17 @@ export class EventBus extends EventBusBase {
     if (eventBusName !== undefined) {
       if (!Token.isUnresolved(eventBusName)) {
         if (eventBusName === "default") {
-          throw new Error("'eventBusName' must not be 'default'");
+          throw new UnscopedValidationError(
+            "'eventBusName' must not be 'default'",
+          );
         } else if (eventBusName.indexOf("/") > -1) {
-          throw new Error("'eventBusName' must not contain '/'");
+          throw new UnscopedValidationError(
+            "'eventBusName' must not contain '/'",
+          );
         } else if (!eventBusNameRegex.test(eventBusName)) {
-          throw new Error(`'eventBusName' must satisfy: ${eventBusNameRegex}`);
+          throw new UnscopedValidationError(
+            `'eventBusName' must satisfy: ${eventBusNameRegex}`,
+          );
         }
       }
       return { eventBusName };
@@ -329,11 +334,11 @@ export class EventBus extends EventBusBase {
         // Ex: aws.partner/PartnerName/acct1/repo1
         const eventSourceNameRegex = /^aws\.partner(\/[\.\-_A-Za-z0-9]+){2,}$/;
         if (!eventSourceNameRegex.test(eventSourceName)) {
-          throw new Error(
+          throw new UnscopedValidationError(
             `'eventSourceName' must satisfy: ${eventSourceNameRegex}`,
           );
         } else if (!eventBusNameRegex.test(eventSourceName)) {
-          throw new Error(
+          throw new UnscopedValidationError(
             `'eventSourceName' must satisfy: ${eventBusNameRegex}`,
           );
         }
@@ -382,15 +387,16 @@ export class EventBus extends EventBusBase {
 
     super(scope, id, props);
 
-    // if (
-    //   props?.description &&
-    //   !Token.isUnresolved(props.description) &&
-    //   props.description.length > 512
-    // ) {
-    //   throw new Error(
-    //     `description must be less than or equal to 512 characters, got ${props.description.length}`,
-    //   );
-    // }
+    if (
+      props?.description &&
+      !Token.isUnresolved(props.description) &&
+      props.description.length > 512
+    ) {
+      throw new ValidationError(
+        `description must be less than or equal to 512 characters, got ${props.description.length}`,
+        this,
+      );
+    }
 
     this.resource = new cloudwatchEventBus.CloudwatchEventBus(
       this,
@@ -399,13 +405,12 @@ export class EventBus extends EventBusBase {
         name: eventBusName,
         eventSourceName,
         kmsKeyIdentifier: props?.kmsKey?.keyArn,
-        // description: props?.description, // Description is not supported by terraform-provider-aws
-        // TODO: Missing in terraform-provider-aws
-        // ref:
-        //  - https://github.com/hashicorp/terraform-provider-aws/issues/41563
-        //  - https://github.com/hashicorp/terraform-provider-aws/blob/v5.88.0/internal/service/events/bus.go#L79
-        //  - https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateEventBus.html#API_CreateEventBus_RequestSyntax
-        // deadletter_config: props?.deadLetterQueue
+        description: props?.description,
+        deadLetterConfig: props?.deadLetterQueue
+          ? {
+              arn: props.deadLetterQueue.queueArn,
+            }
+          : undefined,
       },
     );
 
