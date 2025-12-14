@@ -8,7 +8,7 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
         "output_path": "\${path.root}/.archive_files/TestStackHelloWorldacbd18db4cc2f85cedef654fccc4a4d8D135A4C7.zip",
         "provider": "archive",
         "source_content": "foo",
-        "source_content_filename": "index",
+        "source_content_filename": "index.js",
         "type": "zip"
       }
     },

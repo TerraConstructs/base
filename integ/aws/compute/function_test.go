@@ -55,6 +55,14 @@ func TestLambdaChain(t *testing.T) {
 	})
 }
 
+// Test the lambda-vpc integration
+func TestLambdaVpc(t *testing.T) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "lambda-vpc", options, validateLambdaVpcSuccess)
+}
+
 // Test the event-source-sqs integration
 func TestEventSourceSqs(t *testing.T) {
 	options := integrationTestOptions{
@@ -160,6 +168,16 @@ func validateLambdaChainFailure(t *testing.T, tfWorkingDir string, awsRegion str
 		// we log messages only, no messages fails the test
 		terratestLogger.Logf(t, "Failure Test: Message: %s", message)
 	}
+}
+
+// Validate the Lambda provisioning within vpc
+func validateLambdaVpcSuccess(t *testing.T, tfWorkingDir string, awsRegion string) {
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+	firstFunctionName := util.LoadOutputAttribute(t, terraformOptions, "my_lambda", "name")
+
+	util.InvokeFunctionSync(t, awsRegion, firstFunctionName)
+	terratestLogger.Logf(t, "Successfully Invoked Function %q", firstFunctionName)
 }
 
 // Validate the Destionation integration test

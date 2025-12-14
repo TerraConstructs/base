@@ -9,6 +9,7 @@ import {
 } from "@cdktf/provider-aws";
 import { IResolveContext, Lazy, IResolvable, Token } from "cdktf";
 import { Construct } from "constructs";
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import { ArnFormat, Arn } from "../arn";
 import { AwsStack } from "../aws-stack";
 import { RetentionDays } from "../log-retention";
@@ -26,12 +27,15 @@ import {
 import { FunctionUrl, FunctionUrlOptions } from "./function-url";
 import { VpcConfig } from "./function-vpc-config.generated";
 import { Handler } from "./handler";
+import { Runtime } from "./runtime";
+import { ISecurityGroup, SecurityGroup } from "./security-group";
 import { addAlias } from "./util";
+import { IVpc, SubnetSelection } from "./vpc";
 import { Duration } from "../../duration";
 // import { Fn } from "../../terra-func";
 import * as iam from "../iam";
 import { IQueue, Queue } from "../notify";
-import { Runtime } from "./runtime";
+import { Connections } from "./connections";
 
 export interface FunctionOutputs {
   /**
@@ -166,6 +170,15 @@ export interface FunctionOptions extends EventInvokeConfigOptions {
   readonly role?: iam.IRole;
 
   /**
+   * Lambda Functions in a public subnet can NOT access the internet.
+   * Use this property to acknowledge this limitation and still place the function in a public subnet.
+   * @see https://stackoverflow.com/questions/52992085/why-cant-an-aws-lambda-function-inside-a-public-subnet-in-a-vpc-connect-to-the/52994841#52994841
+   *
+   * @default false
+   */
+  readonly allowPublicSubnet?: boolean;
+
+  /**
    * Config for network connectivity to AWS resources in a VPC, specify a list
    * of subnet, and optionally security groups, in the VPC.
    *
@@ -175,8 +188,80 @@ export interface FunctionOptions extends EventInvokeConfigOptions {
    * When you connect a function to a VPC, it can only access resources and the internet through that VPC.
    *
    * See [VPC Settings](https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html).
+   *
+   * @deprecated - This property is deprecated, use vpc and other related properties instead
    */
   readonly networkConfig?: VpcConfig;
+
+  /**
+   * VPC network to place Lambda network interfaces
+   *
+   * Specify this if the Lambda function needs to access resources in a VPC.
+   * This is required when `vpcSubnets` is specified.
+   *
+   * @default - Function is not placed within a VPC.
+   */
+  readonly vpc?: IVpc;
+
+  /**
+   * Allows outbound IPv6 traffic on VPC functions that are connected to dual-stack subnets.
+   *
+   * Only used if 'vpc' is supplied.
+   *
+   * @default false
+   */
+  readonly ipv6AllowedForDualStack?: boolean;
+
+  /**
+   * Where to place the network interfaces within the VPC.
+   *
+   * This requires `vpc` to be specified in order for interfaces to actually be
+   * placed in the subnets. If `vpc` is not specify, this will raise an error.
+   *
+   * Note: Internet access for Lambda Functions requires a NAT Gateway, so picking
+   * public subnets is not allowed (unless `allowPublicSubnet` is set to `true`).
+   *
+   * @default - the Vpc default strategy if not specified
+   */
+  readonly vpcSubnets?: SubnetSelection;
+
+  /**
+   * The list of security groups to associate with the Lambda's network interfaces.
+   *
+   * Only used if 'vpc' is supplied.
+   *
+   * @default - If the function is placed within a VPC and a security group is
+   * not specified, either by this or securityGroup prop, a dedicated security
+   * group will be created for this function.
+   */
+  readonly securityGroups?: ISecurityGroup[];
+
+  /**
+   * Whether to allow the Lambda to send all network traffic (except ipv6)
+   *
+   * If set to false, you must individually add traffic rules to allow the
+   * Lambda to connect to network targets.
+   *
+   * Do not specify this property if the `securityGroups` or `securityGroup` property is set.
+   * Instead, configure `allowAllOutbound` directly on the security group.
+   *
+   * @default true
+   */
+  readonly allowAllOutbound?: boolean;
+
+  /**
+   * Whether to allow the Lambda to send all ipv6 network traffic
+   *
+   * If set to true, there will only be a single egress rule which allows all
+   * outbound ipv6 traffic. If set to false, you must individually add traffic rules to allow the
+   * Lambda to connect to network targets using ipv6.
+   *
+   * Do not specify this property if the `securityGroups` or `securityGroup` property is set.
+   * Instead, configure `allowAllIpv6Outbound` directly on the security group.
+   *
+   * @default false
+   */
+  readonly allowAllIpv6Outbound?: boolean;
 
   /**
    * The SQS DLQ.
@@ -528,6 +613,11 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
   public readonly role?: iam.IRole;
 
   /**
+   * The runtime configured for this lambda.
+   */
+  public readonly runtime: Runtime;
+
+  /**
    * The DLQ (as queue) associated with this Lambda Function (this is an optional attribute).
    */
   public readonly deadLetterQueue?: IQueue;
@@ -670,21 +760,24 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
 
     if (functionName && !Token.isUnresolved(functionName)) {
       if (functionName.length > 64) {
-        throw new Error(
+        throw new ValidationError(
           `Function name can not be longer than 64 characters but has ${functionName.length} characters.`,
+          this,
         );
       }
       if (!/^[a-zA-Z0-9-_]+$/.test(functionName)) {
-        throw new Error(
+        throw new ValidationError(
           `Function name ${functionName} can contain only letters, numbers, hyphens, or underscores with no spaces.`,
+          this,
         );
       }
     }
 
     if (description && !Token.isUnresolved(description)) {
       if (description.length > 256) {
-        throw new Error(
+        throw new ValidationError(
           `Function description can not be longer than 256 characters but has ${description.length} characters.`,
+          this,
         );
       }
     }
@@ -698,7 +791,7 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
         "service-role/AWSLambdaBasicExecutionRole",
       ),
     );
-    if (props.networkConfig) {
+    if (props.vpc || props.networkConfig) {
       // Policy that will have ENI creation permissions
       // not sure if time.sleep is necessary?
       // ref:
@@ -734,6 +827,8 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
       this.role.addToPrincipalPolicy(statement);
     }
 
+    // Must set runtime property used by bind
+    this.runtime = props.runtime;
     const code = props.code.bind(this);
     verifyCodeConfig(code, props);
 
@@ -795,7 +890,8 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
       },
       memorySize,
       // TODO: re-add ephemeralStorage
-      vpcConfig: this.parseVpcConfig(props.networkConfig),
+      vpcConfig:
+        this.parseVpcConfig(props.networkConfig) ?? this.configureVpc(props),
       deadLetterConfig: this.parseDeadLetterConfig(dlqTopicOrQueue),
       reservedConcurrentExecutions,
       imageConfig: undefinedIfNoKeys({
@@ -828,6 +924,7 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
     this.resource.node.addDependency(this.role);
 
     this.timeout = props.timeout;
+
     this.architecture = props.architecture ?? Architecture.X86_64;
 
     // TODO: Add aws_lambda_provisioned_concurrency_config
@@ -899,8 +996,9 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
       "LAMBDA_RUNTIME_DIR",
     ];
     if (reservedEnvironmentVariables.includes(key)) {
-      throw new Error(
+      throw new ValidationError(
         `${key} environment variable is reserved by the lambda runtime and can not be set manually. See https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html`,
+        this,
       );
     }
     this.environment[key] = value;
@@ -924,8 +1022,9 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
   ): lambdaFunction.LambdaFunctionLoggingConfig | undefined {
     if (props.applicationLogLevel || props.systemLogLevel) {
       if (props.loggingFormat !== LoggingFormat.JSON) {
-        throw new Error(
+        throw new ValidationError(
           `To use ApplicationLogLevel and/or SystemLogLevel you must set LoggingFormat to '${LoggingFormat.JSON}', got '${props.loggingFormat}'.`,
+          this,
         );
       }
     }
@@ -1006,6 +1105,132 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
       ipv6AllowedForDualStack: config.ipv6AllowedForDualStack,
       securityGroupIds,
     };
+  }
+
+  /**
+   * If configured, set up the VPC-related properties
+   *
+   * Returns the VpcConfig that should be added to the
+   * Lambda creation properties.
+   */
+  private configureVpc(
+    props: FunctionProps,
+  ): lambdaFunction.LambdaFunctionVpcConfig | undefined {
+    const hasSecurityGroups =
+      props.securityGroups && props.securityGroups.length > 0;
+    if (!props.vpc) {
+      if (props.allowAllOutbound !== undefined) {
+        throw new ValidationError(
+          "Cannot configure 'allowAllOutbound' without configuring a VPC",
+          this,
+        );
+      }
+      if (hasSecurityGroups) {
+        throw new ValidationError(
+          "Cannot configure 'securityGroups' without configuring a VPC",
+          this,
+        );
+      }
+      if (props.vpcSubnets) {
+        throw new ValidationError(
+          "Cannot configure 'vpcSubnets' without configuring a VPC",
+          this,
+        );
+      }
+      if (props.ipv6AllowedForDualStack) {
+        throw new ValidationError(
+          "Cannot configure 'ipv6AllowedForDualStack' without configuring a VPC",
+          this,
+        );
+      }
+      if (props.allowAllIpv6Outbound !== undefined) {
+        throw new ValidationError(
+          "Cannot configure 'allowAllIpv6Outbound' without configuring a VPC",
+          this,
+        );
+      }
+      return undefined;
+    }
+
+    if (props.allowAllOutbound !== undefined) {
+      if (hasSecurityGroups) {
+        throw new ValidationError(
+          "Configure 'allowAllOutbound' directly on the supplied SecurityGroups.",
+          this,
+        );
+      }
+    }
+
+    if (props.allowAllIpv6Outbound !== undefined) {
+      if (hasSecurityGroups) {
+        throw new ValidationError(
+          "Configure 'allowAllIpv6Outbound' directly on the supplied SecurityGroups.",
+          this,
+        );
+      }
+    }
+
+    let securityGroups: ISecurityGroup[];
+
+    if (hasSecurityGroups) {
+      securityGroups = props.securityGroups;
+    } else {
+      const secGroup = new SecurityGroup(this, "SecurityGroup", {
+        vpc: props.vpc,
+        description:
+          "Automatic security group for Lambda Function " +
+          AwsStack.uniqueId(this),
+        allowAllOutbound: props.allowAllOutbound,
+        allowAllIpv6Outbound: props.allowAllIpv6Outbound,
+      });
+      securityGroups = [secGroup];
+    }
+
+    this._connections = new Connections({ securityGroups });
+
+    // TODO: add when filesystem config is back
+    // if (props.filesystem) {
+    //   if (props.filesystem.config.connections) {
+    //     this.connections.allowTo(
+    //       props.filesystem.config.connections,
+    //       props.filesystem.config.connections.defaultPort ??
+    //         Port.tcp(FileSystem.DEFAULT_PORT),
+    //     );
+    //   }
+    // }
+
+    const ipv6AllowedForDualStack = props.ipv6AllowedForDualStack;
+    const allowPublicSubnet = props.allowPublicSubnet ?? false;
+    const selectedSubnets = props.vpc.selectSubnets(props.vpcSubnets);
+    const publicSubnetIds = new Set(
+      props.vpc.publicSubnets.map((s) => s.subnetId),
+    );
+    for (const subnetId of selectedSubnets.subnetIds) {
+      if (publicSubnetIds.has(subnetId) && !allowPublicSubnet) {
+        throw new ValidationError(
+          "Lambda Functions in a public subnet can NOT access the internet. " +
+            "If you are aware of this limitation and would still like to place the function in a public subnet, set `allowPublicSubnet` to true",
+          this,
+        );
+      }
+    }
+    this.node.addDependency(selectedSubnets.internetConnectivityEstablished);
+
+    // List can't be empty here, if we got this far you intended to put your Lambda
+    // in subnets. We're going to guarantee that we get the nice error message by
+    // making VpcNetwork do the selection again.
+    if (props.ipv6AllowedForDualStack !== undefined) {
+      return {
+        ipv6AllowedForDualStack: ipv6AllowedForDualStack,
+        subnetIds: selectedSubnets.subnetIds,
+        securityGroupIds: securityGroups.map((sg) => sg.securityGroupId),
+      };
+    } else {
+      return {
+        subnetIds: selectedSubnets.subnetIds,
+        securityGroupIds: securityGroups.map((sg) => sg.securityGroupId),
+      };
+    }
   }
 
   private isQueue(deadLetterQueue: IQueue): deadLetterQueue is IQueue {
@@ -1241,30 +1466,28 @@ export function verifyCodeConfig(code: CodeConfig, props: FunctionProps) {
   const codeType = [code.inlineCode, code.s3Location, code.image];
 
   if (codeType.filter((x) => !!x).length !== 1) {
-    // throw new UnscopedValidationError(
-    throw new Error(
+    throw new UnscopedValidationError(
       'lambda.Code must specify exactly one of: "inlineCode", "s3Location", or "image"',
     );
   }
 
   if (!!code.image === (props.handler !== Handler.FROM_IMAGE)) {
-    // throw new UnscopedValidationError(
-    throw new Error(
+    throw new UnscopedValidationError(
       "handler must be `Handler.FROM_IMAGE` when using image asset for Lambda function",
     );
   }
 
   if (!!code.image === (props.runtime !== Runtime.FROM_IMAGE)) {
-    // throw new UnscopedValidationError(
-    throw new Error(
+    throw new UnscopedValidationError(
       "runtime must be `Runtime.FROM_IMAGE` when using image asset for Lambda function",
     );
   }
 
   // if this is inline code, check that the runtime supports
   if (code.inlineCode && !props.runtime.supportsInlineCode) {
-    // throw new UnscopedValidationError(
-    throw new Error(`Inline source not allowed for ${props.runtime!.name}`);
+    throw new UnscopedValidationError(
+      `Inline source not allowed for ${props.runtime!.name}`,
+    );
   }
 }
 

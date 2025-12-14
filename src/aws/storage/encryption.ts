@@ -2,18 +2,9 @@ import { dynamodbTable } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
 import { TableEncryption } from "./shared";
+import { ValidationError } from "../../errors";
 import { AwsStack } from "../aws-stack";
 import * as kms from "../encryption";
-
-/**
- * Custom error for validation failures.
- */
-class ValidationError extends Error {
-  constructor(message: string, _scope?: Construct) {
-    super(message);
-    this.name = "ValidationError";
-  }
-}
 
 /**
  * Represents server-side encryption for a DynamoDB table, adapted for TerraConstructs.
