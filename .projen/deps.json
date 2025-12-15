@@ -7,7 +7,7 @@
     },
     {
       "name": "@cdktf/provider-aws",
-      "version": "^20.1.0",
+      "version": "^21.22.0",
       "type": "build"
     },
     {
@@ -192,7 +192,7 @@
     },
     {
       "name": "@cdktf/provider-aws",
-      "version": "^20.1.0",
+      "version": "^21.22.0",
       "type": "peer"
     },
     {

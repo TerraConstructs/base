@@ -71,6 +71,20 @@ func InvokeFunctionSync(t testing.TestingT, region, functionName string) *terrat
 	return InvokeFunctionWithParams(t, region, functionName, &input)
 }
 
+// InvokeFunctionSyncE invokes a lambda function synchronously. Keep the connection open until the function
+// returns a response or times out. Returns the status code and payload
+// in a LambdaOutput struct and the error. A non-nil error will either reflect
+// a problem with the parameters supplied to this function or an error returned
+// by the Lambda.
+func InvokeFunctionSyncE(t testing.TestingT, region, functionName string) (*terratestaws.LambdaOutput, error) {
+	invokeSync := InvocationTypeRequestResponse
+	input := LambdaOptions{
+		InvocationType: &invokeSync,
+		Payload:        nil,
+	}
+	return InvokeFunctionWithParamsE(t, region, functionName, &input)
+}
+
 // InvokeFunctionWithParams invokes a lambda function using parameters
 // supplied in the LambdaOptions struct and returns values in a LambdaOutput
 // struct. Checks for failure using "require".
@@ -84,7 +98,7 @@ func InvokeFunctionWithParams(t testing.TestingT, region, functionName string, i
 }
 
 // InvokeFunctionWithParamsE invokes a lambda function using parameters
-// supplied in the LambdaOptions struct.  Returns the status code and payload
+// supplied in the LambdaOptions struct. Returns the status code and payload
 // in a LambdaOutput struct and the error.  A non-nil error will either reflect
 // a problem with the parameters supplied to this function or an error returned
 // by the Lambda.

@@ -939,6 +939,9 @@ export class FlowLog extends FlowLogBase {
     Tags.of(this).add(NAME_TAG, props.flowLogName || this.node.path);
 
     let logDestination: string | undefined = undefined;
+    if (this.logGroup) {
+      logDestination = this.logGroup.logGroupArn;
+    }
     if (this.bucket) {
       logDestination = this.keyPrefix
         ? this.bucket.arnForObjects(this.keyPrefix)
@@ -1014,7 +1017,6 @@ export class FlowLog extends FlowLogBase {
       destinationOptions: destinationConfig.destinationOptions,
       iamRoleArn: this.iamRole ? this.iamRole.roleArn : undefined,
       logDestinationType: destinationConfig.logDestinationType,
-      logGroupName: this.logGroup ? this.logGroup.logGroupName : undefined,
       maxAggregationInterval: props.maxAggregationInterval,
       id: props.resourceType.resourceId,
       trafficType,
