@@ -1,6 +1,6 @@
 module github.com/terraconstructs/base
 
-go 1.22.2
+go 1.23.0
 
 // replace github.com/terraconstructs/go-synth => /path/to/terraconstructs/go-synth
 
@@ -29,16 +29,16 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.33.2
 	github.com/aws/aws-sdk-go-v2/service/sns v1.33.6
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.1
-	github.com/golang-jwt/jwt/v5 v5.2.1
-	github.com/google/go-cmp v0.6.0
+	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/google/go-cmp v0.7.0
 	github.com/gruntwork-io/terratest v0.48.1
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/terraform-json v0.23.0
+	github.com/hashicorp/terraform-json v0.27.2
 	github.com/jmespath/go-jmespath v0.4.0
-	github.com/spf13/afero v1.11.0
-	github.com/stretchr/testify v1.9.0
+	github.com/spf13/afero v1.15.0
+	github.com/stretchr/testify v1.11.1
 	github.com/terraconstructs/go-synth v0.0.0-20250722181906-13022f215955
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 )
 
 require (
@@ -119,18 +119,18 @@ require (
 	github.com/tmccombs/hcl2json v0.6.4 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/urfave/cli v1.22.16 // indirect
-	github.com/zclconf/go-cty v1.15.0 // indirect
+	github.com/zclconf/go-cty v1.16.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.29.0 // indirect
-	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/net v0.31.0 // indirect
+	golang.org/x/crypto v0.40.0 // indirect
+	golang.org/x/mod v0.26.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
-	golang.org/x/sync v0.9.0 // indirect
-	golang.org/x/sys v0.27.0 // indirect
-	golang.org/x/term v0.26.0 // indirect
-	golang.org/x/text v0.20.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/term v0.33.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
-	golang.org/x/tools v0.22.0 // indirect
+	golang.org/x/tools v0.35.0 // indirect
 	google.golang.org/protobuf v1.35.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
