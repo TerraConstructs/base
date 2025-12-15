@@ -1,4 +1,4 @@
-import { cdk, javascript, TextFile } from "projen";
+import { cdk, javascript, ReleasableCommits, TextFile } from "projen";
 import {
   AwsProviderStructBuilder,
   LambdaFunctionVpcConfigStructBuilder,
@@ -44,6 +44,9 @@ const project = new cdk.JsiiProject({
   release: true,
   releaseToNpm: true,
   npmTrustedPublishing: true,
+  // Only release when there are feat: or fix: commits (not chore:, ci:, etc.)
+  // Default is everyCommit() which triggers releases even for chore commits
+  releasableCommits: ReleasableCommits.featuresAndFixes(),
   // disable auto generation of API reference for now
   docgen: false,
 
