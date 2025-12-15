@@ -34,8 +34,7 @@ export interface ClientVpnAuthorizationRuleOptions {
 /**
  * Properties for a ClientVpnAuthorizationRule
  */
-export interface ClientVpnAuthorizationRuleProps
-  extends ClientVpnAuthorizationRuleOptions {
+export interface ClientVpnAuthorizationRuleProps extends ClientVpnAuthorizationRuleOptions {
   /**
    * The client VPN endpoint to which to add the rule.
    * @default clientVpnEndpoint is required

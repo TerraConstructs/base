@@ -149,8 +149,7 @@ export interface NetworkLoadBalancerAttributes {
 /**
  * Options for looking up an NetworkLoadBalancer
  */
-export interface NetworkLoadBalancerLookupOptions
-  extends BaseLoadBalancerLookupOptions {}
+export interface NetworkLoadBalancerLookupOptions extends BaseLoadBalancerLookupOptions {}
 
 /**
  * The metrics for a network load balancer.
@@ -638,9 +637,7 @@ export interface INetworkLoadBalancerMetrics {
  * A network load balancer
  */
 export interface INetworkLoadBalancer
-  extends ILoadBalancerV2,
-    IVpcEndpointServiceLoadBalancer,
-    IConnectable {
+  extends ILoadBalancerV2, IVpcEndpointServiceLoadBalancer, IConnectable {
   /**
    * The VPC this load balancer has been created in (if available)
    */

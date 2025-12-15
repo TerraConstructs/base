@@ -7,8 +7,7 @@ import { UserData } from "../user-data";
 /**
  * Common options across all generations.
  */
-export interface AmazonLinuxImageSsmParameterCommonOptions
-  extends AmazonLinuxImageSsmParameterBaseOptions {
+export interface AmazonLinuxImageSsmParameterCommonOptions extends AmazonLinuxImageSsmParameterBaseOptions {
   /**
    * What edition of Amazon Linux to use
    *
@@ -60,17 +59,14 @@ export interface AmazonLinuxImageSsmParameterBaseOptions {
 /**
  * Base properties for an Amazon Linux SSM Parameter
  */
-export interface AmazonLinuxImageSsmParameterBaseProps
-  extends AmazonLinuxImageSsmParameterBaseOptions {
+export interface AmazonLinuxImageSsmParameterBaseProps extends AmazonLinuxImageSsmParameterBaseOptions {
   /**
    * The name of the SSM parameter that contains the AMI value
    */
   readonly parameterName: string;
 }
 
-export abstract class AmazonLinuxImageSsmParameterBase
-  implements IMachineImage
-{
+export abstract class AmazonLinuxImageSsmParameterBase implements IMachineImage {
   private readonly cachedInContext: boolean;
   constructor(private readonly props: AmazonLinuxImageSsmParameterBaseProps) {
     this.cachedInContext = this.props.cachedInContext ?? true;

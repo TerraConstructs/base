@@ -205,8 +205,7 @@ export interface ApplicationListenerProps extends BaseApplicationListenerProps {
 /**
  * Options for ApplicationListener lookup
  */
-export interface ApplicationListenerLookupOptions
-  extends BaseListenerLookupOptions {
+export interface ApplicationListenerLookupOptions extends BaseListenerLookupOptions {
   /**
    * ARN of the listener to look up
    * @default - does not filter by listener arn
@@ -1191,8 +1190,7 @@ export interface AddFixedResponseProps extends AddRuleProps, FixedResponse {}
  * @deprecated Use `ApplicationListener.addAction` instead.
  */
 export interface AddRedirectResponseProps
-  extends AddRuleProps,
-    RedirectResponse {}
+  extends AddRuleProps, RedirectResponse {}
 
 function checkAddRuleProps(props: AddRuleProps) {
   const conditionsCount = props.conditions?.length || 0;

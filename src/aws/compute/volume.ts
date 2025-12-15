@@ -143,8 +143,7 @@ export interface EbsDeviceSnapshotOptions extends EbsDeviceOptionsBase {
  * Properties of an EBS block device
  */
 export interface EbsDeviceProps
-  extends EbsDeviceSnapshotOptions,
-    EbsDeviceOptions {
+  extends EbsDeviceSnapshotOptions, EbsDeviceOptions {
   /**
    * The snapshot ID of the volume to use
    *

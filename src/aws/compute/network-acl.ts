@@ -310,8 +310,7 @@ export interface CommonNetworkAclEntryOptions {
  *
  */
 export interface NetworkAclEntryProps
-  extends CommonNetworkAclEntryOptions,
-    AwsConstructProps {
+  extends CommonNetworkAclEntryOptions, AwsConstructProps {
   /**
    * The network ACL this entry applies to.
    */

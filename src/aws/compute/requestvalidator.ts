@@ -42,8 +42,7 @@ export interface RequestValidatorOptions {
 }
 
 export interface RequestValidatorProps
-  extends RequestValidatorOptions,
-    AwsConstructProps {
+  extends RequestValidatorOptions, AwsConstructProps {
   /**
    * The rest API that this model is part of.
    */

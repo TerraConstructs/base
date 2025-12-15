@@ -50,8 +50,7 @@ export class AmazonLinux2Kernel {
 /**
  * Properties specific to amzn2 images
  */
-export interface AmazonLinux2ImageSsmParameterProps
-  extends AmazonLinuxImageSsmParameterCommonOptions {
+export interface AmazonLinux2ImageSsmParameterProps extends AmazonLinuxImageSsmParameterCommonOptions {
   /**
    * What storage backed image to use
    *

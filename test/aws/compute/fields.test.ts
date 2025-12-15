@@ -4,7 +4,7 @@ describe("Fields", () => {
   const jsonPathValidationErrorMsg =
     /exactly '\$', '\$\$', start with '\$.', start with '\$\$.', start with '\$\[', or start with an intrinsic function: States.Array, States.ArrayPartition, States.ArrayContains, States.ArrayRange, States.ArrayGetItem, States.ArrayLength, States.ArrayUnique, States.Base64Encode, States.Base64Decode, States.Hash, States.JsonMerge, States.StringToJson, States.JsonToString, States.MathRandom, States.MathAdd, States.StringSplit, States.UUID, or States.Format./;
 
-  test("deep replace correctly handles fields in arrays", () => {
+  (test("deep replace correctly handles fields in arrays", () => {
     expect(
       FieldUtils.renderObject({
         unknown: undefined,
@@ -90,8 +90,8 @@ describe("Fields", () => {
           listAt: JsonPath.listAt("$[0].stringList"),
         }),
       ).toStrictEqual(["$[0].stringList"]);
-    });
-  test("cannot have JsonPath fields in arrays", () => {
+    }));
+  (test("cannot have JsonPath fields in arrays", () => {
     expect(() =>
       FieldUtils.renderObject({
         deep: [JsonPath.stringAt("$.hello")],
@@ -189,7 +189,7 @@ describe("Fields", () => {
           field: `contains ${JsonPath.stringAt("$.hello")}`,
         }),
       ).toThrowError(/Field references must be the entire string/);
-    });
+    }));
   test("infinitely recursive object graphs do not break referenced path finding", () => {
     const deepObject = {
       field: JsonPath.stringAt("$.stringField"),

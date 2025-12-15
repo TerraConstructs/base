@@ -446,8 +446,7 @@ export interface CommonStringParameterAttributes {
  *
  * @see ParameterType
  */
-export interface StringParameterAttributes
-  extends CommonStringParameterAttributes {
+export interface StringParameterAttributes extends CommonStringParameterAttributes {
   /**
    * The version number of the value you wish to retrieve.
    *
@@ -485,8 +484,7 @@ export interface StringParameterAttributes
  *
  * @see ParameterType
  */
-export interface ListParameterAttributes
-  extends CommonStringParameterAttributes {
+export interface ListParameterAttributes extends CommonStringParameterAttributes {
   /**
    * The version number of the value you wish to retrieve.
    *
@@ -514,8 +512,7 @@ export interface ListParameterAttributes
 /**
  * Attributes for secure string parameters.
  */
-export interface SecureStringParameterAttributes
-  extends CommonStringParameterAttributes {
+export interface SecureStringParameterAttributes extends CommonStringParameterAttributes {
   /**
    * The version number of the value you wish to retrieve.
    *

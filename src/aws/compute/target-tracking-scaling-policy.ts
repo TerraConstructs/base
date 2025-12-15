@@ -68,8 +68,7 @@ export interface BaseTargetTrackingProps {
 /**
  * Properties for a Target Tracking policy that include the metric but exclude the target
  */
-export interface BasicTargetTrackingScalingPolicyProps
-  extends BaseTargetTrackingProps {
+export interface BasicTargetTrackingScalingPolicyProps extends BaseTargetTrackingProps {
   /**
    * The target value for the metric.
    */
@@ -118,8 +117,7 @@ export interface BasicTargetTrackingScalingPolicyProps
  * Adds the scalingTarget.
  */
 export interface TargetTrackingScalingPolicyProps
-  extends BasicTargetTrackingScalingPolicyProps,
-    AwsConstructProps {
+  extends BasicTargetTrackingScalingPolicyProps, AwsConstructProps {
   /*
    * The scalable target
    */

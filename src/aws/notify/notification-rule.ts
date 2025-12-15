@@ -72,8 +72,7 @@ export interface NotificationRuleOptions {
  * Properties for a new notification rule
  */
 export interface NotificationRuleProps
-  extends AwsConstructProps,
-    NotificationRuleOptions {
+  extends AwsConstructProps, NotificationRuleOptions {
   /**
    * A list of event types associated with this notification rule.
    * For a complete list of event types and IDs, see Notification concepts in the Developer Tools Console User Guide.

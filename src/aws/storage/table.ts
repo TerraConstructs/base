@@ -474,8 +474,7 @@ export interface TableProps extends TableOptions, AwsConstructProps {
  * Properties for a global secondary index
  */
 export interface GlobalSecondaryIndexProps
-  extends SecondaryIndexProps,
-    SchemaOptions {
+  extends SecondaryIndexProps, SchemaOptions {
   /**
    * The read capacity for the global secondary index.
    *

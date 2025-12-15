@@ -1,7 +1,7 @@
 import { compute } from "../../../src/aws";
 
 describe("Condition Variables", () => {
-  test("Condition variables must start with $. or $[", () => {
+  (test("Condition variables must start with $. or $[", () => {
     expect(() => compute.Condition.stringEquals("a", "b")).toThrow();
   }),
     test("Condition variables can start with $.", () => {
@@ -272,7 +272,7 @@ describe("Condition Variables", () => {
       for (const [cond, expected] of cases) {
         assertRendersTo(cond, expected);
       }
-    });
+    }));
 });
 
 function assertRendersTo(cond: compute.Condition, expected: any) {

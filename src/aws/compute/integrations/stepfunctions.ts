@@ -18,8 +18,7 @@ import { Model } from "../model";
 /**
  * Options when configuring Step Functions synchronous integration with Rest API
  */
-export interface StepFunctionsExecutionIntegrationOptions
-  extends IntegrationOptions {
+export interface StepFunctionsExecutionIntegrationOptions extends IntegrationOptions {
   /**
    * Which details of the incoming request must be passed onto the underlying state machine,
    * such as, account id, user identity, request id, etc. The execution input will include a new key `requestContext`:

@@ -100,7 +100,7 @@ describe("EC2 Routing", () => {
     });
   });
 
-  test("Route to VPN Gateway", () => {
+  (test("Route to VPN Gateway", () => {
     const vpngw = new VPNGatewayV2(stack, "TestVpnGw", {
       type: VpnConnectionType.IPSEC_1,
       vpc: myVpc,
@@ -165,7 +165,7 @@ describe("EC2 Routing", () => {
           internet_gateway_id: stack.resolve(igw.routerTargetId),
         },
       );
-    });
+    }));
 
   test("Route to private NAT Gateway", () => {
     const natgw = new NatGateway(stack, "TestNATGW", {

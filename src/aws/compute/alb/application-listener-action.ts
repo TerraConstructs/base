@@ -240,7 +240,8 @@ export class ListenerAction implements IListenerAction {
   private _renumber<
     ActionProperty extends
       | tfListener.LbListenerDefaultAction
-      | tfListenerRule.LbListenerRuleAction = tfListener.LbListenerDefaultAction,
+      | tfListenerRule.LbListenerRuleAction =
+      tfListener.LbListenerDefaultAction,
   >(actions: ActionProperty[]): ActionProperty[] {
     if (actions.length < 2) {
       return actions;

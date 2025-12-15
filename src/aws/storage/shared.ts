@@ -68,8 +68,7 @@ export interface SystemErrorsForOperationsMetricOptions
 /**
  * Options for configuring metrics that considers multiple operations.
  */
-export interface OperationsMetricOptions
-  extends SystemErrorsForOperationsMetricOptions {}
+export interface OperationsMetricOptions extends SystemErrorsForOperationsMetricOptions {}
 
 /**
  * Represents an attribute for describing the key schema for the table

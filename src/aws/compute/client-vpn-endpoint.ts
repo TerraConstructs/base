@@ -276,8 +276,7 @@ class FederatedAuthentication extends ClientVpnUserBasedAuthentication {
  * Properties for a client VPN endpoint
  */
 export interface ClientVpnEndpointProps
-  extends ClientVpnEndpointOptions,
-    AwsConstructProps {
+  extends ClientVpnEndpointOptions, AwsConstructProps {
   /**
    * The VPC to connect to.
    */

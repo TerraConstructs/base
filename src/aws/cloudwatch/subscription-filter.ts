@@ -70,8 +70,7 @@ export interface LogSubscriptionDestinationConfig {
  * Properties for a SubscriptionFilter
  */
 export interface SubscriptionFilterProps
-  extends SubscriptionFilterOptions,
-    AwsConstructProps {
+  extends SubscriptionFilterOptions, AwsConstructProps {
   /**
    * The log group to create the subscription on.
    */

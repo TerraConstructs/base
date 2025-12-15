@@ -10,8 +10,7 @@ import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
  * Properties for a MetricFilter
  */
 export interface MetricFilterProps
-  extends MetricFilterOptions,
-    AwsConstructProps {
+  extends MetricFilterOptions, AwsConstructProps {
   /**
    * The log group to create the filter on.
    */

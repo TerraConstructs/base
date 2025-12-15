@@ -49,8 +49,7 @@ abstract class RequireImdsv2Aspect implements IAspect {
 /**
  * Properties for `InstanceRequireImdsv2Aspect`.
  */
-export interface InstanceRequireImdsv2AspectProps
-  extends RequireImdsv2AspectProps {
+export interface InstanceRequireImdsv2AspectProps extends RequireImdsv2AspectProps {
   /**
    * Whether warnings that would be raised when an Instance is associated with an existing Launch Template
    * should be suppressed or not.
@@ -116,8 +115,7 @@ export class InstanceRequireImdsv2Aspect extends RequireImdsv2Aspect {
 /**
  * Properties for `LaunchTemplateRequireImdsv2Aspect`.
  */
-export interface LaunchTemplateRequireImdsv2AspectProps
-  extends RequireImdsv2AspectProps {}
+export interface LaunchTemplateRequireImdsv2AspectProps extends RequireImdsv2AspectProps {}
 
 /**
  * Aspect that applies IMDS configuration on EC2 Launch Template constructs.

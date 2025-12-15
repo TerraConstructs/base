@@ -17,8 +17,7 @@ export interface IGatewayResponse extends IAwsConstruct {}
  * Properties for a new gateway response.
  */
 export interface GatewayResponseProps
-  extends AwsConstructProps,
-    GatewayResponseOptions {
+  extends AwsConstructProps, GatewayResponseOptions {
   /**
    * Rest api resource to target.
    */

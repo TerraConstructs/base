@@ -64,8 +64,7 @@ export abstract class ClientVpnRouteTarget {
  * Properties for a ClientVpnRoute
  */
 export interface ClientVpnRouteProps
-  extends ClientVpnRouteOptions,
-    AwsConstructProps {
+  extends ClientVpnRouteOptions, AwsConstructProps {
   /**
    * The client VPN endpoint to which to add the route.
    * @default clientVpnEndpoint is required

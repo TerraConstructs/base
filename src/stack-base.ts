@@ -27,8 +27,7 @@ const TERRASTACK_SYMBOL = Symbol.for("terraconstructs/lib.Stack");
 /**
  * Options for creating a unique resource name_prefix.
  */
-export interface UniqueResourceNamePrefixOptions
-  extends UniqueResourceNameOptions {
+export interface UniqueResourceNamePrefixOptions extends UniqueResourceNameOptions {
   /**
    * Length of the random generated suffix added by some Terraform providers.
    *

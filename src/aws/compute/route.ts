@@ -128,8 +128,7 @@ export interface InternetGatewayProps {
  * Properties to define a VPN gateway.
  */
 export interface VPNGatewayV2Props
-  extends VPNGatewayV2Options,
-    AwsConstructProps {
+  extends VPNGatewayV2Options, AwsConstructProps {
   /**
    * The ID of the VPC for which to create the VPN gateway.
    */

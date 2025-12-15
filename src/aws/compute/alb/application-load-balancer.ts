@@ -172,8 +172,7 @@ export enum XffHeaderProcessingMode {
 /**
  * Options for looking up an ApplicationLoadBalancer
  */
-export interface ApplicationLoadBalancerLookupOptions
-  extends BaseLoadBalancerLookupOptions {}
+export interface ApplicationLoadBalancerLookupOptions extends BaseLoadBalancerLookupOptions {}
 
 /**
  * Define an Application Load Balancer
@@ -820,9 +819,7 @@ export class ApplicationLoadBalancer
   }
 }
 
-class ApplicationLoadBalancerMetrics
-  implements IApplicationLoadBalancerMetrics
-{
+class ApplicationLoadBalancerMetrics implements IApplicationLoadBalancerMetrics {
   private readonly scope: Construct;
   private readonly loadBalancerFullName: string;
 
@@ -1285,8 +1282,7 @@ export interface IApplicationLoadBalancerMetrics {
  * An application load balancer
  */
 export interface IApplicationLoadBalancer
-  extends ILoadBalancerV2,
-    IConnectable {
+  extends ILoadBalancerV2, IConnectable {
   /**
    * The ARN of this load balancer
    */

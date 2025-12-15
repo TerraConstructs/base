@@ -129,9 +129,7 @@ export interface IGatewayVpcEndpointService {
 /**
  * An AWS service for a gateway VPC endpoint.
  */
-export class GatewayVpcEndpointAwsService
-  implements IGatewayVpcEndpointService
-{
+export class GatewayVpcEndpointAwsService implements IGatewayVpcEndpointService {
   // https://github.com/aws/aws-cdk/blob/v2.179.0/packages/aws-cdk-lib/aws-ec2/lib/vpc-endpoint.ts#L93
   public static readonly DYNAMODB = new GatewayVpcEndpointAwsService('dynamodb'); // prettier-ignore
   public static readonly S3 = new GatewayVpcEndpointAwsService('s3'); // prettier-ignore
@@ -195,8 +193,7 @@ export interface GatewayVpcEndpointOptions {
  * Construction properties for a GatewayVpcEndpoint.
  */
 export interface GatewayVpcEndpointProps
-  extends GatewayVpcEndpointOptions,
-    AwsConstructProps {
+  extends GatewayVpcEndpointOptions, AwsConstructProps {
   /**
    * The VPC network in which the gateway endpoint will be used.
    */
@@ -300,9 +297,7 @@ export interface IInterfaceVpcEndpointService {
 /**
  * A custom-hosted service for an interface VPC endpoint.
  */
-export class InterfaceVpcEndpointService
-  implements IInterfaceVpcEndpointService
-{
+export class InterfaceVpcEndpointService implements IInterfaceVpcEndpointService {
   /**
    * The name of the service.
    */
@@ -340,9 +335,7 @@ export interface InterfaceVpcEndpointAwsServiceProps {
 /**
  * An AWS service for an interface VPC endpoint.
  */
-export class InterfaceVpcEndpointAwsService
-  implements IInterfaceVpcEndpointService
-{
+export class InterfaceVpcEndpointAwsService implements IInterfaceVpcEndpointService {
   // TODO: Switch to biome :/
   // see:
   //   - https://github.com/prettier/prettier/issues/5287

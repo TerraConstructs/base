@@ -33,8 +33,7 @@ export interface BasePathMappingOptions {
 }
 
 export interface BasePathMappingProps
-  extends BasePathMappingOptions,
-    AwsConstructProps {
+  extends BasePathMappingOptions, AwsConstructProps {
   /**
    * The DomainName to associate with this base path mapping.
    */

@@ -107,8 +107,7 @@ export interface BaseApplicationListenerRuleProps {
 /**
  * Properties for defining a listener rule
  */
-export interface ApplicationListenerRuleProps
-  extends BaseApplicationListenerRuleProps {
+export interface ApplicationListenerRuleProps extends BaseApplicationListenerRuleProps {
   /**
    * The listener to attach the rule to
    */

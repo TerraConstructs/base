@@ -107,8 +107,7 @@ export interface BaseNetworkListenerProps {
  *
  * @deprecated Use IListenerCertificate instead
  */
-export interface INetworkListenerCertificateProps
-  extends IListenerCertificate {}
+export interface INetworkListenerCertificateProps extends IListenerCertificate {}
 
 /**
  * Properties for a Network Listener attached to a Load Balancer
@@ -123,8 +122,7 @@ export interface NetworkListenerProps extends BaseNetworkListenerProps {
 /**
  * Options for looking up a network listener.
  */
-export interface NetworkListenerLookupOptions
-  extends BaseListenerLookupOptions {
+export interface NetworkListenerLookupOptions extends BaseListenerLookupOptions {
   /**
    * Protocol of the listener port
    * @default - listener is not filtered by protocol
