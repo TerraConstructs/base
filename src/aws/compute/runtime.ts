@@ -159,7 +159,7 @@ export class Runtime {
    * available in YOUR region).
    */
   public static readonly NODEJS_LATEST = new Runtime(
-    "nodejs18.x",
+    "nodejs18.x", // TODO: review this
     RuntimeFamily.NODEJS,
     { supportsInlineCode: true, isVariable: true },
   );
