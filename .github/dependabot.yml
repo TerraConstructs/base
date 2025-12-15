@@ -1,0 +1,33 @@
+# Dependabot configuration for Go module updates
+# Projen manages NodeJS updates
+# Groups dependencies into: aws-sdk, terratest, and others
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "go"
+      - "botmerge"
+    commit-message:
+      prefix: "chore"
+    groups:
+      aws-sdk:
+        patterns:
+          - "github.com/aws/aws-sdk-go-v2*"
+          - "github.com/aws/smithy-go*"
+      terratest:
+        patterns:
+          - "github.com/gruntwork-io/terratest*"
+          - "github.com/gruntwork-io/go-commons*"
+      gomod:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "github.com/aws/aws-sdk-go-v2*"
+          - "github.com/aws/smithy-go*"
+          - "github.com/gruntwork-io/terratest*"
+          - "github.com/gruntwork-io/go-commons*"

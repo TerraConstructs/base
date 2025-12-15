@@ -94,7 +94,11 @@
     "mime-types",
     "minimatch"
   ],
-  "pnpm": {},
+  "pnpm": {
+    "overrides": {
+      "form-data": ">=4.0.4"
+    }
+  },
   "keywords": [
     "terraconstructs"
   ],

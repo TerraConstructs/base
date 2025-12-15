@@ -1,0 +1,54 @@
+# Verify Go compilation for Dependabot Go module PRs
+# This check ensures dependency updates don't break compilation
+name: dependabot-go-check
+on:
+  pull_request:
+    paths:
+      - "go.mod"
+      - "go.sum"
+
+jobs:
+  go-compile-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if Dependabot Go PR
+        id: check
+        run: |
+          # Check if this is a dependabot PR for go_modules
+          if [[ "${{ github.actor }}" == "dependabot[bot]" && "${{ github.head_ref }}" == dependabot/go_modules/* ]]; then
+            echo "is_dependabot_go=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_dependabot_go=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout
+        if: steps.check.outputs.is_dependabot_go == 'true'
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        if: steps.check.outputs.is_dependabot_go == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Verify Go modules
+        if: steps.check.outputs.is_dependabot_go == 'true'
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Compile integration tests
+        if: steps.check.outputs.is_dependabot_go == 'true'
+        run: |
+          # Compile all test files without running them
+          # -run=^$ matches zero tests, but compilation still happens
+          # This catches: syntax errors, import errors, broken dependencies
+          go test ./integ/... -run=^$
+
+      - name: Skip for non-Dependabot Go PRs
+        if: steps.check.outputs.is_dependabot_go == 'false'
+        run: |
+          echo "Not a Dependabot Go modules PR, skipping compilation check"
+          echo "Actor: ${{ github.actor }}"
+          echo "Branch: ${{ github.head_ref }}"
