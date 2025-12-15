@@ -1,11 +1,9 @@
 # Verify Go compilation for Dependabot Go module PRs
 # This check ensures dependency updates don't break compilation
+# Runs on all PRs but only performs compilation check for Dependabot Go PRs
 name: dependabot-go-check
 on:
-  pull_request:
-    paths:
-      - "go.mod"
-      - "go.sum"
+  pull_request: {}
 
 jobs:
   go-compile-check:
