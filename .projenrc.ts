@@ -178,6 +178,15 @@ const project = new cdk.JsiiProject({
   autoMerge: false,
 });
 
+// Fix CVE in form-data transitive dependency (via commit-and-tag-version -> jsdom)
+// form-data <4.0.4 uses predictable Math.random() for boundary values
+// https://github.com/advisories/GHSA-fjxv-7rqg-78g4 (form-data advisory)
+project.package.addField("pnpm", {
+  overrides: {
+    "form-data": ">=4.0.4",
+  },
+});
+
 const releaseWorkflow = project.tryFindObjectFile(
   ".github/workflows/release.yml",
 );
