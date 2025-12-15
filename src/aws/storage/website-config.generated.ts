@@ -9,25 +9,31 @@ import type { s3BucketWebsiteConfiguration } from '@cdktf/provider-aws';
  */
 export interface WebsiteConfig {
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/s3_bucket_website_configuration#routing_rules S3BucketWebsiteConfiguration#routing_rules}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/s3_bucket_website_configuration#routing_rules S3BucketWebsiteConfiguration#routing_rules}.
    * @stability stable
    */
   readonly routingRules?: string;
   /**
    * routing_rule block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/s3_bucket_website_configuration#routing_rule S3BucketWebsiteConfiguration#routing_rule}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/s3_bucket_website_configuration#routing_rule S3BucketWebsiteConfiguration#routing_rule}
    * @stability stable
    */
   readonly routingRule?: IResolvable | Array<s3BucketWebsiteConfiguration.S3BucketWebsiteConfigurationRoutingRule>;
   /**
+   * Region where this resource will be [managed](https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints). Defaults to the Region set in the [provider configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#aws-configuration-reference).
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/s3_bucket_website_configuration#region S3BucketWebsiteConfiguration#region}
+   * @stability stable
+   */
+  readonly region?: string;
+  /**
    * index_document block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/s3_bucket_website_configuration#index_document S3BucketWebsiteConfiguration#index_document}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/s3_bucket_website_configuration#index_document S3BucketWebsiteConfiguration#index_document}
    * @default index.html
    * @stability stable
    */
   readonly indexDocument?: string;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/s3_bucket_website_configuration#id S3BucketWebsiteConfiguration#id}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/s3_bucket_website_configuration#id S3BucketWebsiteConfiguration#id}.
    * Please be aware that the id field is automatically added to all resources in Terraform providers using a Terraform provider SDK version below 2.
    * If you experience problems setting this value it might not be settable. Please take a look at the provider documentation to ensure it should be settable.
    * @stability stable
@@ -35,7 +41,7 @@ export interface WebsiteConfig {
   readonly id?: string;
   /**
    * error_document block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/s3_bucket_website_configuration#error_document S3BucketWebsiteConfiguration#error_document}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/s3_bucket_website_configuration#error_document S3BucketWebsiteConfiguration#error_document}
    * @stability stable
    */
   readonly errorDocument?: s3BucketWebsiteConfiguration.S3BucketWebsiteConfigurationErrorDocument;
