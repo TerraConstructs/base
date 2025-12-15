@@ -159,7 +159,7 @@ export class Runtime {
    * available in YOUR region).
    */
   public static readonly NODEJS_LATEST = new Runtime(
-    "nodejs18.x", // TODO: review this
+    "nodejs22.x", // TODO: review this
     RuntimeFamily.NODEJS,
     { supportsInlineCode: true, isVariable: true },
   );
@@ -579,8 +579,8 @@ const LATEST_NODE_RUNTIME_MAP: Record<Partition, string> = {
   [Partition.Default]: RuntimeFact.NODE_22,
   [Partition.Cn]: RuntimeFact.NODE_22,
   [Partition.UsGov]: RuntimeFact.NODE_22,
-  [Partition.UsIso]: RuntimeFact.NODE_18,
-  [Partition.UsIsoB]: RuntimeFact.NODE_18,
-  [Partition.UsIsoF]: RuntimeFact.NODE_18,
-  [Partition.EuIsoE]: RuntimeFact.NODE_18,
+  [Partition.UsIso]: RuntimeFact.NODE_22,
+  [Partition.UsIsoB]: RuntimeFact.NODE_22,
+  [Partition.UsIsoF]: RuntimeFact.NODE_22,
+  [Partition.EuIsoE]: RuntimeFact.NODE_22,
 };
