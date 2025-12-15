@@ -179,6 +179,12 @@ const project = new cdk.JsiiProject({
 
   // disable autoMerge for now
   autoMerge: false,
+
+  // Exclude pinned packages from automatic upgrades
+  // prettier 3.7+ has breaking formatting changes: https://prettier.io/blog/2025/11/27/3.7.0
+  depsUpgradeOptions: {
+    exclude: ["prettier", "eslint-plugin-prettier"],
+  },
 });
 
 // Fix CVE in form-data transitive dependency (via commit-and-tag-version -> jsdom)
