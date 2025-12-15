@@ -10,6 +10,7 @@ import (
 
 	"github.com/gruntwork-io/terratest/modules/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
+	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/terraconstructs/go-synth/executors"
@@ -61,6 +62,14 @@ func TestLambdaVpc(t *testing.T) {
 		Region: region,
 	}
 	runComputeIntegrationTest(t, "lambda-vpc", options, validateLambdaVpcSuccess)
+}
+
+// Test the lambda-runtime-inlinecode integration
+func TestLambdaRuntimeInlineCode(t *testing.T) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "lambda-runtime.inlinecode", options, validateLambdaRuntimeInlineCode)
 }
 
 // Test the event-source-sqs integration
@@ -178,6 +187,26 @@ func validateLambdaVpcSuccess(t *testing.T, tfWorkingDir string, awsRegion strin
 
 	util.InvokeFunctionSync(t, awsRegion, firstFunctionName)
 	terratestLogger.Logf(t, "Successfully Invoked Function %q", firstFunctionName)
+}
+
+// Validate the Lambda runtime inlinecode
+func validateLambdaRuntimeInlineCode(t *testing.T, tfWorkingDir string, awsRegion string) {
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+	// Test individual Lambda Functions from TerraformOutputs
+	outputs := terraform.OutputAll(t, terraformOptions)
+	for _, outputValue := range outputs {
+		functionName, ok := outputValue.(string)
+		if !ok {
+			continue // ignore any non-string outputs
+		}
+		t.Run(functionName, func(t *testing.T) {
+			// parallel subtests for each function
+			t.Parallel()
+			util.InvokeFunctionSync(t, awsRegion, functionName)
+			terratestLogger.Logf(t, "Successfully Invoked Function %q", functionName)
+		})
+	}
 }
 
 // Validate the Destionation integration test

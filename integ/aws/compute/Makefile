@@ -16,6 +16,10 @@ lambda-vpc: ## Test lambda in Vpc
 	go test -v -count 1 -timeout 60m ./... -run ^TestLambdaVpc$
 .PHONY: lambda-vpc
 
+lambda-runtime-inlinecode: ## Test lambda runtime inlinecode
+	go test -v -count 1 -timeout 60m ./... -run ^TestLambdaRuntimeInlineCode$
+.PHONY: lambda-runtime-inlinecode
+
 event-source-sqs: ## Test sqs event source with lambda
 	go test -v -count 1 -timeout 15m ./... -run ^TestEventSourceSqs$
 .PHONY: event-source-sqs

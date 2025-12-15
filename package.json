@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@cdktf/provider-archive": "11.0.0",
-    "@cdktf/provider-aws": "20.1.0",
+    "@cdktf/provider-aws": "21.22.0",
     "@cdktf/provider-cloudinit": "11.0.0",
     "@cdktf/provider-docker": "12.0.2",
     "@cdktf/provider-time": "11.0.0",
@@ -70,7 +70,7 @@
   },
   "peerDependencies": {
     "@cdktf/provider-archive": "^11.0.0",
-    "@cdktf/provider-aws": "^20.1.0",
+    "@cdktf/provider-aws": "^21.22.0",
     "@cdktf/provider-cloudinit": "^11.0.0",
     "@cdktf/provider-docker": "^12.0.2",
     "@cdktf/provider-time": "^11.0.0",

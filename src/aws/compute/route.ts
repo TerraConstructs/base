@@ -572,7 +572,7 @@ export class NatGateway extends AwsConstructBase implements IRouteTarget {
     if (this.connectivityType === NatConnectivityType.PUBLIC) {
       if (!props.allocationId) {
         const eip = new tfEip.Eip(this, "EIP", {
-          domain: props.vpc?.vpcId,
+          domain: "vpc",
         });
         aId = eip.allocationId;
       } else {

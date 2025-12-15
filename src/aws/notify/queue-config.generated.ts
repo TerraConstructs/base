@@ -7,63 +7,69 @@ import type { FileProvisioner, IResolvable, ITerraformDependable, ITerraformIter
  */
 export interface SqsQueueConfig {
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#visibility_timeout_seconds SqsQueue#visibility_timeout_seconds}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#visibility_timeout_seconds SqsQueue#visibility_timeout_seconds}.
    * @stability stable
    */
   readonly visibilityTimeoutSeconds?: number;
   /**
    * timeouts block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#timeouts SqsQueue#timeouts}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#timeouts SqsQueue#timeouts}
    * @stability stable
    */
   readonly timeouts?: sqsQueue.SqsQueueTimeouts;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#tags_all SqsQueue#tags_all}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#tags_all SqsQueue#tags_all}.
    * @stability stable
    */
   readonly tagsAll?: Record<string, string>;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#tags SqsQueue#tags}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#tags SqsQueue#tags}.
    * @stability stable
    */
   readonly tags?: Record<string, string>;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#sqs_managed_sse_enabled SqsQueue#sqs_managed_sse_enabled}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#sqs_managed_sse_enabled SqsQueue#sqs_managed_sse_enabled}.
    * @stability stable
    */
   readonly sqsManagedSseEnabled?: boolean | IResolvable;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#receive_wait_time_seconds SqsQueue#receive_wait_time_seconds}.
+   * Region where this resource will be [managed](https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints). Defaults to the Region set in the [provider configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#aws-configuration-reference).
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#region SqsQueue#region}
+   * @stability stable
+   */
+  readonly region?: string;
+  /**
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#receive_wait_time_seconds SqsQueue#receive_wait_time_seconds}.
    * @stability stable
    */
   readonly receiveWaitTimeSeconds?: number;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#policy SqsQueue#policy}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#policy SqsQueue#policy}.
    * @stability stable
    */
   readonly policy?: string;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#message_retention_seconds SqsQueue#message_retention_seconds}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#message_retention_seconds SqsQueue#message_retention_seconds}.
    * @stability stable
    */
   readonly messageRetentionSeconds?: number;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#max_message_size SqsQueue#max_message_size}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#max_message_size SqsQueue#max_message_size}.
    * @stability stable
    */
   readonly maxMessageSize?: number;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#kms_master_key_id SqsQueue#kms_master_key_id}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#kms_master_key_id SqsQueue#kms_master_key_id}.
    * @stability stable
    */
   readonly kmsMasterKeyId?: string;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#kms_data_key_reuse_period_seconds SqsQueue#kms_data_key_reuse_period_seconds}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#kms_data_key_reuse_period_seconds SqsQueue#kms_data_key_reuse_period_seconds}.
    * @stability stable
    */
   readonly kmsDataKeyReusePeriodSeconds?: number;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.100.0/docs/resources/sqs_queue#delay_seconds SqsQueue#delay_seconds}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/6.25.0/docs/resources/sqs_queue#delay_seconds SqsQueue#delay_seconds}.
    * @stability stable
    */
   readonly delaySeconds?: number;

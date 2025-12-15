@@ -43,6 +43,7 @@ const gridBackendConfig = {
 
 const STANDARD_RUNTIME = Runtime.NODEJS_18_X;
 const STANDARD_TARGET = "node18";
+const LATEST_TARGET = "node22";
 const STANDARD_EXTERNAL = "@aws-sdk/*";
 const TEST_APPDIR = path.join(__dirname, "fixtures", "app");
 const CDKTFJSON_PATH = path.join(TEST_APPDIR, "cdktf.json");
@@ -501,7 +502,7 @@ test("esbuild bundling with feature flag enabled using Node Latest", () => {
       command: [
         "bash",
         "-c",
-        `esbuild --bundle "/asset-input/lib/handler.ts" --target=${STANDARD_TARGET} --platform=node --outfile="/asset-output/index.js"`,
+        `esbuild --bundle "/asset-input/lib/handler.ts" --target=${LATEST_TARGET} --platform=node --outfile="/asset-output/index.js"`,
       ],
     }),
   });
@@ -1205,7 +1206,7 @@ test("bundling using NODEJS_LATEST doesn't externalize anything by default", () 
         command: [
           "bash",
           "-c",
-          `esbuild --bundle "/asset-input/lib/handler.ts" --target=${STANDARD_TARGET} --platform=node --outfile="/asset-output/index.js"`,
+          `esbuild --bundle "/asset-input/lib/handler.ts" --target=${LATEST_TARGET} --platform=node --outfile="/asset-output/index.js"`,
         ],
       }),
     }),

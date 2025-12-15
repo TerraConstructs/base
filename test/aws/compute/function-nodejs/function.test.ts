@@ -471,7 +471,7 @@ test.skip("defaults to NODEJS_16_X with feature flag disabled", () => {
   );
 });
 
-describe("Node 18+ runtimes", () => {
+describe("Node 22+ runtimes", () => {
   test("defaults to NODEJS_LATEST with feature flag enabled", () => {
     // GIVEN
     // const appFF = new App({
@@ -488,7 +488,7 @@ describe("Node 18+ runtimes", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       lambdaFunction.LambdaFunction,
       {
-        runtime: "nodejs18.x",
+        runtime: "nodejs22.x",
       },
     );
   });

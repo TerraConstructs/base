@@ -159,7 +159,7 @@ export class Runtime {
    * available in YOUR region).
    */
   public static readonly NODEJS_LATEST = new Runtime(
-    "nodejs18.x",
+    "nodejs22.x", // TODO: review this
     RuntimeFamily.NODEJS,
     { supportsInlineCode: true, isVariable: true },
   );
@@ -169,6 +169,15 @@ export class Runtime {
    */
   public static readonly NODEJS_22_X = new Runtime(
     "nodejs22.x",
+    RuntimeFamily.NODEJS,
+    { supportsInlineCode: true },
+  );
+
+  /**
+   * The NodeJS 24.x runtime (nodejs24.x)
+   */
+  public static readonly NODEJS_24_X = new Runtime(
+    "nodejs24.x",
     RuntimeFamily.NODEJS,
     { supportsInlineCode: true },
   );
@@ -279,6 +288,19 @@ export class Runtime {
    */
   public static readonly PYTHON_3_13 = new Runtime(
     "python3.13",
+    RuntimeFamily.PYTHON,
+    {
+      supportsInlineCode: true,
+      supportsCodeGuruProfiling: true,
+      supportsSnapStart: true,
+    },
+  );
+
+  /**
+   * The Python 3.14 runtime (python3.14)
+   */
+  public static readonly PYTHON_3_14 = new Runtime(
+    "python3.14",
     RuntimeFamily.PYTHON,
     {
       supportsInlineCode: true,
@@ -570,8 +592,8 @@ const LATEST_NODE_RUNTIME_MAP: Record<Partition, string> = {
   [Partition.Default]: RuntimeFact.NODE_22,
   [Partition.Cn]: RuntimeFact.NODE_22,
   [Partition.UsGov]: RuntimeFact.NODE_22,
-  [Partition.UsIso]: RuntimeFact.NODE_18,
-  [Partition.UsIsoB]: RuntimeFact.NODE_18,
-  [Partition.UsIsoF]: RuntimeFact.NODE_18,
-  [Partition.EuIsoE]: RuntimeFact.NODE_18,
+  [Partition.UsIso]: RuntimeFact.NODE_22,
+  [Partition.UsIsoB]: RuntimeFact.NODE_22,
+  [Partition.UsIsoF]: RuntimeFact.NODE_22,
+  [Partition.EuIsoE]: RuntimeFact.NODE_22,
 };
