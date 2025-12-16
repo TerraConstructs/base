@@ -33,6 +33,7 @@
     "organization": false
   },
   "devDependencies": {
+    "@aws-cdk/region-info": "2.199.0",
     "@cdktf/provider-archive": "11.0.0",
     "@cdktf/provider-aws": "21.22.0",
     "@cdktf/provider-cloudinit": "11.0.0",
@@ -69,6 +70,7 @@
     "typescript": "~5.9"
   },
   "peerDependencies": {
+    "@aws-cdk/region-info": "~2.199.0",
     "@cdktf/provider-archive": "^11.0.0",
     "@cdktf/provider-aws": "^21.22.0",
     "@cdktf/provider-cloudinit": "^11.0.0",

@@ -41,8 +41,8 @@ const gridBackendConfig = {
   address: "http://localhost:3000",
 };
 
-const STANDARD_RUNTIME = Runtime.NODEJS_18_X;
-const STANDARD_TARGET = "node18";
+const STANDARD_RUNTIME = Runtime.NODEJS_20_X;
+const STANDARD_TARGET = "node20";
 const LATEST_TARGET = "node22";
 const STANDARD_EXTERNAL = "@aws-sdk/*";
 const TEST_APPDIR = path.join(__dirname, "fixtures", "app");
@@ -399,10 +399,7 @@ test("esbuild bundling source map default", () => {
   });
 });
 
-test.each([
-  [Runtime.NODEJS_18_X, "node18"],
-  [Runtime.NODEJS_20_X, "node20"],
-])(
+test.each([[Runtime.NODEJS_20_X, "node20"]])(
   "esbuild bundling without aws-sdk v3 and smithy with feature flag enabled using Node 18+",
   (runtime, target) => {
     const cdkApp = new App({
@@ -458,7 +455,7 @@ test("esbuild bundling with bundleAwsSdk true with feature flag enabled using No
     projectRoot,
     depsLockFilePath,
     bundleAwsSDK: true,
-    runtime: Runtime.NODEJS_18_X,
+    runtime: Runtime.NODEJS_20_X,
     architecture: Architecture.X86_64,
   });
 
@@ -541,12 +538,12 @@ test("esbuild bundling with feature flag enabled using Node 16", () => {
   });
 });
 
-test("esbuild bundling without aws-sdk v3 when use greater than or equal Runtime.NODEJS_18_X", () => {
+test("esbuild bundling without aws-sdk v3 when use greater than or equal Runtime.NODEJS_20_X", () => {
   Bundling.bundle(stack, {
     entry,
     projectRoot,
     depsLockFilePath,
-    runtime: Runtime.NODEJS_18_X,
+    runtime: Runtime.NODEJS_20_X,
     architecture: Architecture.X86_64,
   });
 
@@ -568,7 +565,7 @@ test("esbuild bundling includes aws-sdk", () => {
     entry,
     projectRoot,
     depsLockFilePath,
-    runtime: Runtime.NODEJS_18_X,
+    runtime: STANDARD_RUNTIME,
     architecture: Architecture.X86_64,
     bundleAwsSDK: true,
   });
@@ -1262,7 +1259,7 @@ test("bundling with >= Node18 warns when sdk v2 is external", () => {
     entry,
     projectRoot,
     depsLockFilePath,
-    runtime: Runtime.NODEJS_18_X,
+    runtime: Runtime.NODEJS_20_X,
     architecture: Architecture.X86_64,
     externalModules: ["aws-sdk"],
   });
@@ -1285,7 +1282,7 @@ test("bundling with >= Node18 does not warn with default externalModules", () =>
     entry,
     projectRoot,
     depsLockFilePath,
-    runtime: Runtime.NODEJS_18_X,
+    runtime: Runtime.NODEJS_20_X,
     architecture: Architecture.X86_64,
   });
 

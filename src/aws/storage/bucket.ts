@@ -1,4 +1,5 @@
 import { EOL } from "node:os";
+import { FactName, RegionInfo } from "@aws-cdk/region-info";
 import {
   s3Bucket,
   s3BucketAcl,
@@ -12,7 +13,7 @@ import {
   dataAwsS3Bucket,
 } from "@cdktf/provider-aws";
 import { sleep } from "@cdktf/provider-time";
-import { Token } from "cdktf";
+import { Lazy, Token } from "cdktf";
 // import { Fn } from "../../terra-func";
 import { Construct } from "constructs";
 import { IBucketNotificationDestination } from "./bucket-destination";
@@ -30,12 +31,8 @@ import {
   AwsConstructProps,
 } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
-import {
-  s3StaticWebsiteEndpoint,
-  s3StaticWebsiteHostedZoneId,
-  parseBucketName,
-  parseBucketArn,
-} from "./util";
+import { parseBucketName, parseBucketArn } from "./util";
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import * as kms from "../encryption";
 import * as iam from "../iam";
 
@@ -946,7 +943,7 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
   //  */
   // public grantPublicAccess(keyPrefix = "*", ...allowedActions: string[]) {
   //   if (!this.public) {
-  //     throw new Error("Cannot grant public access when 'public' is enabled");
+  //     throw new ValidationError("Cannot grant public access when 'public' is enabled", this);
   //   }
   //   // TDOO: This should create publicAccess resource
   //   allowedActions =
@@ -1123,8 +1120,9 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
     );
     if (indexedSource) {
       if (sourceId && sourceId !== indexedSource.id) {
-        throw new Error(
+        throw new ValidationError(
           `Duplicate bucket source for ${indexedSource.id} and ${sourceId}.`,
+          this,
         );
       }
       return indexedSource.id;
@@ -1133,8 +1131,9 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
     const id = sourceId ?? `source-${nextIndex}`;
     // ensure id (if provided) is unique within Bucket
     if (this.sources.some((sourceIndex) => sourceIndex.id === id)) {
-      throw new Error(
+      throw new ValidationError(
         `Duplicate source id ${id}. SourceIds must be unique within a Bucket.`,
+        this,
       );
     }
     this.sources.push({
@@ -1296,23 +1295,23 @@ export class Bucket extends BucketBase implements IBucket {
   ): IBucket {
     const stack = AwsStack.ofAwsConstruct(scope);
     const region = attrs.region ?? stack.region;
-    const urlSuffix = stack.urlSuffix;
+    const regionInfo = RegionInfo.get(region);
+    const urlSuffix = regionInfo.domainSuffix ?? stack.urlSuffix;
 
     const bucketName = parseBucketName(scope, attrs);
     if (!bucketName) {
-      throw new Error("Bucket name is required");
+      throw new ValidationError("Bucket name is required", scope);
     }
     Bucket.validateBucketName(bucketName, true);
 
-    let staticDomainEndpoint = s3StaticWebsiteEndpoint(region);
-    // TODO: support lazy lookup based on Unresolved region
-    // Lazy.stringValue({
-    //   produce: () =>
-    //     stack.regionalFact(
-    //       regionInformation.FactName.S3_STATIC_WEBSITE_ENDPOINT,
-    //       newEndpoint,
-    //     ),
-    // });
+    const newEndpoint = `s3-website.${region}.${urlSuffix}`;
+
+    const staticDomainEndpoint =
+      regionInfo.s3StaticWebsiteEndpoint ??
+      Lazy.stringValue({
+        produce: () =>
+          stack.regionalFact(FactName.S3_STATIC_WEBSITE_ENDPOINT, newEndpoint),
+      });
     const websiteDomain = `${bucketName}.${staticDomainEndpoint}`;
 
     class Import extends BucketBase {
@@ -1340,7 +1339,14 @@ export class Bucket extends BucketBase implements IBucket {
       public readonly encryptionKey = attrs.encryptionKey;
 
       public get hostedZoneId(): string {
-        return s3StaticWebsiteHostedZoneId(region);
+        const { s3StaticWebsiteHostedZoneId } = RegionInfo.get(region);
+        if (!s3StaticWebsiteHostedZoneId) {
+          throw new ValidationError(
+            `No hosted zone ID found for S3 static website in region: ${region}`,
+            this,
+          );
+        }
+        return s3StaticWebsiteHostedZoneId;
       }
       public readonly public = attrs.public ?? false;
       public readonly versioned = attrs.versioned ?? false;
@@ -1437,7 +1443,7 @@ export class Bucket extends BucketBase implements IBucket {
     }
 
     if (errors.length > 0) {
-      throw new Error(
+      throw new UnscopedValidationError(
         `Invalid S3 bucket name (value: ${bucketName})${EOL}${errors.join(EOL)}`,
       );
     }
@@ -1498,8 +1504,9 @@ export class Bucket extends BucketBase implements IBucket {
     this._isWebsite = false;
 
     if (props.bucketName && props.namePrefix) {
-      throw new Error(
+      throw new ValidationError(
         "Cannot specify both 'bucketName' and 'namePrefix'. Use only one.",
+        scope,
       );
     }
 
@@ -1564,8 +1571,9 @@ export class Bucket extends BucketBase implements IBucket {
       this.enforceSSLStatement();
       this.minimumTLSVersionStatement(props.minimumTLSVersion);
     } else if (props.minimumTLSVersion) {
-      throw new Error(
+      throw new ValidationError(
         "'enforceSSL' must be enabled for 'minimumTLSVersion' to be applied",
+        this,
       );
     }
 
@@ -1720,8 +1728,9 @@ export class Bucket extends BucketBase implements IBucket {
       encryptionType !== BucketEncryption.KMS &&
       props.encryptionKey
     ) {
-      throw new Error(
+      throw new ValidationError(
         `encryptionKey is specified, so 'encryption' must be set to KMS or DSSE (value: ${encryptionType})`,
+        this,
       );
     }
 
@@ -1730,8 +1739,9 @@ export class Bucket extends BucketBase implements IBucket {
       props.bucketKeyEnabled &&
       encryptionType === BucketEncryption.UNENCRYPTED
     ) {
-      throw new Error(
+      throw new ValidationError(
         `bucketKeyEnabled is specified, so 'encryption' must be set to KMS, DSSE or S3 (value: ${encryptionType})`,
+        this,
       );
     }
 
@@ -1835,7 +1845,10 @@ export class Bucket extends BucketBase implements IBucket {
       };
     }
 
-    throw new Error(`Unexpected 'encryptionType': ${encryptionType}`);
+    throw new ValidationError(
+      `Unexpected 'encryptionType': ${encryptionType}`,
+      this,
+    );
   }
 
   /**
