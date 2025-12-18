@@ -1,27 +1,22 @@
 import * as path from "node:path";
 import {
   dataAwsIamPolicyDocument,
+  kmsKey,
   lambdaPermission,
   snsTopic,
   snsTopicSubscription,
   sqsQueue,
   sqsQueuePolicy,
 } from "@cdktf/provider-aws";
-import { App, Testing, Token, TerraformVariable, ref } from "cdktf";
+import { App, Testing, Token, ref } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
-// import * as kms from "../../../../src/aws/encryption";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as compute from "../../../../src/aws/compute";
+import * as encryption from "../../../../src/aws/encryption";
 import * as notify from "../../../../src/aws/notify";
 import * as subs from "../../../../src/aws/notify/subscriptions";
 import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
-// import * as cxapi from "../../cx-api";
-
-// /* eslint-disable quote-props */
-// const restrictSqsDescryption = {
-//   [cxapi.SNS_SUBSCRIPTIONS_SQS_DECRYPTION_POLICY]: true,
-// };
 
 let stack: AwsStack;
 let topic: notify.Topic;
@@ -72,10 +67,8 @@ test("url subscription", () => {
 
 test("url subscription with user provided dlq", () => {
   const dlQueue = new notify.Queue(stack, "DeadLetterQueue", {
-    // TODO: re-align with aws-cdk-lib/aws-sqs ...
-    namePrefix: "MySubscription_DLQ",
-    // retentionPeriod: Duration.days(14),
-    messageRetentionSeconds: Duration.days(14).toSeconds(),
+    queueName: "MySubscription_DLQ",
+    retentionPeriod: Duration.days(14),
   });
   topic.addSubscription(
     new subs.UrlSubscription("https://foobar.com/", {
@@ -401,8 +394,8 @@ test("queue subscription cross region", () => {
 //   topic1.addSubscription(new subs.SqsSubscription(queue));
 
 //   Template.fromStack(topicStack, { snapshot: true });
-//   // .templateMatches({
-//   //   Resources: {
+//   // .toMatchObject({
+//   //   resource: {
 //   //     TopicBFC7AF6E: {
 //   //       Type: "AWS::SNS::Topic",
 //   //       Properties: {
@@ -424,8 +417,8 @@ test("queue subscription cross region", () => {
 //   // });
 
 //   Template.fromStack(queueStack, { snapshot: true });
-//   // .templateMatches({
-//   //   Resources: {
+//   // .toMatchObject({
+//   //   resource: {
 //   //     MyQueueE6CA6235: {
 //   //       Type: "AWS::SQS::Queue",
 //   //       UpdateReplacePolicy: "Delete",
@@ -514,8 +507,8 @@ test("queue subscription cross region", () => {
 //   topic1.addSubscription(new subs.SqsSubscription(queue));
 
 //   Template.fromStack(topicStack, { snapshot: true });
-//   // .templateMatches({
-//   //   Resources: {
+//   // .toMatchObject({
+//   //   resource: {
 //   //     TopicBFC7AF6E: {
 //   //       Type: "AWS::SNS::Topic",
 //   //       Properties: {
@@ -527,8 +520,8 @@ test("queue subscription cross region", () => {
 //   // });
 
 //   Template.fromStack(queueStack, { snapshot: true });
-//   // .templateMatches({
-//   //   Resources: {
+//   // .toMatchObject({
+//   //   resource: {
 //   //     MyQueueE6CA6235: {
 //   //       Type: "AWS::SQS::Queue",
 //   //       UpdateReplacePolicy: "Delete",
@@ -649,8 +642,8 @@ test("queue subscription cross region", () => {
 //   topic1.addSubscription(new subs.SqsSubscription(queue));
 
 //   Template.fromStack(topicStack, { snapshot: true });
-//   // .templateMatches({
-//   //   Resources: {
+//   // .toMatchObject({
+//   //   resource: {
 //   //     TopicBFC7AF6E: {
 //   //       Type: "AWS::SNS::Topic",
 //   //       Properties: {
@@ -662,8 +655,8 @@ test("queue subscription cross region", () => {
 //   // });
 
 //   Template.fromStack(queueStack, { snapshot: true });
-//   // .templateMatches({
-//   //   Resources: {
+//   // .toMatchObject({
+//   //   resource: {
 //   //     MyQueueE6CA6235: {
 //   //       Type: "AWS::SQS::Queue",
 //   //       UpdateReplacePolicy: "Delete",
@@ -739,11 +732,8 @@ test("queue subscription cross region", () => {
 test("queue subscription with user provided dlq", () => {
   const queue = new notify.Queue(stack, "MyQueue");
   const dlQueue = new notify.Queue(stack, "DeadLetterQueue", {
-    namePrefix: "MySubscription_DLQ",
-    // TODO: re-align with aws-cdk-lib/aws-sqs ...
-    // retentionPeriod: Duration.days(14),
-    messageRetentionSeconds: Duration.days(14).toSeconds(),
-    // retentionPeriod: Duration.days(14),
+    queueName: "MySubscription_DLQ",
+    retentionPeriod: Duration.days(14),
   });
 
   topic.addSubscription(
@@ -854,332 +844,228 @@ test("queue subscription (with raw delivery)", () => {
       ],
     },
   );
-  // {
-  //   Endpoint: {
-  //     "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-  //   },
-  //   Protocol: "sqs",
-  //   TopicArn: {
-  //     Ref: "MyTopic86869434",
-  //   },
-  //   RawMessageDelivery: true,
-  // },
 });
 
-// TODO: Re-add Encryption for Queue
-// test("encrypted queue subscription", () => {
-//   const key = new kms.Key(stack, "MyKey", {
-//     removalPolicy: RemovalPolicy.DESTROY,
-//   });
+test("encrypted queue subscription", () => {
+  const key = new encryption.Key(stack, "MyKey", {
+    // removalPolicy: RemovalPolicy.DESTROY,
+  });
 
-//   const queue = new notify.Queue(stack, "MyQueue", {
-//     encryption: notify.QueueEncryption.KMS,
-//     encryptionMasterKey: key,
-//   });
+  const queue = new notify.Queue(stack, "MyQueue", {
+    encryption: notify.QueueEncryption.KMS,
+    encryptionMasterKey: key,
+  });
 
-//   topic.addSubscription(new subs.SqsSubscription(queue));
+  topic.addSubscription(new subs.SqsSubscription(queue));
 
-//   Template.fromStack(stack).templateMatches({
-//     Resources: {
-//       MyTopic86869434: {
-//         Type: "AWS::SNS::Topic",
-//         Properties: {
-//           DisplayName: "displayName",
-//           TopicName: "topicName",
-//         },
-//       },
-//       MyKey6AB29FA6: {
-//         Type: "AWS::KMS::Key",
-//         Properties: {
-//           KeyPolicy: {
-//             Statement: [
-//               {
-//                 Action: "kms:*",
-//                 Effect: "Allow",
-//                 Principal: {
-//                   AWS: {
-//                     "Fn::Join": [
-//                       "",
-//                       [
-//                         "arn:",
-//                         {
-//                           Ref: "AWS::Partition",
-//                         },
-//                         ":iam::",
-//                         {
-//                           Ref: "AWS::AccountId",
-//                         },
-//                         ":root",
-//                       ],
-//                     ],
-//                   },
-//                 },
-//                 Resource: "*",
-//               },
-//               {
-//                 Action: ["kms:Decrypt", "kms:GenerateDataKey"],
-//                 Effect: "Allow",
-//                 Principal: {
-//                   Service: "sns.amazonaws.com",
-//                 },
-//                 Resource: "*",
-//               },
-//             ],
-//             Version: "2012-10-17",
-//           },
-//         },
-//         UpdateReplacePolicy: "Delete",
-//         DeletionPolicy: "Delete",
-//       },
-//       MyQueueE6CA6235: {
-//         Type: "AWS::SQS::Queue",
-//         Properties: {
-//           KmsMasterKeyId: {
-//             "Fn::GetAtt": ["MyKey6AB29FA6", "Arn"],
-//           },
-//         },
-//         DeletionPolicy: "Delete",
-//         UpdateReplacePolicy: "Delete",
-//       },
-//       MyQueuePolicy6BBEDDAC: {
-//         Type: "AWS::SQS::QueuePolicy",
-//         Properties: {
-//           PolicyDocument: {
-//             Statement: [
-//               {
-//                 Action: "sqs:SendMessage",
-//                 Condition: {
-//                   ArnEquals: {
-//                     "aws:SourceArn": {
-//                       Ref: "MyTopic86869434",
-//                     },
-//                   },
-//                 },
-//                 Effect: "Allow",
-//                 Principal: {
-//                   Service: "sns.amazonaws.com",
-//                 },
-//                 Resource: {
-//                   "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-//                 },
-//               },
-//             ],
-//             Version: "2012-10-17",
-//           },
-//           Queues: [
-//             {
-//               Ref: "MyQueueE6CA6235",
-//             },
-//           ],
-//         },
-//       },
-//       MyQueueMyTopic9B00631B: {
-//         Type: "AWS::SNS::Subscription",
-//         Properties: {
-//           Protocol: "sqs",
-//           TopicArn: {
-//             Ref: "MyTopic86869434",
-//           },
-//           Endpoint: {
-//             "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-//           },
-//         },
-//       },
-//     },
-//   });
-// });
+  Template.fromStack(stack).toMatchObject({
+    data: {
+      [dataAwsIamPolicyDocument.DataAwsIamPolicyDocument.tfResourceType]: {
+        MyKey_Policy_A23B479B: {
+          statement: [
+            {
+              actions: ["kms:*"],
+              effect: "Allow",
+              principals: [
+                {
+                  type: "AWS",
+                  identifiers: [
+                    "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root",
+                  ],
+                },
+              ],
+              resources: ["*"],
+            },
+            {
+              actions: ["kms:Decrypt", "kms:GenerateDataKey"],
+              effect: "Allow",
+              principals: [
+                {
+                  type: "Service",
+                  identifiers: [
+                    "${data.aws_service_principal.aws_svcp_default_region_sns.name}",
+                  ],
+                },
+              ],
+              resources: ["*"],
+            },
+          ],
+        },
+        MyQueue_Policy_B72AE551: {
+          statement: [
+            {
+              actions: ["sqs:SendMessage"],
+              condition: [
+                {
+                  test: "ArnEquals",
+                  values: [stack.resolve(topic.topicArn)],
+                  variable: "aws:SourceArn",
+                },
+              ],
+              effect: "Allow",
+              principals: [
+                {
+                  type: "Service",
+                  identifiers: [
+                    "${data.aws_service_principal.aws_svcp_default_region_sns.name}",
+                  ],
+                },
+              ],
+              resources: [stack.resolve(queue.queueArn)],
+            },
+          ],
+        },
+      },
+    },
+    resource: {
+      [snsTopic.SnsTopic.tfResourceType]: {
+        MyTopic_86869434: {
+          display_name: "displayName",
+          name: "topicName",
+        },
+      },
+      [kmsKey.KmsKey.tfResourceType]: {
+        MyKey_6AB29FA6: {
+          policy: "${data.aws_iam_policy_document.MyKey_Policy_A23B479B.json}",
+        },
+      },
+      [sqsQueue.SqsQueue.tfResourceType]: {
+        MyQueue_E6CA6235: {
+          kms_master_key_id: stack.resolve(key.keyArn),
+        },
+      },
+      [sqsQueuePolicy.SqsQueuePolicy.tfResourceType]: {
+        MyQueue_Policy_6BBEDDAC: {
+          policy:
+            "${data.aws_iam_policy_document.MyQueue_Policy_B72AE551.json}",
+          queue_url: stack.resolve(queue.queueUrl),
+        },
+      },
+      [snsTopicSubscription.SnsTopicSubscription.tfResourceType]: {
+        MyQueue_MyStackMyTopicDFB2578F_8EEC5EA1: {
+          protocol: "sqs",
+          topic_arn: stack.resolve(topic.topicArn),
+          endpoint: stack.resolve(queue.queueArn),
+        },
+      },
+    },
+  });
+});
 
-// describe("Restrict sqs decryption feature flag", () => {
-//   test("Restrict decryption of sqs to sns service principal", () => {
-//     const stackUnderTest = new AwsStack(new App());
-//     const topicUnderTest = new notify.Topic(stackUnderTest, "MyTopic", {
-//       topicName: "topicName",
-//       displayName: "displayName",
-//     });
-//     const key = new kms.Key(stackUnderTest, "MyKey", {
-//       removalPolicy: RemovalPolicy.DESTROY,
-//     });
+// There will be no feature flag so we can always expect the condition in the policy statement
+test("restrict decryption of sqs to sns topic", () => {
+  const key = new encryption.Key(stack, "MyKey", {
+    // removalPolicy: RemovalPolicy.DESTROY,
+  });
 
-//     const queue = new notify.Queue(stackUnderTest, "MyQueue", {
-//       encryptionMasterKey: key,
-//     });
+  const queue = new notify.Queue(stack, "MyQueue", {
+    encryptionMasterKey: key,
+  });
 
-//     topicUnderTest.addSubscription(new subs.SqsSubscription(queue));
+  topic.addSubscription(new subs.SqsSubscription(queue));
 
-//     Template.fromStack(stackUnderTest).templateMatches({
-//       Resources: {
-//         MyKey6AB29FA6: {
-//           Type: "AWS::KMS::Key",
-//           Properties: {
-//             KeyPolicy: {
-//               Statement: [
-//                 {
-//                   Action: "kms:*",
-//                   Effect: "Allow",
-//                   Principal: {
-//                     AWS: {
-//                       "Fn::Join": [
-//                         "",
-//                         [
-//                           "arn:",
-//                           {
-//                             Ref: "AWS::Partition",
-//                           },
-//                           ":iam::",
-//                           {
-//                             Ref: "AWS::AccountId",
-//                           },
-//                           ":root",
-//                         ],
-//                       ],
-//                     },
-//                   },
-//                   Resource: "*",
-//                 },
-//                 {
-//                   Action: ["kms:Decrypt", "kms:GenerateDataKey"],
-//                   Effect: "Allow",
-//                   Principal: {
-//                     Service: "sns.amazonaws.com",
-//                   },
-//                   Resource: "*",
-//                 },
-//               ],
-//               Version: "2012-10-17",
-//             },
-//           },
-//           UpdateReplacePolicy: "Delete",
-//           DeletionPolicy: "Delete",
-//         },
-//       },
-//     });
-//   });
-//   test("Restrict decryption of sqs to sns topic", () => {
-//     const stackUnderTest = new AwsStack(
-//       new App({
-//         context: restrictSqsDescryption,
-//       }),
-//     );
-//     const topicUnderTest = new notify.Topic(stackUnderTest, "MyTopic", {
-//       topicName: "topicName",
-//       displayName: "displayName",
-//     });
-//     const key = new kms.Key(stackUnderTest, "MyKey", {
-//       removalPolicy: RemovalPolicy.DESTROY,
-//     });
+  Template.fromStack(stack).toMatchObject({
+    data: {
+      [dataAwsIamPolicyDocument.DataAwsIamPolicyDocument.tfResourceType]: {
+        MyKey_Policy_A23B479B: {
+          statement: [
+            {
+              actions: ["kms:*"],
+              effect: "Allow",
+              principals: [
+                {
+                  type: "AWS",
+                  identifiers: [
+                    "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root",
+                  ],
+                },
+              ],
+              resources: ["*"],
+            },
+            {
+              actions: ["kms:Decrypt", "kms:GenerateDataKey"],
+              effect: "Allow",
+              principals: [
+                {
+                  type: "Service",
+                  identifiers: [
+                    "${data.aws_service_principal.aws_svcp_default_region_sns.name}",
+                  ],
+                },
+              ],
+              resources: ["*"],
+              condition: [
+                {
+                  test: "ArnEquals",
+                  variable: "aws:SourceArn",
+                  values: [stack.resolve(topic.topicArn)],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    resource: {
+      [kmsKey.KmsKey.tfResourceType]: {
+        MyKey_6AB29FA6: {
+          policy: "${data.aws_iam_policy_document.MyKey_Policy_A23B479B.json}",
+        },
+      },
+    },
+  });
+});
 
-//     const queue = new notify.Queue(stackUnderTest, "MyQueue", {
-//       encryptionMasterKey: key,
-//     });
+test("throws an error when a queue is encrypted by AWS managed KMS kye for queue subscription", () => {
+  // WHEN
+  const queue = new notify.Queue(stack, "MyQueue", {
+    encryption: notify.QueueEncryption.KMS_MANAGED,
+  });
 
-//     topicUnderTest.addSubscription(new subs.SqsSubscription(queue));
+  // THEN
+  expect(() => topic.addSubscription(new subs.SqsSubscription(queue))).toThrow(
+    /SQS queue encrypted by AWS managed KMS key cannot be used as SNS subscription/,
+  );
+});
 
-//     Template.fromStack(stackUnderTest).templateMatches({
-//       Resources: {
-//         MyKey6AB29FA6: {
-//           Type: "AWS::KMS::Key",
-//           Properties: {
-//             KeyPolicy: {
-//               Statement: [
-//                 {
-//                   Action: "kms:*",
-//                   Effect: "Allow",
-//                   Principal: {
-//                     AWS: {
-//                       "Fn::Join": [
-//                         "",
-//                         [
-//                           "arn:",
-//                           {
-//                             Ref: "AWS::Partition",
-//                           },
-//                           ":iam::",
-//                           {
-//                             Ref: "AWS::AccountId",
-//                           },
-//                           ":root",
-//                         ],
-//                       ],
-//                     },
-//                   },
-//                   Resource: "*",
-//                 },
-//                 {
-//                   Action: ["kms:Decrypt", "kms:GenerateDataKey"],
-//                   Effect: "Allow",
-//                   Principal: {
-//                     Service: "sns.amazonaws.com",
-//                   },
-//                   Resource: "*",
-//                   Condition: {
-//                     ArnEquals: {
-//                       "aws:SourceArn": {
-//                         Ref: "MyTopic86869434",
-//                       },
-//                     },
-//                   },
-//                 },
-//               ],
-//               Version: "2012-10-17",
-//             },
-//           },
-//           UpdateReplacePolicy: "Delete",
-//           DeletionPolicy: "Delete",
-//         },
-//       },
-//     });
-//   });
-// });
+test("throws an error when a dead-letter queue is encrypted by AWS managed KMS kye for queue subscription", () => {
+  // WHEN
+  const queue = new notify.Queue(stack, "MyQueue");
+  const dlq = new notify.Queue(stack, "MyDLQ", {
+    encryption: notify.QueueEncryption.KMS_MANAGED,
+  });
 
-// test("throws an error when a queue is encrypted by AWS managed KMS kye for queue subscription", () => {
-//   // WHEN
-//   const queue = new notify.Queue(stack, "MyQueue", {
-//     encryption: notify.QueueEncryption.KMS_MANAGED,
-//   });
+  // THEN
+  expect(() =>
+    topic.addSubscription(
+      new subs.SqsSubscription(queue, {
+        deadLetterQueue: dlq,
+      }),
+    ),
+  ).toThrow(
+    /SQS queue encrypted by AWS managed KMS key cannot be used as dead-letter queue/,
+  );
+});
 
-//   // THEN
-//   expect(() => topic.addSubscription(new subs.SqsSubscription(queue))).toThrow(
-//     /SQS queue encrypted by AWS managed KMS key cannot be used as SNS subscription/,
-//   );
-// });
+test("importing SQS queue and specify this as subscription", () => {
+  // WHEN
+  const queue = notify.Queue.fromQueueArn(
+    stack,
+    "Queue",
+    "arn:aws:sqs:us-east-1:123456789012:queue1",
+  );
+  topic.addSubscription(new subs.SqsSubscription(queue));
 
-// test("throws an error when a dead-letter queue is encrypted by AWS managed KMS kye for queue subscription", () => {
-//   // WHEN
-//   const queue = new notify.Queue(stack, "MyQueue");
-//   const dlq = new notify.Queue(stack, "MyDLQ", {
-//     encryption: notify.QueueEncryption.KMS_MANAGED,
-//   });
-
-//   // THEN
-//   expect(() =>
-//     topic.addSubscription(
-//       new subs.SqsSubscription(queue, {
-//         deadLetterQueue: dlq,
-//       }),
-//     ),
-//   ).toThrow(
-//     /SQS queue encrypted by AWS managed KMS key cannot be used as dead-letter queue/,
-//   );
-// });
-
-// test("importing SQS queue and specify this as subscription", () => {
-//   // WHEN
-//   const queue = notify.Queue.fromQueueArn(
-//     stack,
-//     "Queue",
-//     "arn:aws:sqs:us-east-1:123456789012:queue1",
-//   );
-//   topic.addSubscription(new subs.SqsSubscription(queue));
-
-//   // THEN
-//   Template.fromStack(stack).hasResourceProperties("AWS::SNS::Subscription", {
-//     Endpoint: "arn:aws:sqs:us-east-1:123456789012:queue1",
-//     Protocol: "sqs",
-//     TopicArn: {
-//       Ref: "MyTopic86869434",
-//     },
-//   });
-// });
+  // THEN
+  Template.synth(stack).toHaveResourceWithProperties(
+    snsTopicSubscription.SnsTopicSubscription,
+    {
+      protocol: "sqs",
+      topic_arn: stack.resolve(topic.topicArn),
+      endpoint: stack.resolve(queue.queueArn),
+    },
+  );
+});
 
 test("lambda subscription", () => {
   const func = new compute.LambdaFunction(stack, "MyFunc", {
@@ -1308,8 +1194,8 @@ test("lambda subscription, cross region env agnostic", () => {
 //   topic1.addSubscription(new subs.LambdaSubscription(func));
 
 //   Template.fromStack(lambdaStack, { snapshot: true });
-//   // .templateMatches({
-//   //   Resources: {
+//   // .toMatchObject({
+//   //   resource: {
 //   //     MyFuncServiceRole54065130: {
 //   //       Type: "AWS::IAM::Role",
 //   //       Properties: {

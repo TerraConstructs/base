@@ -27,7 +27,6 @@
 /src/aws/compute/lb-shared/lb-target-group-attachment-config.generated.ts linguist-generated
 /src/aws/iam/policy-document-config.generated.ts linguist-generated
 /src/aws/iam/policy-statement-props.generated.ts linguist-generated
-/src/aws/notify/queue-config.generated.ts linguist-generated
 /src/aws/provider-config.generated.ts linguist-generated
 /src/aws/storage/cors-config.generated.ts linguist-generated
 /src/aws/storage/cors-rule-config.generated.ts linguist-generated

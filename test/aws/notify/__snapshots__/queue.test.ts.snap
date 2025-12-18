@@ -73,6 +73,7 @@ exports[`Queue Should synth and match SnapShot with prefix 1`] = `
   "resource": {
     "aws_sqs_queue": {
       "HelloWorld_7964D1E8": {
+        "kms_master_key_id": "alias/aws/sqs",
         "message_retention_seconds": 1209600,
         "name_prefix": "hello-worldTestStackHelloWorld",
         "tags": {
@@ -124,6 +125,7 @@ exports[`Queue Should synth with DLQ and match SnapShot 1`] = `
   "resource": {
     "aws_sqs_queue": {
       "DLQ_581697C4": {
+        "kms_master_key_id": "alias/aws/sqs",
         "message_retention_seconds": 1209600,
         "name_prefix": "123e4567-e89b-12d3-TestStackDLQ",
         "tags": {
@@ -134,6 +136,7 @@ exports[`Queue Should synth with DLQ and match SnapShot 1`] = `
         "visibility_timeout_seconds": 900
       },
       "Queue_4A7E3555": {
+        "kms_master_key_id": "alias/aws/sqs",
         "message_retention_seconds": 1209600,
         "name_prefix": "123e4567-e89b-12d3-TestStackQueue",
         "redrive_policy": "{\\"deadLetterTargetArn\\":\\"\${aws_sqs_queue.DLQ_581697C4.arn}\\",\\"maxReceiveCount\\":5}",
@@ -188,6 +191,7 @@ exports[`Queue Should synth with contentBasedDeduplication and match SnapShot 1`
       "Queue_4A7E3555": {
         "content_based_deduplication": true,
         "fifo_queue": true,
+        "kms_master_key_id": "alias/aws/sqs",
         "message_retention_seconds": 1209600,
         "name_prefix": "123e4567-e89b-12d3-TestStackQueue",
         "tags": {
@@ -240,6 +244,7 @@ exports[`Queue Should synth with fifo suffix and match SnapShot 1`] = `
     "aws_sqs_queue": {
       "Queue_4A7E3555": {
         "fifo_queue": true,
+        "kms_master_key_id": "alias/aws/sqs",
         "message_retention_seconds": 1209600,
         "name_prefix": "queueTestStackQueue",
         "tags": {
