@@ -2,7 +2,7 @@
   "dependencies": [
     {
       "name": "@aws-cdk/region-info",
-      "version": "^2.199.0",
+      "version": "^2.233.0",
       "type": "build"
     },
     {
@@ -192,7 +192,7 @@
     },
     {
       "name": "@aws-cdk/region-info",
-      "version": "~2.199.0",
+      "version": "^2.233.0",
       "type": "peer"
     },
     {

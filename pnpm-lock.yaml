@@ -31,8 +31,8 @@ importers:
         version: 3.1.2
     devDependencies:
       '@aws-cdk/region-info':
-        specifier: 2.199.0
-        version: 2.199.0
+        specifier: 2.233.0
+        version: 2.233.0
       '@cdktf/provider-archive':
         specifier: 11.0.0
         version: 11.0.0(cdktf@0.21.0(constructs@10.4.2))(constructs@10.4.2)
@@ -142,9 +142,9 @@ packages:
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
 
-  '@aws-cdk/region-info@2.199.0':
-    resolution: {integrity: sha512-iPXxkDJYrMS9OPWh0XL940BhemlVrbYOcAYzjP6gYjNp6k8Aw4TXvyC6UUUj9S76RLC7aEz7QZH9089PotNAkQ==}
-    engines: {node: '>= 14.15.0'}
+  '@aws-cdk/region-info@2.233.0':
+    resolution: {integrity: sha512-6RIkgymaJ7UvfkbvwQV3DJmm+Xa2NiRyblZpNYT/5IymFQY17pjcDjfgvjGdhusJnOxXvVJP7F529n8vGAQc1w==}
+    engines: {node: '>= 18.0.0'}
 
   '@babel/code-frame@7.24.7':
     resolution: {integrity: sha512-BcYH1CVJBO9tvyIZ2jVeXgSIMvGZ2FDRvDdOIVQyuklNKSsx+eppDEBq/g47Ayw+RqNFE+URvOShmf+f/qwAlA==}
@@ -3320,7 +3320,7 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
 
-  '@aws-cdk/region-info@2.199.0': {}
+  '@aws-cdk/region-info@2.233.0': {}
 
   '@babel/code-frame@7.24.7':
     dependencies:

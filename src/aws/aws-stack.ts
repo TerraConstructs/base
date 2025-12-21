@@ -40,7 +40,7 @@ export interface AwsStackProps extends StackBaseProps {
   /**
    * The AWS Provider configuration (without the alias field)
    */
-  readonly providerConfig: AwsProviderConfig;
+  readonly providerConfig?: AwsProviderConfig;
 
   /**
    * Asset manager for handling file and Docker image assets
@@ -145,14 +145,14 @@ export class AwsStack extends StackBase implements IAwsStack {
   /**
    * Asset manager for handling file and Docker image assets
    */
-  private readonly assetManager: IAssetManager;
+  private _assetManager?: IAssetManager;
 
   // /**
   //  * Tags to be applied to the stack.
   //  */
   // public readonly cdkTagManager: TagManager;
 
-  private readonly lookup: AwsLookup;
+  private _lookup?: AwsLookup;
   private regionalAwsProviders: { [region: string]: provider.AwsProvider } = {};
 
   /**
@@ -167,38 +167,50 @@ export class AwsStack extends StackBase implements IAwsStack {
    * - https://github.com/hashicorp/terraform-cdk/blob/v0.20.10/packages/cdktf/lib/terraform-data-source.ts#L68
    * - https://github.com/hashicorp/terraform-cdk/blob/v0.20.10/packages/cdktf/lib/tokens/private/token-map.ts#L50-L66
    */
+  private readonly _providerConfig: AwsProviderConfig | undefined;
+  private readonly _assetOptions: AwsAssetManagerOptions | undefined;
   private _accountIdToken: string | undefined;
   private _paritionToken: string | undefined;
   private _urlSuffixToken: string | undefined;
 
-  constructor(scope: Construct, id: string, props: AwsStackProps) {
+  constructor(scope?: Construct, id?: string, props: AwsStackProps = {}) {
     super(scope, id, props);
     // this.cdkTagManager = new TagManager(
     //   TagType.KEY_VALUE,
     //   "cdktf:stack",
     //   props.providerConfig.defaultTags,
     // );
-    this.lookup = {
+    this._providerConfig = props.providerConfig;
+    this._assetOptions = props.assetOptions;
+    this._assetManager = props.assetManager;
+
+    // these should never depend on anything (HACK to avoid cycles)
+    Object.defineProperty(this, AWS_STACK_SYMBOL, { value: true });
+  }
+
+  private get lookup(): AwsLookup {
+    // Initialize default AWS provider
+    this._lookup ??= {
       awsProvider: new provider.AwsProvider(this, "defaultAwsProvider", {
         // defaultTags: this.cdkTagManager.renderedTags,
-        ...props.providerConfig,
+        ...(this._providerConfig ?? {}),
       }),
       dataAwsServicePrincipals: {},
     };
-    // these should never depend on anything (HACK to avoid cycles)
-    Object.defineProperty(this, AWS_STACK_SYMBOL, { value: true });
+    return this._lookup;
+  }
 
+  private get assetManager(): IAssetManager {
     // Initialize asset manager
-    this.assetManager =
-      props.assetManager ??
-      new AwsAssetManager(this, {
-        region: this.region,
-        account: this.account,
-        partition: this.partition,
-        urlSuffix: this.urlSuffix,
-        qualifier: this.gridUUID,
-        ...(props.assetOptions || {}),
-      });
+    this._assetManager ??= new AwsAssetManager(this, {
+      region: this.region,
+      account: this.account,
+      partition: this.partition,
+      urlSuffix: this.urlSuffix,
+      qualifier: this.gridUUID,
+      ...(this._assetOptions || {}),
+    });
+    return this._assetManager;
   }
 
   public get provider(): provider.AwsProvider {

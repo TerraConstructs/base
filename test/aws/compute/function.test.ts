@@ -188,7 +188,7 @@ describe("latest Lambda node runtime", () => {
         tfResourceType: "aws_lambda_function",
       },
       {
-        runtime: "nodejs18.x",
+        runtime: "nodejs22.x",
       },
     );
   });

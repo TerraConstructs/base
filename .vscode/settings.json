@@ -1,7 +1,18 @@
 {
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "prettier.prettier-vscode",
+  "[typescript]": {
+    "editor.defaultFormatter": "prettier.prettier-vscode"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
   "[go]": {
     "editor.defaultFormatter": "golang.go"
+  },
+  "prettier.enable": true,
+  "eslint.useFlatConfig": false,
+  "eslint.options": {
+    "overrideConfigFile": "./.eslintrc.json",
   }
 }
