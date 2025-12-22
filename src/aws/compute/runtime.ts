@@ -1,10 +1,8 @@
-import { Token } from "cdktf";
+import { FactName } from "@aws-cdk/region-info";
 import { Construct } from "constructs";
 // TODO: use @cdktf/provider-docker for bundling
 import { DockerImage } from "../../bundling";
 import { AwsStack } from "../aws-stack";
-import { Partition, partitionLookup } from "../partition";
-// import { FactName } from '../../region-info';
 
 export interface LambdaRuntimeProps {
   /**
@@ -159,7 +157,7 @@ export class Runtime {
    * available in YOUR region).
    */
   public static readonly NODEJS_LATEST = new Runtime(
-    "nodejs22.x", // TODO: review this
+    "nodejs22.x",
     RuntimeFamily.NODEJS,
     { supportsInlineCode: true, isVariable: true },
   );
@@ -555,45 +553,12 @@ export class Runtime {
 export function determineLatestNodeRuntime(scope: Construct): Runtime {
   // Runtime regional fact should always return a known runtime string that Runtime can index off, but for type
   // safety we also default it here.
-  const runtimeName = runtimeLookup(
-    AwsStack.ofAwsConstruct(scope).region,
-    Runtime.NODEJS_18_X.name,
+  const runtimeName = AwsStack.ofAwsConstruct(scope).regionalFact(
+    FactName.LATEST_NODE_RUNTIME,
+    Runtime.NODEJS_22_X.name,
   );
   return new Runtime(runtimeName, RuntimeFamily.NODEJS, {
     supportsInlineCode: true,
     isVariable: true,
   });
 }
-
-// Fact Table Mock functions
-// https://github.com/aws/aws-cdk/blob/main/packages/aws-cdk-lib/region-info/build-tools/fact-tables.ts
-
-export function runtimeLookup(region: string, defaultValue?: string): string {
-  if (Token.isUnresolved(region)) {
-    throw new Error("Cannot determine region partition for unresolved region");
-  }
-  const { partition } = partitionLookup(region);
-  const runtime = LATEST_NODE_RUNTIME_MAP[partition] ?? defaultValue;
-  if (!runtime) {
-    throw new Error(
-      `No runtime found for partition ${partition} in region ${region}.`,
-    );
-  }
-  return runtime;
-}
-
-enum RuntimeFact {
-  NODE_18 = "nodejs18.x",
-  NODE_20 = "nodejs20.x",
-  NODE_22 = "nodejs22.x",
-}
-
-const LATEST_NODE_RUNTIME_MAP: Record<Partition, string> = {
-  [Partition.Default]: RuntimeFact.NODE_22,
-  [Partition.Cn]: RuntimeFact.NODE_22,
-  [Partition.UsGov]: RuntimeFact.NODE_22,
-  [Partition.UsIso]: RuntimeFact.NODE_22,
-  [Partition.UsIsoB]: RuntimeFact.NODE_22,
-  [Partition.UsIsoF]: RuntimeFact.NODE_22,
-  [Partition.EuIsoE]: RuntimeFact.NODE_22,
-};

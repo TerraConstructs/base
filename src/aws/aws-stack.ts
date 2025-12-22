@@ -1,3 +1,4 @@
+import { Fact, RegionInfo } from "@aws-cdk/region-info";
 import {
   dataAwsAvailabilityZones,
   dataAwsCallerIdentity,
@@ -15,6 +16,7 @@ import {
 } from "cdktf";
 import { Construct, IConstruct } from "constructs";
 import { Arn, ArnComponents, ArnFormat } from "./arn";
+import * as cxapi from "./cx-api";
 import { AwsProviderConfig } from "./provider-config.generated";
 import { IAssetManager } from "../asset-manager";
 import {
@@ -23,10 +25,12 @@ import {
   FileAssetLocation,
   FileAssetSource,
 } from "../assets";
-import { SKIP_DEPENDENCY_PROPAGATION } from "../private/terraform-dependables-aspect";
 import { StackBaseProps, StackBase, IStack } from "../stack-base";
 import { AwsAssetManagerOptions, AwsAssetManager } from "./aws-asset-manager";
 import { toTerraformIdentifier } from "./util";
+import { ValidationError } from "../errors";
+import { deployTimeLookup } from "./region-lookup";
+import { SKIP_DEPENDENCY_PROPAGATION } from "../private/terraform-dependables-aspect";
 // import { TagType } from "./aws-construct";
 // import { TagManager, ITaggableV2 } from "./tag-manager";
 
@@ -36,7 +40,7 @@ export interface AwsStackProps extends StackBaseProps {
   /**
    * The AWS Provider configuration (without the alias field)
    */
-  readonly providerConfig: AwsProviderConfig;
+  readonly providerConfig?: AwsProviderConfig;
 
   /**
    * Asset manager for handling file and Docker image assets
@@ -132,22 +136,23 @@ export class AwsStack extends StackBase implements IAwsStack {
     if (AwsStack.isAwsStack(s)) {
       return s;
     }
-    throw new Error(
+    throw new ValidationError(
       `Resource '${construct.constructor?.name}' at '${construct.node.path}' should be created in the scope of an AwsStack, but no AwsStack found`,
+      construct,
     );
   }
 
   /**
    * Asset manager for handling file and Docker image assets
    */
-  private readonly assetManager: IAssetManager;
+  private _assetManager?: IAssetManager;
 
   // /**
   //  * Tags to be applied to the stack.
   //  */
   // public readonly cdkTagManager: TagManager;
 
-  private readonly lookup: AwsLookup;
+  private _lookup?: AwsLookup;
   private regionalAwsProviders: { [region: string]: provider.AwsProvider } = {};
 
   /**
@@ -162,38 +167,50 @@ export class AwsStack extends StackBase implements IAwsStack {
    * - https://github.com/hashicorp/terraform-cdk/blob/v0.20.10/packages/cdktf/lib/terraform-data-source.ts#L68
    * - https://github.com/hashicorp/terraform-cdk/blob/v0.20.10/packages/cdktf/lib/tokens/private/token-map.ts#L50-L66
    */
+  private readonly _providerConfig: AwsProviderConfig | undefined;
+  private readonly _assetOptions: AwsAssetManagerOptions | undefined;
   private _accountIdToken: string | undefined;
   private _paritionToken: string | undefined;
   private _urlSuffixToken: string | undefined;
 
-  constructor(scope: Construct, id: string, props: AwsStackProps) {
+  constructor(scope?: Construct, id?: string, props: AwsStackProps = {}) {
     super(scope, id, props);
     // this.cdkTagManager = new TagManager(
     //   TagType.KEY_VALUE,
     //   "cdktf:stack",
     //   props.providerConfig.defaultTags,
     // );
-    this.lookup = {
+    this._providerConfig = props.providerConfig;
+    this._assetOptions = props.assetOptions;
+    this._assetManager = props.assetManager;
+
+    // these should never depend on anything (HACK to avoid cycles)
+    Object.defineProperty(this, AWS_STACK_SYMBOL, { value: true });
+  }
+
+  private get lookup(): AwsLookup {
+    // Initialize default AWS provider
+    this._lookup ??= {
       awsProvider: new provider.AwsProvider(this, "defaultAwsProvider", {
         // defaultTags: this.cdkTagManager.renderedTags,
-        ...props.providerConfig,
+        ...(this._providerConfig ?? {}),
       }),
       dataAwsServicePrincipals: {},
     };
-    // these should never depend on anything (HACK to avoid cycles)
-    Object.defineProperty(this, AWS_STACK_SYMBOL, { value: true });
+    return this._lookup;
+  }
 
+  private get assetManager(): IAssetManager {
     // Initialize asset manager
-    this.assetManager =
-      props.assetManager ??
-      new AwsAssetManager(this, {
-        region: this.region,
-        account: this.account,
-        partition: this.partition,
-        urlSuffix: this.urlSuffix,
-        qualifier: this.gridUUID,
-        ...(props.assetOptions || {}),
-      });
+    this._assetManager ??= new AwsAssetManager(this, {
+      region: this.region,
+      account: this.account,
+      partition: this.partition,
+      urlSuffix: this.urlSuffix,
+      qualifier: this.gridUUID,
+      ...(this._assetOptions || {}),
+    });
+    return this._assetManager;
   }
 
   public get provider(): provider.AwsProvider {
@@ -343,9 +360,10 @@ export class AwsStack extends StackBase implements IAwsStack {
     }
 
     if (Token.isUnresolved(region)) {
-      throw new Error(
+      throw new ValidationError(
         "Cannot determine the service principal ID because the region is a token. " +
           "You must specify the region explicitly.",
+        this,
       );
     }
 
@@ -517,4 +535,55 @@ export class AwsStack extends StackBase implements IAwsStack {
   //   // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/stack.ts#L572
   //   return resolve(this, obj);
   // }
+
+  /**
+   * Look up a fact value for the given fact for the region of this stack
+   *
+   * Will return a definite value only if the region of the current stack is resolved.
+   * If not, a lookup map will be added to the stack and the lookup will be done at
+   * CDK deployment time.
+   *
+   * What regions will be included in the lookup map is controlled by the
+   * `terraconstructs/core:target-partitions` context value: it must be set to a list
+   * of partitions, and only regions from the given partitions will be included.
+   * If no such context key is set, all regions will be included.
+   *
+   * This function is intended to be used by construct library authors. Application
+   * builders can rely on the abstractions offered by construct libraries and do
+   * not have to worry about regional facts.
+   *
+   * If `defaultValue` is not given, it is an error if the fact is unknown for
+   * the given region.
+   */
+  public regionalFact(factName: string, defaultValue?: string): string {
+    if (!Token.isUnresolved(this.region)) {
+      const ret = Fact.find(this.region, factName) ?? defaultValue;
+      if (ret === undefined) {
+        throw new ValidationError(
+          `region-info: don't know ${factName} for region ${this.region}. Use 'Fact.register' to provide this value.`,
+          this,
+        );
+      }
+      return ret;
+    }
+
+    const partitions = this.node.tryGetContext(cxapi.TARGET_PARTITIONS);
+    if (
+      partitions !== undefined &&
+      partitions !== "undefined" &&
+      !Array.isArray(partitions)
+    ) {
+      throw new ValidationError(
+        `Context value '${cxapi.TARGET_PARTITIONS}' should be a list of strings, got: ${JSON.stringify(partitions)}`,
+        this,
+      );
+    }
+
+    const lookupMap =
+      partitions !== undefined && partitions !== "undefined"
+        ? RegionInfo.limitedRegionMap(factName, partitions)
+        : RegionInfo.regionMap(factName);
+
+    return deployTimeLookup(this, factName, lookupMap, defaultValue);
+  }
 }

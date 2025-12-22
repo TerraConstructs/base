@@ -1,5 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/shared/base-load-balancer.ts
 
+import { RegionInfo } from "@aws-cdk/region-info";
 import { lb as tfLoadBalancer } from "@cdktf/provider-aws";
 import {
   TerraformResource,
@@ -9,7 +10,6 @@ import {
 } from "cdktf";
 import { Construct } from "constructs";
 import { IpAddressType } from "./enums";
-// import { RegionInfo } from "../../../region-info";
 import {
   Attributes,
   ifUndefined,
@@ -21,7 +21,6 @@ import {
   // renderAttributes,
 } from "./util";
 import * as ec2 from "../";
-import { getElbv2Account } from "./access-logs-accounts";
 import { LoadBalancerType } from "./grid-lookup-types";
 import { ArnFormat } from "../../arn";
 import {
@@ -544,8 +543,7 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
       throw new Error("Region is required to enable ELBv2 access logging");
     }
 
-    // const account = RegionInfo.get(region).elbv2Account;
-    const account = getElbv2Account(region);
+    const account = RegionInfo.get(region).elbv2Account;
     if (!account) {
       // New Regions use a service principal
       // https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-access-logs.html#attach-bucket-policy

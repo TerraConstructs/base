@@ -1,30 +1,219 @@
-import { App, Testing, TerraformResource, TerraformElement } from "cdktf";
+import {
+  App,
+  Testing,
+  TerraformResource,
+  TerraformElement,
+  TerraformVariable,
+  TerraformOutput,
+  TerraformLocal,
+} from "cdktf";
 import { Construct } from "constructs";
 import "cdktf/lib/testing/adapters/jest";
 import { StackBase } from "../src";
 import { Template } from "./assertions";
+import { TestResource } from "./test-resource";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
 const terraformResourceType = "test_resource";
 
 describe("StackBase", () => {
-  let app: App;
-  let stack: MyStack;
+  test("a stack can be serialized into a Terraform template, initially it's empty", () => {
+    const stack = new MyStack();
+    expect(toTerraform(stack)).toEqual({});
+  });
 
-  beforeEach(() => {
-    app = Testing.app();
-    stack = new MyStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      gridBackendConfig,
+  test("gridUUID cannot exceed 36 characters", () => {
+    // GIVEN
+    const reallyLongName = "ThisGridUuidIsReallyLongerThan36Characters";
+
+    // THEN
+    expect(() => {
+      new MyStack(undefined, "MyStack", {
+        gridUUID: reallyLongName,
+      });
+    }).toThrow(
+      `GridUUID must be <= 36 characters. GridUUID: '${reallyLongName}'`,
+    );
+  });
+
+  test("Stack.isStack indicates that a construct is a stack", () => {
+    const stack = new MyStack();
+    const c = new Construct(stack, "Construct");
+    expect(MyStack.isStack(stack)).toBeDefined();
+    expect(!MyStack.isStack(c)).toBeDefined();
+  });
+
+  test("stack.id is not included in the logical identities of resources within it", () => {
+    const stack = new MyStack(undefined, "MyStack");
+    new TerraformResource(stack, "MyResource", {
+      terraformResourceType,
+    });
+
+    expect(toTerraform(stack).resource).toEqual({
+      test_resource: {
+        MyResource: {},
+      },
     });
   });
 
+  test("Stack.getByPath can be used to find any Terraform element (Variable, Local, etc)", () => {
+    const stack = new MyStack();
+
+    const p = new TerraformVariable(stack, "MyVariable", { type: "string" });
+    const l = new TerraformLocal(stack, "MyLocal", {
+      expression: "SomeExpression",
+    });
+    const o = new TerraformOutput(stack, "MyOutput", { value: "boom" });
+
+    expect(stack.node.findChild(p.node.id)).toEqual(p);
+    expect(stack.node.findChild(l.node.id)).toEqual(l);
+    expect(stack.node.findChild(o.node.id)).toEqual(o);
+  });
+
+  test("Stack ids can have hyphens in them", () => {
+    new MyStack(undefined, "Hello-World");
+    // Did not throw
+  });
+
+  test("cross stack references and dependencies work within child stacks (non-nested)", () => {
+    // GIVEN
+    const app = new App();
+    const parent = new MyStack(app, "Parent");
+    const child1 = new MyStack(parent, "Child1");
+    const child2 = new MyStack(parent, "Child2");
+    const resourceA = new TestResource(child1, "ResourceA", {
+      properties: {
+        names: ["name1", "name2"],
+      },
+    });
+    const resourceB = new TerraformResource(child1, "ResourceB", {
+      terraformResourceType: "rb",
+    });
+    // WHEN
+    new TestResource(child2, "Resource1", {
+      dependsOn: [resourceB],
+      properties: {
+        RefToResource1: resourceA.names,
+      },
+    });
+    // THEN
+    const parentTemplate = toTerraform(parent);
+    const child1Template = toTerraform(child1);
+    const child2Template = toTerraform(child2);
+    expect(parentTemplate).toEqual({});
+    expect(child1Template).toEqual({
+      resource: {
+        test_resource: {
+          ResourceA: {
+            names: ["name1", "name2"],
+          },
+        },
+        rb: {
+          ResourceB: {},
+        },
+      },
+    });
+    expect(child2Template).toEqual({
+      resource: {
+        test_resource: {
+          Resource1: {
+            depends_on: ["rb.ResourceB"],
+            RefToResource1: "${test_resource.ResourceA.names}",
+          },
+        },
+      },
+    });
+  });
+  test("stacks can be children of other stacks (substack) and they will be synthesized separately", () => {
+    // GIVEN
+    const app = new App();
+    // WHEN
+    const parentStack = new MyStack(app, "parent");
+    const childStack = new MyStack(parentStack, "child");
+    new TerraformResource(parentStack, "MyParentResource", {
+      terraformResourceType: "resource_parent",
+    });
+    new TerraformResource(childStack, "MyChildResource", {
+      terraformResourceType: "resource_child",
+    });
+    // THEN
+    expect(toTerraform(parentStack)?.resource).toEqual({
+      resource_parent: { MyParentResource: {} },
+    });
+    expect(toTerraform(childStack)?.resource).toEqual({
+      resource_child: { MyChildResource: {} },
+    });
+  });
+
+  test("grid uuid is inherited from parent stack if available", () => {
+    // WHEN
+    const root = new App();
+    const parent = new MyStack(root, "Prod");
+    const stack = new MyStack(parent, "Stack");
+    // THEN
+    expect(stack.gridUUID).toEqual("gProdStack2490AAA8");
+  });
+  test("generated grid uuid will not exceed 36 characters", () => {
+    // WHEN
+    const root = new App();
+    const app = new Construct(root, "ProdLongStack" + "z".repeat(36));
+    const stack = new MyStack(app, "TooLongWhenCombinedWithOtherStack");
+    // THEN
+    expect(stack.gridUUID.length).toEqual(36);
+    expect(stack.gridUUID).toEqual("gProdLongStackWithOtherStackB8885317");
+  });
+  test("stack validation is performed on explicit grid uuid", () => {
+    // GIVEN
+    const app = new App();
+    // THEN
+    expect(
+      () => new MyStack(app, "boom", { gridUUID: "invalid:stack:name" }),
+    ).toThrow(/GridUUID must match the regular expression/);
+  });
+  test("Stack.of(stack) returns the correct stack", () => {
+    const stack = new MyStack();
+    expect(MyStack.of(stack)).toBe(stack);
+    const parent = new Construct(stack, "Parent");
+    const construct = new Construct(parent, "Construct");
+    expect(MyStack.of(construct)).toBe(stack);
+  });
+  test("Stack.of() throws when there is no parent Stack", () => {
+    const root = new Construct(undefined as any, "Root");
+    const construct = new Construct(root, "Construct");
+    expect(() => MyStack.of(construct)).toThrow(
+      /No stack could be identified for the construct at path/,
+    );
+  });
+  test("Stack.of() works for substacks", () => {
+    // GIVEN
+    const app = new App();
+    // WHEN
+    const parentStack = new MyStack(app, "ParentStack");
+    const parentResource = new TerraformResource(
+      parentStack,
+      "ParentResource",
+      { terraformResourceType: "parent_resource" },
+    );
+    // we will define a substack under the /resource/... just for giggles.
+    const childStack = new MyStack(parentResource, "ChildStack");
+    const childResource = new TerraformResource(childStack, "ChildResource", {
+      terraformResourceType: "child_resource",
+    });
+    // THEN
+    expect(MyStack.of(parentStack)).toBe(parentStack);
+    expect(MyStack.of(parentResource)).toBe(parentStack);
+    expect(MyStack.of(childStack)).toBe(childStack);
+    expect(MyStack.of(childResource)).toBe(childStack);
+  });
+
   describe("TerraformDependencyAspect", () => {
+    let app: App;
+    let stack: MyStack;
+
+    beforeEach(() => {
+      app = Testing.app();
+      stack = new MyStack(app, "TestStack", {});
+    });
+
     test("maps Construct dependencies to TerraformResource.dependsOn", () => {
       // GIVEN
       const simpleResource = new TerraformResource(stack, "SimpleResource", {
@@ -233,4 +422,21 @@ class DeeplyNestedResource extends TerraformElement {
 // Helper function to add dependencies to multiple resources
 function addDependencies(resources: any[], dependency: any) {
   resources.forEach((resource) => resource.node.addDependency(dependency));
+}
+
+function removeMetadataRecursively(x: any) {
+  for (const key of Object.keys(x ?? {})) {
+    if (key === "//") {
+      // remove metadata comment
+      delete x[key];
+    } else if (typeof x[key] === "object") {
+      removeMetadataRecursively(x[key]);
+    }
+  }
+}
+
+function toTerraform(stack: StackBase): any {
+  const synthesizedTemplate = stack.toTerraform();
+  removeMetadataRecursively(synthesizedTemplate);
+  return synthesizedTemplate;
 }

@@ -10,8 +10,10 @@ import {
   Aspects,
   IResolveContext,
   Lazy,
+  App,
 } from "cdktf";
 import { Construct, IConstruct, Node } from "constructs";
+import { ValidationError } from "./errors";
 import {
   makeUniqueResourceName,
   makeUniqueResourceNamePrefix,
@@ -21,6 +23,8 @@ import {
 const TOKEN_RESOLVER = new DefaultTokenResolver(new StringConcat());
 
 const TERRASTACK_SYMBOL = Symbol.for("terraconstructs/lib.Stack");
+
+const VALID_GRID_UUID_REGEX = /^[A-Za-z0-9-]*$/;
 
 // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/core/lib/names.ts
 
@@ -86,13 +90,17 @@ export interface StackBaseProps {
    * is decoupled from resource tagging for consistency.
    *
    * UUID may be user provided for imported resources
+   *
+   * @default - Automatically generated
    */
-  readonly gridUUID: string;
+  readonly gridUUID?: string;
 
   /**
    * The environment name passed in from the CLI
+   *
+   * @default - Default
    */
-  readonly environmentName: string;
+  readonly environmentName?: string;
 
   /**
    * Stores the state using a simple REST client.
@@ -119,6 +127,7 @@ export interface IStack extends IConstruct {
   readonly environmentName: string;
   readonly gridUUID: string;
   readonly gridBackend?: HttpBackend;
+
   /**
    * A singleton Archive Provider used to archive assets.
    * This is used for example for inline Code content in aws Lambda Functions.
@@ -202,12 +211,12 @@ export abstract class StackBase extends TerraformStack implements IStack {
   /**
    * Stack unique grid identifier
    */
-  public readonly gridUUID: string;
+  private readonly _gridUUID: string;
 
   /**
    * Environment Name passed in from the CLI
    */
-  public readonly environmentName: string;
+  private readonly _environmentName: string;
 
   /**
    * The grid provided backend for state storage
@@ -225,13 +234,33 @@ export abstract class StackBase extends TerraformStack implements IStack {
     return this.archiveProviderSingleton;
   }
 
-  constructor(scope: Construct, id: string, props: StackBaseProps) {
+  constructor(scope?: Construct, id?: string, props: StackBaseProps = {}) {
+    // For unit test scope and id are optional for stacks, but we still want an App
+    // as the parent because apps implement much of the synthesis logic.
+    scope = scope ?? new App();
+
+    // "Default" is a "hidden id" from a `node.uniqueId` perspective
+    id = id ?? "Default";
+
     super(scope, id);
-    this.gridUUID = props.gridUUID;
-    this.environmentName = props.environmentName;
+    this._environmentName = props.environmentName ?? "Default";
+    this._gridUUID = props.gridUUID ?? this.generateGridUuid(this, "g");
+    if (this.gridUUID.length > 36) {
+      throw new ValidationError(
+        `GridUUID must be <= 36 characters. GridUUID: '${this.gridUUID}'`,
+        this,
+      );
+    }
     Object.defineProperty(this, TERRASTACK_SYMBOL, { value: true });
     if (props.gridBackendConfig) {
       this.gridBackend = new HttpBackend(this, props.gridBackendConfig);
+    }
+
+    if (!VALID_GRID_UUID_REGEX.test(this.gridUUID)) {
+      throw new ValidationError(
+        `GridUUID must match the regular expression: ${VALID_GRID_UUID_REGEX.toString()}, got '${this.gridUUID}'`,
+        this,
+      );
     }
 
     // Map construct tree dependencies to ITerraformDependables
@@ -240,6 +269,14 @@ export abstract class StackBase extends TerraformStack implements IStack {
     // Aspects are invoked in synth after stack has been prepared
     // this should ensure any resources added during `prepareStack()` are included in the dependency tree
     // ref: https://github.com/hashicorp/terraform-cdk/blob/v0.20.9/packages/cdktf/lib/synthesize/synthesizer.ts#L121
+  }
+
+  public get gridUUID(): string {
+    return this._gridUUID;
+  }
+
+  public get environmentName(): string {
+    return this._environmentName;
   }
 
   /**
@@ -334,4 +371,61 @@ export abstract class StackBase extends TerraformStack implements IStack {
       },
     });
   }
+
+  /**
+   * Generate an ID with respect to the given container construct.
+   */
+  private generateGridUuid(
+    container: IConstruct | undefined,
+    prefix: string = "",
+  ) {
+    const rootPath = rootPathTo(this, container);
+    const ids = rootPath.map((c) => c.node.id);
+
+    // In unit tests our Stack (which is the only component) may not have an
+    // id, so in that case just pretend it's "Stack".
+    if (ids.length === 1 && !ids[0]) {
+      throw new ValidationError(
+        "unexpected: stack id must always be defined",
+        this,
+      );
+    }
+
+    return makeGridUuid(ids, prefix);
+  }
+}
+
+/**
+ * Return the construct root path of the given construct relative to the given ancestor
+ *
+ * If no ancestor is given or the ancestor is not found, return the entire root path.
+ */
+export function rootPathTo(
+  construct: IConstruct,
+  ancestor?: IConstruct,
+): IConstruct[] {
+  const scopes = construct.node.scopes;
+  for (let i = scopes.length - 2; i >= 0; i--) {
+    if (scopes[i] === ancestor) {
+      return scopes.slice(i + 1);
+    }
+  }
+  return scopes;
+}
+
+/**
+ * makeUniqueId, specialized for Grid UUID
+ *
+ * Grid UUID may contain '-', so we allow that character if the stack name
+ * has only one component. Otherwise we fall back to the regular "makeUniqueId"
+ * behavior.
+ */
+function makeGridUuid(components: string[], prefix: string = "") {
+  if (components.length === 1) {
+    const gridUuid = prefix + components[0];
+    if (gridUuid.length <= 36) {
+      return gridUuid;
+    }
+  }
+  return makeUniqueResourceName(components, { maxLength: 36, prefix: prefix });
 }

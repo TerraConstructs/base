@@ -271,7 +271,7 @@
           "exec": "pnpm i --no-frozen-lockfile"
         },
         {
-          "exec": "pnpm update @cdktf/provider-archive @cdktf/provider-aws @cdktf/provider-cloudinit @cdktf/provider-docker @cdktf/provider-time @cdktf/provider-tls @jsii/spec @mrgrain/jsii-struct-builder @types/jest @types/mime-types @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser cdktf commit-and-tag-version constructs delay eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint fast-check jest jest-junit jsii-diff jsii-pacmak jsii-rosetta jsii projen ts-jest ts-node typescript @balena/dockerignore change-case esbuild-wasm ignore mime-types minimatch"
+          "exec": "pnpm update @aws-cdk/region-info @cdktf/provider-archive @cdktf/provider-aws @cdktf/provider-cloudinit @cdktf/provider-docker @cdktf/provider-time @cdktf/provider-tls @jsii/spec @mrgrain/jsii-struct-builder @types/jest @types/mime-types @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser cdktf commit-and-tag-version constructs delay eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint fast-check jest jest-junit jsii-diff jsii-pacmak jsii-rosetta jsii projen ts-jest ts-node typescript @balena/dockerignore change-case esbuild-wasm ignore mime-types minimatch"
         },
         {
           "exec": "npx projen"
