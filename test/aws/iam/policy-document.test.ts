@@ -18,15 +18,9 @@ import {
 } from "../../../src/aws/iam/principals";
 import { Role } from "../../../src/aws/iam/role";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
 describe("IAM policy document", () => {
   test("the Permission class is a programming model for iam", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     const p = new PolicyStatement();
     p.addActions("sqs:SendMessage");
@@ -66,7 +60,7 @@ describe("IAM policy document", () => {
   });
 
   test("addSourceAccountCondition and addSourceArnCondition for cross-service resource access", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     const p = new PolicyStatement();
     p.addActions("sns:Publish");
@@ -92,7 +86,7 @@ describe("IAM policy document", () => {
   });
 
   test("the PolicyDocument class is a dom for iam policy documents", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const doc = new PolicyDocument(stack, "doc");
     const p1 = new PolicyStatement();
     p1.addActions("sqs:SendMessage");
@@ -165,7 +159,7 @@ describe("IAM policy document", () => {
 
   // https://github.com/aws/aws-cdk/issues/13479
   test("Does not validate unresolved tokens", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const perm = new PolicyStatement({
       actions: [`${Lazy.stringValue({ produce: () => "sqs:sendMessage" })}`],
     });
@@ -210,7 +204,7 @@ describe("IAM policy document", () => {
   });
 
   test("Permission allows specifying multiple actions upon construction", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const perm = new PolicyStatement();
     perm.addResources("MyResource");
     perm.addActions("service:Action1", "service:Action2", "service:Action3");
@@ -225,7 +219,7 @@ describe("IAM policy document", () => {
   // TODO: Make sure policy doc is not added to the stack if it is empty?
   // SHould probably Throw error if empty policy doc is added to the stack...
   test.skip("PolicyDoc resolves to undefined if there are no permissions", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const p = new PolicyDocument(stack, "doc");
     expect(stack.resolve(p.toDocumentJson())).toBeUndefined();
     // TODO: synth should not contain policy doc...
@@ -237,7 +231,7 @@ describe("IAM policy document", () => {
   });
 
   test("canonicalUserPrincipal adds a principal to a policy with the passed canonical user id", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const p = new PolicyStatement();
     const canoncialUser = "averysuperduperlongstringfor";
     p.addPrincipals(new CanonicalUserPrincipal(canoncialUser));
@@ -250,7 +244,7 @@ describe("IAM policy document", () => {
   });
 
   test("addAccountRootPrincipal adds a principal with the current account root", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     const p = new PolicyStatement();
     p.addAccountRootPrincipal();
@@ -263,7 +257,7 @@ describe("IAM policy document", () => {
   });
 
   test("addFederatedPrincipal adds a Federated principal with the passed value", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const p = new PolicyStatement();
     p.addFederatedPrincipal("com.amazon.cognito", [
       {
@@ -284,7 +278,7 @@ describe("IAM policy document", () => {
   });
 
   test("addAwsAccountPrincipal can be used multiple times", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     const p = new PolicyStatement();
     p.addAwsAccountPrincipal("1234");
@@ -338,7 +332,7 @@ describe("IAM policy document", () => {
   });
 
   test("statementCount returns the number of statement in the policy document", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const p = new PolicyDocument(stack, "doc");
     expect(p.statementCount).toEqual(0);
     p.addStatements(new PolicyStatement({ actions: ["service:action1"] }));
@@ -349,7 +343,7 @@ describe("IAM policy document", () => {
 
   describe('{ AWS: "*" } principal', () => {
     test("is represented as `AnyPrincipal`", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       const p = new PolicyDocument(stack, "doc");
 
       p.addStatements(
@@ -382,7 +376,7 @@ describe("IAM policy document", () => {
     });
 
     test("is represented as `addAnyPrincipal`", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       const p = new PolicyDocument(stack, "doc");
 
       const s = new PolicyStatement();
@@ -416,7 +410,7 @@ describe("IAM policy document", () => {
   });
 
   test("addResources() will not break a list-encoded Token", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     const statement = new PolicyStatement();
     statement.addActions(
@@ -436,7 +430,7 @@ describe("IAM policy document", () => {
   });
 
   test("addResources()/addActions() will not add duplicates", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     const statement = new PolicyStatement();
     statement.addActions("service:a");
@@ -453,7 +447,7 @@ describe("IAM policy document", () => {
   });
 
   test("addNotResources()/addNotActions() will not add duplicates", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     const statement = new PolicyStatement();
     statement.addNotActions("service:a");
@@ -470,7 +464,7 @@ describe("IAM policy document", () => {
   });
 
   test("addCanonicalUserPrincipal can be used to add cannonical user principals", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const p = new PolicyDocument(stack, "doc");
 
     const s1 = new PolicyStatement();
@@ -520,7 +514,7 @@ describe("IAM policy document", () => {
   });
 
   test("addPrincipal correctly merges array in", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const arrayPrincipal: IPrincipal = {
       get grantPrincipal() {
         return this;
@@ -553,7 +547,7 @@ describe("IAM policy document", () => {
 
   // https://github.com/aws/aws-cdk/issues/1201
   test("policy statements with multiple principal types can be created using multiple addPrincipal calls", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const s = new PolicyStatement();
     s.addArnPrincipal("349494949494");
     s.addServicePrincipal("test.service");
@@ -606,7 +600,7 @@ describe("IAM policy document", () => {
 
   describe("CompositePrincipal can be used to represent a principal that has multiple types", () => {
     test("with a single principal", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       const p = new CompositePrincipal(new ArnPrincipal("i:am:an:arn"));
       const statement = new PolicyStatement();
       statement.addPrincipals(p);
@@ -617,7 +611,7 @@ describe("IAM policy document", () => {
     });
 
     test("conditions are allowed in an assumerolepolicydocument", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       new Role(stack, "Role", {
         assumedBy: new CompositePrincipal(
           new ArnPrincipal("i:am"),
@@ -711,7 +705,7 @@ describe("IAM policy document", () => {
     });
 
     test("principals and conditions are a big nice merge", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       // add via ctor
       const p = new CompositePrincipal(
         new ArnPrincipal("i:am:an:arn"),
@@ -747,7 +741,7 @@ describe("IAM policy document", () => {
     });
 
     test("can mix types of assumeRoleAction in a single composite", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
 
       // WHEN
       new Role(stack, "Role", {
@@ -809,7 +803,7 @@ describe("IAM policy document", () => {
 
   describe("PrincipalWithConditions can be used to add a principal with conditions", () => {
     test("includes conditions from both the wrapped principal and the wrapper", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       const principalOpts = {
         conditions: [
           {
@@ -843,7 +837,7 @@ describe("IAM policy document", () => {
     });
 
     test("conditions from addCondition are merged with those from the principal", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       const p = new AccountPrincipal("012345678900").withConditions({
         test: "StringEquals",
         variable: "key",
@@ -932,7 +926,7 @@ describe("IAM policy document", () => {
     // // TODO: Allow IResolvable to be used in Conditions?
     // test("tokens can be used in conditions", () => {
     //   // GIVEN
-    //   const stack = getAwsStack();
+    //   const stack = new AwsStack();
     //   const statement = new PolicyStatement();
 
     //   // WHEN
@@ -1002,7 +996,7 @@ describe("IAM policy document", () => {
   describe("duplicate statements", () => {
     test("without tokens", () => {
       // GIVEN
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       const p = new PolicyDocument(stack, "doc", {
         minimize: true,
       });
@@ -1038,7 +1032,7 @@ describe("IAM policy document", () => {
     // TODO: Fix merge Statements
     test("with tokens", () => {
       // GIVEN
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       const p = new PolicyDocument(stack, "doc", {
         minimize: true,
       });
@@ -1123,7 +1117,7 @@ describe("IAM policy document", () => {
   //   );
 
   //   // THEN
-  //   const stack = getAwsStack();
+  //   const stack = new AwsStack();
   //   expect(stack.resolve(doc)).toEqual({
   //     Version: "2012-10-17",
   //     Statement: [
@@ -1144,8 +1138,8 @@ describe("IAM policy document", () => {
   // });
 
   test("constructor args are equivalent to mutating in-place", () => {
-    const stack1 = getAwsStack();
-    const stack2 = getAwsStack();
+    const stack1 = new AwsStack();
+    const stack2 = new AwsStack();
 
     const s = new PolicyStatement();
     s.addActions("service:action1", "service:action2");
@@ -1183,7 +1177,7 @@ describe("IAM policy document", () => {
 
   describe("fromJson", () => {
     test("throws error when Statement isn't an array", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       expect(() => {
         PolicyDocument.fromJson(stack, "doc", {
           Statement: "asdf",
@@ -1193,7 +1187,7 @@ describe("IAM policy document", () => {
   });
 
   test("adding another condition with the same operator does not delete the original", () => {
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     const p = new PolicyStatement();
 
@@ -1250,14 +1244,4 @@ function getDataSources(synthesized: string, resourceType: string): any[] {
     return [];
   }
   return Object.values(parsed.data[resourceType]) as any[];
-}
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
 }

@@ -30,25 +30,13 @@ import {
   //Annotations
 } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("parameter", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("creating a String SSM Parameter", () => {
@@ -386,7 +374,7 @@ describe("parameter", () => {
 
     // THEN
     expect(stack.resolve(param.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.Parameter_9E1B4FBA.name}",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.Parameter_9E1B4FBA.name}",
     );
   });
 
@@ -421,7 +409,7 @@ describe("parameter", () => {
 
     // THEN
     expect(stack.resolve(param.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
     );
     expect(stack.resolve(param.parameterName)).toEqual("MyParamName");
     expect(stack.resolve(param.parameterType)).toEqual("String");
@@ -496,8 +484,11 @@ describe("parameter", () => {
 
   test("fromStringParameterArn throws error when StringParameterArn is in a different region than the stack", () => {
     // GIVEN
+    stack = new AwsStack(app, "TestStack", {
+      providerConfig: { region: "us-west-2" },
+    });
     const differentRegionArn =
-      "arn:aws:ssm:us-west-2:123456789012:parameter/dummyName";
+      "arn:aws:ssm:us-east-1:123456789012:parameter/dummyName";
 
     // THEN
     expect(() => {
@@ -554,7 +545,7 @@ describe("parameter", () => {
 
     // THEN
     expect(stack.resolve(param.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
     );
     expect(stack.resolve(param.parameterName)).toEqual("MyParamName");
     expect(stack.resolve(param.parameterType)).toEqual("String");
@@ -577,7 +568,7 @@ describe("parameter", () => {
 
     // THEN
     expect(stack.resolve(param.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
     );
     expect(stack.resolve(param.parameterName)).toEqual("MyParamName");
     expect(stack.resolve(param.parameterType)).toEqual("String");
@@ -606,7 +597,7 @@ describe("parameter", () => {
 
     // THEN
     expect(stack.resolve(param.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
     );
     expect(stack.resolve(param.parameterName)).toEqual("MyParamName");
     expect(stack.resolve(param.parameterType)).toEqual("SecureString");
@@ -641,7 +632,7 @@ describe("parameter", () => {
       },
     );
     expect(stack.resolve(param.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
     );
     expect(stack.resolve(param.parameterName)).toEqual("MyParamName");
     expect(stack.resolve(param.parameterType)).toEqual("SecureString");
@@ -692,7 +683,7 @@ describe("parameter", () => {
             ],
             effect: "Allow",
             resources: [
-              "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
+              "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
             ],
           },
         ],
@@ -736,7 +727,7 @@ describe("parameter", () => {
             actions: ["ssm:PutParameter"],
             effect: "Allow",
             resources: [
-              "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
+              "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
             ],
           },
         ],
@@ -777,7 +768,7 @@ describe("parameter", () => {
 
     // THEN
     expect(stack.resolve(param.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/MyParamName",
     );
     expect(stack.resolve(param.parameterName)).toEqual("MyParamName");
     expect(stack.resolve(param.parameterType)).toEqual("List<String>");
@@ -1089,12 +1080,12 @@ describe("parameter", () => {
   test("rendering of parameter arns", () => {
     // const param = new TerraformVariable(stack, "param", {});
     const expectedA =
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/bam";
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/bam";
     // const expectedB =
-    //   "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${var.param}";
+    //   "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${var.param}";
 
     // const expectedC =
-    //   "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${var.param}";
+    //   "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${var.param}";
 
     let i = 0;
 
@@ -1183,22 +1174,22 @@ describe("parameter", () => {
 
     // new ssm.Parameters determine if "/" is needed based on the posture of `parameterName`.
     expect(stack.resolve(case10.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.p8_1BB0F6FE.name}",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.p8_1BB0F6FE.name}",
     );
     expect(stack.resolve(case11.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${aws_ssm_parameter.p9_7A508212.name}",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${aws_ssm_parameter.p9_7A508212.name}",
     );
     expect(stack.resolve(case12.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.p10_7D6B8AB0.name}",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.p10_7D6B8AB0.name}",
     );
     expect(stack.resolve(case13.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.p11_8A9CB02C.name}",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.p11_8A9CB02C.name}",
     );
     expect(stack.resolve(case14.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${aws_ssm_parameter.p12_9BE4CE91.name}",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${aws_ssm_parameter.p12_9BE4CE91.name}",
     );
     expect(stack.resolve(case15.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.p13_26A2AEC4.name}",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.p13_26A2AEC4.name}",
     );
   });
 
@@ -1225,13 +1216,13 @@ describe("parameter", () => {
 
     // THEN
     expect(stack.resolve(p1.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.p0_B02A8F65.name}",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${aws_ssm_parameter.p0_B02A8F65.name}",
     );
     expect(stack.resolve(p2.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${aws_ssm_parameter.p1_E43AD5AC.name}",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${aws_ssm_parameter.p1_E43AD5AC.name}",
     );
     expect(stack.resolve(p3.parameterArn)).toEqual(
-      "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${aws_ssm_parameter.p2_C1903AEB.name}",
+      "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${aws_ssm_parameter.p2_C1903AEB.name}",
     );
   });
 
@@ -1303,7 +1294,7 @@ describe("parameter", () => {
         }),
     ).toThrow(
       // /If "parameterName" is not explicitly defined, "simpleName" must be "true" or undefined since auto-generated parameter names always have simple names/,
-      /Parameter name \"123e4567-e89b-12d3MyStackp702649D0\" is a simple name, but \"simpleName\" was explicitly set to false. Either omit it or set it to true/,
+      /Parameter name "gp" is a simple name, but "simpleName" was explicitly set to false. Either omit it or set it to true/,
     );
   });
 

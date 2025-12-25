@@ -33,14 +33,6 @@ import { VpnConnectionType } from "../../../src/aws/compute/vpn";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const region = "us-east-1";
-const providerConfig = { region };
-
 describe("EC2 Routing", () => {
   let stack: AwsStack;
   let myVpc: VpcV2;
@@ -49,12 +41,7 @@ describe("EC2 Routing", () => {
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     myVpc = new VpcV2(stack, "TestVpc", {
       primaryAddressBlock: IpAddresses.ipv4("10.0.0.0/16"),
       secondaryAddressBlocks: [
@@ -341,7 +328,7 @@ describe("EC2 Routing", () => {
       tfVpcEndpoint.VpcEndpoint,
       {
         route_table_ids: [stack.resolve(routeTable.routeTableId)],
-        service_name: `com.amazonaws.${region}.dynamodb`,
+        service_name: "com.amazonaws.${data.aws_region.Region.name}.dynamodb",
         vpc_endpoint_type: "Gateway",
         vpc_id: stack.resolve(myVpc.vpcId),
       },
@@ -359,7 +346,7 @@ describe("EC2 Routing", () => {
       tfVpcEndpoint.VpcEndpoint,
       {
         route_table_ids: [stack.resolve(routeTable.routeTableId)],
-        service_name: `com.amazonaws.${region}.s3`,
+        service_name: "com.amazonaws.${data.aws_region.Region.name}.s3",
         vpc_endpoint_type: "Gateway",
         vpc_id: stack.resolve(myVpc.vpcId),
       },
@@ -377,7 +364,7 @@ describe("EC2 Routing", () => {
       tfVpcEndpoint.VpcEndpoint,
       {
         route_table_ids: [stack.resolve(routeTable.routeTableId)],
-        service_name: `com.amazonaws.${region}.s3express`,
+        service_name: "com.amazonaws.${data.aws_region.Region.name}.s3express",
         vpc_endpoint_type: "Gateway",
         vpc_id: stack.resolve(myVpc.vpcId),
       },
@@ -403,18 +390,12 @@ describe("VPCPeeringConnection", () => {
     // });
     const providerConfigB = { region: "us-east-1" };
     stackB = new AwsStack(app, "VpcStackB", {
-      environmentName,
-      gridUUID,
       providerConfig: providerConfigB,
-      gridBackendConfig,
       // env: { account: "123456789012", region: "us-east-1" },
     });
     const providerConfigC = { region: "us-west-2" };
     stackC = new AwsStack(app, "VpcStackC", {
-      environmentName,
-      gridUUID,
       providerConfig: providerConfigC,
-      gridBackendConfig,
       // env: { account: "123456789012", region: "us-west-2" },
       // crossRegionReferences: true,
     });

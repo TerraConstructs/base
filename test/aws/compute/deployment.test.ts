@@ -14,13 +14,6 @@ import {
 import * as lambda from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const terraformResourceType = "test_resource";
 
 const TEST_APPDIR = path.join(__dirname, "fixtures", "app");
@@ -39,12 +32,7 @@ describe("deployment", () => {
         },
       }),
     );
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("minimal setup", () => {
@@ -73,7 +61,7 @@ describe("deployment", () => {
         },
         aws_api_gateway_rest_api: {
           api_C8550315: {
-            name: "TestStackapiF0E8311D",
+            name: "api",
           },
         },
         aws_api_gateway_deployment: {
@@ -87,7 +75,7 @@ describe("deployment", () => {
               create_before_destroy: true,
             },
             triggers: {
-              redeployment: "a78788a5fc8f4e150c872a9074ed3802",
+              redeployment: "c1c96c1d4f89a28bb8c25e1149499450",
             },
           },
         },
@@ -203,7 +191,7 @@ describe("deployment", () => {
         apiGatewayDeployment.ApiGatewayDeployment,
         {
           triggers: {
-            redeployment: "a78788a5fc8f4e150c872a9074ed3802",
+            redeployment: "c1c96c1d4f89a28bb8c25e1149499450",
             // "trigger-1": {
             //   api_C8550315: expect.objectContaining({
             //     name: "TestStackapiF0E8311D",
@@ -231,7 +219,7 @@ describe("deployment", () => {
         apiGatewayDeployment.ApiGatewayDeployment,
         {
           triggers: {
-            redeployment: "76ebc852a5a5dbc375482d2b2cc4e958",
+            redeployment: "691b6e6e5d87d74be8a136bdf3314c02",
             // "trigger-1": { foo: "123" },
             // "trigger-2": {
             //   api_C8550315: expect.objectContaining({
@@ -267,7 +255,7 @@ describe("deployment", () => {
         apiGatewayDeployment.ApiGatewayDeployment,
         {
           triggers: {
-            redeployment: "f3ee519c31c58008f19e16c77227b87a",
+            redeployment: "acb4bd7937600595fc7835bf1b9fad28",
             // "trigger-1": {
             //   foo: 123,
             // },
@@ -323,12 +311,7 @@ describe("deployment", () => {
         },
       }),
     );
-    const stack2 = new AwsStack(app2, "TestStack", {
-      environmentName,
-      gridUUID: "diff-uuid-for-stack2",
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(app2, "TestStack");
     // GIVEN
     const handler1 = new lambda.LambdaFunction(stack, "handler1", {
       code: lambda.Code.fromAsset(path.join(__dirname, "lambda")),

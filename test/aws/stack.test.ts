@@ -3,7 +3,6 @@ import { App, TerraformOutput } from "cdktn";
 import { Node } from "constructs";
 import { AwsStack } from "../../src/aws";
 import * as cxapi from "../../src/aws/cx-api";
-import { StackBase } from "../../src/stack-base";
 
 describe("stack", () => {
   test("cross-stack use of region and account returns nonscoped intrinsic because the two stacks must be in the same region anyway", () => {

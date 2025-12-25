@@ -3,13 +3,10 @@ import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as network from "../../../src/aws/network";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
 describe("Environment", () => {
   test("Should synth and match SnapShot", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     // WHEN
     new network.SimpleIPv4Vpc(stack, "network", {
       ipv4CidrBlock: "10.0.0.0/16",
@@ -20,7 +17,7 @@ describe("Environment", () => {
   });
   test("Should support adding subnet groups", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     // WHEN
     const vpc = new network.SimpleIPv4Vpc(stack, "network", {
       ipv4CidrBlock: "10.0.0.0/16",
@@ -38,12 +35,3 @@ describe("Environment", () => {
     });
   });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-  });
-}

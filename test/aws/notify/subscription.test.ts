@@ -14,25 +14,13 @@ import * as sns from "../../../src/aws/notify";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("Subscription", () => {
   let stack: AwsStack;
   let topic: sns.Topic;
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     topic = new sns.Topic(stack, "Topic");
   });
 
@@ -83,7 +71,7 @@ describe("Subscription", () => {
       },
     );
     t.expect.toHaveResourceWithProperties(sqsQueue.SqsQueue, {
-      name_prefix: "MySubscription_DLQMyStackDeadLetterQueue",
+      name_prefix: "MySubscription_DLQDeadLetterQueue",
       message_retention_seconds: 1209600,
     });
     t.expect.toHaveResourceWithProperties(sqsQueuePolicy.SqsQueuePolicy, {

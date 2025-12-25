@@ -24,13 +24,6 @@ import { VpnConnectionType } from "../../../src/aws/compute/vpn";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("Vpc V2 with full control", () => {
   let stack: AwsStack;
   let myVpc: VpcV2;
@@ -38,12 +31,7 @@ describe("Vpc V2 with full control", () => {
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     myVpc = new VpcV2(stack, "TestVpc", {
       primaryAddressBlock: IpAddresses.ipv4("10.1.0.0/16"),
       secondaryAddressBlocks: [
@@ -456,7 +444,7 @@ describe("Vpc V2 with full control", () => {
         vpc_id: stack.resolve(myVpc.vpcId),
         peer_vpc_id: stack.resolve(acceptorVpc.vpcId),
         peer_owner_id: "${data.aws_caller_identity.CallerIdentity.account_id}",
-        peer_region: providerConfig.region,
+        peer_region: "${data.aws_region.Region.name}",
       },
     );
   });

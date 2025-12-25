@@ -14,16 +14,9 @@ import * as targets from "../../../../src/aws/notify/targets";
 import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 test("State machine can be used as Event Rule target", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const rule = new notify.Rule(stack, "Rule", {
     schedule: notify.Schedule.rate(Duration.minutes(1)),
   });
@@ -120,7 +113,7 @@ test("State machine can be used as Event Rule target", () => {
 
 test("Existing role can be used for State machine Rule target", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const rule = new notify.Rule(stack, "Rule", {
     schedule: notify.Schedule.rate(Duration.minutes(1)),
   });
@@ -221,7 +214,7 @@ test("Existing role can be used for State machine Rule target", () => {
 
 test("specifying retry policy", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const rule = new notify.Rule(stack, "Rule", {
     schedule: notify.Schedule.expression("rate(1 hour)"),
   });
@@ -292,7 +285,7 @@ test("specifying retry policy", () => {
 
 test("specifying retry policy with 0 retryAttempts", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const rule = new notify.Rule(stack, "Rule", {
     schedule: notify.Schedule.expression("rate(1 hour)"),
   });
@@ -360,7 +353,7 @@ test("specifying retry policy with 0 retryAttempts", () => {
 
 test("use a Dead Letter Queue for the rule target", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const rule = new notify.Rule(stack, "Rule", {
     schedule: notify.Schedule.rate(Duration.minutes(1)),
   });
@@ -456,7 +449,7 @@ test("use a Dead Letter Queue for the rule target", () => {
             },
           ],
           resources: [stack.resolve(dlq.queueArn)],
-          sid: "AllowEventRuleTestStackRule3795E55D",
+          sid: "AllowEventRuleRule",
         },
       ],
     },
@@ -492,13 +485,3 @@ test("use a Dead Letter Queue for the rule target", () => {
   //   ],
   // });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}

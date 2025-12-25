@@ -17,13 +17,6 @@ import { SubnetType } from "../../../src/aws/compute/vpc";
 import { VpcV2, IpAddresses } from "../../../src/aws/compute/vpc-v2";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 /**
  * Test suite for the SubnetV2 class.
  * Verifies the correct behavior and functionality of creating and managing subnets within a VpcV2 instance.
@@ -34,12 +27,7 @@ describe("Subnet V2 with custom IP and routing", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "IPAMTestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("should create a subnet with valid input parameters", () => {

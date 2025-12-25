@@ -8,23 +8,11 @@ import * as notify from "../../../../src/aws/notify";
 import * as subscriptions from "../../../../src/aws/notify/subscriptions";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("SNS Subscriptions", () => {
   test("can add subscription to queue that has encryptionType auto changed", () => {
     // GIVEN
     const app = Testing.app();
-    const stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(app);
     const key = new encryption.Key(stack, "CustomKey");
     const queue = new notify.Queue(stack, "Queue", {
       encryption: notify.QueueEncryption.KMS_MANAGED,

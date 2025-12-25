@@ -9,14 +9,7 @@ let stack: AwsStack;
 let child: compute.StateMachine;
 beforeEach(() => {
   const app = Testing.app();
-  stack = new AwsStack(app, "TestStack", {
-    environmentName: "Test",
-    gridUUID: "123e4567-e89b-12d3",
-    providerConfig: { region: "us-east-1" },
-    gridBackendConfig: {
-      address: "http://localhost:3000",
-    },
-  });
+  stack = new AwsStack(app);
   child = new compute.StateMachine(stack, "ChildStateMachine", {
     definitionBody: compute.DefinitionBody.fromChainable(
       compute.Chain.start(new compute.Pass(stack, "PassState")),
@@ -124,7 +117,7 @@ test("Execute State Machine - Run Job", () => {
           actions: ["states:DescribeExecution", "states:StopExecution"],
           effect: "Allow",
           resources: [
-            'arn:${data.aws_partition.Partitition.partition}:states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${element(split(":", aws_sfn_state_machine.ChildStateMachine_9133117F.arn), 6)}*',
+            'arn:${data.aws_partition.Partitition.partition}:states:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${element(split(":", aws_sfn_state_machine.ChildStateMachine_9133117F.arn), 6)}*',
           ],
         },
         {
@@ -135,7 +128,7 @@ test("Execute State Machine - Run Job", () => {
           ],
           effect: "Allow",
           resources: [
-            "arn:${data.aws_partition.Partitition.partition}:events:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule",
+            "arn:${data.aws_partition.Partitition.partition}:events:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule",
           ],
         },
       ],

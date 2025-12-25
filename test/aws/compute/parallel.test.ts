@@ -2,21 +2,12 @@ import { Testing } from "cdktn";
 import { render } from "./private/render-util";
 import { compute, AwsStack } from "../../../src/aws";
 
-const gridUUID = "123e4567-e89b-12d3";
+const gridUUID = "a123e456-e89b-12d3";
 describe("Parallel State", () => {
   let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
-    stack = new AwsStack(Testing.app(), `TestStack`, {
-      environmentName: "Test",
-      gridUUID,
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(Testing.app());
   });
   test("State Machine With Parallel State", () => {
     // WHEN

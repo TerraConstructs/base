@@ -11,21 +11,12 @@ import * as cloudwatch from "../../../src/aws/cloudwatch";
 import * as appscaling from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "TestEnv";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-
 describe("target tracking", () => {
   let stack: AwsStack;
   let target: appscaling.ScalableTarget;
 
   beforeEach(() => {
-    const app = Testing.app();
-    stack = new AwsStack(app, "Default", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-    });
+    stack = new AwsStack();
     target = createScalableTarget(stack);
   });
 

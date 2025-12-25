@@ -18,12 +18,6 @@ import {
 import { IpAddresses, VpcV2 } from "../../../src/aws/compute/vpc-v2";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("IPAM Test", () => {
   let app: App;
   let stack: AwsStack;
@@ -31,13 +25,7 @@ describe("IPAM Test", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    const envUSA = { region: "us-east-1" };
-    stack = new AwsStack(app, "IPAMTestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig: envUSA,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     ipam = new Ipam(stack, "Ipam", {
       operatingRegion: ["us-west-2"],
     });

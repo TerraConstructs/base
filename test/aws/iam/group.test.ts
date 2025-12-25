@@ -13,12 +13,7 @@ describe("IAM groups", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName: "Test",
-      gridUUID: "test-uuid",
-      providerConfig: { region: "us-east-1" },
-      gridBackendConfig: { address: "http://localhost" },
-    });
+    stack = new AwsStack(app);
   });
   test("default group", () => {
     new Group(stack, "MyGroup");
@@ -102,20 +97,10 @@ describe("IAM groups", () => {
 
 test("cross-env group ARNs include path", () => {
   const app = Testing.app();
-  const stackProps = {
-    environmentName: "Test",
-    gridUUID: "test-uuid",
-    providerConfig: { region: "us-east-1" },
-    gridBackendConfig: { address: "http://localhost" },
-  };
-  // env: { account: "123456789012", region: "us-east-1" },
   const groupStack = new AwsStack(app, "group-stack", {
-    ...stackProps,
     providerConfig: { region: "us-east-1" },
   });
-  // env: { region: "us-east-2" },
   const referencerStack = new AwsStack(app, "referencer-stack", {
-    ...stackProps,
     providerConfig: { region: "us-east-2" },
   });
   const group = new Group(groupStack, "Group", {

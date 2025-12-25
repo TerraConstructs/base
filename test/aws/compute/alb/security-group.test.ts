@@ -12,13 +12,6 @@ import * as compute from "../../../../src/aws/compute";
 import { Template } from "../../../assertions";
 import { FakeSelfRegisteringTarget } from "../lb-helpers";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("tests", () => {
   test("security groups are automatically opened bidi for default rule", () => {
     // GIVEN
@@ -156,12 +149,7 @@ describe("tests", () => {
       targetGroups: [parentGroup],
     });
 
-    const childStack = new AwsStack(fixture.app, "childStack", {
-      environmentName,
-      gridUUID, // should be different
-      providerConfig,
-      gridBackendConfig,
-    });
+    const childStack = new AwsStack(fixture.app, "childStack");
 
     // WHEN
     const childGroup = new compute.ApplicationTargetGroup(
@@ -192,12 +180,7 @@ describe("tests", () => {
   test("SG peering works on exported/imported load balancer", () => {
     // GIVEN
     const fixture = new TestFixture(false);
-    const stack2 = new AwsStack(fixture.app, "stack2", {
-      environmentName,
-      gridUUID, // should be different
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(fixture.app, "stack2");
     const vpc2 = new compute.Vpc(stack2, "VPC");
     const group = new compute.ApplicationTargetGroup(stack2, "TargetGroup", {
       // We're assuming the 2nd VPC is peered to the 1st, or something.
@@ -228,12 +211,7 @@ describe("tests", () => {
   test("SG peering works on exported/imported listener", () => {
     // GIVEN
     const fixture = new TestFixture();
-    const stack2 = new AwsStack(fixture.app, "stack2", {
-      environmentName,
-      gridUUID, // should be different
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(fixture.app, "stack2");
     const vpc2 = new compute.Vpc(stack2, "VPC");
     const group = new compute.ApplicationTargetGroup(stack2, "TargetGroup", {
       // We're assuming the 2nd VPC is peered to the 1st, or something.
@@ -304,12 +282,7 @@ describe("tests", () => {
 
   test("default port peering works on imported listener", () => {
     // GIVEN
-    const stack2 = new AwsStack(Testing.app(), "stack2", {
-      environmentName,
-      gridUUID, // should be different
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(Testing.app(), "stack2");
     const securityGroup = compute.SecurityGroup.fromSecurityGroupId(
       stack2,
       "SecurityGroup",
@@ -392,12 +365,7 @@ class TestFixture {
 
   constructor(createListener?: boolean) {
     this.app = Testing.app();
-    this.stack = new AwsStack(this.app, "Stack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    this.stack = new AwsStack(this.app, "Stack");
     this.vpc = new compute.Vpc(this.stack, "VPC", {
       maxAzs: 2,
     });

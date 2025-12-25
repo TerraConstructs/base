@@ -15,16 +15,9 @@ import { Schedule } from "../../../../src/aws/notify/schedule";
 import { SqsQueue } from "../../../../src/aws/notify/targets/sqs";
 import { Duration } from "../../../../src/duration";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 test("sqs queue as an event rule target", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const queue = new Queue(stack, "MyQueue");
   const rule = new Rule(stack, "MyRule", {
     schedule: Schedule.rate(Duration.hours(1)),
@@ -127,7 +120,7 @@ test("sqs queue as an event rule target", () => {
 
 test("multiple uses of a queue as a target results in multi policy statement because of condition", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const queue = new Queue(stack, "MyQueue");
 
   // WHEN
@@ -276,7 +269,7 @@ test("Encrypted queues result in a policy statement with aws:sourceAccount condi
 
 // test("Encrypted queues result in a permissive policy statement when the feature flag is off", () => {
 //   // GIVEN
-//   const stack = getAwsStack();
+//   const stack = new AwsStack();
 //   const queue = new Queue(stack, "MyQueue", {
 //     encryptionMasterKey: kms.Key.fromKeyArn(
 //       stack,
@@ -329,7 +322,7 @@ test("Encrypted queues result in a policy statement with aws:sourceAccount condi
 // });
 
 test("fail if messageGroupId is specified on non-fifo queues", () => {
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const queue = new Queue(stack, "MyQueue");
 
   expect(
@@ -338,7 +331,7 @@ test("fail if messageGroupId is specified on non-fifo queues", () => {
 });
 
 test("fifo queues are synthesized correctly", () => {
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const queue = new Queue(stack, "MyQueue", { fifo: true });
   const rule = new Rule(stack, "MyRule", {
     schedule: Schedule.rate(Duration.hours(1)),
@@ -368,7 +361,7 @@ test("fifo queues are synthesized correctly", () => {
 });
 
 test("dead letter queue is configured correctly", () => {
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const queue = new Queue(stack, "MyQueue", { fifo: true });
   const deadLetterQueue = new Queue(stack, "MyDeadLetterQueue");
   const rule = new Rule(stack, "MyRule", {
@@ -400,7 +393,7 @@ test("dead letter queue is configured correctly", () => {
 });
 
 test("specifying retry policy", () => {
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const queue = new Queue(stack, "MyQueue", { fifo: true });
   const rule = new Rule(stack, "MyRule", {
     schedule: Schedule.rate(Duration.hours(1)),
@@ -432,7 +425,7 @@ test("specifying retry policy", () => {
 });
 
 test("specifying retry policy with 0 retryAttempts", () => {
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const queue = new Queue(stack, "MyQueue", { fifo: true });
   const rule = new Rule(stack, "MyRule", {
     schedule: Schedule.rate(Duration.hours(1)),
@@ -462,7 +455,7 @@ test("specifying retry policy with 0 retryAttempts", () => {
 });
 
 test("dead letter queue is imported", () => {
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const queue = new Queue(stack, "MyQueue", { fifo: true });
   const rule = new Rule(stack, "MyRule", {
     schedule: Schedule.rate(Duration.hours(1)),
@@ -504,13 +497,3 @@ test("dead letter queue is imported", () => {
     },
   );
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    // providerConfig,
-    gridBackendConfig,
-  });
-}

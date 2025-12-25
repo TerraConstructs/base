@@ -19,28 +19,10 @@ import * as s3 from "../../../../src/aws/storage";
 import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("tests", () => {
-  let app: App;
-  let stack: AwsStack;
-
-  beforeEach(() => {
-    app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
-  });
   test("Trivial construction: internet facing", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
@@ -63,6 +45,7 @@ describe("tests", () => {
 
   test("internet facing load balancer has dependency on IGW", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
@@ -86,6 +69,7 @@ describe("tests", () => {
 
   test("Trivial construction: internal", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
@@ -105,6 +89,7 @@ describe("tests", () => {
 
   test("Attributes", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
@@ -141,6 +126,7 @@ describe("tests", () => {
     "throw error for invalid clientKeepAlive in seconds",
     (duration) => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // THEN
@@ -157,6 +143,7 @@ describe("tests", () => {
 
   test("throw errer for invalid clientKeepAlive in milliseconds", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
 
     // THEN
@@ -179,6 +166,8 @@ describe("tests", () => {
     "throw error for denyAllIgwTraffic set to %s for Ipv4 (default) addressing.",
     (denyAllIgwTraffic, ipAddressType) => {
       // GIVEN
+      const stack = new AwsStack();
+
       const vpc = new compute.Vpc(stack, "Stack");
 
       // THEN
@@ -197,6 +186,7 @@ describe("tests", () => {
   describe("Desync mitigation mode", () => {
     test("Defensive", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -212,6 +202,7 @@ describe("tests", () => {
     });
     test("Monitor", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -227,6 +218,7 @@ describe("tests", () => {
     });
     test("Strictest", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -245,6 +237,7 @@ describe("tests", () => {
   describe("http2Enabled", () => {
     test("http2Enabled is not set", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -260,6 +253,7 @@ describe("tests", () => {
 
     test.each([true, false])("http2Enabled is set to %s", (http2Enabled) => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
       // WHEN
       new compute.ApplicationLoadBalancer(stack, "LB", {
@@ -275,6 +269,7 @@ describe("tests", () => {
 
   test("Deletion protection false", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
@@ -291,6 +286,7 @@ describe("tests", () => {
 
   test("Can add and list listeners for an owned ApplicationLoadBalancer", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
@@ -335,38 +331,35 @@ describe("tests", () => {
       }
     }
 
-    function loggingSetup(
-      s: AwsStack,
-      withEncryption: boolean = false,
-    ): {
-      // stack: AwsStack;
+    function loggingSetup(withEncryption: boolean = false): {
+      stack: AwsStack;
       bucket: s3.Bucket;
       lb: compute.ApplicationLoadBalancer;
     } {
-      // const s = new cdk.Stack(app, undefined, {
-      //   env: { region: "us-east-1" },
-      // });
-      const vpc = new compute.Vpc(s, "Vpc");
+      const app = Testing.app();
+      const stack = new AwsStack(app, undefined, {
+        providerConfig: { region: "us-east-1" },
+      });
+      const vpc = new compute.Vpc(stack, "Vpc");
       let bucketProps = {};
       if (withEncryption) {
-        const kmsKey = new Key(s, "TestKMSKey");
+        const kmsKey = new Key(stack, "TestKMSKey");
         bucketProps = {
           ...bucketProps,
           encryption: s3.BucketEncryption.KMS,
           encyptionKey: kmsKey,
         };
       }
-      const bucket = new s3.Bucket(s, "AccessLogBucket", {
+      const bucket = new s3.Bucket(stack, "AccessLogBucket", {
         ...bucketProps,
       });
-      const lb = new compute.ApplicationLoadBalancer(s, "LB", { vpc });
-      // return { stack: s, bucket, lb };
-      return { bucket, lb };
+      const lb = new compute.ApplicationLoadBalancer(stack, "LB", { vpc });
+      return { stack, bucket, lb };
     }
 
     test("sets load balancer attributes", () => {
       // GIVEN
-      const { bucket, lb } = loggingSetup(stack);
+      const { stack, bucket, lb } = loggingSetup();
 
       // WHEN
       lb.logAccessLogs(bucket);
@@ -383,7 +376,7 @@ describe("tests", () => {
 
     test("adds a dependency on the bucket", () => {
       // GIVEN
-      const { bucket, lb } = loggingSetup(stack);
+      const { stack, bucket, lb } = loggingSetup();
 
       // WHEN
       lb.logAccessLogs(bucket);
@@ -397,7 +390,7 @@ describe("tests", () => {
 
     test("logging bucket permissions", () => {
       // GIVEN
-      const { bucket, lb } = loggingSetup(stack);
+      const { stack, bucket, lb } = loggingSetup();
 
       // WHEN
       lb.logAccessLogs(bucket);
@@ -470,7 +463,7 @@ describe("tests", () => {
 
     test("access logging with prefix", () => {
       // GIVEN
-      const { bucket, lb } = loggingSetup(stack);
+      const { stack, bucket, lb } = loggingSetup();
 
       // WHEN
       lb.logAccessLogs(bucket, "prefix-of-access-logs");
@@ -553,7 +546,7 @@ describe("tests", () => {
     // // TODO: re-add support for s3 encryption
     // test("bucket with KMS throws validation error", () => {
     //   //GIVEN
-    //   const { bucket, lb } = loggingSetup(stack, true);
+    //   const { bucket, lb } = loggingSetup(true);
 
     //   // WHEN
     //   const logAccessLogFunctionTest = () => lb.logAccessLogs(bucket);
@@ -567,7 +560,7 @@ describe("tests", () => {
 
     test("access logging on imported bucket", () => {
       // GIVEN
-      const { lb } = loggingSetup(stack);
+      const { stack, lb } = loggingSetup();
 
       const bucket = s3.Bucket.fromBucketName(
         stack,
@@ -675,7 +668,7 @@ describe("tests", () => {
 
     test("does not add circular dependency on bucket with extended load balancer", () => {
       // GIVEN
-      loggingSetup(stack);
+      const { stack } = loggingSetup();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -756,36 +749,35 @@ describe("tests", () => {
       }
     }
 
-    function loggingSetup(
-      s: AwsStack,
-      withEncryption: boolean = false,
-    ): {
+    function loggingSetup(withEncryption: boolean = false): {
+      stack: AwsStack;
       bucket: s3.Bucket;
       lb: compute.ApplicationLoadBalancer;
     } {
-      // const stack = new cdk.Stack(app, undefined, {
-      //   env: { region: "us-east-1" },
-      // });
-      const vpc = new compute.Vpc(s, "Stack");
+      const app = Testing.app();
+      const stack = new AwsStack(app, undefined, {
+        providerConfig: { region: "us-east-1" },
+      });
+      const vpc = new compute.Vpc(stack, "Vpc");
       let bucketProps = {};
       if (withEncryption) {
-        const kmsKey = new Key(s, "TestKMSKey");
+        const kmsKey = new Key(stack, "TestKMSKey");
         bucketProps = {
           ...bucketProps,
           encryption: s3.BucketEncryption.KMS,
           encyptionKey: kmsKey,
         };
       }
-      const bucket = new s3.Bucket(s, "ConnectionLogBucket", {
+      const bucket = new s3.Bucket(stack, "ConnectionLogBucket", {
         ...bucketProps,
       });
-      const lb = new compute.ApplicationLoadBalancer(s, "LB", { vpc });
-      return { bucket, lb };
+      const lb = new compute.ApplicationLoadBalancer(stack, "LB", { vpc });
+      return { stack, bucket, lb };
     }
 
     test("sets load balancer attributes", () => {
       // GIVEN
-      const { bucket, lb } = loggingSetup(stack);
+      const { stack, bucket, lb } = loggingSetup();
 
       // WHEN
       lb.logConnectionLogs(bucket);
@@ -803,7 +795,7 @@ describe("tests", () => {
 
     test("adds a dependency on the bucket", () => {
       // GIVEN
-      const { bucket, lb } = loggingSetup(stack);
+      const { stack, bucket, lb } = loggingSetup();
 
       // WHEN
       lb.logConnectionLogs(bucket);
@@ -819,7 +811,7 @@ describe("tests", () => {
 
     test("logging bucket permissions", () => {
       // GIVEN
-      const { bucket, lb } = loggingSetup(stack);
+      const { stack, bucket, lb } = loggingSetup();
 
       // WHEN
       lb.logConnectionLogs(bucket);
@@ -894,7 +886,7 @@ describe("tests", () => {
 
     test("connection logging with prefix", () => {
       // GIVEN
-      const { bucket, lb } = loggingSetup(stack);
+      const { stack, bucket, lb } = loggingSetup();
 
       // WHEN
       lb.logConnectionLogs(bucket, "prefix-of-connection-logs");
@@ -977,7 +969,7 @@ describe("tests", () => {
     // // TODO: Re-add S3 bucket Encryption
     test("bucket with KMS throws validation error", () => {
       //GIVEN
-      const { bucket, lb } = loggingSetup(stack, true);
+      const { bucket, lb } = loggingSetup(true);
 
       // WHEN
       const logConnectionLogFunctionTest = () => lb.logConnectionLogs(bucket);
@@ -991,7 +983,7 @@ describe("tests", () => {
 
     test("connection logging on imported bucket", () => {
       // GIVEN
-      const { lb } = loggingSetup(stack);
+      const { stack, lb } = loggingSetup();
 
       const bucket = s3.Bucket.fromBucketName(
         stack,
@@ -1101,8 +1093,8 @@ describe("tests", () => {
 
     test("does not add circular dependency on bucket with extended load balancer", () => {
       // GIVEN
-      loggingSetup(stack);
-      const vpc = new compute.Vpc(stack, "Vpc");
+      const { stack } = loggingSetup();
+      const vpc = new compute.Vpc(stack, "Vpc2");
 
       // WHEN
       new ExtendedLB(stack, "ExtendedLB", vpc);
@@ -1170,6 +1162,7 @@ describe("tests", () => {
 
   test("Exercise metrics", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
     const lb = new compute.ApplicationLoadBalancer(stack, "LB", { vpc });
 
@@ -1217,6 +1210,7 @@ describe("tests", () => {
     compute.HttpCodeElb.ELB_504_COUNT,
   ])("use specific load balancer generated 5XX metrics", (metricName) => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
     const lb = new compute.ApplicationLoadBalancer(stack, "LB", { vpc });
 
@@ -1236,6 +1230,7 @@ describe("tests", () => {
 
   test("loadBalancerName", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
 
     // WHEN
@@ -1252,6 +1247,7 @@ describe("tests", () => {
 
   test("imported load balancer with no vpc throws error when calling addTargets", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Vpc");
     const albArn =
       "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188";
@@ -1276,6 +1272,7 @@ describe("tests", () => {
 
   test("imported load balancer with vpc does not throw error when calling addTargets", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Vpc");
     const albArn =
       "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188";
@@ -1301,6 +1298,7 @@ describe("tests", () => {
 
   test("imported load balancer with vpc can add but not list listeners", () => {
     // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Vpc");
     const albArn =
       "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188";
@@ -1330,6 +1328,9 @@ describe("tests", () => {
   });
 
   test("imported load balancer knows its region", () => {
+    // GIVEN
+    const stack = new AwsStack();
+
     // WHEN
     const albArn =
       "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188";
@@ -1348,6 +1349,9 @@ describe("tests", () => {
   });
 
   test("imported load balancer can produce metrics", () => {
+    // GIVEN
+    const stack = new AwsStack();
+
     // WHEN
     const albArn =
       "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188";
@@ -1371,6 +1375,8 @@ describe("tests", () => {
   });
 
   test("can add secondary security groups", () => {
+    // GIVEN
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "Stack");
 
     const alb = new compute.ApplicationLoadBalancer(stack, "LB", {
@@ -1397,6 +1403,7 @@ describe("tests", () => {
   describe("crossZoneEnabled", () => {
     test("crossZoneEnabled can be true", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Vpc");
 
       // WHEN
@@ -1413,6 +1420,7 @@ describe("tests", () => {
     });
     test("crossZoneEnabled can be undefined", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Vpc");
 
       // WHEN
@@ -1427,6 +1435,7 @@ describe("tests", () => {
     });
     test("crossZoneEnabled cannot be false", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Vpc");
 
       // expect the error
@@ -1551,6 +1560,7 @@ describe("tests", () => {
   describe("dualstack", () => {
     test("Can create internet-facing dualstack ApplicationLoadBalancer", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -1570,6 +1580,7 @@ describe("tests", () => {
 
     test("Can create internet-facing dualstack ApplicationLoadBalancer with denyAllIgwTraffic set to false", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -1590,6 +1601,7 @@ describe("tests", () => {
 
     test("Can create internal dualstack ApplicationLoadBalancer", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -1610,6 +1622,7 @@ describe("tests", () => {
       "Can create internal dualstack ApplicationLoadBalancer with denyAllIgwTraffic set to true",
       (internetFacing) => {
         // GIVEN
+        const stack = new AwsStack();
         const vpc = new compute.Vpc(stack, "Stack");
 
         // WHEN
@@ -1633,6 +1646,7 @@ describe("tests", () => {
   describe("dualstack without public ipv4", () => {
     test("Can create internet-facing dualstack without public ipv4 ApplicationLoadBalancer", () => {
       // GIVEN
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       // WHEN
@@ -1651,6 +1665,7 @@ describe("tests", () => {
     });
 
     test("Cannot create internal dualstack without public ipv4 ApplicationLoadBalancer", () => {
+      const stack = new AwsStack();
       const vpc = new compute.Vpc(stack, "Stack");
 
       expect(() => {

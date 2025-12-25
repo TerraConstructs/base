@@ -6,20 +6,10 @@ import "cdktn/lib/testing/adapters/jest";
 import { Duration } from "../../../src/";
 import { compute, AwsStack } from "../../../src/aws";
 
-const gridUUID = "123e4567-e89b-12d3";
 let stack: AwsStack;
 let fn: compute.LambdaFunction;
 beforeEach(() => {
-  stack = new AwsStack(Testing.app(), `TestStack`, {
-    environmentName: "Test",
-    gridUUID,
-    providerConfig: {
-      region: "us-east-1",
-    },
-    gridBackendConfig: {
-      address: "http://localhost:3000",
-    },
-  });
+  stack = new AwsStack(Testing.app());
   fn = new compute.LambdaFunction(stack, "MyLambda", {
     handler: "index.handler",
     code: compute.Code.fromInline("exports.handler = ${handler.toString()}"),

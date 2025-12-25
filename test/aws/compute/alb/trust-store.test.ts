@@ -8,23 +8,11 @@ import * as elbv2 from "../../../../src/aws/compute";
 import * as s3 from "../../../../src/aws/storage";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 let app: App;
 let stack: AwsStack;
 beforeEach(() => {
   app = Testing.app();
-  stack = new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  stack = new AwsStack(app);
 });
 
 test("Trust Store with all properties", () => {

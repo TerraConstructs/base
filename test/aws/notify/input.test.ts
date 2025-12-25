@@ -12,19 +12,12 @@ import { IRuleTarget } from "../../../src/aws/notify/target";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("input", () => {
   let stack: AwsStack;
   let rule: Rule;
 
   beforeEach(() => {
-    stack = getAwsStack();
+    stack = new AwsStack();
     rule = new Rule(stack, "Rule", {
       schedule: Schedule.rate(Duration.minutes(1)),
     });
@@ -258,14 +251,4 @@ class SomeTarget implements IRuleTarget {
   public bind() {
     return { id: "T1", arn: "ARN1", input: this.input };
   }
-}
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
 }

@@ -24,13 +24,6 @@ import * as compute from "../../../src/aws/compute";
 import * as iam from "../../../src/aws/iam";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("Step Functions api", () => {
   test("StepFunctionsRestApi defines correct REST API resources", () => {
     // GIVEN
@@ -105,12 +98,7 @@ describe("Step Functions api", () => {
 
   test("StepFunctionsExecutionIntegration on a method", () => {
     // GIVEN
-    const stack = new AwsStack(Testing.app(), "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(Testing.app());
     const api = new compute.RestApi(stack, "Api");
     const stateMachine = new compute.StateMachine(stack, "StateMachine", {
       stateMachineType: compute.StateMachineType.EXPRESS,
@@ -237,12 +225,7 @@ describe("Step Functions api", () => {
 
   test("fails if State Machine is not of type EXPRESS - This test validates CDK construct behavior, AWS/Terraform provider handles runtime validation", () => {
     // GIVEN
-    const stack = new AwsStack(Testing.app(), "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(Testing.app());
 
     const passTask = new compute.Pass(stack, "passTask", {
       inputPath: "$.somekey",
@@ -271,12 +254,7 @@ describe("Step Functions api", () => {
 
 function givenSetup() {
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const stack = new AwsStack(app);
 
   const passTask = new compute.Pass(stack, "passTask", {
     inputPath: "$.somekey",

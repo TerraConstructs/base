@@ -8,23 +8,15 @@ import * as ec2 from "../../../src/aws/compute";
 
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "testregion" };
-
 let app: App;
 let stack: AwsStack;
 
 beforeEach(() => {
   app = Testing.app();
-  stack = new AwsStack(app, "IPAMTestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
+  stack = new AwsStack(app, "Stack", {
+    providerConfig: {
+      region: "testregion",
+    },
   });
 });
 
@@ -40,29 +32,30 @@ test("can make and use a Linux image", () => {
   expect(details.osType).toEqual(ec2.OperatingSystemType.LINUX);
 });
 
-// // TODO: TerraConstructs currently does not support "agnostic" stacks
-// test("can make and use a Linux image in agnostic stack", () => {
-//   // WHEN
-//   const image = new ec2.GenericLinuxImage({
-//     testregion: "ami-1234",
-//   });
+test("can make and use a Linux image in agnostic stack", () => {
+  // WHEN
+  app = new App();
+  stack = new AwsStack(app, "Stack");
+  const image = new ec2.GenericLinuxImage({
+    testregion: "ami-1234",
+  });
 
-//   // THEN
-//   const details = image.getImage(stack);
-//   Template.fromStack(stack).toMatchObject({
-//     locals: {
-//       AmiMap: {
-//         testregion: {
-//           ami: "ami-1234",
-//         },
-//       },
-//     },
-//   });
-//   expect(stack.resolve(details.imageId)).toEqual(
-//     '${lookupNested(local.AmiMap,${AWS::Region},"ami"}',
-//   );
-//   expect(details.osType).toEqual(ec2.OperatingSystemType.LINUX);
-// });
+  // THEN
+  const details = image.getImage(stack);
+  Template.fromStack(stack).toMatchObject({
+    locals: {
+      AmiMap: {
+        testregion: {
+          ami: "ami-1234",
+        },
+      },
+    },
+  });
+  expect(stack.resolve(details.imageId)).toEqual(
+    "${local.AmiMap[data.aws_region.Region.name].ami}",
+  );
+  expect(details.osType).toEqual(ec2.OperatingSystemType.LINUX);
+});
 
 test("can make and use a Windows image", () => {
   // WHEN
@@ -76,30 +69,31 @@ test("can make and use a Windows image", () => {
   expect(details.osType).toEqual(ec2.OperatingSystemType.WINDOWS);
 });
 
-// // TODO: TerraConstructs currently does not support "agnostic" stacks
-// test("can make and use a Windows image in agnostic stack", () => {
-//   // WHEN
-//   const image = new ec2.GenericWindowsImage({
-//     testregion: "ami-1234",
-//   });
+test("can make and use a Windows image in agnostic stack", () => {
+  // WHEN
+  app = new App();
+  stack = new AwsStack(app, "Stack");
+  const image = new ec2.GenericWindowsImage({
+    testregion: "ami-1234",
+  });
 
-//   // THEN
-//   const details = image.getImage(stack);
+  // THEN
+  const details = image.getImage(stack);
 
-//   Template.fromStack(stack).toMatchObject({
-//     locals: {
-//       AmiMap: {
-//         testregion: {
-//           ami: "ami-1234",
-//         },
-//       },
-//     },
-//   });
-//   expect(stack.resolve(details.imageId)).toEqual(
-//     '${lookupNested(local.AmiMap,${AWS::Region},"ami"}',
-//   );
-//   expect(details.osType).toEqual(ec2.OperatingSystemType.WINDOWS);
-// });
+  Template.fromStack(stack).toMatchObject({
+    locals: {
+      AmiMap: {
+        testregion: {
+          ami: "ami-1234",
+        },
+      },
+    },
+  });
+  expect(stack.resolve(details.imageId)).toEqual(
+    "${local.AmiMap[data.aws_region.Region.name].ami}",
+  );
+  expect(details.osType).toEqual(ec2.OperatingSystemType.WINDOWS);
+});
 
 test("can make and use a Generic SSM image", () => {
   // WHEN

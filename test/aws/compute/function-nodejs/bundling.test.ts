@@ -34,13 +34,6 @@ import { Annotations } from "../../../assertions";
 
 jest.mock("child_process");
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const STANDARD_RUNTIME = Runtime.NODEJS_20_X;
 const STANDARD_TARGET = "node20";
 const LATEST_TARGET = "node22";
@@ -64,12 +57,7 @@ beforeEach(() => {
       },
     }),
   );
-  stack = new AwsStack(app, "MyStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  stack = new AwsStack(app);
 
   jest.clearAllMocks();
   jest.resetAllMocks();
@@ -407,12 +395,7 @@ test.each([[Runtime.NODEJS_20_X, "node20"]])(
         "@aws-cdk/aws-lambda-nodejs:sdkV3ExcludeSmithyPackages": true,
       },
     });
-    const cdkStack = new AwsStack(cdkApp, "MyTestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const cdkStack = new AwsStack(cdkApp);
     Bundling.bundle(cdkStack, {
       entry,
       projectRoot,
@@ -444,12 +427,7 @@ test("esbuild bundling with bundleAwsSdk true with feature flag enabled using No
       "@aws-cdk/aws-lambda-nodejs:sdkV3ExcludeSmithyPackages": true,
     },
   });
-  const cdkStack = new AwsStack(cdkApp, "MyTestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const cdkStack = new AwsStack(cdkApp);
   Bundling.bundle(cdkStack, {
     entry,
     projectRoot,
@@ -478,12 +456,7 @@ test("esbuild bundling with feature flag enabled using Node Latest", () => {
       "@aws-cdk/aws-lambda-nodejs:sdkV3ExcludeSmithyPackages": true,
     },
   });
-  const cdkStack = new AwsStack(cdkApp, "MyTestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const cdkStack = new AwsStack(cdkApp);
   Bundling.bundle(cdkStack, {
     entry,
     projectRoot,
@@ -511,12 +484,7 @@ test("esbuild bundling with feature flag enabled using Node 16", () => {
       "@aws-cdk/aws-lambda-nodejs:sdkV3ExcludeSmithyPackages": true,
     },
   });
-  const cdkStack = new AwsStack(cdkApp, "MyTestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const cdkStack = new AwsStack(cdkApp);
   Bundling.bundle(cdkStack, {
     entry,
     projectRoot,
@@ -1228,12 +1196,7 @@ test("bundling with <= Node16 warns when sdk v3 is external", () => {
 });
 
 test("bundling with <= Node16 does not warn with default externalModules", () => {
-  const myStack = new AwsStack(app, "MyTestStack2", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const myStack = new AwsStack(app, "MyTestStack2");
   Bundling.bundle(myStack, {
     entry,
     projectRoot,
@@ -1272,12 +1235,7 @@ test("bundling with >= Node18 warns when sdk v2 is external", () => {
 });
 
 test("bundling with >= Node18 does not warn with default externalModules", () => {
-  const myStack = new AwsStack(app, "MyTestStack3", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const myStack = new AwsStack(app, "MyTestStack3");
   Bundling.bundle(myStack, {
     entry,
     projectRoot,

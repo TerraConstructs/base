@@ -12,12 +12,16 @@ exports[`PublicCertificate Create multi-zone should synth and match SnapShot 1`]
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -34,9 +38,9 @@ exports[`PublicCertificate Create multi-zone should synth and match SnapShot 1`]
           "*.example.com"
         ],
         "tags": {
-          "Name": "Test-Certificate",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Certificate",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "validation_method": "DNS",
         "validation_option": [
@@ -86,27 +90,22 @@ exports[`PublicCertificate Create multi-zone should synth and match SnapShot 1`]
       "ExampleComZone_F04104DA": {
         "name": "example.com.",
         "tags": {
-          "Name": "Test-ExampleComZone",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-ExampleComZone",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       },
       "ExampleNetZone_99DA6AF7": {
         "name": "example.net.",
         "tags": {
-          "Name": "Test-ExampleNetZone",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-ExampleNetZone",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     }
   },
   "terraform": {
-    "backend": {
-      "http": {
-        "address": "http://localhost:3000"
-      }
-    },
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
@@ -129,12 +128,16 @@ exports[`PublicCertificate Create should synth and match SnapShot 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -149,9 +152,9 @@ exports[`PublicCertificate Create should synth and match SnapShot 1`] = `
           "*.example.com"
         ],
         "tags": {
-          "Name": "Test-Certificate",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Certificate",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "validation_method": "DNS",
         "validation_option": [
@@ -186,19 +189,14 @@ exports[`PublicCertificate Create should synth and match SnapShot 1`] = `
       "Zone_A5DE4B68": {
         "name": "example.com.",
         "tags": {
-          "Name": "Test-Zone",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Zone",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     }
   },
   "terraform": {
-    "backend": {
-      "http": {
-        "address": "http://localhost:3000"
-      }
-    },
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
@@ -222,6 +220,11 @@ exports[`PublicCertificate Imported DnsZone should synth and match SnapShot 1`] 
         "provider": "aws"
       }
     },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
     "aws_route53_zone": {
       "Zone_A5DE4B68": {
         "zone_id": "Z1234567890"
@@ -231,7 +234,6 @@ exports[`PublicCertificate Imported DnsZone should synth and match SnapShot 1`] 
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -243,9 +245,9 @@ exports[`PublicCertificate Imported DnsZone should synth and match SnapShot 1`] 
           "*.example.com"
         ],
         "tags": {
-          "Name": "Test-Certificate",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Certificate",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "validation_method": "DNS",
         "validation_option": [
@@ -278,11 +280,6 @@ exports[`PublicCertificate Imported DnsZone should synth and match SnapShot 1`] 
     }
   },
   "terraform": {
-    "backend": {
-      "http": {
-        "address": "http://localhost:3000"
-      }
-    },
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",

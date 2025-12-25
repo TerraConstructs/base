@@ -44,7 +44,7 @@ jest.mock("../../../../src/aws/compute/function-nodejs/util", () => ({
 }));
 
 const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
+const gridUUID = "a123e456-e89b-12d3";
 const providerConfig = { region: "us-east-1" };
 const gridBackendConfig = {
   address: "http://localhost:3000",

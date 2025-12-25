@@ -18,22 +18,12 @@ import { Intrinsic } from "cdktn/lib/tokens/private/intrinsic";
 import "cdktn/lib/testing/adapters/jest";
 import { StackBase } from "../src/stack-base";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 let app: App;
 let stack: MyStack;
 
 beforeEach(() => {
   app = new App();
-  stack = new MyStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    gridBackendConfig,
-  });
+  stack = new MyStack(app);
 });
 
 test("JSONification of literals looks like JSON.stringify", () => {

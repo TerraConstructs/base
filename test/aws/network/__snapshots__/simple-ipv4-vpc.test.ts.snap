@@ -17,12 +17,16 @@ exports[`Environment Should synth and match SnapShot 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -47,9 +51,9 @@ exports[`Environment Should synth and match SnapShot 1`] = `
           }
         ],
         "tags": {
-          "Name": "Test-network-default-route-table",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-network-default-route-table",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },
@@ -57,26 +61,26 @@ exports[`Environment Should synth and match SnapShot 1`] = `
       "network_PublicSubnet0_Eip_7B2FE34D": {
         "domain": "vpc",
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}-nat-gateway",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}-nat-gateway",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       },
       "network_PublicSubnet1_Eip_47D86D3A": {
         "domain": "vpc",
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}-nat-gateway",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}-nat-gateway",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },
     "aws_internet_gateway": {
       "network_igw_5DF1EDA1": {
         "tags": {
-          "Name": "Test-network-igw",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-network-igw",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
       }
@@ -86,18 +90,18 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "allocation_id": "\${aws_eip.network_PublicSubnet0_Eip_7B2FE34D.id}",
         "subnet_id": "\${aws_subnet.network_PublicSubnet0_118EDD7D.id}",
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}-nat-gateway",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}-nat-gateway",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       },
       "network_PublicSubnet1_NatGateway_159BCDA9": {
         "allocation_id": "\${aws_eip.network_PublicSubnet1_Eip_47D86D3A.id}",
         "subnet_id": "\${aws_subnet.network_PublicSubnet1_759DE9E6.id}",
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}-nat-gateway",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}-nat-gateway",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },
@@ -121,11 +125,11 @@ exports[`Environment Should synth and match SnapShot 1`] = `
           }
         ],
         "tags": {
-          "Name": "Test-network-private-route-table-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
+          "Name": "Default-network-private-route-table-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
           "aws-cdk:subnet-name": "Public",
           "aws-cdk:subnet-type": "Public",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g",
           "kubernetes.io/role/elb": "1"
         },
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
@@ -149,11 +153,11 @@ exports[`Environment Should synth and match SnapShot 1`] = `
           }
         ],
         "tags": {
-          "Name": "Test-network-private-route-table-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
+          "Name": "Default-network-private-route-table-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
           "aws-cdk:subnet-name": "Public",
           "aws-cdk:subnet-type": "Public",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g",
           "kubernetes.io/role/elb": "1"
         },
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
@@ -179,12 +183,12 @@ exports[`Environment Should synth and match SnapShot 1`] = `
     },
     "aws_service_discovery_private_dns_namespace": {
       "network_ServiceDiscoveryNamespace_B9CE35BD": {
-        "description": "Private DNS namespace for Test-network",
+        "description": "Private DNS namespace for Default-network",
         "name": "example.local",
         "tags": {
-          "Name": "Test-network-service-discovery-namespace",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-network-service-discovery-namespace",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "vpc": "\${aws_vpc.network_39EEAA36.id}"
       }
@@ -195,11 +199,11 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 2), 2, 0)}",
         "map_public_ip_on_launch": false,
         "tags": {
-          "Name": "Test-network-data-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
+          "Name": "Default-network-data-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
           "aws-cdk:subnet-name": "Data",
           "aws-cdk:subnet-type": "Isolated",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
       },
@@ -208,11 +212,11 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 2), 2, 1)}",
         "map_public_ip_on_launch": false,
         "tags": {
-          "Name": "Test-network-data-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
+          "Name": "Default-network-data-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
           "aws-cdk:subnet-name": "Data",
           "aws-cdk:subnet-type": "Isolated",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
       },
@@ -221,11 +225,11 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 1), 2, 0)}",
         "map_public_ip_on_launch": false,
         "tags": {
-          "Name": "Test-network-private-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
+          "Name": "Default-network-private-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
           "aws-cdk:subnet-name": "Private",
           "aws-cdk:subnet-type": "Private",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g",
           "kubernetes.io/role/internal-elb": "1"
         },
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
@@ -235,11 +239,11 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 1), 2, 1)}",
         "map_public_ip_on_launch": false,
         "tags": {
-          "Name": "Test-network-private-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
+          "Name": "Default-network-private-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
           "aws-cdk:subnet-name": "Private",
           "aws-cdk:subnet-type": "Private",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g",
           "kubernetes.io/role/internal-elb": "1"
         },
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
@@ -249,9 +253,9 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 0), 2, 0)}",
         "map_public_ip_on_launch": true,
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
       },
@@ -260,9 +264,9 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "cidr_block": "\${cidrsubnet(cidrsubnet(\\"10.0.0.0/16\\", 2, 0), 2, 1)}",
         "map_public_ip_on_launch": true,
         "tags": {
-          "Name": "Test-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-network-public-subnet-\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "vpc_id": "\${aws_vpc.network_39EEAA36.id}"
       }
@@ -273,9 +277,9 @@ exports[`Environment Should synth and match SnapShot 1`] = `
         "enable_dns_hostnames": true,
         "enable_dns_support": true,
         "tags": {
-          "Name": "Test-network",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-network",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     }

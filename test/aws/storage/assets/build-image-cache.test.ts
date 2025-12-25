@@ -10,13 +10,6 @@ import { AwsStack } from "../../../../src/aws/aws-stack";
 import { DockerImageAsset } from "../../../../src/aws/storage/assets/image-asset";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const TEST_OUTDIR = path.join(__dirname, "cdk.out");
 const demoImagePath = path.join(__dirname, "demo-image");
 
@@ -32,12 +25,7 @@ describe("build cache", () => {
         },
       }),
     );
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
   test("manifest contains cache from options ", () => {
     // WHEN

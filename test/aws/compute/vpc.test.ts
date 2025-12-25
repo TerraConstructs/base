@@ -74,13 +74,6 @@ import { Fn } from "../../../src/terra-func";
 import { Template } from "../../assertions";
 import { TestResource } from "../../test-resource";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("vpc", () => {
   describe("When creating a VPC", () => {
     test("SubnetType.PRIVATE_WITH_NAT is equivalent to SubnetType.PRIVATE_WITH_EGRESS", () => {
@@ -944,12 +937,7 @@ describe("vpc", () => {
       });
 
       test("agnostic stack without context with defined vpc AZs", () => {
-        const stack = new AwsStack(Testing.app(), "TestStack", {
-          environmentName,
-          gridUUID,
-          providerConfig,
-          gridBackendConfig,
-        });
+        const stack = new AwsStack(Testing.app(), "TestStack");
         new Vpc(stack, "VPC", {
           availabilityZones: ["us-east-1a"],
         });
@@ -3261,12 +3249,7 @@ describe("vpc", () => {
   test("error should occur if IPv6 properties are provided for a non-dual-stack VPC", () => {
     // GIVEN
     const app = Testing.app();
-    const stack = new AwsStack(app, "NonDualStackStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(app, "NonDualStackStack");
 
     // WHEN
     expect(
@@ -3280,11 +3263,7 @@ describe("vpc", () => {
 
 function getTestStack(): AwsStack {
   return new AwsStack(Testing.app(), "TestStack", {
-    // env: { account: "123456789012", region: "us-east-1" },
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
+    providerConfig: { region: "us-east-1" },
   });
 }
 

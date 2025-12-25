@@ -37,18 +37,10 @@ import {
 import { Role } from "../../../src/aws/iam/role";
 import { Annotations, Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID1 = "123e4567-e89b-12d3";
-const gridUUID2 = "123e4567-e89b-12d4";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("isRole() returns", () => {
   test("true if given Role instance", () => {
     // GIVEN
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     // WHEN
     const pureRole = new Role(stack, "Role", {
       assumedBy: new ServicePrincipal("sns"),
@@ -59,7 +51,7 @@ describe("isRole() returns", () => {
 
   test("false if given imported role instance", () => {
     // GIVEN
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     // WHEN
     const importedRole = Role.fromRoleName(
       stack,
@@ -78,7 +70,7 @@ describe("isRole() returns", () => {
 
 describe("IAM role", () => {
   test("default role", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns"),
@@ -110,13 +102,13 @@ describe("IAM role", () => {
     expect(synthesized).toHaveResourceWithProperties(iamRole.IamRole, {
       assume_role_policy:
         "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-      name_prefix: "123e4567-e89b-12d3-RoleStackMyRole",
+      name_prefix: "g-MyRole",
     });
   });
 
   test("a role can grant PassRole permissions", () => {
     // GIVEN
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const role1 = new Role(stack, "Role1", {
       assumedBy: new ServicePrincipal("henk"),
     });
@@ -148,7 +140,7 @@ describe("IAM role", () => {
 
   test("a role can grant AssumeRole permissions", () => {
     // GIVEN
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const role1 = new Role(stack, "Role1", {
       assumedBy: new ServicePrincipal("henk"),
     });
@@ -181,7 +173,7 @@ describe("IAM role", () => {
 
   test("a role cannot grant AssumeRole permission to a Service Principal", () => {
     // GIVEN
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     // WHEN
     const role = new Role(stack, "MyRole", {
@@ -198,7 +190,7 @@ describe("IAM role", () => {
 
   test("a role cannot grant AssumeRole permission to an Account Principal", () => {
     // GIVEN
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     // WHEN
     const role = new Role(stack, "MyRole", {
@@ -215,7 +207,7 @@ describe("IAM role", () => {
 
   test("can supply single externalIds", () => {
     // GIVEN
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     // WHEN
     new Role(stack, "MyRole", {
@@ -258,7 +250,7 @@ describe("IAM role", () => {
 
   test("can supply multiple externalIds", () => {
     // GIVEN
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     // WHEN
     new Role(stack, "MyRole", {
@@ -301,7 +293,8 @@ describe("IAM role", () => {
 
   test("policy is attached automatically when permissions are added", () => {
     // by default we don't expect a role policy
-    const before = getAwsStack("BeforeStack", gridUUID1);
+    const app = Testing.app();
+    const before = new AwsStack(app, "BeforeStack");
     new Role(before, "MyRole", {
       assumedBy: new ServicePrincipal("sns"),
     });
@@ -313,7 +306,7 @@ describe("IAM role", () => {
     expect(resourceCount(template, iamRolePolicy.IamRolePolicy)).toBe(0);
 
     // add a policy to the role
-    const after = getAwsStack("AfterStack", gridUUID2);
+    const after = new AwsStack(app, "AfterStack");
     const afterRole = new Role(after, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
     });
@@ -364,7 +357,7 @@ describe("IAM role", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            name_prefix: "123e4567-e89b-12d4-AfterStackMyRole",
+            name_prefix: "gAfterStackE13873DD-AfterStackMyRole",
           },
         },
         aws_iam_role_policy: {
@@ -380,7 +373,7 @@ describe("IAM role", () => {
   });
 
   test("managed policy arns can be supplied upon initialization and also added later", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("test.service"),
@@ -405,7 +398,7 @@ describe("IAM role", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            name_prefix: "123e4567-e89b-12d3-RoleStackMyRole",
+            name_prefix: "g-MyRole",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -430,7 +423,7 @@ describe("IAM role", () => {
   });
 
   test("federated principal can change AssumeRoleAction", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const cognitoPrincipal = new FederatedPrincipal(
       "foo",
       [
@@ -480,7 +473,7 @@ describe("IAM role", () => {
   });
 
   test("role path can be used to specify the path", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     new Role(stack, "MyRole", {
       path: "/",
@@ -498,7 +491,7 @@ describe("IAM role", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            name_prefix: "123e4567-e89b-12d3-RoleStackMyRole",
+            name_prefix: "g-MyRole",
             path: "/",
           },
         },
@@ -507,7 +500,7 @@ describe("IAM role", () => {
   });
 
   test("role path can be 1 character", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const assumedBy = new ServicePrincipal("bla");
 
     expect(
@@ -516,7 +509,7 @@ describe("IAM role", () => {
   });
 
   test("role path cannot be empty", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const assumedBy = new ServicePrincipal("bla");
 
     expect(() => new Role(stack, "MyRole", { assumedBy, path: "" })).toThrow(
@@ -525,7 +518,7 @@ describe("IAM role", () => {
   });
 
   test("role path must be less than or equal to 512", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const assumedBy = new ServicePrincipal("bla");
 
     expect(
@@ -540,7 +533,7 @@ describe("IAM role", () => {
   });
 
   test("role path must start with a forward slash", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const assumedBy = new ServicePrincipal("bla");
 
     const expected = (val: any) =>
@@ -552,7 +545,7 @@ describe("IAM role", () => {
   });
 
   test("role path must end with a forward slash", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const assumedBy = new ServicePrincipal("bla");
 
     const expected = (val: any) =>
@@ -564,7 +557,7 @@ describe("IAM role", () => {
   });
 
   test("role path must contain unicode chars within [\\u0021-\\u007F]", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const assumedBy = new ServicePrincipal("bla");
 
     const expected = (val: any) =>
@@ -577,7 +570,7 @@ describe("IAM role", () => {
 
   describe("maxSessionDuration", () => {
     test("is not specified by default", () => {
-      const stack = getAwsStack("RoleStack", gridUUID1);
+      const stack = new AwsStack();
       new Role(stack, "MyRole", {
         assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       });
@@ -611,7 +604,7 @@ describe("IAM role", () => {
     });
 
     test("can be used to specify the maximum session duration for assuming the role", () => {
-      const stack = getAwsStack("RoleStack", gridUUID1);
+      const stack = new AwsStack();
 
       new Role(stack, "MyRole", {
         maxSessionDuration: Duration.seconds(3700),
@@ -635,7 +628,7 @@ describe("IAM role", () => {
     });
 
     test("must be between 3600 and 43200", () => {
-      const stack = getAwsStack("RoleStack", gridUUID1);
+      const stack = new AwsStack();
 
       const assumedBy = new ServicePrincipal("bla");
 
@@ -675,7 +668,7 @@ describe("IAM role", () => {
   });
 
   test("allow role with multiple principals", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     new Role(stack, "MyRole", {
       assumedBy: new CompositePrincipal(
@@ -730,7 +723,7 @@ describe("IAM role", () => {
 
   test("can supply permissions boundary managed policy", () => {
     // GIVEN
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     const permissionsBoundary = ManagedPolicy.fromAwsManagedPolicyName(
       stack,
@@ -767,7 +760,7 @@ describe("IAM role", () => {
     // An error occurred (MalformedPolicyDocument) when calling the CreateRole operation: AssumeRolepolicy contained an invalid principal: "STAR":"*".
 
     // Make sure that we handle this case specially.
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     new Role(stack, "Role", {
       assumedBy: new AnyPrincipal(),
     });
@@ -800,7 +793,7 @@ describe("IAM role", () => {
   });
 
   test("can have a description", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
@@ -824,7 +817,7 @@ describe("IAM role", () => {
   });
 
   test("should not have an empty description", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
@@ -848,7 +841,7 @@ describe("IAM role", () => {
   });
 
   test("description can only be 1000 characters long", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
 
     expect(() => {
       new Role(stack, "MyRole", {
@@ -869,7 +862,7 @@ describe("IAM role", () => {
   });
 
   test("fails if managed policy is invalid", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       managedPolicies: [
@@ -894,7 +887,7 @@ describe("IAM role", () => {
   });
 
   test("fails if default role policy is invalid", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
     });
@@ -913,7 +906,7 @@ describe("IAM role", () => {
   });
 
   test("fails if inline policy from props is invalid", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       inlinePolicies: {
@@ -936,7 +929,7 @@ describe("IAM role", () => {
   });
 
   test("fails if attached inline policy is invalid", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
     });
@@ -959,7 +952,7 @@ describe("IAM role", () => {
   });
 
   test("fails if assumeRolePolicy is invalid", () => {
-    const stack = getAwsStack("RoleStack", gridUUID1);
+    const stack = new AwsStack();
     const role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("sns.amazonaws.com"),
       managedPolicies: [new ManagedPolicy(stack, "MyManagedPolicy")],
@@ -1203,7 +1196,7 @@ describe("IAM role", () => {
 // });
 
 test("managed policy ARNs are deduplicated", () => {
-  const stack = getAwsStack("RoleStack", gridUUID1);
+  const stack = new AwsStack();
   const role = new Role(stack, "MyRole", {
     assumedBy: new ServicePrincipal("sns.amazonaws.com"),
     managedPolicies: [
@@ -1260,7 +1253,7 @@ test("managed policy ARNs are deduplicated", () => {
 // TODO: too many managed policies warning is set in splitLargePolicy
 // TODO: Implement splitLargePolicy
 test.skip("too many managed policies warning", () => {
-  const stack = getAwsStack("RoleStack", gridUUID1);
+  const stack = new AwsStack();
   const role = new Role(stack, "MyRole", {
     assumedBy: new ServicePrincipal("sns.amazonaws.com"),
   });
@@ -1296,7 +1289,7 @@ describe("role with too large inline policy", () => {
   let stack: AwsStack;
   let role: Role;
   beforeEach(() => {
-    stack = getAwsStack("RoleStack", gridUUID1);
+    stack = new AwsStack();
     role = new Role(stack, "MyRole", {
       assumedBy: new ServicePrincipal("service.amazonaws.com"),
     });
@@ -1361,7 +1354,7 @@ describe("role with too large inline policy", () => {
 test.skip("many copies of the same statement do not result in overflow policies", () => {
   const N = 100;
 
-  const stack = getAwsStack("RoleStack", gridUUID1);
+  const stack = new AwsStack();
   const role = new Role(stack, "MyRole", {
     assumedBy: new ServicePrincipal("service.amazonaws.com"),
   });
@@ -1427,7 +1420,7 @@ test.skip("many copies of the same statement do not result in overflow policies"
 // });
 
 test("doesn't throw with roleName of 64 chars", () => {
-  const stack = getAwsStack("RoleStack", gridUUID1);
+  const stack = new AwsStack();
   const valdName = "a".repeat(64);
 
   expect(() => {
@@ -1439,7 +1432,7 @@ test("doesn't throw with roleName of 64 chars", () => {
 });
 
 test("throws with roleName over 64 chars", () => {
-  const stack = getAwsStack("RoleStack", gridUUID1);
+  const stack = new AwsStack();
   const longName = "a".repeat(65);
 
   expect(() => {
@@ -1451,7 +1444,7 @@ test("throws with roleName over 64 chars", () => {
 });
 
 describe("roleName validation", () => {
-  const stack = getAwsStack("RoleStack", gridUUID1);
+  const stack = new AwsStack();
   const invalidChars = "!#$%^&*()";
 
   it("rejects names with spaces", () => {
@@ -1476,7 +1469,7 @@ describe("roleName validation", () => {
 });
 
 test("roleName validation with Tokens", () => {
-  const stack = getAwsStack("RoleStack", gridUUID1);
+  const stack = new AwsStack();
   const token = Lazy.stringValue({ produce: () => "token" });
 
   // Mock isUnresolved to return false
@@ -1546,16 +1539,6 @@ function resourceCount(parsed: any, constructor: TerraformConstructor) {
     return 0;
   }
   return Object.values(parsed.resource[constructor.tfResourceType]).length;
-}
-
-function getAwsStack(id: string, gridUUID: string): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, id, {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
 }
 
 interface TerraformConstructor {

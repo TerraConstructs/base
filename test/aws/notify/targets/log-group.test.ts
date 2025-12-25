@@ -14,28 +14,13 @@ import * as notify from "../../../../src/aws/notify/";
 import * as targets from "../../../../src/aws/notify/targets";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const region = "us-east-1";
-const providerConfig = { region };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("log group", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-      // TODO: Should support passing account via Stack props to match AWS CDK cross account support
-      // account: "1234",
-    });
+    stack = new AwsStack(app);
   });
   test("use log group as an event rule target", () => {
     // GIVEN
@@ -61,7 +46,7 @@ describe("log group", () => {
     template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
-        arn: "arn:${data.aws_partition.Partitition.partition}:logs:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:log-group:${aws_cloudwatch_log_group.MyLogGroup_5C0DAD85.name}",
+        arn: "arn:${data.aws_partition.Partitition.partition}:logs:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:log-group:${aws_cloudwatch_log_group.MyLogGroup_5C0DAD85.name}",
       },
     );
     template.toHaveDataSourceWithProperties(
@@ -187,7 +172,7 @@ describe("log group", () => {
     template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
-        arn: "arn:${data.aws_partition.Partitition.partition}:logs:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:log-group:${aws_cloudwatch_log_group.MyLogGroup_5C0DAD85.name}",
+        arn: "arn:${data.aws_partition.Partitition.partition}:logs:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:log-group:${aws_cloudwatch_log_group.MyLogGroup_5C0DAD85.name}",
         input_transformer: {
           input_paths: {
             time: "$.time",
@@ -306,7 +291,7 @@ describe("log group", () => {
     template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
-        arn: "arn:${data.aws_partition.Partitition.partition}:logs:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:log-group:${aws_cloudwatch_log_group.MyLogGroup_5C0DAD85.name}",
+        arn: "arn:${data.aws_partition.Partitition.partition}:logs:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:log-group:${aws_cloudwatch_log_group.MyLogGroup_5C0DAD85.name}",
         input_transformer: {
           input_paths: {
             time: "$.time",
@@ -382,7 +367,7 @@ describe("log group", () => {
     template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
-        arn: "arn:${data.aws_partition.Partitition.partition}:logs:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:log-group:${aws_cloudwatch_log_group.MyLogGroup_5C0DAD85.name}",
+        arn: "arn:${data.aws_partition.Partitition.partition}:logs:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:log-group:${aws_cloudwatch_log_group.MyLogGroup_5C0DAD85.name}",
         dead_letter_config: {
           arn: stack.resolve(queue.queueArn),
         },
@@ -470,7 +455,7 @@ describe("log group", () => {
     template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
-        arn: "arn:${data.aws_partition.Partitition.partition}:logs:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:log-group:${aws_cloudwatch_log_group.MyLogGroup_5C0DAD85.name}",
+        arn: "arn:${data.aws_partition.Partitition.partition}:logs:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:log-group:${aws_cloudwatch_log_group.MyLogGroup_5C0DAD85.name}",
         input_transformer: {
           input_paths: {
             time: "$.time",
@@ -527,7 +512,6 @@ describe("log group", () => {
         amount: 5,
         unit: { label: "minutes", inMillis: 60000, isoLabel: "M" },
       },
-      region,
       namespace: "AWS/Logs",
       metricName: "IncomingLogs",
       statistic: "Sum",
@@ -552,7 +536,6 @@ describe("log group", () => {
         amount: 10,
         unit: { label: "hours", inMillis: 3600000, isoLabel: "H" },
       },
-      region,
       namespace: "AWS/Logs",
       metricName: "IncomingLogs",
       statistic: "Sum",
@@ -571,7 +554,6 @@ describe("log group", () => {
         amount: 5,
         unit: { label: "minutes", inMillis: 60000, isoLabel: "M" },
       },
-      region,
       namespace: "AWS/Logs",
       metricName: "IncomingBytes",
       statistic: "Sum",
@@ -596,7 +578,6 @@ describe("log group", () => {
         amount: 15,
         unit: { label: "minutes", inMillis: 60000, isoLabel: "M" },
       },
-      region,
       namespace: "AWS/Logs",
       metricName: "IncomingBytes",
       statistic: "Sum",

@@ -16,25 +16,13 @@ import * as iam from "../../../../src/aws/iam";
 import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("lambda authorizer", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("default token authorizer", () => {
@@ -398,12 +386,7 @@ describe("lambda authorizer", () => {
 
   test("a new deployment is created when a lambda function changes name", () => {
     const createApiStack = (lambdaFunctionName: string) => {
-      const tmpStack = new AwsStack(Testing.app(), "Stack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      const tmpStack = new AwsStack(Testing.app());
 
       const func = new compute.LambdaFunction(tmpStack, "myfunction", {
         handler: "handler",
@@ -447,12 +430,7 @@ describe("lambda authorizer", () => {
 
   test("a new deployment is created when an imported lambda function changes name", () => {
     const createApiStack = (lambdaFunctionName: string) => {
-      const tmpStack = new AwsStack(Testing.app(), "Stack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      const tmpStack = new AwsStack(Testing.app());
 
       const func = compute.LambdaFunction.fromFunctionName(
         tmpStack,

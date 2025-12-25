@@ -28,25 +28,13 @@ import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
 import { FakeSelfRegisteringTarget } from "../lb-helpers";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("tests", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
   test("Listener guesses protocol from port", () => {
     // GIVEN
@@ -451,15 +439,8 @@ describe("tests", () => {
         from_port: 80,
         to_port: 80,
         security_group_id: "${aws_security_group.FakeTG_SG_50E257DF.id}",
-        // "Fn::GetAtt": ["FakeTGSG50E257DF", "GroupId"],
         referenced_security_group_id:
           "${aws_security_group.LB_SecurityGroup_8A41EA2B.id}",
-        // "Fn::GetAtt": ["LBSecurityGroup8A41EA2B", "GroupId"],
-        tags: {
-          Name: "Test-SG",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3",
-        },
       },
     );
   });
@@ -568,12 +549,7 @@ describe("tests", () => {
 
   test("Add certificate to imported listener", () => {
     // GIVEN
-    const stack2 = new AwsStack(app, "TestStack2", {
-      environmentName, // TODO: should be different stack for test
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(app, "TestStack2");
     const listener2 = ec2.ApplicationListener.fromApplicationListenerAttributes(
       stack2,
       "Listener",
@@ -1059,12 +1035,7 @@ describe("tests", () => {
 
   test("Can add actions to an imported listener", () => {
     // GIVEN
-    const stack2 = new AwsStack(app, "TestStack2", {
-      environmentName, // TODO: should be different stack for test
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(app, "TestStack2");
     const vpc = new ec2.Vpc(stack, "VPC");
     const lb = new ec2.ApplicationLoadBalancer(stack, "LoadBalancer", {
       vpc,

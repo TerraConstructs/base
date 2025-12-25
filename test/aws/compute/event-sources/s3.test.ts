@@ -8,16 +8,7 @@ import { Template } from "../../../assertions";
 describe("S3EventSource", () => {
   let stack: AwsStack;
   beforeEach(() => {
-    stack = new AwsStack(Testing.app(), `TestStack`, {
-      environmentName: "Test",
-      gridUUID: "123e4567-e89b-12d3",
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(Testing.app());
   });
 
   test("sufficiently complex example", () => {
@@ -43,7 +34,7 @@ describe("S3EventSource", () => {
       {
         bucket: "${aws_s3_bucket.B_08E7C7AF.bucket}",
         depends_on: [
-          "aws_lambda_permission.B_AllowBucketNotificationsToTestStackFnDC3B58FB_79790E98",
+          "aws_lambda_permission.B_AllowBucketNotificationsToFn_069AEFF1",
         ],
         eventbridge: false,
         lambda_function: [

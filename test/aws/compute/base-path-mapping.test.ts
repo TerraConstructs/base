@@ -15,13 +15,6 @@ import {
 import * as certificatemanager from "../../../src/aws/edge";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("BasePathMapping", () => {
   let app: App;
   let stack: AwsStack;
@@ -30,12 +23,7 @@ describe("BasePathMapping", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
 
     api = new RestApi(stack, "MyApi");
     api.root.addMethod("GET"); // api must have at least one method for deployment/stage.

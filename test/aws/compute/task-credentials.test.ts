@@ -2,22 +2,12 @@ import { Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { iam, compute, AwsStack } from "../../../src/aws";
 
-const gridUUID = "123e4567-e89b-12d3";
 describe("TaskRole", () => {
   let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    stack = new AwsStack(app, `TestStack`, {
-      environmentName: "Test",
-      gridUUID,
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(app);
   });
 
   describe("fromRole()", () => {

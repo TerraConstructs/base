@@ -2,24 +2,13 @@ import { Testing } from "cdktn";
 import { render } from "./private/render-util";
 import { compute, AwsStack } from "../../../src/aws";
 
-const gridUUID = "123e4567-e89b-12d3";
-
 describe("Map State", () => {
   describe("State Machine With Map State", () => {
     let stack: AwsStack;
     beforeEach(() => {
       // GIVEN
       const app = Testing.app();
-      stack = new AwsStack(app, `TestStack`, {
-        environmentName: "Test",
-        gridUUID,
-        providerConfig: {
-          region: "us-east-1",
-        },
-        gridBackendConfig: {
-          address: "http://localhost:3000",
-        },
-      });
+      stack = new AwsStack(app);
     });
     test("simple", () => {
       // WHEN
@@ -519,16 +508,7 @@ describe("Map State", () => {
 
 function createStackWithMap(mapFactory: (stack: AwsStack) => compute.Map) {
   const app = Testing.app();
-  const stack = new AwsStack(app, `TestStack`, {
-    environmentName: "Test",
-    gridUUID,
-    providerConfig: {
-      region: "us-east-1",
-    },
-    gridBackendConfig: {
-      address: "http://localhost:3000",
-    },
-  });
+  const stack = new AwsStack(app);
   const map = mapFactory(stack);
   new compute.StateGraph(map, "Test Graph");
   return stack;

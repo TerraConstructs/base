@@ -166,7 +166,7 @@ describe("StackBase", () => {
     const app = new App();
     // THEN
     expect(
-      () => new MyStack(app, "boom", { gridUUID: "invalid:stack:name" }),
+      () => new MyStack(app, "boom", { gridUUID: "invalid:grid:uuid" }),
     ).toThrow(/GridUUID must match the regular expression/);
   });
   test("Stack.of(stack) returns the correct stack", () => {

@@ -5,23 +5,13 @@ import { AwsStack } from "../../../src/aws";
 import { RestApi, HttpIntegration } from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3-a456-426614174000";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = { address: "http://localhost:3000" };
-
 describe("http integration", () => {
   let stack: AwsStack;
   let api: RestApi;
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     api = new RestApi(stack, "my-api");
   });
 

@@ -2,31 +2,22 @@ import {
   s3BucketWebsiteConfiguration,
   dataAwsIamPolicyDocument,
 } from "@cdktn/provider-aws";
-import { App, Testing } from "cdktn";
+import { App, HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { edge, storage, AwsStack } from "../../../src/aws";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
 const gridBackendConfig = {
   address: "http://localhost:3000",
 };
-const providerConfig = { region: "us-east-1" };
 describe("Distribution", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-      // TODO: Should support passing account via Stack props to match AWS CDK cross account support
-      // account: "1234",
-    });
+    stack = new AwsStack(app);
+    new HttpBackend(stack, gridBackendConfig);
   });
 
   test("Should synth with OAI and match SnapShot", () => {

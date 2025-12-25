@@ -22,13 +22,6 @@ import {
 } from "../../../src/aws/notify/";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("NotificationRule", () => {
   let stack: AwsStack;
   let projectSource: INotificationRuleSource;
@@ -38,12 +31,7 @@ describe("NotificationRule", () => {
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     project = new FakeCodeBuild();
   });
 
@@ -131,7 +119,7 @@ describe("NotificationRule", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
-        name: "TestStackMyNotificationRuleGeneratedFromIdE450151A", // Name defaults to construct ID
+        name: "MyNotificationRuleGeneratedFromId", // Name defaults to construct ID
         resource: project.projectArn,
         event_type_ids: ["codebuild-project-build-state-succeeded"],
       },
@@ -149,7 +137,7 @@ describe("NotificationRule", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       codestarnotificationsNotificationRule.CodestarnotificationsNotificationRule,
       {
-        name: "TestStackMyNotificationRuleGooooooooooooooooooooooooLongC320B51B",
+        name: "MyNotificationRuleGeneratedFooooooooooooooooooooooooLong583E4711",
         resource: project.projectArn,
         event_type_ids: ["codebuild-project-build-state-succeeded"],
       },

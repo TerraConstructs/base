@@ -16,14 +16,6 @@ import {
 } from "../../../src/aws/iam/principals";
 import { Role, IRole } from "../../../src/aws/iam/role";
 
-const environmentName = "Test";
-const gridUUID1 = "123e4567-e89b-12d3";
-const gridUUID2 = "123e4567-e89b-12d4";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const roleAccount = "123456789012";
 // const notRoleAccount = "012345678901";
 
@@ -38,7 +30,7 @@ describe("IAM Role.fromRoleArn", () => {
       // Print out snapshot for debug..
       const snapshot: boolean = false;
       beforeEach(() => {
-        roleStack = getAwsStack("RoleStack", gridUUID1);
+        roleStack = new AwsStack();
         importedRole = Role.fromRoleArn(
           roleStack,
           "ImportedRole",
@@ -94,7 +86,7 @@ describe("IAM Role.fromRoleArn", () => {
 
         describe("that belongs to a different env-agnostic stack", () => {
           beforeEach(() => {
-            policyStack = getAwsStack("PolicyStack", gridUUID2);
+            policyStack = new AwsStack(undefined, "PolicyStack");
             // somePolicy is attached to SomeExampleRole in the policyStack
             importedRole.attachInlinePolicy(
               somePolicy(policyStack, "MyPolicy"),
@@ -351,7 +343,7 @@ describe("IAM Role.fromRoleArn", () => {
 
     describe("and with mutable=false", () => {
       beforeEach(() => {
-        roleStack = getAwsStack("RoleStack", gridUUID1);
+        roleStack = new AwsStack();
         importedRole = Role.fromRoleArn(
           roleStack,
           "ImportedRole",
@@ -389,7 +381,7 @@ describe("IAM Role.fromRoleArn", () => {
 
     describe("and with mutable=false and addGrantsToResources=true", () => {
       beforeEach(() => {
-        roleStack = getAwsStack("RoleStack", gridUUID1);
+        roleStack = new AwsStack();
         importedRole = Role.fromRoleArn(
           roleStack,
           "ImportedRole",
@@ -425,7 +417,7 @@ describe("IAM Role.fromRoleArn", () => {
 
     describe("imported with a user specified default policy name", () => {
       test("user specified default policy is used when fromRoleArn() creates a default policy", () => {
-        roleStack = getAwsStack("RoleStack", gridUUID1);
+        roleStack = new AwsStack();
         // new TerraformResource(roleStack, "SomeResource", {
         //   terraformResourceType: "null_test_resource",
         // });
@@ -458,7 +450,7 @@ describe("IAM Role.fromRoleArn", () => {
         expect(synthesized).toHaveResourceWithProperties(
           iamRolePolicy.IamRolePolicy,
           {
-            name: "RoleStackImportedRoleUserSpecifiedDefaultPolicy40D95831",
+            name: "ImportedRoleUserSpecifiedDefaultPolicy95547C4E",
             policy:
               "${data.aws_iam_policy_document.ImportedRole_UserSpecifiedDefaultPolicy_11DED2C9.json}",
           },
@@ -466,7 +458,7 @@ describe("IAM Role.fromRoleArn", () => {
       });
 
       test("`fromRoleName()` with options matches behavior of `fromRoleArn()`", () => {
-        roleStack = getAwsStack("RoleStack", gridUUID1);
+        roleStack = new AwsStack();
         // new TerraformResource(roleStack, "SomeResource", {
         //   terraformResourceType: "null_test_resource",
         // });
@@ -499,7 +491,7 @@ describe("IAM Role.fromRoleArn", () => {
         expect(synthesized).toHaveResourceWithProperties(
           iamRolePolicy.IamRolePolicy,
           {
-            name: "RoleStackImportedRoleUserSpecifiedDefaultPolicy40D95831",
+            name: "ImportedRoleUserSpecifiedDefaultPolicy95547C4E",
             policy:
               "${data.aws_iam_policy_document.ImportedRole_UserSpecifiedDefaultPolicy_11DED2C9.json}",
           },
@@ -516,7 +508,7 @@ describe("IAM Role.fromRoleArn", () => {
 
     describe("into an env-agnostic stack", () => {
       beforeEach(() => {
-        roleStack = getAwsStack("RoleStack", gridUUID1);
+        roleStack = new AwsStack();
         importedRole = Role.fromRoleArn(
           roleStack,
           "ImportedRole",
@@ -596,7 +588,7 @@ describe("IAM Role.fromRoleArn", () => {
 
         describe("that belongs to a different env-agnostic stack", () => {
           beforeEach(() => {
-            policyStack = getAwsStack("PolicyStack", gridUUID2);
+            policyStack = new AwsStack(undefined, "PolicyStack");
             importedRole.attachInlinePolicy(
               somePolicy(policyStack, "MyPolicy"),
             );
@@ -721,7 +713,7 @@ describe("IAM Role.fromRoleArn", () => {
   describe("imported with the ARN of a service role", () => {
     // TODO: e2e test attaching Policy to service role!
     beforeEach(() => {
-      roleStack = getAwsStack("RoleStack", gridUUID1);
+      roleStack = new AwsStack();
     });
 
     describe("without a service principal in the role name", () => {
@@ -775,7 +767,7 @@ describe("IAM Role.fromRoleArn", () => {
 
   // describe("for an incorrect ARN", () => {
   //   beforeEach(() => {
-  //     roleStack = getAwsStack("RoleStack", gridUUID1);
+  //     roleStack = new AwsStack();
   //   });
 
   //   describe("that accidentally skipped the 'region' fragment of the ARN", () => {
@@ -918,14 +910,4 @@ function getResources(synthesized: string, resourceType: string): any[] {
     return [];
   }
   return Object.values(parsed.resource[resourceType]) as any[];
-}
-
-function getAwsStack(id: string, gridUUID: string): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, id, {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
 }

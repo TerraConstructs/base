@@ -18,27 +18,13 @@ import {
 import { Role } from "../../../src/aws/iam/role";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("alias", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-      // TODO: Should support passing account via Stack props to match AWS CDK cross account support
-      // account: "1234",
-    });
+    stack = new AwsStack(app);
   });
 
   test("default", () => {
@@ -175,7 +161,7 @@ describe("alias", () => {
       output: {
         OutArn: {
           value:
-            "arn:${data.aws_partition.Partitition.partition}:kms:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:${aws_kms_alias.MyAlias_9A08CB8C.name}",
+            "arn:${data.aws_partition.Partitition.partition}:kms:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:${aws_kms_alias.MyAlias_9A08CB8C.name}",
         },
         OutId: {
           value: "${aws_kms_alias.MyAlias_9A08CB8C.name}",
@@ -207,7 +193,7 @@ describe("alias", () => {
       output: {
         OutArn: {
           value:
-            "arn:${data.aws_partition.Partitition.partition}:kms:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:${aws_kms_alias.MyAlias_9A08CB8C.name}",
+            "arn:${data.aws_partition.Partitition.partition}:kms:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:${aws_kms_alias.MyAlias_9A08CB8C.name}",
         },
         OutId: {
           value: "${aws_kms_alias.MyAlias_9A08CB8C.name}",
@@ -246,7 +232,7 @@ describe("alias", () => {
       output: {
         OutArn: {
           value:
-            "arn:${data.aws_partition.Partitition.partition}:kms:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:alias/myAlias",
+            "arn:${data.aws_partition.Partitition.partition}:kms:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:alias/myAlias",
         },
         OutId: {
           value: "alias/myAlias",

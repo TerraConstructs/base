@@ -18,25 +18,13 @@ import {
 } from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("connections", () => {
   let app: App;
   let stack: AwsStack;
   let vpc: IVpc;
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     vpc = new Vpc(stack, "Vpc");
   });
   test("peering between two security groups does not recursive infinitely", () => {
@@ -128,7 +116,7 @@ describe("connections", () => {
     // THEN
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfSecurityGroup.SecurityGroup, {
-      description: "MyStack/SecurityGroup1",
+      description: "Default/SecurityGroup1",
       ingress: [
         expect.objectContaining({
           // TODO: will additional `null` properties cause issues?
@@ -142,7 +130,7 @@ describe("connections", () => {
     });
 
     template.toHaveResourceWithProperties(tfSecurityGroup.SecurityGroup, {
-      description: "MyStack/SecurityGroup2",
+      description: "Default/SecurityGroup2",
       ingress: [
         expect.objectContaining({
           // TODO: will additional `null` properties cause issues?
@@ -247,12 +235,7 @@ describe("connections", () => {
       allowAllOutbound: false,
     });
 
-    const stack2 = new AwsStack(app, "MyStack2", {
-      environmentName,
-      gridUUID, // should be different
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(app, "MyStack2");
     const vpc2 = new Vpc(stack2, "VPC");
     const sg2 = new SecurityGroup(stack2, "SecurityGroup", {
       vpc: vpc2,
@@ -270,7 +253,7 @@ describe("connections", () => {
         security_group_id: stack2.resolve(sg2.securityGroupId),
         // remote state reference
         referenced_security_group_id:
-          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
+          "${data.terraform_remote_state.cross-stack-reference-input-Default.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
       },
     );
 
@@ -278,7 +261,7 @@ describe("connections", () => {
       vpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
       {
         security_group_id:
-          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
+          "${data.terraform_remote_state.cross-stack-reference-input-Default.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
         referenced_security_group_id: stack2.resolve(sg2.securityGroupId),
       },
     );
@@ -291,12 +274,7 @@ describe("connections", () => {
       allowAllOutbound: false,
     });
 
-    const stack2 = new AwsStack(app, "MyStack2", {
-      environmentName,
-      gridUUID, // should be different
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(app, "MyStack2");
     const vpc2 = new Vpc(stack2, "VPC");
     const sg2 = new SecurityGroup(stack2, "SecurityGroup", {
       vpc: vpc2,
@@ -313,7 +291,7 @@ describe("connections", () => {
       {
         // remote state reference
         security_group_id:
-          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
+          "${data.terraform_remote_state.cross-stack-reference-input-Default.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
         referenced_security_group_id: stack2.resolve(sg2.securityGroupId),
       },
     );
@@ -323,7 +301,7 @@ describe("connections", () => {
       {
         security_group_id: stack2.resolve(sg2.securityGroupId),
         referenced_security_group_id:
-          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
+          "${data.terraform_remote_state.cross-stack-reference-input-Default.outputs.cross-stack-output-aws_security_groupSecurityGroup_DD263621id}",
       },
     );
   });
@@ -339,12 +317,7 @@ describe("connections", () => {
       allowAllOutbound: false,
     });
 
-    const stack2 = new AwsStack(app, "MyStack2", {
-      environmentName,
-      gridUUID, // should be different
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(app, "MyStack2");
     const vpc2 = new Vpc(stack2, "VPC");
     const sg2 = new SecurityGroup(stack2, "SecurityGroup", {
       vpc: vpc2,
@@ -361,7 +334,7 @@ describe("connections", () => {
       vpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
       {
         security_group_id:
-          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroupB_04591F90id}",
+          "${data.terraform_remote_state.cross-stack-reference-input-Default.outputs.cross-stack-output-aws_security_groupSecurityGroupB_04591F90id}",
         referenced_security_group_id: stack2.resolve(sg2.securityGroupId),
       },
     );
@@ -370,7 +343,7 @@ describe("connections", () => {
       vpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
       {
         security_group_id:
-          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupSecurityGroupB_04591F90id}",
+          "${data.terraform_remote_state.cross-stack-reference-input-Default.outputs.cross-stack-output-aws_security_groupSecurityGroupB_04591F90id}",
         referenced_security_group_id: stack2.resolve(sg2.securityGroupId),
       },
     );

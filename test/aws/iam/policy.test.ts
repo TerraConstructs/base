@@ -16,19 +16,11 @@ import { Role } from "../../../src/aws/iam/role";
 import { User } from "../../../src/aws/iam/user";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("IAM policy", () => {
   let stack: AwsStack;
 
   beforeEach(() => {
-    // app = new App();
-    stack = getAwsStack();
+    stack = new AwsStack();
   });
 
   // TODO: throw Error if force is true and policy is empty
@@ -154,9 +146,9 @@ describe("IAM policy", () => {
       },
     );
     t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
-      name: expect.stringContaining("TestStackMyPolicy"),
-      policy: expect.stringContaining("data.aws_iam_policy_document.MyPolicy"),
-      role: expect.stringContaining("aws_iam_role.Role"),
+      name: "MyPolicy",
+      policy: "${data.aws_iam_policy_document.MyPolicy_2B9C33AD.json}",
+      role: "${aws_iam_role.Role_1ABCC5F0.name}",
     });
   });
 
@@ -424,13 +416,3 @@ describe("IAM policy", () => {
     // If we got here, all OK
   });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}

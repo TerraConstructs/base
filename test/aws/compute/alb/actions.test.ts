@@ -16,13 +16,6 @@ import * as compute from "../../../../src/aws/compute";
 import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 let app: App;
 let stack: AwsStack;
 let group1: compute.ApplicationTargetGroup;
@@ -32,12 +25,7 @@ let vpc: compute.Vpc;
 
 beforeEach(() => {
   app = Testing.app();
-  stack = new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  stack = new AwsStack(app);
   vpc = new compute.Vpc(stack, "Stack");
   group1 = new compute.ApplicationTargetGroup(stack, "TargetGroup1", {
     vpc,
@@ -244,8 +232,7 @@ describe("tests", () => {
       tfSecurityGroup.SecurityGroup,
       {
         vpc_id: stack.resolve(vpc.vpcId),
-        description:
-          "Automatically created Security Group for ELB TestStackLBC7C3DDBD",
+        description: "Automatically created Security Group for ELB LB",
         ingress: [
           expect.objectContaining({
             cidr_blocks: ["0.0.0.0/0"],
@@ -288,8 +275,7 @@ describe("tests", () => {
     const template = Template.synth(stack);
     template.toHaveResourceWithProperties(tfSecurityGroup.SecurityGroup, {
       vpc_id: stack.resolve(vpc.vpcId),
-      description:
-        "Automatically created Security Group for ELB TestStackLBC7C3DDBD",
+      description: "Automatically created Security Group for ELB LB",
       ingress: [
         expect.objectContaining({
           cidr_blocks: ["0.0.0.0/0"],

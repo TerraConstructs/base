@@ -45,24 +45,12 @@ import { Bucket, StringParameter } from "../../../src/aws/storage";
 import { Annotations, Template } from "../../assertions";
 // import { Asset } from "../../aws-s3-assets";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 let app: App;
 let stack: AwsStack;
 let vpc: Vpc;
 beforeEach(() => {
   app = Testing.app();
-  stack = new AwsStack(app, "MyStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  stack = new AwsStack(app);
   vpc = new Vpc(stack, "VPC");
 });
 
@@ -296,7 +284,7 @@ describe("instance", () => {
     // THEN
     Template.synth(stack).toHaveResourceWithProperties(tfInstance.Instance, {
       volume_tags: {
-        Name: "MyStack/Instance",
+        Name: "Default/Instance",
       },
     });
   });
@@ -526,7 +514,7 @@ describe("instance", () => {
       // THEN
       // TODO: Support Warning Acknowledgements - [ack: @aws-cdk/aws-ec2:iopsIgnored]
       Annotations.fromStack(stack).hasWarnings({
-        constructPath: "MyStack/Instance",
+        constructPath: "Default/Instance",
         message: "iops will be ignored without volumeType: IO1, IO2, or GP3",
       });
     });
@@ -552,7 +540,7 @@ describe("instance", () => {
       // THEN
       // TODO: Support Warning Acknowledgements - [ack: @aws-cdk/aws-ec2:iopsIgnored]
       Annotations.fromStack(stack).hasWarnings({
-        constructPath: "MyStack/Instance",
+        constructPath: "Default/Instance",
         message: "iops will be ignored without volumeType: IO1, IO2, or GP3",
       });
     });

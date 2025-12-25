@@ -13,16 +13,7 @@ import { compute, notify, AwsStack } from "../../../src/aws";
 
 let stack: AwsStack;
 beforeEach(() => {
-  stack = new AwsStack(Testing.app(), `TestStack`, {
-    environmentName: "Test",
-    gridUUID: "123e4567-e89b-12d3",
-    providerConfig: {
-      region: "us-east-1",
-    },
-    gridBackendConfig: {
-      address: "http://localhost:3000",
-    },
-  });
+  stack = new AwsStack(Testing.app());
 });
 
 const fnProps: compute.FunctionProps = {
@@ -178,6 +169,9 @@ test("lambda as destination", () => {
 
 test("lambda payload as destination", () => {
   // GIVEN
+  stack = new AwsStack(undefined, undefined, {
+    providerConfig: { region: "us-east-1" },
+  });
   const successFunction = new compute.LambdaFunction(
     stack,
     "SuccessFunction",

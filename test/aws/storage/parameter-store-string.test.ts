@@ -6,28 +6,13 @@ import { AwsStack } from "../../../src/aws/aws-stack";
 import { StringParameter } from "../../../src/aws/storage/parameter";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("parameterstore", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-      // TODO: Should support passing account via Stack props?
-      // account: "1234",
-      // region: "us-east-1",
-    });
+    stack = new AwsStack(app);
   });
   test("can reference SSMPS string - specific version", () => {
     // WHEN

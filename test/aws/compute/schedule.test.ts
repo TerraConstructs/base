@@ -3,13 +3,6 @@ import { AwsStack } from "../../../src/aws/aws-stack";
 import { Schedule } from "../../../src/aws/compute/schedule";
 import { Duration } from "../../../src/duration";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("cron", () => {
   test("test utc cron, hour only", () => {
     expect(Schedule.cron({ hour: "18", minute: "0" }).expressionString).toEqual(
@@ -52,12 +45,7 @@ describe("rate", () => {
 
   test("rate can be token", () => {
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(app);
     const lazyDuration = Duration.minutes(
       Lazy.numberValue({ produce: () => 5 }),
     );

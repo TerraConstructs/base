@@ -30,26 +30,13 @@ const ruleTfResource = cloudwatchEventRule.CloudwatchEventRule.tfResourceType;
 const ruleTargetTfResource =
   cloudwatchEventTarget.CloudwatchEventTarget.tfResourceType;
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridUUID2 = "123e4567-e89b-12d4";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("rule", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
   test("default rule", () => {
     new Rule(stack, "MyRule", {
@@ -78,7 +65,7 @@ describe("rule", () => {
 
     const template = Annotations.fromStack(stack);
     template.hasWarnings({
-      constructPath: "MyStack/MyRule",
+      constructPath: "Default/MyRule",
       // TODO: Support Warning Acknowledgements - [ack: @aws-cdk/aws-events:scheduleWillRunEveryMinute]
       message:
         "cron: If you don't pass 'minute', by default the event runs every minute. Pass 'minute: '*'' if that's what you intend, or 'minute: 0' to run once per hour instead.",
@@ -528,21 +515,15 @@ describe("rule", () => {
     // GIVEN
     // env: { account: "1234", region: "us-east-1" },
     const ruleStack = new AwsStack(app, "RuleStack", {
-      environmentName,
-      gridUUID,
       providerConfig: {
         region: "us-east-1",
       },
-      gridBackendConfig,
     });
     // env: { account: "5678", region: "us-east-1" },
     const targetStack = new AwsStack(app, "TargeTStack", {
-      environmentName,
-      gridUUID: gridUUID2,
       providerConfig: {
         region: "us-east-1",
       },
-      gridBackendConfig,
     });
 
     const rule = new Rule(ruleStack, "EventRule", {
@@ -844,12 +825,9 @@ describe("rule", () => {
     const sourceRegion = "us-west-2";
     // env: { account: sourceAccount, region: sourceRegion },
     const sourceStack = new AwsStack(app, "SourceStack", {
-      environmentName,
-      gridUUID,
       providerConfig: {
         region: sourceRegion,
       },
-      gridBackendConfig,
     });
     const rule = new Rule(sourceStack, "Rule", {
       eventPattern: {
@@ -888,12 +866,7 @@ describe("rule", () => {
 
       // const targetAccount = "234567890123";
       // TODO: Support constructors with account - env: { account: targetAccount },
-      const targetStack = new AwsStack(app, "TargetStack", {
-        environmentName,
-        gridUUID: gridUUID2,
-        providerConfig,
-        gridBackendConfig,
-      });
+      const targetStack = new AwsStack(app, "TargetStack");
       const resource = new Construct(targetStack, "Resource");
       rule.addTarget(new SomeTarget("T", resource));
       Template.synth(stack).toHaveResourceWithProperties(
@@ -917,12 +890,7 @@ describe("rule", () => {
     test("requires that the target stack specify a concrete account", () => {
       // const sourceAccount = "123456789012";
       // TODO: Support constructors with account - env: { account: sourceAccount },
-      const sourceStack = new AwsStack(app, "TargetStack", {
-        environmentName,
-        gridUUID: gridUUID2,
-        providerConfig,
-        gridBackendConfig,
-      });
+      const sourceStack = new AwsStack(app, "TargetStack");
       const rule = new Rule(sourceStack, "Rule", {
         eventPattern: {
           source: ["some-event"],
@@ -983,12 +951,9 @@ describe("rule", () => {
       const targetRegion = sourceRegion;
       // env: { account: targetAccount, region: targetRegion },
       const targetStack = new AwsStack(app, "TargetStack", {
-        environmentName,
-        gridUUID: gridUUID2,
         providerConfig: {
           region: targetRegion,
         },
-        gridBackendConfig,
       });
       const resource = new Construct(targetStack, "Resource");
 
@@ -1046,12 +1011,9 @@ describe("rule", () => {
       const targetRegion = "us-east-1";
       // env: { account: targetAccount, region: targetRegion },
       const targetStack = new AwsStack(app, "TargetStack", {
-        environmentName,
-        gridUUID: gridUUID2,
         providerConfig: {
           region: targetRegion,
         },
-        gridBackendConfig,
       });
       const resource = new Construct(targetStack, "Resource");
 
@@ -1109,12 +1071,9 @@ describe("rule", () => {
       const targetRegion = "us-east-1";
       // env: { account: targetAccount, region: targetRegion },
       const targetStack = new AwsStack(app, "TargetStack", {
-        environmentName,
-        gridUUID: gridUUID2,
         providerConfig: {
           region: targetRegion,
         },
-        gridBackendConfig,
       });
       const resource = new Construct(targetStack, "Resource");
 
@@ -1202,11 +1161,6 @@ describe("rule", () => {
       // const targetAccount = "234567890123";
       // env: { account: targetAccount, region: "us-west-2" },
       const targetStack = new AwsStack(targetApp, "MyStack", {
-        environmentName,
-        gridUUID: gridUUID2,
-        gridBackendConfig,
-        providerConfig,
-        // : {
         //   region: targetRegion,
         // },
       });
@@ -1237,9 +1191,6 @@ describe("rule", () => {
 
       const targetAccount = "234567890123";
       const targetStack = new AwsStack(app, "TargetStack", {
-        environmentName,
-        gridUUID: gridUUID2,
-        gridBackendConfig,
         providerConfig: {
           //account: targetAccount
           region: "us-west-2",
@@ -1316,9 +1267,6 @@ describe("rule", () => {
 
       // const targetAccount = "234567890123";
       const targetStack = new AwsStack(app, "TargetStack", {
-        environmentName,
-        gridUUID: gridUUID2,
-        gridBackendConfig,
         providerConfig: {
           //account: targetAccount
           region: "us-west-2",

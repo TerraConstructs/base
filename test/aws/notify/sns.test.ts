@@ -89,7 +89,7 @@ describe("Topic", () => {
       const t = new Template(stack);
       t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
         fifo_topic: true,
-        name: "MyTopic.fifo",
+        name: "MyTopic.fifo", // Name is auto-generated
       });
     });
 
@@ -623,7 +623,7 @@ describe("Topic", () => {
 
   test("fromTopicArn", () => {
     // GIVEN
-    const stack2 = new AwsStack();
+    const stack2 = new AwsStack(app, "stack2");
 
     // WHEN
     const imported = sns.Topic.fromTopicArn(
@@ -784,7 +784,6 @@ describe("Topic", () => {
 
   test('if "scope" is defined, subscription will be created under that scope', () => {
     // GIVEN
-    stack = new AwsStack(app, "A");
     const stack2 = new AwsStack(app, "B");
     const topic = new sns.Topic(stack, "Topic");
 
@@ -808,7 +807,7 @@ describe("Topic", () => {
       {
         // TODO: Figure out cross stack reference resolving?
         topic_arn:
-          "${data.terraform_remote_state.cross-stack-reference-input-A.outputs.cross-stack-output-aws_sns_topicTopic_BFC7AF6Earn}", //stack.resolve(topic.topicArn),
+          "${data.terraform_remote_state.cross-stack-reference-input-Default.outputs.cross-stack-output-aws_sns_topicTopic_BFC7AF6Earn}", //stack.resolve(topic.topicArn),
         protocol: "http",
         endpoint: "http://foo/bar",
       },

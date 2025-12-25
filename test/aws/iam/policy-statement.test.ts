@@ -5,15 +5,12 @@ import { PolicyDocument } from "../../../src/aws/iam/policy-document";
 import { PolicyStatement, Effect } from "../../../src/aws/iam/policy-statement";
 import { AnyPrincipal } from "../../../src/aws/iam/principals";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
 describe("IAM policy statement", () => {
   describe("from JSON", () => {
     test("parses with no principal", () => {
       // GIVEN
-      const stack1 = getAwsStack();
-      const stack2 = getAwsStack();
+      const stack1 = new AwsStack();
+      const stack2 = new AwsStack();
 
       const s = new PolicyStatement();
       s.addActions("service:action1", "service:action2");
@@ -33,8 +30,8 @@ describe("IAM policy statement", () => {
     });
 
     test("parses a given Principal", () => {
-      const stack1 = getAwsStack();
-      const stack2 = getAwsStack();
+      const stack1 = new AwsStack();
+      const stack2 = new AwsStack();
 
       const s = new PolicyStatement();
       s.addActions("service:action1", "service:action2");
@@ -53,7 +50,7 @@ describe("IAM policy statement", () => {
     });
 
     test("should not convert `Principal: *` to `Principal: { AWS: * }`", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
       const s = PolicyStatement.fromJson({
         Action: ["service:action1"],
         Principal: "*",
@@ -80,8 +77,8 @@ describe("IAM policy statement", () => {
     });
 
     test("parses a given notPrincipal", () => {
-      const stack1 = getAwsStack();
-      const stack2 = getAwsStack();
+      const stack1 = new AwsStack();
+      const stack2 = new AwsStack();
 
       const s = new PolicyStatement();
       s.addActions("service:action1", "service:action2");
@@ -100,8 +97,8 @@ describe("IAM policy statement", () => {
     });
 
     test("parses with notAction", () => {
-      const stack1 = getAwsStack();
-      const stack2 = getAwsStack();
+      const stack1 = new AwsStack();
+      const stack2 = new AwsStack();
 
       const s = new PolicyStatement();
       s.addNotActions("service:action3");
@@ -118,8 +115,8 @@ describe("IAM policy statement", () => {
     });
 
     test("parses with notActions", () => {
-      const stack1 = getAwsStack();
-      const stack2 = getAwsStack();
+      const stack1 = new AwsStack();
+      const stack2 = new AwsStack();
 
       const s = new PolicyStatement();
       s.addNotActions("service:action3", "service:action4");
@@ -136,8 +133,8 @@ describe("IAM policy statement", () => {
     });
 
     test("parses with notResource", () => {
-      const stack1 = getAwsStack();
-      const stack2 = getAwsStack();
+      const stack1 = new AwsStack();
+      const stack2 = new AwsStack();
 
       const s = new PolicyStatement();
       s.addActions("service:action3", "service:action4");
@@ -154,8 +151,8 @@ describe("IAM policy statement", () => {
     });
 
     test("parses with notResources", () => {
-      const stack1 = getAwsStack();
-      const stack2 = getAwsStack();
+      const stack1 = new AwsStack();
+      const stack2 = new AwsStack();
 
       const s = new PolicyStatement();
       s.addActions("service:action3", "service:action4");
@@ -172,7 +169,7 @@ describe("IAM policy statement", () => {
     });
 
     test("the kitchen sink", () => {
-      const stack = getAwsStack();
+      const stack = new AwsStack();
 
       const policyDocument = {
         Version: "2012-10-17",
@@ -226,7 +223,7 @@ describe("IAM policy statement", () => {
   });
 
   // test("throws error when group is specified for 'Principal' or 'NotPrincipal'", () => {
-  //   const stack = getAwsStack();
+  //   const stack = new AwsStack();
   //   const group = new Group(stack, "groupId");
   //   const policyStatement = new PolicyStatement();
 
@@ -291,12 +288,3 @@ describe("IAM policy statement", () => {
     }
   });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-  });
-}

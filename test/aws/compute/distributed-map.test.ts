@@ -5,22 +5,11 @@ import "cdktn/lib/testing/adapters/jest";
 import { CsvHeaders } from "../../../src/aws/compute/states/distributed-map/item-reader";
 import { Annotations } from "../../assertions";
 
-const gridUUID = "123e4567-e89b-12d3";
-
 describe("Distributed Map State", () => {
   test("DistributedMap isDistributedMap", () => {
     // GIVEN
     const app = Testing.app();
-    const stack = new AwsStack(app, `TestStack`, {
-      environmentName: "Test",
-      gridUUID,
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    const stack = new AwsStack(app);
 
     //WHEN
     const map = new compute.DistributedMap(stack, "Map State", {
@@ -43,16 +32,7 @@ describe("Distributed Map State", () => {
     beforeEach(() => {
       // GIVEN
       const app = Testing.app();
-      stack = new AwsStack(app, `TestStack`, {
-        environmentName: "Test",
-        gridUUID,
-        providerConfig: {
-          region: "us-east-1",
-        },
-        gridBackendConfig: {
-          address: "http://localhost:3000",
-        },
-      });
+      stack = new AwsStack(app);
     });
 
     test("simple", () => {
@@ -746,7 +726,7 @@ describe("Distributed Map State", () => {
       });
 
       Annotations.fromStack(stack).hasWarnings({
-        constructPath: "TestStack/Map State",
+        constructPath: "Default/Map State",
         message:
           /Property 'ProcessorConfig.executionType' is ignored, use the 'mapExecutionType' in the 'DistributedMap' class instead./,
       });
@@ -793,7 +773,7 @@ describe("Distributed Map State", () => {
       });
 
       Annotations.fromStack(stack).hasWarnings({
-        constructPath: "TestStack/Map State",
+        constructPath: "Default/Map State",
         message:
           /Property 'ProcessorConfig.executionType' is ignored, use the 'mapExecutionType' in the 'DistributedMap' class instead./,
       });
@@ -956,16 +936,7 @@ function createStackWithMap(
   mapFactory: (stack: AwsStack) => compute.DistributedMap,
 ) {
   const app = Testing.app();
-  const stack = new AwsStack(app, `TestStack`, {
-    environmentName: "Test",
-    gridUUID,
-    providerConfig: {
-      region: "us-east-1",
-    },
-    gridBackendConfig: {
-      address: "http://localhost:3000",
-    },
-  });
+  const stack = new AwsStack(app);
   const map = mapFactory(stack);
   new compute.StateGraph(map, "Test Graph");
   return stack;

@@ -2,6 +2,7 @@
 
 import { apiGatewayIntegration, apiGatewayMethod } from "@cdktn/provider-aws";
 import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   Vpc,
@@ -17,23 +18,13 @@ import { Role, ServicePrincipal } from "../../../src/aws/iam";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const environmentName = "TestEnv";
-const gridUUID = "test-uuid";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = { address: "http://localhost:4000" };
-
 describe("integration", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test('integration "credentialsRole" and "credentialsPassthrough" are mutually exclusive', () => {

@@ -16,13 +16,6 @@ import * as edge from "../../../src/aws/edge";
 import * as storage from "../../../src/aws/storage";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 /* eslint-disable quote-props */
 
 describe("domains", () => {
@@ -30,12 +23,7 @@ describe("domains", () => {
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("can define either an EDGE or REGIONAL domain name", () => {

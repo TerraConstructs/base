@@ -7,13 +7,6 @@ import { AwsStack } from "../../../src/aws";
 import { Vpc, NetworkLoadBalancer, VpcLink } from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("vpc link", () => {
   let app: App;
   let stack: AwsStack;
@@ -21,12 +14,7 @@ describe("vpc link", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     vpc = new Vpc(stack, "VPC");
   });
 
@@ -71,7 +59,7 @@ describe("vpc link", () => {
       apiGatewayVpcLink.ApiGatewayVpcLink,
       {
         // TODO: Not following the GridUUID Prefix pattern...
-        name: "MyStackVpcLink94DC54D3",
+        name: "VpcLink",
         target_arns: [
           stack.resolve(nlb0.loadBalancerArn),
           stack.resolve(nlb1.loadBalancerArn),

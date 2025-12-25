@@ -11,28 +11,13 @@ import { LogGroup, ResourcePolicy } from "../../../src/aws/cloudwatch";
 import { PolicyStatement, ServicePrincipal } from "../../../src/aws/iam";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const region = "us-east-1";
-const providerConfig = { region };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("resource policy", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-      // TODO: Should support passing account via Stack props to match AWS CDK cross account support
-      // account: "1234",
-    });
+    stack = new AwsStack(app);
   });
   test("ResourcePolicy is added to stack, when .addToResourcePolicy() is provided a valid Statement", () => {
     // GIVEN

@@ -9,23 +9,13 @@ import { AwsStack } from "../../../src/aws";
 import * as apigw from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = { address: "http://localhost:3000" };
-
 describe("model", () => {
   let stack: AwsStack;
   let api: apigw.RestApi;
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
 
     api = new apigw.RestApi(stack, "test-api", {
       cloudWatchRole: false,

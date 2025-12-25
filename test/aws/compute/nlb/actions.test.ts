@@ -11,13 +11,6 @@ import { NetworkTargetGroup } from "../../../../src/aws/compute/nlb/network-targ
 import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 let stack: AwsStack;
 let group1: NetworkTargetGroup;
 let group2: NetworkTargetGroup;
@@ -26,12 +19,7 @@ let lb: NetworkLoadBalancer;
 beforeEach(() => {
   let app: App;
   app = Testing.app();
-  stack = new AwsStack(app, "MyStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  stack = new AwsStack(app);
   const vpc = new ec2.Vpc(stack, "Stack");
   group1 = new NetworkTargetGroup(stack, "TargetGroup1", {
     vpc,

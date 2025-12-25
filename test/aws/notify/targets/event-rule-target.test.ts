@@ -14,19 +14,12 @@ import { Rule } from "../../../../src/aws/notify/rule";
 import { Schedule } from "../../../../src/aws/notify/schedule";
 import { EventBus as EventBusTarget } from "../../../../src/aws/notify/targets/event-bus";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("EventBus as an event rule target", () => {
   let stack: AwsStack;
   let rule: Rule;
 
   beforeEach(() => {
-    stack = getAwsStack();
+    stack = new AwsStack();
     rule = new Rule(stack, "Rule", {
       schedule: Schedule.expression("rate(1 min)"),
     });
@@ -257,7 +250,7 @@ describe("EventBus as an event rule target", () => {
               },
             ],
             resources: ["${aws_sqs_queue.Queue_4A7E3555.arn}"],
-            sid: "AllowEventRuleTestStackRule3795E55D",
+            sid: "AllowEventRuleRule",
           },
         ],
       },
@@ -408,13 +401,3 @@ describe("EventBus as an event rule target", () => {
     // });
   });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}
