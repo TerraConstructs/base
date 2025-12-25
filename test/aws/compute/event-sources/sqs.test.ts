@@ -3,6 +3,7 @@
 import {
   dataAwsIamPolicyDocument,
   iamRolePolicy,
+  kmsKey,
   lambdaEventSourceMapping,
   // cloudwatchEventRule,
   // cloudwatchEventTarget,
@@ -13,7 +14,13 @@ import {
 import { Testing, Lazy } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { TestFunction } from "./test-function";
-import { iam, compute, notify, AwsStack } from "../../../../src/aws";
+import {
+  iam,
+  compute,
+  notify,
+  AwsStack,
+  encryption,
+} from "../../../../src/aws";
 import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
 
@@ -66,38 +73,6 @@ describe("SQSEventSource", () => {
         function_name: "${aws_lambda_function.Fn_9270CBC0.function_name}",
       },
     );
-    // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
-    //   PolicyDocument: {
-    //     Statement: [
-    //       {
-    //         Action: [
-    //           "sqs:ReceiveMessage",
-    //           "sqs:ChangeMessageVisibility",
-    //           "sqs:GetQueueUrl",
-    //           "sqs:DeleteMessage",
-    //           "sqs:GetQueueAttributes",
-    //         ],
-    //         Effect: "Allow",
-    //         Resource: {
-    //           "Fn::GetAtt": ["Q63C6E3AB", "Arn"],
-    //         },
-    //       },
-    //     ],
-    //     Version: "2012-10-17",
-    //   },
-    // });
-
-    // Template.fromStack(stack).hasResourceProperties(
-    //   "AWS::Lambda::EventSourceMapping",
-    //   {
-    //     EventSourceArn: {
-    //       "Fn::GetAtt": ["Q63C6E3AB", "Arn"],
-    //     },
-    //     FunctionName: {
-    //       Ref: "Fn9270CBC0",
-    //     },
-    //   },
-    // );
   });
 
   test("specific batch size", () => {
@@ -121,18 +96,6 @@ describe("SQSEventSource", () => {
         function_name: "${aws_lambda_function.Fn_9270CBC0.function_name}",
       },
     );
-    // Template.fromStack(stack).hasResourceProperties(
-    //   "AWS::Lambda::EventSourceMapping",
-    //   {
-    //     EventSourceArn: {
-    //       "Fn::GetAtt": ["Q63C6E3AB", "Arn"],
-    //     },
-    //     FunctionName: {
-    //       Ref: "Fn9270CBC0",
-    //     },
-    //     BatchSize: 5,
-    //   },
-    // );
   });
 
   test("unresolved batch size", () => {
@@ -159,12 +122,6 @@ describe("SQSEventSource", () => {
         batch_size: 500,
       },
     );
-    // Template.fromStack(stack).hasResourceProperties(
-    //   "AWS::Lambda::EventSourceMapping",
-    //   {
-    //     BatchSize: 500,
-    //   },
-    // );
   });
 
   test("fails if batch size is < 1", () => {
@@ -222,13 +179,6 @@ describe("SQSEventSource", () => {
         maximum_batching_window_in_seconds: 300,
       },
     );
-    // Template.fromStack(stack).hasResourceProperties(
-    //   "AWS::Lambda::EventSourceMapping",
-    //   {
-    //     BatchSize: 1000,
-    //     MaximumBatchingWindowInSeconds: 300,
-    //   },
-    // );
   });
 
   test("fails if batch size is > 10000 and batch window is defined", () => {
@@ -266,12 +216,6 @@ describe("SQSEventSource", () => {
         maximum_batching_window_in_seconds: 300,
       },
     );
-    // Template.fromStack(stack).hasResourceProperties(
-    //   "AWS::Lambda::EventSourceMapping",
-    //   {
-    //     MaximumBatchingWindowInSeconds: 300,
-    //   },
-    // );
   });
 
   test("fails if batch window defined for FIFO queue", () => {
@@ -373,12 +317,6 @@ describe("SQSEventSource", () => {
         enabled: false,
       },
     );
-    // Template.fromStack(stack).hasResourceProperties(
-    //   "AWS::Lambda::EventSourceMapping",
-    //   {
-    //     Enabled: false,
-    //   },
-    // );
   });
 
   test("reportBatchItemFailures", () => {
@@ -400,12 +338,6 @@ describe("SQSEventSource", () => {
         function_response_types: ["ReportBatchItemFailures"],
       },
     );
-    // Template.fromStack(stack).hasResourceProperties(
-    //   "AWS::Lambda::EventSourceMapping",
-    //   {
-    //     FunctionResponseTypes: ["ReportBatchItemFailures"],
-    //   },
-    // );
   });
 
   // test("warning added if lambda function imported without role", () => {
@@ -588,120 +520,114 @@ describe("SQSEventSource", () => {
         },
       },
     );
-    // Template.fromStack(stack).hasResourceProperties(
-    //   "AWS::Lambda::EventSourceMapping",
-    //   {
-    //     FilterCriteria: {
-    //       Filters: [
-    //         {
-    //           Pattern: '{"body":{"id":[{"exists":true}]}}',
-    //         },
-    //       ],
-    //     },
-    //   },
-    // );
   });
 
-  // test("adding filter criteria encryption", () => {
-  //   // GIVEN
-  //   const fn = new TestFunction(stack, "Fn");
-  //   const q = new notify.Queue(stack, "Q");
-  //   const myKey = encryption.Key.fromKeyArn(
-  //     stack,
-  //     "SourceBucketEncryptionKey",
-  //     "arn:aws:kms:us-east-1:123456789012:key/<key-id>",
-  //   );
+  test("adding filter criteria encryption", () => {
+    // GIVEN
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
+    const myKey = encryption.Key.fromKeyArn(
+      stack,
+      "SourceBucketEncryptionKey",
+      "arn:aws:kms:us-east-1:123456789012:key/<key-id>",
+    );
 
-  //   // WHEN
-  //   fn.addEventSource(
-  //     new compute.sources.SqsEventSource(q, {
-  //       filters: [
-  //         lambda.FilterCriteria.filter({
-  //           body: {
-  //             id: lambda.FilterRule.exists(),
-  //           },
-  //         }),
-  //       ],
-  //       filterEncryption: myKey,
-  //     }),
-  //   );
+    // WHEN
+    fn.addEventSource(
+      new compute.sources.SqsEventSource(q, {
+        filters: [
+          compute.FilterCriteria.filter({
+            body: {
+              id: compute.FilterRule.exists(),
+            },
+          }),
+        ],
+        filterEncryption: myKey,
+      }),
+    );
 
-  //   // THEN
-  //   Template.fromStack(stack).hasResourceProperties(
-  //     "AWS::Lambda::EventSourceMapping",
-  //     {
-  //       FilterCriteria: {
-  //         Filters: [
-  //           {
-  //             Pattern: '{"body":{"id":[{"exists":true}]}}',
-  //           },
-  //         ],
-  //       },
-  //       KmsKeyArn: "arn:aws:kms:us-east-1:123456789012:key/<key-id>",
-  //     },
-  //   );
-  // });
+    // THEN
+    Template.synth(stack).toHaveResourceWithProperties(
+      lambdaEventSourceMapping.LambdaEventSourceMapping,
+      {
+        filter_criteria: {
+          filter: [
+            {
+              pattern: '{"body":{"id":[{"exists":true}]}}',
+            },
+          ],
+        },
+        kms_key_arn: "arn:aws:kms:us-east-1:123456789012:key/<key-id>",
+      },
+    );
+  });
 
-  // test("adding filter criteria encryption with stack key", () => {
-  //   // GIVEN
+  test("adding filter criteria encryption with stack key", () => {
+    // GIVEN
 
-  //   const fn = new TestFunction(stack, "Fn");
-  //   const q = new notify.Queue(stack, "Q");
-  //   const myKey = new encryption.Key(stack, "fc-test-key-name", {
-  //     removalPolicy: cdk.RemovalPolicy.DESTROY,
-  //     pendingWindow: Duration.days(7),
-  //     description: "KMS key for test fc encryption",
-  //   });
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
+    const myKey = new encryption.Key(stack, "fc-test-key-name", {
+      // removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pendingWindow: Duration.days(7),
+      description: "KMS key for test fc encryption",
+    });
 
-  //   // WHEN
-  //   fn.addEventSource(
-  //     new compute.sources.SqsEventSource(q, {
-  //       filters: [
-  //         lambda.FilterCriteria.filter({
-  //           body: {
-  //             id: lambda.FilterRule.exists(),
-  //           },
-  //         }),
-  //       ],
-  //       filterEncryption: myKey,
-  //     }),
-  //   );
+    // WHEN
+    fn.addEventSource(
+      new compute.sources.SqsEventSource(q, {
+        filters: [
+          compute.FilterCriteria.filter({
+            body: {
+              id: compute.FilterRule.exists(),
+            },
+          }),
+        ],
+        filterEncryption: myKey,
+      }),
+    );
 
-  //   // THEN
-  //   Template.fromStack(stack).hasResourceProperties("AWS::KMS::Key", {
-  //     KeyPolicy: {
-  //       Statement: [
-  //         {
-  //           Action: "kms:*",
-  //           Effect: "Allow",
-  //           Principal: {
-  //             AWS: {
-  //               "Fn::Join": [
-  //                 "",
-  //                 [
-  //                   "arn:",
-  //                   { Ref: "AWS::Partition" },
-  //                   ":iam::",
-  //                   { Ref: "AWS::AccountId" },
-  //                   ":root",
-  //                 ],
-  //               ],
-  //             },
-  //           },
-  //           Resource: "*",
-  //         },
-  //         {
-  //           Action: "kms:Decrypt",
-  //           Effect: "Allow",
-  //           Principal: {
-  //             Service: "lambda.amazonaws.com",
-  //           },
-  //           Resource: "*",
-  //         },
-  //       ],
-  //     },
-  //   });
-  // });
+    // THEN
+    const t = Template.synth(stack);
+    t.toHaveResourceWithProperties(kmsKey.KmsKey, {
+      description: "KMS key for test fc encryption",
+      policy:
+        "${data.aws_iam_policy_document.fc-test-key-name_Policy_729E08D2.json}",
+    });
+    t.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+      {
+        statement: [
+          {
+            actions: ["kms:*"],
+            effect: "Allow",
+            principals: [
+              {
+                identifiers: [
+                  "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root",
+                ],
+                type: "AWS",
+              },
+            ],
+            resources: ["*"],
+          },
+          {
+            actions: ["kms:Decrypt"],
+            effect: "Allow",
+            principals: [
+              {
+                identifiers: [
+                  "${data.aws_service_principal.aws_svcp_default_region_lambda.name}",
+                ],
+                type: "Service",
+              },
+            ],
+            resources: ["*"],
+          },
+        ],
+      },
+    );
+  });
 
   test("fails if maxConcurrency < 2", () => {
     // GIVEN
@@ -739,12 +665,6 @@ describe("SQSEventSource", () => {
         },
       },
     );
-    // Template.fromStack(stack).hasResourceProperties(
-    //   "AWS::Lambda::EventSourceMapping",
-    //   {
-    //     ScalingConfig: { MaximumConcurrency: 5 },
-    //   },
-    // );
   });
 
   test("fails if maxConcurrency > 1001", () => {
