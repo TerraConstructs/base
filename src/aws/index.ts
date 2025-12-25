@@ -7,6 +7,7 @@ export * from "./aws-stack";
 export * from "./aws-tags";
 export * from "./aws-asset-manager";
 export * from "./log-retention";
+export * from "./environment-aware";
 // NOTE: This is note exported on purpose for JSII compatibility.
 // export * from "./partition";
 

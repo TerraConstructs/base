@@ -14,7 +14,7 @@ import { AwsStack } from "../aws-stack";
 import { Archive, BaseArchiveProps } from "./archive";
 import * as encryption from "../encryption";
 import * as iam from "../iam";
-import { IQueue } from "./queue";
+import { IQueue } from "./queue-base";
 
 /**
  * Outputs to register with the Grid

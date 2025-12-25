@@ -3,6 +3,7 @@ import { IAwsConstruct } from "../aws-construct";
 import { PolicyStatement, Conditions } from "./policy-statement";
 import { IGrantable, IPrincipal } from "./principals";
 import { TokenComparison, tokenCompareStrings } from "../../token";
+import { IEnvironmentAware } from "../environment-aware";
 
 /**
  * Basic options for a grant operation
@@ -391,6 +392,54 @@ interface GrantProps {
    * Used to add dependencies on grants
    */
   readonly policyDependable?: IDependable;
+}
+
+/**
+ * Result of a call to grantOnKey().
+ */
+export interface GrantOnKeyResult {
+  /**
+   * The Grant object, if a grant was created.
+   *
+   * @default No grant
+   */
+  readonly grant?: Grant;
+}
+
+/**
+ * A resource that contains data that can be encrypted, using a KMS key.
+ */
+export interface IEncryptedResource extends IAwsConstruct {
+  /**
+   * Gives permissions to a grantable entity to perform actions on the encryption key.
+   */
+  grantOnKey(grantee: IGrantable, ...actions: string[]): GrantOnKeyResult;
+}
+
+/**
+ * Utility methods to check for specific types of grantable resources
+ */
+export class GrantableResources {
+  /**
+   * Whether this resource admits a resource policy.
+   */
+  static isResourceWithPolicy(
+    resource: IEnvironmentAware,
+  ): resource is IAwsConstructWithPolicy {
+    return (
+      (resource as unknown as IAwsConstructWithPolicy).addToResourcePolicy !==
+      undefined
+    );
+  }
+
+  /**
+   * Whether this resource holds data that can be encrypted using a KMS key.
+   */
+  static isEncryptedResource(
+    resource: IConstruct,
+  ): resource is IEncryptedResource {
+    return (resource as unknown as IEncryptedResource).grantOnKey !== undefined;
+  }
 }
 
 /**

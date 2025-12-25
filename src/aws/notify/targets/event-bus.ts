@@ -1,5 +1,5 @@
 import { IEventBus } from "../event-bus";
-import { IQueue } from "../queue";
+import { IQueue } from "../queue-base";
 import { IRule } from "../rule";
 import { IRuleTarget, RuleTargetConfig } from "../target";
 import { singletonEventRole, addToDeadLetterQueueResourcePolicy } from "./util";

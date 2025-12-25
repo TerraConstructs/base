@@ -1,7 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/0c53765fba7ef0945c97106d2613c9dae665873f/packages/aws-cdk-lib/aws-sns/test/subscription.test.ts
 
 import {
-  snsTopic,
   snsTopicSubscription,
   sqsQueue,
   sqsQueuePolicy,
@@ -60,9 +59,8 @@ describe("Subscription", () => {
   test("create a subscription with DLQ when client provides DLQ", () => {
     // GIVEN
     const dlQueue = new Queue(stack, "DeadLetterQueue", {
-      // TODO: Fix terraconstructs QueueProps to match AWS CDK ...
-      namePrefix: "MySubscription_DLQ",
-      messageRetentionSeconds: Duration.days(14).toSeconds(),
+      queueName: "MySubscription_DLQ",
+      retentionPeriod: Duration.days(14),
     });
 
     // WHEN

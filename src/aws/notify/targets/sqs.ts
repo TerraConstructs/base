@@ -57,7 +57,7 @@ export class SqsQueue implements notify.IRuleTarget {
    */
   public bind(rule: notify.IRule, _id?: string): notify.RuleTargetConfig {
     // restrict to same account
-    const conditions: iam.Conditions = [
+    let conditions: iam.Conditions = [
       // Add only the account id as a condition, to avoid circular dependency.
       // https://github.com/aws/aws-cdk/issues/11158
       {
@@ -66,17 +66,15 @@ export class SqsQueue implements notify.IRuleTarget {
         values: [rule.env.account],
       },
     ];
-    // //TODO: Re-add KMS support
-    // //TODO: Update Tests as well
-    // if (!this.queue.encryptionMasterKey) {
-    // conditions = [
-    //   {
-    //     test: "ArnEquals",
-    //     variable: "aws:SourceArn",
-    //     values: [rule.ruleArn],
-    //   },
-    // ];
-    // }
+    if (!this.queue.encryptionMasterKey) {
+      conditions = [
+        {
+          test: "ArnEquals",
+          variable: "aws:SourceArn",
+          values: [rule.ruleArn],
+        },
+      ];
+    }
 
     // deduplicated automatically (by PolicyDocument PostProcessor)
     this.queue.grantSendMessages(

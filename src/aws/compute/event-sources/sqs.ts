@@ -4,8 +4,8 @@ import { Token, Annotations } from "cdktf";
 import * as compute from "..";
 import { AwsStack } from "../..";
 import { Duration } from "../../..";
+import { IKey } from "../../encryption";
 import * as notify from "../../notify";
-// import { IKey } from "../../encryption";
 
 export interface SqsEventSourceProps {
   /**
@@ -52,16 +52,15 @@ export interface SqsEventSourceProps {
    */
   readonly filters?: Array<{ [key: string]: any }>;
 
-  // // TODO: Re-Add KMS support
-  // /**
-  //  * Add Customer managed KMS key to encrypt Filter Criteria.
-  //  * @see https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventfiltering.html
-  //  * By default, Lambda will encrypt Filter Criteria using AWS managed keys
-  //  * @see https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#aws-managed-cmk
-  //  *
-  //  * @default - none
-  //  */
-  // readonly filterEncryption?: IKey;
+  /**
+   * Add Customer managed KMS key to encrypt Filter Criteria.
+   * @see https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventfiltering.html
+   * By default, Lambda will encrypt Filter Criteria using AWS managed keys
+   * @see https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#aws-managed-cmk
+   *
+   * @default - none
+   */
+  readonly filterEncryption?: IKey;
 
   /**
    * The maximum concurrency setting limits the number of concurrent instances of the function that an Amazon SQS event source can invoke.
@@ -133,7 +132,7 @@ export class SqsEventSource implements compute.IEventSource {
         enabled: this.props.enabled,
         eventSourceArn: this.queue.queueArn,
         filters: this.props.filters,
-        // filterEncryption: this.props.filterEncryption, // TODO: Re-Add KMS support
+        filterEncryption: this.props.filterEncryption,
       },
     );
     this._eventSourceMappingId = eventSourceMapping.eventSourceMappingId;

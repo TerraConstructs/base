@@ -1274,7 +1274,7 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
     deadLetterQueue =
       props.deadLetterQueue ||
       new Queue(this, "DeadLetterQueue", {
-        messageRetentionSeconds: Duration.days(14).toSeconds(),
+        retentionPeriod: Duration.days(14),
       });
     this.addToRolePolicy(
       new iam.PolicyStatement({

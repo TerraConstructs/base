@@ -22,9 +22,9 @@ new LocalBackend(stack, {
 });
 
 new aws.notify.Queue(stack, "Queue", {
-  namePrefix: "queue.fifo",
-  messageRetentionSeconds: Duration.days(14).toSeconds(),
-  visibilityTimeoutSeconds: Duration.minutes(15).toSeconds(),
+  queueName: "queue.fifo",
+  retentionPeriod: Duration.days(14),
+  visibilityTimeout: Duration.minutes(15),
   outputName: "fifo_queue",
   registerOutputs: true,
 });

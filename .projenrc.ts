@@ -5,7 +5,6 @@ import {
   S3BucketWebsiteConfigurationConfigStructBuilder,
   S3BucketCorsConfigurationConfigStructBuilder,
   S3BucketLifecycleConfigurationRuleStructBuilder,
-  SqsQueueConfigStructBuilder,
   PolicyDocumentStatementStructBuilder,
   PolicyDocumentConfigStructBuilder,
   LbListenerConfigStructBuilder,
@@ -237,7 +236,6 @@ new LambdaFunctionVpcConfigStructBuilder(project);
 new S3BucketWebsiteConfigurationConfigStructBuilder(project);
 new S3BucketCorsConfigurationConfigStructBuilder(project);
 new S3BucketLifecycleConfigurationRuleStructBuilder(project);
-new SqsQueueConfigStructBuilder(project);
 new LbListenerConfigStructBuilder(project);
 new LbTargetGroupAttachmentConfigStructBuilder(project);
 

@@ -1,12 +1,9 @@
 // Copyright 2012-2024 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 /* eslint-disable prettier/prettier,max-len */
 import * as cw from "../cloudwatch";
-// TODO: re-add QueueBase and Metrics support
-// import { QueueBase } from "./queue-base";
-// this was renamed from QueueBase
-import { Queue } from "./queue";
+import { QueueBase } from "./queue-base";
 
-declare module "./queue" {
+declare module "./queue-base" {
   interface IQueue {
     /**
      * Return the given named metric for this Queue
@@ -78,10 +75,8 @@ declare module "./queue" {
   }
 }
 
-
-
-declare module "./queue" {
-  interface Queue {
+declare module "./queue-base" {
+  interface QueueBase {
     /**
      * Return the given named metric for this Queue
      */
@@ -152,67 +147,67 @@ declare module "./queue" {
   }
 }
 
-Queue.prototype.metric = function(metricName: string, props?: cw.MetricOptions) {
+QueueBase.prototype.metric = function(metricName: string, props?: cw.MetricOptions) {
   return new cw.Metric({
     "namespace": "AWS/SQS",
     "metricName": metricName,
     "dimensionsMap": {
       "QueueName": this.queueName
     },
-    ...props
+    ...(props ?? {}),
   }).attachTo(this);
 };
-Queue.prototype.metricApproximateAgeOfOldestMessage = function(props?: cw.MetricOptions) {
+QueueBase.prototype.metricApproximateAgeOfOldestMessage = function(props?: cw.MetricOptions) {
   return this.metric("ApproximateAgeOfOldestMessage", {
     "statistic": "Maximum",
-    ...props
+    ...(props ?? {}),
   });
 };
-Queue.prototype.metricApproximateNumberOfMessagesDelayed = function(props?: cw.MetricOptions) {
+QueueBase.prototype.metricApproximateNumberOfMessagesDelayed = function(props?: cw.MetricOptions) {
   return this.metric("ApproximateNumberOfMessagesDelayed", {
     "statistic": "Maximum",
-    ...props
+    ...(props ?? {}),
   });
 };
-Queue.prototype.metricApproximateNumberOfMessagesNotVisible = function(props?: cw.MetricOptions) {
+QueueBase.prototype.metricApproximateNumberOfMessagesNotVisible = function(props?: cw.MetricOptions) {
   return this.metric("ApproximateNumberOfMessagesNotVisible", {
     "statistic": "Maximum",
-    ...props
+    ...(props ?? {}),
   });
 };
-Queue.prototype.metricApproximateNumberOfMessagesVisible = function(props?: cw.MetricOptions) {
+QueueBase.prototype.metricApproximateNumberOfMessagesVisible = function(props?: cw.MetricOptions) {
   return this.metric("ApproximateNumberOfMessagesVisible", {
     "statistic": "Maximum",
-    ...props
+    ...(props ?? {}),
   });
 };
-Queue.prototype.metricNumberOfEmptyReceives = function(props?: cw.MetricOptions) {
+QueueBase.prototype.metricNumberOfEmptyReceives = function(props?: cw.MetricOptions) {
   return this.metric("NumberOfEmptyReceives", {
     "statistic": "Sum",
-    ...props
+    ...(props ?? {}),
   });
 };
-Queue.prototype.metricNumberOfMessagesDeleted = function(props?: cw.MetricOptions) {
+QueueBase.prototype.metricNumberOfMessagesDeleted = function(props?: cw.MetricOptions) {
   return this.metric("NumberOfMessagesDeleted", {
     "statistic": "Sum",
-    ...props
+    ...(props ?? {}),
   });
 };
-Queue.prototype.metricNumberOfMessagesReceived = function(props?: cw.MetricOptions) {
+QueueBase.prototype.metricNumberOfMessagesReceived = function(props?: cw.MetricOptions) {
   return this.metric("NumberOfMessagesReceived", {
-    "statistic": "Sum",
-    ...props
+    statistic: "Sum",
+    ...(props ?? {}),
   });
 };
-Queue.prototype.metricNumberOfMessagesSent = function(props?: cw.MetricOptions) {
+QueueBase.prototype.metricNumberOfMessagesSent = function(props?: cw.MetricOptions) {
   return this.metric("NumberOfMessagesSent", {
     "statistic": "Sum",
-    ...props
+    ...(props ?? {}),
   });
 };
-Queue.prototype.metricSentMessageSize = function(props?: cw.MetricOptions) {
+QueueBase.prototype.metricSentMessageSize = function(props?: cw.MetricOptions) {
   return this.metric("SentMessageSize", {
     "statistic": "Average",
-    ...props
+    ...(props ?? {}),
   });
 };

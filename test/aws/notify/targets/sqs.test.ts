@@ -3,10 +3,12 @@ import {
   dataAwsIamPolicyDocument,
   dataAwsServicePrincipal,
   cloudwatchEventRule,
+  sqsQueuePolicy,
 } from "@cdktf/provider-aws";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
+import { Key } from "../../../../src/aws/encryption";
 import { Queue } from "../../../../src/aws/notify/queue";
 import { Rule } from "../../../../src/aws/notify/rule";
 import { Schedule } from "../../../../src/aws/notify/schedule";
@@ -56,9 +58,9 @@ test("sqs queue as an event rule target", () => {
           ],
           condition: [
             {
-              test: "StringEquals",
-              values: ["${data.aws_caller_identity.CallerIdentity.account_id}"],
-              variable: "aws:SourceAccount",
+              test: "ArnEquals",
+              values: ["${aws_cloudwatch_event_rule.MyRule_A44AB831.arn}"],
+              variable: "aws:SourceArn",
             },
           ],
           effect: "Allow",
@@ -102,9 +104,9 @@ test("sqs queue as an event rule target", () => {
           ],
           condition: [
             {
-              test: "StringEquals",
-              values: ["${data.aws_caller_identity.CallerIdentity.account_id}"],
-              variable: "aws:SourceAccount",
+              test: "ArnEquals",
+              values: ["${aws_cloudwatch_event_rule.MyRule_A44AB831.arn}"],
+              variable: "aws:SourceArn",
             },
           ],
           effect: "Allow",
@@ -121,49 +123,8 @@ test("sqs queue as an event rule target", () => {
       ],
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::SQS::QueuePolicy", {
-  //   PolicyDocument: {
-  //     Statement: [
-  //       {
-  //         Action: [
-  //           "sqs:SendMessage",
-  //           "sqs:GetQueueAttributes",
-  //           "sqs:GetQueueUrl",
-  //         ],
-  //         Condition: {
-  //           ArnEquals: {
-  //             "aws:SourceArn": {
-  //               "Fn::GetAtt": ["MyRuleA44AB831", "Arn"],
-  //             },
-  //           },
-  //         },
-  //         Effect: "Allow",
-  //         Principal: { Service: "events.amazonaws.com" },
-  //         Resource: {
-  //           "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-  //         },
-  //       },
-  //     ],
-  //     Version: "2012-10-17",
-  //   },
-  //   Queues: [{ Ref: "MyQueueE6CA6235" }],
-  // });
-
-  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-  //   ScheduleExpression: "rate(1 hour)",
-  //   State: "ENABLED",
-  //   Targets: [
-  //     {
-  //       Arn: {
-  //         "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-  //       },
-  //       Id: "Target0",
-  //     },
-  //   ],
-  // });
 });
 
-// TODO: Encryption isn't supported so this actually results in a single policy statement (due to statement merge)
 test("multiple uses of a queue as a target results in multi policy statement because of condition", () => {
   // GIVEN
   const stack = getAwsStack();
@@ -182,8 +143,102 @@ test("multiple uses of a queue as a target results in multi policy statement bec
   stack.prepareStack();
   const synthesized = Testing.synth(stack);
   // expect(synthesized).toMatchSnapshot();
-  // TODO: if encryption is enabled, the policy should test aws:SourceArn (== ruleArn) not aws:SourceAccount
-  // when encryption is enabled, this will result in a statement per RuleArn
+  expect(synthesized).toHaveResourceWithProperties(
+    cloudwatchEventTarget.CloudwatchEventTarget,
+    {
+      arn: "${aws_sqs_queue.MyQueue_E6CA6235.arn}",
+    },
+  );
+  expect(synthesized).toHaveDataSourceWithProperties(
+    dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+    {
+      statement: [
+        {
+          actions: [
+            "sqs:SendMessage",
+            "sqs:GetQueueAttributes",
+            "sqs:GetQueueUrl",
+          ],
+          condition: [
+            {
+              test: "ArnEquals",
+              values: ["${aws_cloudwatch_event_rule.Rule0_71281D88.arn}"],
+              variable: "aws:SourceArn",
+            },
+          ],
+          effect: "Allow",
+          principals: [
+            {
+              identifiers: [
+                "${data.aws_service_principal.aws_svcp_default_region_events.name}",
+              ],
+              type: "Service",
+            },
+          ],
+          resources: ["${aws_sqs_queue.MyQueue_E6CA6235.arn}"],
+        },
+        {
+          actions: [
+            "sqs:SendMessage",
+            "sqs:GetQueueAttributes",
+            "sqs:GetQueueUrl",
+          ],
+          condition: [
+            {
+              test: "ArnEquals",
+              values: ["${aws_cloudwatch_event_rule.Rule1_36483A30.arn}"],
+              variable: "aws:SourceArn",
+            },
+          ],
+          effect: "Allow",
+          principals: [
+            {
+              identifiers: [
+                "${data.aws_service_principal.aws_svcp_default_region_events.name}",
+              ],
+              type: "Service",
+            },
+          ],
+          resources: ["${aws_sqs_queue.MyQueue_E6CA6235.arn}"],
+        },
+      ],
+    },
+  );
+});
+
+test("Encrypted queues result in a policy statement with aws:sourceAccount condition", () => {
+  const app = Testing.app();
+  // GIVEN
+  const ruleStack = new AwsStack(app, "ruleStack");
+  // ruleStack.node.setContext(cxapi.EVENTS_TARGET_QUEUE_SAME_ACCOUNT, true);
+
+  const rule = new Rule(ruleStack, "MyRule", {
+    schedule: Schedule.rate(Duration.hours(1)),
+  });
+
+  const queueStack = new AwsStack(app, "queueStack");
+  const queue = new Queue(queueStack, "MyQueue", {
+    encryptionMasterKey: Key.fromKeyArn(
+      queueStack,
+      "key",
+      "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+    ),
+  });
+
+  // WHEN
+  rule.addTarget(new SqsQueue(queue));
+
+  // THEN
+  queueStack.prepareStack();
+  const synthesized = Testing.synth(queueStack);
+  // expect(synthesized).toMatchSnapshot();
+  expect(synthesized).toHaveResourceWithProperties(
+    sqsQueuePolicy.SqsQueuePolicy,
+    {
+      policy: "${data.aws_iam_policy_document.MyQueue_Policy_B72AE551.json}",
+      queue_url: "${aws_sqs_queue.MyQueue_E6CA6235.url}",
+    },
+  );
   expect(synthesized).toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
     {
@@ -197,7 +252,9 @@ test("multiple uses of a queue as a target results in multi policy statement bec
           condition: [
             {
               test: "StringEquals",
-              values: ["${data.aws_caller_identity.CallerIdentity.account_id}"],
+              values: [
+                "${data.terraform_remote_state.cross-stack-reference-input-ruleStack.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}",
+              ],
               variable: "aws:SourceAccount",
             },
           ],
@@ -215,116 +272,7 @@ test("multiple uses of a queue as a target results in multi policy statement bec
       ],
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::SQS::QueuePolicy", {
-  //   PolicyDocument: {
-  //     Statement: [
-  //       {
-  //         Action: [
-  //           "sqs:SendMessage",
-  //           "sqs:GetQueueAttributes",
-  //           "sqs:GetQueueUrl",
-  //         ],
-  //         Condition: {
-  //           ArnEquals: {
-  //             "aws:SourceArn": {
-  //               "Fn::GetAtt": ["Rule071281D88", "Arn"],
-  //             },
-  //           },
-  //         },
-  //         Effect: "Allow",
-  //         Principal: { Service: "events.amazonaws.com" },
-  //         Resource: {
-  //           "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-  //         },
-  //       },
-  //       {
-  //         Action: [
-  //           "sqs:SendMessage",
-  //           "sqs:GetQueueAttributes",
-  //           "sqs:GetQueueUrl",
-  //         ],
-  //         Condition: {
-  //           ArnEquals: {
-  //             "aws:SourceArn": {
-  //               "Fn::GetAtt": ["Rule136483A30", "Arn"],
-  //             },
-  //           },
-  //         },
-  //         Effect: "Allow",
-  //         Principal: { Service: "events.amazonaws.com" },
-  //         Resource: {
-  //           "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-  //         },
-  //       },
-  //     ],
-  //     Version: "2012-10-17",
-  //   },
-  //   Queues: [{ Ref: "MyQueueE6CA6235" }],
-  // });
 });
-
-// test("Encrypted queues result in a policy statement with aws:sourceAccount condition when the feature flag is on", () => {
-//   const app = new App();
-//   // GIVEN
-//   const ruleStack = new Stack(app, "ruleStack", {
-//     env: {
-//       account: "111111111111",
-//       region: "us-east-1",
-//     },
-//   });
-//   ruleStack.node.setContext(cxapi.EVENTS_TARGET_QUEUE_SAME_ACCOUNT, true);
-
-//   const rule = new Rule(ruleStack, "MyRule", {
-//     schedule: Schedule.rate(Duration.hours(1)),
-//   });
-
-//   const queueStack = new Stack(app, "queueStack", {
-//     env: {
-//       account: "222222222222",
-//       region: "us-east-1",
-//     },
-//   });
-//   const queue = new Queue(queueStack, "MyQueue", {
-//     encryptionMasterKey: kms.Key.fromKeyArn(
-//       queueStack,
-//       "key",
-//       "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
-//     ),
-//   });
-
-//   // WHEN
-//   rule.addTarget(new SqsQueue(queue));
-
-//   // THEN
-//   Template.fromStack(queueStack).hasResourceProperties(
-//     "AWS::SQS::QueuePolicy",
-//     {
-//       PolicyDocument: {
-//         Statement: Match.arrayWith([
-//           {
-//             Action: [
-//               "sqs:SendMessage",
-//               "sqs:GetQueueAttributes",
-//               "sqs:GetQueueUrl",
-//             ],
-//             Condition: {
-//               StringEquals: {
-//                 "aws:SourceAccount": "111111111111",
-//               },
-//             },
-//             Effect: "Allow",
-//             Principal: { Service: "events.amazonaws.com" },
-//             Resource: {
-//               "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-//             },
-//           },
-//         ]),
-//         Version: "2012-10-17",
-//       },
-//       Queues: [{ Ref: "MyQueueE6CA6235" }],
-//     },
-//   );
-// });
 
 // test("Encrypted queues result in a permissive policy statement when the feature flag is off", () => {
 //   // GIVEN
@@ -417,21 +365,6 @@ test("fifo queues are synthesized correctly", () => {
       },
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-  //   ScheduleExpression: "rate(1 hour)",
-  //   State: "ENABLED",
-  //   Targets: [
-  //     {
-  //       Arn: {
-  //         "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-  //       },
-  //       Id: "Target0",
-  //       SqsParameters: {
-  //         MessageGroupId: "MyMessageGroupId",
-  //       },
-  //     },
-  //   ],
-  // });
 });
 
 test("dead letter queue is configured correctly", () => {
@@ -464,23 +397,6 @@ test("dead letter queue is configured correctly", () => {
       },
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-  //   ScheduleExpression: "rate(1 hour)",
-  //   State: "ENABLED",
-  //   Targets: [
-  //     {
-  //       Arn: {
-  //         "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-  //       },
-  //       Id: "Target0",
-  //       DeadLetterConfig: {
-  //         Arn: {
-  //           "Fn::GetAtt": ["MyDeadLetterQueueD997968A", "Arn"],
-  //         },
-  //       },
-  //     },
-  //   ],
-  // });
 });
 
 test("specifying retry policy", () => {
@@ -513,22 +429,6 @@ test("specifying retry policy", () => {
       },
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-  //   ScheduleExpression: "rate(1 hour)",
-  //   State: "ENABLED",
-  //   Targets: [
-  //     {
-  //       Arn: {
-  //         "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-  //       },
-  //       Id: "Target0",
-  //       RetryPolicy: {
-  //         MaximumEventAgeInSeconds: 7200,
-  //         MaximumRetryAttempts: 2,
-  //       },
-  //     },
-  //   ],
-  // });
 });
 
 test("specifying retry policy with 0 retryAttempts", () => {
@@ -559,67 +459,58 @@ test("specifying retry policy with 0 retryAttempts", () => {
       },
     },
   );
-  // Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-  //   ScheduleExpression: "rate(1 hour)",
-  //   State: "ENABLED",
-  //   Targets: [
-  //     {
-  //       Arn: {
-  //         "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-  //       },
-  //       Id: "Target0",
-  //       RetryPolicy: {
-  //         MaximumRetryAttempts: 0,
-  //       },
-  //     },
-  //   ],
-  // });
 });
 
-// test("dead letter queue is imported", () => {
-//   const stack = getAwsStack();
-//   const queue = new Queue(stack, "MyQueue", { fifo: true });
-//   const rule = new Rule(stack, "MyRule", {
-//     schedule: Schedule.rate(Duration.hours(1)),
-//   });
+test("dead letter queue is imported", () => {
+  const stack = getAwsStack();
+  const queue = new Queue(stack, "MyQueue", { fifo: true });
+  const rule = new Rule(stack, "MyRule", {
+    schedule: Schedule.rate(Duration.hours(1)),
+  });
 
-//   const dlqArn = "arn:aws:sqs:eu-west-1:444455556666:queue1";
-//   const deadLetterQueue = Queue.fromQueueArn(
-//     stack,
-//     "MyDeadLetterQueue",
-//     dlqArn,
-//   );
+  const dlqArn = "arn:aws:sqs:eu-west-1:444455556666:queue1";
+  const deadLetterQueue = Queue.fromQueueArn(
+    stack,
+    "MyDeadLetterQueue",
+    dlqArn,
+  );
 
-//   // WHEN
-//   rule.addTarget(
-//     new SqsQueue(queue, {
-//       deadLetterQueue,
-//     }),
-//   );
+  // WHEN
+  rule.addTarget(
+    new SqsQueue(queue, {
+      deadLetterQueue,
+    }),
+  );
 
-//   Template.fromStack(stack).hasResourceProperties("AWS::Events::Rule", {
-//     ScheduleExpression: "rate(1 hour)",
-//     State: "ENABLED",
-//     Targets: [
-//       {
-//         Arn: {
-//           "Fn::GetAtt": ["MyQueueE6CA6235", "Arn"],
-//         },
-//         Id: "Target0",
-//         DeadLetterConfig: {
-//           Arn: dlqArn,
-//         },
-//       },
-//     ],
-//   });
-// });
+  // THEN
+  // Do prepare run to resolve all Terraform resources
+  stack.prepareStack();
+  const synthesized = Testing.synth(stack);
+  expect(synthesized).toHaveResourceWithProperties(
+    cloudwatchEventRule.CloudwatchEventRule,
+    {
+      schedule_expression: "rate(1 hour)",
+      state: "ENABLED",
+    },
+  );
+  expect(synthesized).toHaveResourceWithProperties(
+    cloudwatchEventTarget.CloudwatchEventTarget,
+    {
+      arn: "${aws_sqs_queue.MyQueue_E6CA6235.arn}",
+      target_id: "Target0",
+      dead_letter_config: {
+        arn: dlqArn,
+      },
+    },
+  );
+});
 
 function getAwsStack(): AwsStack {
   const app = Testing.app();
   return new AwsStack(app, "TestStack", {
     environmentName,
     gridUUID,
-    providerConfig,
+    // providerConfig,
     gridBackendConfig,
   });
 }

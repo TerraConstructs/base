@@ -12,9 +12,8 @@ import { IEventSourceDlq } from "./function";
 import { IFunction } from "./function-base";
 import { Duration } from "../../duration";
 import { withResolved } from "../../token";
-// TODO: re-add support for KMS
-// import * as iam from "../iam"; // required to grant KMS permissions
-// import { IKey } from "../encryption";
+import { IKey } from "../encryption";
+import * as iam from "../iam";
 
 export interface EventSourceMappingOptions extends AwsConstructProps {
   /**
@@ -190,16 +189,15 @@ export interface EventSourceMappingOptions extends AwsConstructProps {
    */
   readonly filters?: Array<{ [key: string]: any }>;
 
-  // TODO: re-add KMS support
-  // /**
-  //  * Add Customer managed KMS key to encrypt Filter Criteria.
-  //  * @see https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventfiltering.html
-  //  * By default, Lambda will encrypt Filter Criteria using AWS managed keys
-  //  * @see https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#aws-managed-cmk
-  //  *
-  //  * @default - none
-  //  */
-  // readonly filterEncryption?: IKey;
+  /**
+   * Add Customer managed KMS key to encrypt Filter Criteria.
+   * @see https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventfiltering.html
+   * By default, Lambda will encrypt Filter Criteria using AWS managed keys
+   * @see https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#aws-managed-cmk
+   *
+   * @default - none
+   */
+  readonly filterEncryption?: IKey;
 
   /**
    * Check if support S3 onfailure destination(ODF). Currently only MSK and self managed kafka event support S3 ODF
@@ -422,25 +420,24 @@ export class EventSourceMapping
       this.validateKafkaConsumerGroupIdOrThrow(props.kafkaConsumerGroupId);
     }
 
-    // TODO: re-add KMS support
-    // if (props.filterEncryption !== undefined && props.filters == undefined) {
-    //   throw new Error(
-    //     "filter criteria must be provided to enable setting filter criteria encryption",
-    //   );
-    // }
-    //
-    // /**
-    //  * Grants the Lambda function permission to decrypt data using the specified KMS key.
-    //  * This step is necessary for setting up encrypted filter criteria.
-    //  *
-    //  * If the KMS key was created within this CloudFormation stack (via `new Key`), a Key policy
-    //  * will be attached to the key to allow the Lambda function to access it. However, if the
-    //  * Key is imported from an existing ARN (`Key.fromKeyArn`), no action will be taken.
-    //  */
-    // if (props.filterEncryption !== undefined) {
-    //   const lambdaPrincipal = new iam.ServicePrincipal("lambda.amazonaws.com");
-    //   props.filterEncryption.grantDecrypt(lambdaPrincipal);
-    // }
+    if (props.filterEncryption !== undefined && props.filters == undefined) {
+      throw new Error(
+        "filter criteria must be provided to enable setting filter criteria encryption",
+      );
+    }
+
+    /**
+     * Grants the Lambda function permission to decrypt data using the specified KMS key.
+     * This step is necessary for setting up encrypted filter criteria.
+     *
+     * If the KMS key was created within this CloudFormation stack (via `new Key`), a Key policy
+     * will be attached to the key to allow the Lambda function to access it. However, if the
+     * Key is imported from an existing ARN (`Key.fromKeyArn`), no action will be taken.
+     */
+    if (props.filterEncryption !== undefined) {
+      const lambdaPrincipal = new iam.ServicePrincipal("lambda.amazonaws.com");
+      props.filterEncryption.grantDecrypt(lambdaPrincipal);
+    }
 
     let destinationConfig: any;
 
@@ -486,7 +483,7 @@ export class EventSourceMapping
         maximumRecordAgeInSeconds: props.maxRecordAge?.toSeconds(),
         maximumRetryAttempts: props.retryAttempts,
         parallelizationFactor: props.parallelizationFactor,
-        topics: props.kafkaTopic !== undefined ? [props.kafkaTopic] : undefined,
+        topics: props.kafkaTopic ? [props.kafkaTopic] : undefined,
         tumblingWindowInSeconds: props.tumblingWindow?.toSeconds(),
         scalingConfig: props.maxConcurrency
           ? { maximumConcurrency: props.maxConcurrency }
@@ -494,7 +491,7 @@ export class EventSourceMapping
         sourceAccessConfiguration: props.sourceAccessConfigurations,
         selfManagedEventSource,
         filterCriteria: props.filters ? { filter: props.filters } : undefined,
-        // kmsKeyArn: props.filterEncryption?.keyArn, // TODO: re-add KMS support
+        kmsKeyArn: props.filterEncryption?.keyArn,
         selfManagedKafkaEventSourceConfig: props.kafkaBootstrapServers
           ? consumerGroupConfig
           : undefined,
