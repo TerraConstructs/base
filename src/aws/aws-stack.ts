@@ -188,6 +188,7 @@ export class AwsStack extends StackBase implements IAwsStack {
    */
   private readonly _providerConfig: AwsProviderConfig | undefined;
   private readonly _assetOptions: AwsAssetManagerOptions | undefined;
+  private _regionToken: string;
   private _accountIdToken: string | undefined;
   private _paritionToken: string | undefined;
   private _urlSuffixToken: string | undefined;
@@ -203,6 +204,7 @@ export class AwsStack extends StackBase implements IAwsStack {
     this._providerConfig = props.providerConfig;
     this._assetOptions = props.assetOptions;
     this._assetManager = props.assetManager;
+    this._regionToken = "";
 
     // these should never depend on anything (HACK to avoid cycles)
     Object.defineProperty(this, AWS_STACK_SYMBOL, { value: true });
@@ -243,9 +245,8 @@ export class AwsStack extends StackBase implements IAwsStack {
    */
   public get region(): string {
     if (this.lookup.awsProvider.region) {
-      return this.lookup.awsProvider.region;
-    }
-    if (!this.lookup.dataAwsRegion) {
+      this._regionToken = this.lookup.awsProvider.region;
+    } else if (!this._regionToken && !this.lookup.dataAwsRegion) {
       const region = new dataAwsRegion.DataAwsRegion(this, "Region", {
         provider: this.lookup.awsProvider,
       });
@@ -254,8 +255,9 @@ export class AwsStack extends StackBase implements IAwsStack {
         value: true,
       });
       this.lookup.dataAwsRegion = region;
+      this._regionToken = this.lookup.dataAwsRegion.name;
     }
-    return this.lookup.dataAwsRegion.name;
+    return this._regionToken;
   }
 
   private get dataAwsCallerIdentity(): dataAwsCallerIdentity.DataAwsCallerIdentity {

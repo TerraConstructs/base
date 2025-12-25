@@ -66,7 +66,7 @@ export function deployTimeLookup(
     };
   }
   mapping.expression = temp;
-  return Fn.lookup(Fn.lookup(mapping.asStringMap, stack.region), factKey);
+  return Fn.lookupNested(mapping, [stack.region, factKey]);
 }
 
 function ucfirst(x: string) {
