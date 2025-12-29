@@ -6,7 +6,7 @@ import {
   dynamodbResourcePolicy,
   dynamodbTable,
 } from "@cdktf/provider-aws";
-import { Token, Lazy, Annotations } from "cdktf";
+import { Token, Lazy } from "cdktf";
 import { Construct } from "constructs";
 import * as storage from ".";
 import { ArnFormat, AwsConstructBase, AwsConstructProps, AwsStack } from "..";
@@ -31,6 +31,9 @@ import {
   TableEncryption,
   StreamViewType,
   PointInTimeRecoverySpecification,
+  WarmThroughput,
+  ContributorInsightsSpecification,
+  validateContributorInsights,
 } from "./shared";
 import { UnscopedValidationError, ValidationError } from "../../errors";
 import * as cloudwatch from "../cloudwatch";
@@ -38,13 +41,11 @@ import * as appscaling from "../compute";
 import * as kms from "../encryption";
 import * as iam from "../iam";
 import * as kinesis from "../notify";
-// Missing in Terraform DynamoDb Replica Configuration block
-// https://registry.terraform.io/providers/hashicorp/aws/5.88.0/docs/resources/dynamodb_table#replica
-// import { Duration } from "../../duration";
 
 const HASH_KEY_TYPE = "HASH";
 const RANGE_KEY_TYPE = "RANGE";
 
+// https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html#limits-secondary-indexes
 const MAX_LOCAL_SECONDARY_INDEX_COUNT = 5;
 
 /**
@@ -154,6 +155,9 @@ export abstract class InputFormat {
    * CSV format.
    */
   public static csv(options?: CsvOptions): InputFormat {
+    // We are using the .length property to check the length of the delimiter.
+    // Note that .length may not return the expected result for multi-codepoint characters like full-width characters or emojis,
+    // but such characters are not expected to be used as delimiters in this context.
     if (
       options?.delimiter &&
       (!this.validCsvDelimiters.includes(options.delimiter) ||
@@ -188,7 +192,13 @@ export abstract class InputFormat {
     })();
   }
 
+  /**
+   * Valid CSV delimiters.
+   *
+   * @see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-dynamodb-table-csv.html#cfn-dynamodb-table-csv-delimiter
+   */
   private static validCsvDelimiters = [",", "\t", ":", ";", "|", " "];
+
   private static readableValidCsvDelimiters = [
     "comma (,)",
     "tab (\\t)",
@@ -199,6 +209,8 @@ export abstract class InputFormat {
   ];
 
   /**
+   * Render the input format and options.
+   *
    * @internal
    */
   public abstract _render(): Pick<
@@ -258,6 +270,23 @@ export enum ApproximateCreationDateTimePrecision {
    * Microsecond precision
    */
   MICROSECOND = "MICROSECOND",
+}
+
+/**
+ * Common interface for types that can configure contributor insights
+ * @internal
+ */
+interface IContributorInsightsConfigurable {
+  /**
+   * Whether CloudWatch contributor insights is enabled.
+   * @deprecated use `contributorInsightsSpecification` instead
+   */
+  readonly contributorInsightsEnabled?: boolean;
+
+  /**
+   * Whether CloudWatch contributor insights is enabled and what mode is selected
+   */
+  readonly contributorInsightsSpecification?: ContributorInsightsSpecification;
 }
 
 export interface DynamodbTableReplica {
@@ -322,8 +351,13 @@ export interface TableOptions extends SchemaOptions {
    */
   readonly billingMode?: BillingMode;
 
-  // TODO: https://github.com/hashicorp/terraform-provider-aws/issues/43142
-  // readonly warmThroughput?: WarmThroughput;
+  /**
+   * Specify values to pre-warm you DynamoDB Table
+   * Warm Throughput feature is not available for Global Table replicas using the `Table` construct. To enable Warm Throughput, use the `TableV2` construct instead.
+   * @see http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-warmthroughput
+   * @default - warm throughput is not configured
+   */
+  readonly warmThroughput?: WarmThroughput;
 
   /**
    * Whether point-in-time recovery is enabled.
@@ -333,7 +367,8 @@ export interface TableOptions extends SchemaOptions {
   readonly pointInTimeRecovery?: boolean;
 
   /**
-   * Whether point-in-time recovery is enabled.
+   * Whether point-in-time recovery is enabled
+   * and recoveryPeriodInDays is set.
    *
    * @default - point in time recovery is not enabled.
    */
@@ -409,10 +444,16 @@ export interface TableOptions extends SchemaOptions {
 
   /**
    * Whether CloudWatch contributor insights is enabled.
-   *
+   * @deprecated use `contributorInsightsSpecification instead
    * @default false
    */
   readonly contributorInsightsEnabled?: boolean;
+
+  /**
+   * Whether CloudWatch contributor insights is enabled and what mode is selected
+   * @default - contributor insights is not enabled
+   */
+  readonly contributorInsightsSpecification?: ContributorInsightsSpecification;
 
   /**
    * Enables deletion protection for the table.
@@ -504,15 +545,18 @@ export interface GlobalSecondaryIndexProps
    */
   readonly maxWriteRequestUnits?: number;
 
-  // TODO: https://github.com/hashicorp/terraform-provider-aws/issues/43142
-  // readonly warmThroughput?: WarmThroughput;
+  /**
+   * The warm throughput configuration for the global secondary index.
+   *
+   * @default - no warm throughput is configured
+   */
+  readonly warmThroughput?: WarmThroughput;
 
   /**
-   * Whether CloudWatch contributor insights is enabled for the specified global secondary index.
-   *
-   * @default false
+   * Whether CloudWatch contributor insights is enabled and what mode is selected
+   * @default - contributor insights is not enabled
    */
-  readonly contributorInsightsEnabled?: boolean;
+  readonly contributorInsightsSpecification?: ContributorInsightsSpecification;
 }
 
 /**
@@ -592,6 +636,16 @@ export abstract class TableBase
   public abstract resourcePolicy?: iam.PolicyDocument;
 
   protected readonly regionalArns = new Array<string>();
+
+  // TODO: enable when grant utilities are merged
+  // public grantOnKey(
+  //   grantee: iam.IGrantable,
+  //   ...actions: string[]
+  // ): iam.GrantOnKeyResult {
+  //   return {
+  //     grant: this.encryptionKey?.grant(grantee, ...actions),
+  //   };
+  // }
 
   public get outputs(): Record<string, any> {
     return {
@@ -742,6 +796,12 @@ export abstract class TableBase
     }).attachTo(this);
   }
 
+  /**
+   * Metric for the consumed read capacity units this table
+   *
+   * By default, the metric will be calculated as a sum over a period of 5 minutes.
+   * You can customize this by using the `statistic` and `period` properties.
+   */
   public metricConsumedReadCapacityUnits(
     props?: cloudwatch.MetricOptions,
   ): cloudwatch.Metric {
@@ -751,6 +811,12 @@ export abstract class TableBase
     );
   }
 
+  /**
+   * Metric for the consumed write capacity units this table
+   *
+   * By default, the metric will be calculated as a sum over a period of 5 minutes.
+   * You can customize this by using the `statistic` and `period` properties.
+   */
   public metricConsumedWriteCapacityUnits(
     props?: cloudwatch.MetricOptions,
   ): cloudwatch.Metric {
@@ -784,6 +850,13 @@ export abstract class TableBase
     });
   }
 
+  /**
+   * Metric for the user errors. Note that this metric reports user errors across all
+   * the tables in the account and region the table resides in.
+   *
+   * By default, the metric will be calculated as a sum over a period of 5 minutes.
+   * You can customize this by using the `statistic` and `period` properties.
+   */
   public metricUserErrors(props?: cloudwatch.MetricOptions): cloudwatch.Metric {
     if (props?.dimensionsMap) {
       throw new ValidationError(
@@ -791,6 +864,9 @@ export abstract class TableBase
         this,
       );
     }
+
+    // overriding 'dimensions' here because this metric is an account metric.
+    // see 'UserErrors' in https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html
     return this.metric("UserErrors", {
       statistic: "sum",
       ...props,
@@ -798,6 +874,12 @@ export abstract class TableBase
     });
   }
 
+  /**
+   * Metric for the conditional check failed requests this table
+   *
+   * By default, the metric will be calculated as a sum over a period of 5 minutes.
+   * You can customize this by using the `statistic` and `period` properties.
+   */
   public metricConditionalCheckFailedRequests(
     props?: cloudwatch.MetricOptions,
   ): cloudwatch.Metric {
@@ -814,6 +896,12 @@ export abstract class TableBase
     return this.metric("ThrottledRequests", { statistic: "sum", ...props });
   }
 
+  /**
+   * Metric for the successful request latency this table.
+   *
+   * By default, the metric will be calculated as an average over a period of 5 minutes.
+   * You can customize this by using the `statistic` and `period` properties.
+   */
   public metricSuccessfulRequestLatency(
     props?: cloudwatch.MetricOptions,
   ): cloudwatch.Metric {
@@ -836,6 +924,11 @@ export abstract class TableBase
     }).attachTo(this);
   }
 
+  /**
+   * How many requests are throttled on this table, for the given operation
+   *
+   * Default: sum over 5 minutes
+   */
   public metricThrottledRequestsForOperation(
     operation: string,
     props?: cloudwatch.MetricOptions,
@@ -849,6 +942,13 @@ export abstract class TableBase
     }).attachTo(this);
   }
 
+  /**
+   * How many requests are throttled on this table.
+   *
+   * This will sum errors across all possible operations.
+   * Note that by default, each individual metric will be calculated as a sum over a period of 5 minutes.
+   * You can customize this by using the `statistic` and `period` properties.
+   */
   public metricThrottledRequestsForOperations(
     props?: OperationsMetricOptions,
   ): cloudwatch.IMetric {
@@ -859,6 +959,13 @@ export abstract class TableBase
     );
   }
 
+  /**
+   * Metric for the system errors this table.
+   *
+   * This will sum errors across all possible operations.
+   * Note that by default, each individual metric will be calculated as a sum over a period of 5 minutes.
+   * You can customize this by using the `statistic` and `period` properties.
+   */
   public metricSystemErrorsForOperations(
     props?: SystemErrorsForOperationsMetricOptions,
   ): cloudwatch.IMetric {
@@ -869,6 +976,13 @@ export abstract class TableBase
     );
   }
 
+  /**
+   * Create a math expression for operations.
+   *
+   * @param metricName The metric name.
+   * @param expressionLabel Label for expression
+   * @param props operation list
+   */
   private sumMetricsForOperations(
     metricName: string,
     expressionLabel: string,
@@ -882,20 +996,34 @@ export abstract class TableBase
     }
 
     const operations = props?.operations ?? Object.values(Operation);
+
     const values = this.createMetricsForOperations(metricName, operations, {
       statistic: "sum",
       ...props,
     });
 
-    return new cloudwatch.MathExpression({
+    const sum = new cloudwatch.MathExpression({
       expression: `${Object.keys(values).join(" + ")}`,
       usingMetrics: { ...values },
       color: props?.color,
       label: expressionLabel,
       period: props?.period,
     });
+
+    return sum;
   }
 
+  /**
+   * Create a map of metrics that can be used in a math expression.
+   *
+   * Using the return value of this function as the `usingMetrics` property in `cloudwatch.MathExpression` allows you to
+   * use the keys of this map as metric names inside you expression.
+   *
+   * @param metricName The metric name.
+   * @param operations The list of operations to create metrics for.
+   * @param props Properties for the individual metrics.
+   * @param metricNameMapper Mapper function to allow controlling the individual metric name per operation.
+   */
   private createMetricsForOperations(
     metricName: string,
     operations: Operation[],
@@ -903,6 +1031,7 @@ export abstract class TableBase
     metricNameMapper?: (op: Operation) => string,
   ): Record<string, cloudwatch.IMetric> {
     const metrics: Record<string, cloudwatch.IMetric> = {};
+
     const mapper = metricNameMapper ?? ((op) => op.toLowerCase());
 
     if (props?.dimensionsMap?.Operation) {
@@ -932,8 +1061,10 @@ export abstract class TableBase
           this,
         );
       }
+
       metrics[operationMetricName] = metric;
     }
+
     return metrics;
   }
 
@@ -1099,6 +1230,7 @@ export class Table extends TableBase {
           scope,
         );
       }
+
       arn = attrs.tableArn;
       const maybeTableName = stack.splitArn(
         attrs.tableArn,
@@ -1148,8 +1280,11 @@ export class Table extends TableBase {
 
   private readonly attributeDefinitionsInternal =
     new Array<dynamodbTable.DynamodbTableAttribute>();
-  private readonly globalSecondaryIndexesInternal =
-    new Array<dynamodbTable.DynamodbTableGlobalSecondaryIndex>();
+  private readonly globalSecondaryIndexesInternal = new Array<
+    dynamodbTable.DynamodbTableGlobalSecondaryIndex & {
+      contributorInsightsSpecification?: ContributorInsightsSpecification;
+    }
+  >();
   private readonly localSecondaryIndexesInternal =
     new Array<dynamodbTable.DynamodbTableLocalSecondaryIndex>();
 
@@ -1205,11 +1340,12 @@ export class Table extends TableBase {
           this,
         );
       }
-      this.billingMode = props.billingMode ?? BillingMode.PAY_PER_REQUEST;
       streamSpecification = {
         streamEnabled: true,
         streamViewType: StreamViewType.NEW_AND_OLD_IMAGES,
       };
+
+      this.billingMode = props.billingMode ?? BillingMode.PAY_PER_REQUEST;
     } else {
       this.billingMode = props.billingMode ?? BillingMode.PROVISIONED;
       if (props.stream) {
@@ -1297,8 +1433,7 @@ export class Table extends TableBase {
       importTable: this.renderImportSourceSpecification(props.importSource),
       replica: this._replicas,
       // resourcePolicy: props.resourcePolicy ? { policyDocument: this.stack.toJsonString(props.resourcePolicy.toJSON()) } : undefined, // Not in TF resource
-      // TODO: https://github.com/hashicorp/terraform-provider-aws/issues/43142
-      // warmThroughput: props.warmThroughput ?? undefined, // Not in TF resource
+      warmThroughput: props.warmThroughput,
     });
 
     this.tableArn = this._resource.arn;
@@ -1333,16 +1468,15 @@ export class Table extends TableBase {
       );
     }
 
-    if (props.contributorInsightsEnabled) {
-      // TODO: Generate conntributor insights per Global Secondary Index
-      // this.globalSecondaryIndexesInternal
+    const contributorInsightsSpecification =
+      this.renderContributorInsights(props);
+    if (contributorInsightsSpecification?.enabled) {
       new dynamodbContributorInsights.DynamodbContributorInsights(
         this,
         "ContributorInsights",
         {
           tableName: this.tableName,
-          // TODO: use for each on gli iterator
-          // indexName: iterator.value,
+          mode: contributorInsightsSpecification.mode,
         },
       );
     }
@@ -1385,8 +1519,8 @@ export class Table extends TableBase {
               maxWriteRequestUnits: props.maxWriteRequestUnits,
             }
           : undefined,
-      // contributorInsightsEnabled: props.contributorInsightsEnabled, // Not in TF GSI block
-      // warmThroughput: props.warmThroughput, // Not in TF GSI block
+      contributorInsightsSpecification: props.contributorInsightsSpecification, // Not in TF GSI block
+      warmThroughput: props.warmThroughput,
     });
 
     this.secondaryIndexSchemas.set(props.indexName, {
@@ -1396,7 +1530,13 @@ export class Table extends TableBase {
     this.indexScaling.set(props.indexName, {});
   }
 
+  /**
+   * Add a local secondary index of table.
+   *
+   * @param props the property of local secondary index
+   */
   public addLocalSecondaryIndex(props: LocalSecondaryIndexProps) {
+    // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html#limits-secondary-indexes
     if (
       this.localSecondaryIndexesInternal.length >=
       MAX_LOCAL_SECONDARY_INDEX_COUNT
@@ -1431,6 +1571,11 @@ export class Table extends TableBase {
     });
   }
 
+  /**
+   * Enable read capacity scaling for this table
+   *
+   * @returns An object to configure additional AutoScaling settings
+   */
   public autoScaleReadCapacity(
     props: EnableScalingProps,
   ): IScalableTableAttribute {
@@ -1457,6 +1602,11 @@ export class Table extends TableBase {
       }));
   }
 
+  /**
+   * Enable write capacity scaling for this table
+   *
+   * @returns An object to configure additional AutoScaling settings for this attribute
+   */
   public autoScaleWriteCapacity(
     props: EnableScalingProps,
   ): IScalableTableAttribute {
@@ -1490,6 +1640,11 @@ export class Table extends TableBase {
     return this.tableScaling.scalableWriteAttribute;
   }
 
+  /**
+   * Enable read capacity scaling for the given GSI
+   *
+   * @returns An object to configure additional AutoScaling settings for this attribute
+   */
   public autoScaleGlobalSecondaryIndexReadCapacity(
     indexName: string,
     props: EnableScalingProps,
@@ -1527,6 +1682,11 @@ export class Table extends TableBase {
     ));
   }
 
+  /**
+   * Enable write capacity scaling for the given GSI
+   *
+   * @returns An object to configure additional AutoScaling settings for this attribute
+   */
   public autoScaleGlobalSecondaryIndexWriteCapacity(
     indexName: string,
     props: EnableScalingProps,
@@ -1564,6 +1724,11 @@ export class Table extends TableBase {
     ));
   }
 
+  /**
+   * Get schema attributes of table or index.
+   *
+   * @returns Schema of table or index.
+   */
   public schema(indexName?: string): SchemaOptions {
     if (!indexName) {
       return {
@@ -1578,11 +1743,18 @@ export class Table extends TableBase {
         this,
       );
     }
+
     return schema;
   }
 
+  /**
+   * Validate the table construct.
+   *
+   * @returns an array of validation error message
+   */
   private validateTable(): string[] {
     const errors = new Array<string>();
+
     if (!this.tablePartitionKey) {
       errors.push("A partition key must be specified");
     }
@@ -1591,6 +1763,7 @@ export class Table extends TableBase {
         "A sort key of the table must be specified to add local secondary indexes",
       );
     }
+
     if (
       this._replicas &&
       this._replicas.length > 0 &&
@@ -1609,9 +1782,15 @@ export class Table extends TableBase {
         );
       }
     }
+
     return errors;
   }
 
+  /**
+   * Validate read and write capacity are not specified for on-demand tables (billing mode PAY_PER_REQUEST).
+   *
+   * @param props read and write capacity properties
+   */
   private validateProvisioning(props: {
     readCapacity?: number;
     writeCapacity?: number;
@@ -1643,6 +1822,11 @@ export class Table extends TableBase {
     }
   }
 
+  /**
+   * Validate index name to check if a duplicate name already exists.
+   *
+   * @param indexName a name of global or local secondary index
+   */
   private validateIndexName(indexName: string) {
     if (this.secondaryIndexSchemas.has(indexName)) {
       throw new ValidationError(
@@ -1652,12 +1836,20 @@ export class Table extends TableBase {
     }
   }
 
+  /**
+   * Validate non-key attributes by checking limits within secondary index, which may vary in future.
+   *
+   * @param nonKeyAttributes a list of non-key attribute names
+   */
   private validateNonKeyAttributes(nonKeyAttributes: string[]) {
     if (this.nonKeyAttributes.size + nonKeyAttributes.length > 100) {
+      // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html#limits-secondary-indexes
       throw new RangeError(
         "A maximum number of nonKeyAttributes across all of secondary indexes is 100",
       );
     }
+
+    // store all non-key attributes
     nonKeyAttributes.forEach((att) => this.nonKeyAttributes.add(att));
   }
 
@@ -1675,17 +1867,39 @@ export class Table extends TableBase {
     }
 
     const spec = props.pointInTimeRecoverySpecification;
-    if (spec?.recoveryPeriodInDays) {
-      // TODO: Upgrade provider to 5.98.0 to support recoveryPeriodInDays
-      Annotations.of(this).addWarning(
-        "Warning: recoveryPeriodInDays is not supported until provider aws is upgraded to 5.98.0 and will be ignored.",
+    const recoveryPeriodInDays = spec?.recoveryPeriodInDays;
+    if (!spec?.pointInTimeRecoveryEnabled && recoveryPeriodInDays) {
+      throw new ValidationError(
+        "Cannot set `recoveryPeriodInDays` while `pointInTimeRecoveryEnabled` is set to false.",
+        this,
+      );
+    }
+
+    if (
+      recoveryPeriodInDays !== undefined &&
+      (recoveryPeriodInDays < 1 || recoveryPeriodInDays > 35)
+    ) {
+      throw new ValidationError(
+        "`recoveryPeriodInDays` must be a value between `1` and `35`.",
+        this,
       );
     }
 
     const enabled =
       spec?.pointInTimeRecoveryEnabled ?? props.pointInTimeRecovery;
     if (enabled === undefined) return undefined;
-    return { enabled };
+    return { enabled, recoveryPeriodInDays };
+  }
+
+  private renderContributorInsights(
+    props: IContributorInsightsConfigurable,
+  ): ContributorInsightsSpecification | undefined {
+    return validateContributorInsights(
+      props.contributorInsightsEnabled,
+      props.contributorInsightsSpecification,
+      "contributorInsightsEnabled",
+      this,
+    );
   }
 
   private buildIndexProjection(
@@ -1698,11 +1912,13 @@ export class Table extends TableBase {
       props.projectionType === ProjectionType.INCLUDE &&
       !props.nonKeyAttributes
     ) {
+      // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-dynamodb-projectionobject.html
       throw new ValidationError(
         `Non-key attributes should be specified when using ${ProjectionType.INCLUDE} projection type`,
         this,
       );
     }
+
     if (
       props.projectionType !== ProjectionType.INCLUDE &&
       props.nonKeyAttributes
@@ -1712,9 +1928,11 @@ export class Table extends TableBase {
         this,
       );
     }
+
     if (props.nonKeyAttributes) {
       this.validateNonKeyAttributes(props.nonKeyAttributes);
     }
+
     return {
       projectionType: props.projectionType ?? ProjectionType.ALL,
       nonKeyAttributes: props.nonKeyAttributes,
@@ -1742,6 +1960,11 @@ export class Table extends TableBase {
     // For GSIs/LSIs, they are part of their respective blocks.
   }
 
+  /**
+   * Register the key attribute of table or secondary index to assemble attribute definitions of TableResourceProps.
+   *
+   * @param attribute the key attribute of table or secondary index
+   */
   private registerAttribute(attribute: Attribute) {
     const existingDef = this.attributeDefinitionsInternal.find(
       (def) => def.name === attribute.name,
@@ -1826,6 +2049,9 @@ export class Table extends TableBase {
     }));
   }
 
+  /**
+   * Whether this table has indexes
+   */
   protected get hasIndex(): boolean {
     return (
       this.globalSecondaryIndexesInternal.length +
@@ -1834,17 +2060,23 @@ export class Table extends TableBase {
     );
   }
 
+  /**
+   * Set up key properties and return the Table encryption property from the
+   * user's configuration.
+   */
   private parseEncryption(props: TableProps): {
     sseSpecification?: dynamodbTable.DynamodbTableServerSideEncryption;
     encryptionKey?: kms.IKey;
   } {
     let encryptionType = props.encryption;
+
     if (encryptionType != null && props.serverSideEncryption != null) {
       throw new ValidationError(
         "Only one of encryption and serverSideEncryption can be specified, but both were provided",
         this,
       );
     }
+
     if (props.serverSideEncryption && props.encryptionKey) {
       throw new ValidationError(
         "encryptionKey cannot be specified when serverSideEncryption is specified. Use encryption instead",
@@ -1855,8 +2087,10 @@ export class Table extends TableBase {
     if (encryptionType === undefined) {
       encryptionType =
         props.encryptionKey != null
-          ? TableEncryption.CUSTOMER_MANAGED
-          : props.serverSideEncryption
+          ? // If there is a configured encryptionKey, the encryption is implicitly CUSTOMER_MANAGED
+            TableEncryption.CUSTOMER_MANAGED
+          : // Otherwise, if severSideEncryption is enabled, it's AWS_MANAGED; else undefined (do not set anything)
+            props.serverSideEncryption
             ? TableEncryption.AWS_MANAGED
             : undefined;
     }
@@ -1921,10 +2155,12 @@ export class Table extends TableBase {
             description: `Customer-managed key auto-created for encrypting DynamoDB table at ${this.node.path}`,
             enableKeyRotation: true,
           });
+
         return {
           sseSpecification: { enabled: true, kmsKeyArn: key.keyArn },
           encryptionKey: key,
         };
+
       case TableEncryption.AWS_MANAGED:
         return { sseSpecification: { enabled: true } }; // Uses alias/aws/dynamodb by default
       case TableEncryption.DEFAULT:
@@ -1955,8 +2191,37 @@ export class Table extends TableBase {
       },
     };
   }
+
+  /**
+   * Adds resource to the Terraform JSON output at Synth time.
+   *
+   * called by TerraformStack.prepareStack()
+   */
+  public toTerraform(): any {
+    /**
+     * A preparing resolve might add new resources to the stack
+     */
+    for (const gsi of this.globalSecondaryIndexesInternal) {
+      if (gsi.contributorInsightsSpecification?.enabled) {
+        new dynamodbContributorInsights.DynamodbContributorInsights(
+          this,
+          "ContributorInsights",
+          {
+            tableName: this.tableName,
+            indexName: gsi.name,
+            mode: gsi.contributorInsightsSpecification?.mode,
+          },
+        );
+        delete gsi.contributorInsightsSpecification;
+      }
+    }
+    return {};
+  }
 }
 
+/**
+ * Just a convenient way to keep track of both attributes
+ */
 interface ScalableAttributePair {
   scalableReadAttribute?: ScalableTableAttribute;
   scalableWriteAttribute?: ScalableTableAttribute;
