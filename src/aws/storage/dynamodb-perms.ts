@@ -1,27 +1,21 @@
+// https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-dynamodb/lib/perms.ts
+
+export const RESOURCE_READ_DATA_ACTIONS = [
+  "dynamodb:BatchGetItem",
+  "dynamodb:Query",
+  "dynamodb:GetItem",
+  "dynamodb:Scan",
+  "dynamodb:ConditionCheckItem",
+];
+
+export const PRINCIPAL_ONLY_READ_DATA_ACTIONS = [
+  "dynamodb:GetRecords",
+  "dynamodb:GetShardIterator",
+];
+
 export const READ_DATA_ACTIONS = [
-  "dynamodb:BatchGetItem",
-  "dynamodb:GetRecords",
-  "dynamodb:GetShardIterator",
-  "dynamodb:Query",
-  "dynamodb:GetItem",
-  "dynamodb:Scan",
-  "dynamodb:ConditionCheckItem",
-];
-
-// Table-safe actions that can be used in DynamoDB resource policies
-// Excludes stream-specific actions that are not valid for table resource policies
-export const READ_DATA_ACTIONS_TABLE_SAFE = [
-  "dynamodb:BatchGetItem",
-  "dynamodb:Query",
-  "dynamodb:GetItem",
-  "dynamodb:Scan",
-  "dynamodb:ConditionCheckItem",
-];
-
-// Stream-specific actions that should only be used with stream ARNs
-export const READ_DATA_ACTIONS_STREAM_ONLY = [
-  "dynamodb:GetRecords",
-  "dynamodb:GetShardIterator",
+  ...RESOURCE_READ_DATA_ACTIONS,
+  ...PRINCIPAL_ONLY_READ_DATA_ACTIONS,
 ];
 
 export const KEY_READ_ACTIONS = ["kms:Decrypt", "kms:DescribeKey"];

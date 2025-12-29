@@ -45,8 +45,6 @@ import {
   ApproximateCreationDateTimePrecision,
   IBucket,
   Bucket,
-  // PointInTimeRecoverySpecification,
-  // WarmThroughput,
 } from "../../../src/aws/storage";
 import { Duration } from "../../../src/duration";
 import { Annotations, Template } from "../../assertions";
@@ -199,18 +197,18 @@ describe("default properties", () => {
     });
 
     Template.synth(stack).toHaveResourceWithProperties(DynamodbTable, {
+      attribute: [
+        { name: "hashKey", type: "S" },
+        { name: "sortKey", type: "N" },
+      ],
+      hash_key: "hashKey",
+      range_key: "sortKey",
+      read_capacity: 5,
+      write_capacity: 5,
       point_in_time_recovery: {
         enabled: true,
-        // recovery_period_in_days was added in 5.98.0
-        // https://github.com/hashicorp/terraform-provider-aws/pull/41484
-        // PITR is either enabled or disabled. The recovery period is fixed by AWS (35 days for continuous backups).
+        recovery_period_in_days: 5,
       },
-    });
-    // TODO: Upgrade provider to 5.98.0+ for recoveryPeriodInDays support
-    Annotations.fromStack(stack).hasWarnings({
-      constructPath: `TestStack/${CONSTRUCT_NAME}`,
-      message:
-        "Warning: recoveryPeriodInDays is not supported until provider aws is upgraded to 5.98.0 and will be ignored.",
     });
   });
 
@@ -231,12 +229,7 @@ describe("default properties", () => {
     );
   });
 
-  // recoveryPeriodInDays is not directly configurable in aws_dynamodb_table for PITR.
-  // The CDK test might be for a higher-level construct or a specific feature not in basic TF table.
-  // Skipping recoveryPeriodInDays validation for now as it's not a direct TF table property for PITR.
-  // TODO: Implement when provider is upgraded to support recoveryPeriodInDays validation
-  // Currently recoveryPeriodInDays is not supported until provider aws is upgraded to 5.98.0
-  test.skip("recoveryPeriodInDays set out of bounds", () => {
+  test("recoveryPeriodInDays set out of bounds", () => {
     expect(() => {
       new Table(stack, "Table", {
         partitionKey: { name: "pk", type: AttributeType.STRING },
@@ -248,9 +241,7 @@ describe("default properties", () => {
     }).toThrow("`recoveryPeriodInDays` must be a value between `1` and `35`.");
   });
 
-  // TODO: Implement when provider is upgraded to support recoveryPeriodInDays validation
-  // Currently recoveryPeriodInDays is not supported until provider aws is upgraded to 5.98.0
-  test.skip("recoveryPeriodInDays set but pitr disabled", () => {
+  test("recoveryPeriodInDays set but pitr disabled", () => {
     expect(() => {
       new Table(stack, "Table", {
         partitionKey: { name: "pk", type: AttributeType.STRING },
@@ -380,7 +371,9 @@ test("when specifying every property (billingMode PROVISIONED)", () => {
     timeToLiveAttribute: "timeToLive",
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
-    contributorInsightsEnabled: true,
+    contributorInsightsSpecification: {
+      enabled: true,
+    },
     kinesisStream: stream,
   });
   Tags.of(table).add("Environment", "Production");
@@ -1384,22 +1377,27 @@ test("when adding a global secondary index without specifying read and write cap
 });
 
 test.each([true, false])(
-  "when adding a global secondary index with contributorInsightsEnabled %s",
-  (contributorInsightsEnabled: boolean) => {
+  "when adding a global secondary index with contributorInsights enabled %s",
+  (enabled: boolean) => {
     const app = Testing.app();
     const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
     const table = new Table(stack, CONSTRUCT_NAME, {
+      tableName: TABLE_NAME,
       partitionKey: TABLE_PARTITION_KEY,
       sortKey: TABLE_SORT_KEY,
     });
 
     table.addGlobalSecondaryIndex({
-      contributorInsightsEnabled,
+      contributorInsightsSpecification: {
+        enabled,
+      },
       indexName: GSI_NAME,
       partitionKey: GSI_PARTITION_KEY,
     });
 
-    Template.synth(stack).toHaveResourceWithProperties(DynamodbTable, {
+    const synthesized = Template.synth(stack);
+    synthesized.toHaveResourceWithProperties(DynamodbTable, {
+      name: "MyTable",
       attribute: [
         { name: "hashKey", type: "S" },
         { name: "sortKey", type: "N" },
@@ -1419,9 +1417,14 @@ test.each([true, false])(
         },
       ],
     });
-
-    // Note: DynamodbContributorInsights is created as a separate resource in TerraConstructs
-    // but may not be present for GSI-level contributor insights in the current implementation
+    if (enabled) {
+      synthesized.toHaveResourceWithProperties(DynamodbContributorInsights, {
+        table_name: stack.resolve(table.tableName),
+        index_name: "MyGSI",
+      });
+    } else {
+      synthesized.not.toHaveResource(DynamodbContributorInsights);
+    }
   },
 );
 
@@ -2166,7 +2169,7 @@ describe("grants", () => {
   });
 
   test('"grant" allows adding arbitrary actions associated with this table resource (via testGrant)', () => {
-    testGrant(["action1", "action2"], (p, t) =>
+    testGrant([["action1", "action2"]], (p, t) =>
       t.grant(p, "dynamodb:action1", "dynamodb:action2"),
     );
   });
@@ -2174,12 +2177,15 @@ describe("grants", () => {
   test('"grantReadData" allows the principal to read data from the table', () => {
     testGrant(
       [
-        "BatchGetItem",
-        "Query",
-        "GetItem",
-        "Scan",
-        "ConditionCheckItem",
-        "DescribeTable",
+        [
+          "BatchGetItem",
+          "Query",
+          "GetItem",
+          "Scan",
+          "ConditionCheckItem",
+          "DescribeTable",
+        ],
+        ["GetRecords", "GetShardIterator"],
       ],
       (p, t) => t.grantReadData(p),
     );
@@ -2188,11 +2194,13 @@ describe("grants", () => {
   test('"grantWriteData" allows the principal to write data to the table', () => {
     testGrant(
       [
-        "BatchWriteItem",
-        "PutItem",
-        "UpdateItem",
-        "DeleteItem",
-        "DescribeTable",
+        [
+          "BatchWriteItem",
+          "PutItem",
+          "UpdateItem",
+          "DeleteItem",
+          "DescribeTable",
+        ],
       ],
       (p, t) => t.grantWriteData(p),
     );
@@ -2201,25 +2209,26 @@ describe("grants", () => {
   test('"grantReadWriteData" allows the principal to read/write data', () => {
     testGrant(
       [
-        "BatchGetItem",
-        "GetRecords",
-        "GetShardIterator",
-        "Query",
-        "GetItem",
-        "Scan",
-        "ConditionCheckItem",
-        "BatchWriteItem",
-        "PutItem",
-        "UpdateItem",
-        "DeleteItem",
-        "DescribeTable",
+        [
+          "BatchGetItem",
+          "Query",
+          "GetItem",
+          "Scan",
+          "ConditionCheckItem",
+          "BatchWriteItem",
+          "PutItem",
+          "UpdateItem",
+          "DeleteItem",
+          "DescribeTable",
+        ],
+        ["GetRecords", "GetShardIterator"],
       ],
       (p, t) => t.grantReadWriteData(p),
     );
   });
 
   test('"grantFullAccess" allows the principal to perform any action on the table ("*")', () => {
-    testGrant(["*"], (p, t) => t.grantFullAccess(p));
+    testGrant([["*"]], (p, t) => t.grantFullAccess(p));
   });
 
   // testDeprecated(
@@ -2405,6 +2414,14 @@ describe("grants", () => {
             `${stack.resolve(table.tableArn)}/index/*`,
           ],
         },
+        {
+          actions: ["dynamodb:GetRecords", "dynamodb:GetShardIterator"],
+          effect: "Allow",
+          resources: [
+            stack.resolve(table.tableArn),
+            `${stack.resolve(table.tableArn)}/index/*`,
+          ],
+        },
       ],
     });
     template.expect.toHaveResourceWithProperties(IamUserPolicy, {
@@ -2559,8 +2576,6 @@ describe("import", () => {
               {
                 actions: [
                   "dynamodb:BatchGetItem",
-                  "dynamodb:GetRecords",
-                  "dynamodb:GetShardIterator",
                   "dynamodb:Query",
                   "dynamodb:GetItem",
                   "dynamodb:Scan",
@@ -2571,6 +2586,13 @@ describe("import", () => {
                   "dynamodb:DeleteItem",
                   "dynamodb:DescribeTable",
                 ],
+                effect: "Allow",
+                resources: expect.arrayContaining([
+                  "arn:${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTable",
+                ]),
+              },
+              {
+                actions: ["dynamodb:GetRecords", "dynamodb:GetShardIterator"],
                 effect: "Allow",
                 resources: expect.arrayContaining([
                   "arn:${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTable",
@@ -2952,11 +2974,23 @@ describe("global", () => {
             effect: "Allow",
             resources: [
               stack.resolve(table.tableArn),
+              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-west-2:${data.aws_caller_identity.CallerIdentity.account_id}:table/${aws_dynamodb_table.Table_CD117FA1.name}",
+              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-central-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/${aws_dynamodb_table.Table_CD117FA1.name}",
               `${stack.resolve(table.tableArn)}/index/*`,
-              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-west-2:${data.aws_caller_identity.CallerIdentity.account_id}:table/TestStackTable0AFE2439",
-              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-central-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/TestStackTable0AFE2439",
-              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-west-2:${data.aws_caller_identity.CallerIdentity.account_id}:table/TestStackTable0AFE2439/index/*",
-              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-central-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/TestStackTable0AFE2439/index/*",
+              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-west-2:${data.aws_caller_identity.CallerIdentity.account_id}:table/${aws_dynamodb_table.Table_CD117FA1.name}/index/*",
+              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-central-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/${aws_dynamodb_table.Table_CD117FA1.name}/index/*",
+            ],
+          },
+          {
+            actions: ["dynamodb:GetRecords", "dynamodb:GetShardIterator"],
+            effect: "Allow",
+            resources: [
+              stack.resolve(table.tableArn),
+              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-west-2:${data.aws_caller_identity.CallerIdentity.account_id}:table/${aws_dynamodb_table.Table_CD117FA1.name}",
+              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-central-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/${aws_dynamodb_table.Table_CD117FA1.name}",
+              `${stack.resolve(table.tableArn)}/index/*`,
+              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-west-2:${data.aws_caller_identity.CallerIdentity.account_id}:table/${aws_dynamodb_table.Table_CD117FA1.name}/index/*",
+              "arn:${data.aws_partition.Partitition.partition}:dynamodb:eu-central-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/${aws_dynamodb_table.Table_CD117FA1.name}/index/*",
             ],
           },
         ],
@@ -3014,11 +3048,23 @@ describe("global", () => {
             effect: "Allow",
             resources: [
               remoteTableRef,
+              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-west-2:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-aws_dynamodb_tableTable_CD117FA1name}",
+              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-central-1:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-aws_dynamodb_tableTable_CD117FA1name}",
               `${remoteTableRef}/index/*`,
-              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-west-2:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/my-table",
-              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-central-1:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/my-table",
-              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-west-2:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/my-table/index/*",
-              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-central-1:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/my-table/index/*",
+              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-west-2:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-aws_dynamodb_tableTable_CD117FA1name}/index/*",
+              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-central-1:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-aws_dynamodb_tableTable_CD117FA1name}/index/*",
+            ],
+          },
+          {
+            actions: ["dynamodb:GetRecords", "dynamodb:GetShardIterator"],
+            effect: "Allow",
+            resources: [
+              remoteTableRef,
+              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-west-2:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-aws_dynamodb_tableTable_CD117FA1name}",
+              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-central-1:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-aws_dynamodb_tableTable_CD117FA1name}",
+              `${remoteTableRef}/index/*`,
+              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-west-2:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-aws_dynamodb_tableTable_CD117FA1name}/index/*",
+              "arn:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_partitionPartititionpartition}:dynamodb:eu-central-1:${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-dataaws_caller_identityCallerIdentityaccount_id}:table/${data.terraform_remote_state.cross-stack-reference-input-Stack1.outputs.cross-stack-output-aws_dynamodb_tableTable_CD117FA1name}/index/*",
             ],
           },
         ],
@@ -3371,7 +3417,7 @@ test("Throttled requests metrics", () => {
 });
 
 function testGrant(
-  expectedActions: string[],
+  expectedActions: string[][],
   invocation: (user: IPrincipal, table: Table) => void,
 ) {
   // GIVEN
@@ -3387,25 +3433,20 @@ function testGrant(
   invocation(user, table);
 
   // THEN
-  const action = expectedActions.map((a) => `dynamodb:${a}`);
-  Template.synth(stack).toHaveDataSourceWithProperties(
-    DataAwsIamPolicyDocument,
-    {
-      statement: [
-        {
-          actions: action,
-          effect: "Allow",
-          resources: [stack.resolve(table.tableArn)],
-        },
-      ],
-    },
-    // PolicyName: "userDefaultPolicy083DF682",
-    // Users: [
-    //   {
-    //     Ref: "user2C2B57AE",
-    //   },
-    // ],
-  );
+  const statement = expectedActions.map((actions) => ({
+    actions: actions.map((a) => `dynamodb:${a}`),
+    effect: "Allow",
+    resources: [stack.resolve(table.tableArn)],
+  }));
+  const template = Template.synth(stack);
+  template.toHaveDataSourceWithProperties(DataAwsIamPolicyDocument, {
+    statement,
+  });
+  template.toHaveResourceWithProperties(IamUserPolicy, {
+    name: "TestStackuserDefaultPolicy428F7825",
+    user: "${aws_iam_user.user_2C2B57AE.name}",
+    policy: "${data.aws_iam_policy_document.user_DefaultPolicy_17137D9B.json}",
+  });
 }
 
 describe("deletionProtectionEnabled", () => {
@@ -3652,135 +3693,139 @@ test("Resource policy test", () => {
   );
 });
 
-// // TODO - Pending: https://github.com/hashicorp/terraform-provider-aws/issues/43142
-// test("Warm Throughput test on-demand", () => {
-//   // GIVEN
-//   const app = new App();
-//   const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
+test("Warm Throughput test on-demand", () => {
+  // GIVEN
+  const app = new App();
+  const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
 
-//   // WHEN
-//   const table = new Table(stack, "Table", {
-//     partitionKey: { name: "id", type: AttributeType.STRING },
-//     warmThroughput: {
-//       readUnitsPerSecond: 13000,
-//       writeUnitsPerSecond: 5000,
-//     },
-//   });
+  // WHEN
+  const table = new Table(stack, "Table", {
+    partitionKey: { name: "id", type: AttributeType.STRING },
+    billingMode: BillingMode.PAY_PER_REQUEST,
+    warmThroughput: {
+      readUnitsPerSecond: 13000,
+      writeUnitsPerSecond: 5000,
+    },
+  });
 
-//   table.addGlobalSecondaryIndex({
-//     indexName: "my-index-1",
-//     partitionKey: { name: "gsi1pk", type: AttributeType.STRING },
-//     warmThroughput: {
-//       readUnitsPerSecond: 15000,
-//       writeUnitsPerSecond: 6000,
-//     },
-//   });
+  table.addGlobalSecondaryIndex({
+    indexName: "my-index-1",
+    partitionKey: { name: "gsi1pk", type: AttributeType.STRING },
+    warmThroughput: {
+      readUnitsPerSecond: 15000,
+      writeUnitsPerSecond: 6000,
+    },
+  });
 
-//   table.addGlobalSecondaryIndex({
-//     indexName: "my-index-2",
-//     partitionKey: { name: "gsi2pk", type: AttributeType.STRING },
-//   });
+  table.addGlobalSecondaryIndex({
+    indexName: "my-index-2",
+    partitionKey: { name: "gsi2pk", type: AttributeType.STRING },
+  });
 
-//   // THEN
-//   Template.synth(stack).toHaveResourceWithProperties(DynamodbTable, {
-//     hash_key: "id",
-//     attribute: [
-//       { name: "id", type: AttributeType.STRING },
-//       { name: "gsi1pk", type: AttributeType.STRING },
-//       { name: "gsi2pk", type: AttributeType.STRING },
-//     ],
-//     warm_throughput: {
-//       read_units_per_second: 13000,
-//       write_units_per_second: 5000,
-//     },
-//     global_secondary_indexes: [
-//       {
-//         index_name: "my-index-1",
-//         hash_key: "gsi1pk",
-//         projection_type: "ALL",
-//         warm_throughput: {
-//           read_units_per_second: 15000,
-//           write_units_per_second: 6000,
-//         },
-//       },
-//       {
-//         index_name: "my-index-2",
-//         hash_key: "gsi2pk",
-//         projection_type: "ALL",
-//       },
-//     ],
-//   });
-// });
+  // THEN
+  Template.synth(stack).toHaveResourceWithProperties(DynamodbTable, {
+    hash_key: "id",
+    attribute: [
+      { name: "id", type: AttributeType.STRING },
+      { name: "gsi1pk", type: AttributeType.STRING },
+      { name: "gsi2pk", type: AttributeType.STRING },
+    ],
+    billing_mode: "PAY_PER_REQUEST",
+    warm_throughput: {
+      read_units_per_second: 13000,
+      write_units_per_second: 5000,
+    },
+    global_secondary_index: [
+      {
+        name: "my-index-1",
+        hash_key: "gsi1pk",
+        projection_type: "ALL",
+        warm_throughput: {
+          read_units_per_second: 15000,
+          write_units_per_second: 6000,
+        },
+      },
+      {
+        name: "my-index-2",
+        hash_key: "gsi2pk",
+        projection_type: "ALL",
+      },
+    ],
+  });
+});
 
-// // TODO - Pending: https://github.com/hashicorp/terraform-provider-aws/issues/43142
-// test("Warm Throughput test provisioned", () => {
-//   // GIVEN
-//   const app = new App();
-//   const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
+test("Warm Throughput test provisioned", () => {
+  // GIVEN
+  const app = new App();
+  const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
 
-//   // WHEN
-//   const table = new Table(stack, "Table", {
-//     partitionKey: { name: "id", type: AttributeType.STRING },
-//     readCapacity: 5,
-//     writeCapacity: 6,
-//     warmThroughput: {
-//       readUnitsPerSecond: 2000,
-//       writeUnitsPerSecond: 1000,
-//     },
-//   });
+  // WHEN
+  const table = new Table(stack, "Table", {
+    partitionKey: { name: "id", type: AttributeType.STRING },
+    billingMode: BillingMode.PROVISIONED,
+    readCapacity: 5,
+    writeCapacity: 6,
+    warmThroughput: {
+      readUnitsPerSecond: 2000,
+      writeUnitsPerSecond: 1000,
+    },
+  });
 
-//   table.addGlobalSecondaryIndex({
-//     indexName: "my-index-1",
-//     partitionKey: { name: "gsi1pk", type: AttributeType.STRING },
-//     readCapacity: 7,
-//     writeCapacity: 8,
-//     warmThroughput: {
-//       readUnitsPerSecond: 3000,
-//       writeUnitsPerSecond: 4000,
-//     },
-//   });
+  table.addGlobalSecondaryIndex({
+    indexName: "my-index-1",
+    partitionKey: { name: "gsi1pk", type: AttributeType.STRING },
+    readCapacity: 7,
+    writeCapacity: 8,
+    warmThroughput: {
+      readUnitsPerSecond: 3000,
+      writeUnitsPerSecond: 4000,
+    },
+  });
 
-//   table.addGlobalSecondaryIndex({
-//     indexName: "my-index-2",
-//     partitionKey: { name: "gsi2pk", type: AttributeType.STRING },
-//     readCapacity: 9,
-//     writeCapacity: 10,
-//   });
+  table.addGlobalSecondaryIndex({
+    indexName: "my-index-2",
+    partitionKey: { name: "gsi2pk", type: AttributeType.STRING },
+    readCapacity: 9,
+    writeCapacity: 10,
+  });
 
-//   // THEN
-//   Template.synth(stack).toHaveResourceWithProperties(DynamodbTable, {
-//     hash_key: "id",
-//     attribute: [
-//       { name: "id", type: AttributeType.STRING },
-//       { name: "gsi1pk", type: AttributeType.STRING },
-//       { name: "gsi2pk", type: AttributeType.STRING },
-//     ],
-//     warm_throughput: {
-//       read_units_per_second: 2000,
-//       write_units_per_second: 1000,
-//     },
-//     global_secondary_indexes: [
-//       {
-//         index_name: "my-index-1",
-//         hash_key: "gsi1pk",
-//         projection_type: "ALL",
-//         warm_throughput: {
-//           read_units_per_second: 2000,
-//           write_units_per_second: 1000,
-//         },
-//         read_capacity: 7,
-//         write_capacity: 8,
-//       },
-//       {
-//         index_name: "my-index-2",
-//         hash_key: "gsi2pk",
-//         projection_type: "ALL",
-//         read_capacity: 9,
-//         write_capacity: 10,
-//       },
-//     ],
-//   });
-// });
+  // THEN
+  Template.synth(stack).toHaveResourceWithProperties(DynamodbTable, {
+    hash_key: "id",
+    attribute: [
+      { name: "id", type: AttributeType.STRING },
+      { name: "gsi1pk", type: AttributeType.STRING },
+      { name: "gsi2pk", type: AttributeType.STRING },
+    ],
+    billing_mode: "PROVISIONED",
+    read_capacity: 5,
+    write_capacity: 6,
+    warm_throughput: {
+      read_units_per_second: 2000,
+      write_units_per_second: 1000,
+    },
+    global_secondary_index: [
+      {
+        name: "my-index-1",
+        hash_key: "gsi1pk",
+        projection_type: "ALL",
+        warm_throughput: {
+          read_units_per_second: 3000,
+          write_units_per_second: 4000,
+        },
+        read_capacity: 7,
+        write_capacity: 8,
+      },
+      {
+        name: "my-index-2",
+        hash_key: "gsi2pk",
+        projection_type: "ALL",
+        read_capacity: 9,
+        write_capacity: 10,
+      },
+    ],
+  });
+});
 
 test("Kinesis Stream - precision timestamp", () => {
   // GIVEN
