@@ -2,7 +2,7 @@
 
 * text=auto eol=lf
 *.snap linguist-generated
-/.eslintrc.json linguist-generated
+/.eslintrc.json linguist-generated linguist-language=JSON-with-Comments
 /.gitattributes linguist-generated
 /.github/pull_request_template.md linguist-generated
 /.github/workflows/build.yml linguist-generated
@@ -33,4 +33,4 @@
 /src/aws/storage/cors-rule-config.generated.ts linguist-generated
 /src/aws/storage/lifecycle-config.generated.ts linguist-generated
 /src/aws/storage/website-config.generated.ts linguist-generated
-/tsconfig.dev.json linguist-generated
+/tsconfig.dev.json linguist-generated linguist-language=JSON-with-Comments
