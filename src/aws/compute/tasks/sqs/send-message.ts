@@ -100,17 +100,16 @@ export class SqsSendMessage extends compute.TaskStateBase {
       }),
     ];
 
-    // // TODO: Re-Add encryption support
-    // // sending to an encrypted queue requires
-    // // permissions on the associated kms key
-    // if (this.props.queue.encryptionMasterKey) {
-    //   this.taskPolicies.push(
-    //     new iam.PolicyStatement({
-    //       actions: ["kms:Decrypt", "kms:GenerateDataKey*"],
-    //       resources: [this.props.queue.encryptionMasterKey.keyArn],
-    //     }),
-    //   );
-    // }
+    // sending to an encrypted queue requires
+    // permissions on the associated kms key
+    if (this.props.queue.encryptionMasterKey) {
+      this.taskPolicies.push(
+        new iam.PolicyStatement({
+          actions: ["kms:Decrypt", "kms:GenerateDataKey*"],
+          resources: [this.props.queue.encryptionMasterKey.keyArn],
+        }),
+      );
+    }
   }
 
   /**

@@ -1,0 +1,39 @@
+{
+  "arn": "arn:aws:iam::694710432912:role/12345678-1234-sqsRole20260105090853909000000008",
+  "assumeRolePolicyDocument": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::694710432912:root\"},\"Action\":\"sts:AssumeRole\"}]}",
+  "createDate": "2026-01-05T09:08:54Z",
+  "description": "",
+  "maxSessionDuration": 3600,
+  "path": "/",
+  "permissionsBoundary": {
+    "permissionsBoundaryArn": "",
+    "permissionsBoundaryType": ""
+  },
+  "roleId": "AROA2DP7X6SILGZAVMM4M",
+  "roleLastUsed": {
+    "LastUsedDate": null,
+    "Region": null
+  },
+  "roleName": "12345678-1234-sqsRole20260105090853909000000008",
+  "inlinePolicies": [
+    {
+      "policyDocument": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"sqs:ReceiveMessage\",\"sqs:GetQueueUrl\",\"sqs:GetQueueAttributes\",\"sqs:DeleteMessage\",\"sqs:ChangeMessageVisibility\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:sqs:us-east-1:694710432912:12345678-1234-sqsDeadLetterQueue2026010509085390950000000a\"},{\"Action\":[\"sqs:ReceiveMessage\",\"sqs:GetQueueUrl\",\"sqs:GetQueueAttributes\",\"sqs:DeleteMessage\",\"sqs:ChangeMessageVisibility\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:sqs:us-east-1:694710432912:12345678-1234-sqsQueue2026010509092242750000000f\"},{\"Action\":[\"sqs:ReceiveMessage\",\"sqs:GetQueueUrl\",\"sqs:GetQueueAttributes\",\"sqs:DeleteMessage\",\"sqs:ChangeMessageVisibility\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:sqs:us-east-1:694710432912:12345678-1234-sqsFifoQueue2026010509090694420000000d.fifo\"},{\"Action\":\"kms:Decrypt\",\"Effect\":\"Allow\",\"Resource\":\"arn:aws:kms:us-east-1:694710432912:key/70005dbe-3a25-4cc0-b4c5-cdbed2ed9e11\"},{\"Action\":[\"sqs:ReceiveMessage\",\"sqs:GetQueueUrl\",\"sqs:GetQueueAttributes\",\"sqs:DeleteMessage\",\"sqs:ChangeMessageVisibility\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:sqs:us-east-1:694710432912:12345678-1234-sqsHighThroughputFifoQueue2026010509085391060000000b.fifo\"},{\"Action\":[\"sqs:ReceiveMessage\",\"sqs:GetQueueUrl\",\"sqs:GetQueueAttributes\",\"sqs:DeleteMessage\",\"sqs:ChangeMessageVisibility\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:sqs:us-east-1:694710432912:12345678-1234-sqsSqsManagedEncryptedQueue20260105090853909100000009\"},{\"Action\":[\"sqs:ReceiveMessage\",\"sqs:GetQueueUrl\",\"sqs:GetQueueAttributes\",\"sqs:DeleteMessage\",\"sqs:ChangeMessageVisibility\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:sqs:us-east-1:694710432912:12345678-1234-sqsUnencryptedQueue20260105090853909000000007\"},{\"Action\":[\"sqs:ReceiveMessage\",\"sqs:GetQueueUrl\",\"sqs:GetQueueAttributes\",\"sqs:DeleteMessage\",\"sqs:ChangeMessageVisibility\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:sqs:us-east-1:694710432912:12345678-1234-sqsSSLQueue20260105090853908900000006\"}]}",
+      "policyName": "sqsRoleDefaultPolicyF402FE74"
+    }
+  ],
+  "attachedPolicyArns": [],
+  "tags": [
+    {
+      "Key": "grid:UUID",
+      "Value": "12345678-1234"
+    },
+    {
+      "Key": "Name",
+      "Value": "test-Role"
+    },
+    {
+      "Key": "grid:EnvironmentName",
+      "Value": "test"
+    }
+  ]
+}

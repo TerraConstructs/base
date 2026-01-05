@@ -8,8 +8,8 @@ const stackName = process.env.STACK_NAME ?? "dlq-queue";
 
 // force high chance of failure
 const maxReceiveCount = parseInt(process.env.MAX_RECEIVE_COUNT ?? "1");
-const visibilityTimeoutSeconds = parseInt(
-  process.env.VISIBILITY_TIMEOUT_SECONDS ?? "5",
+const visibilityTimeout = Duration.seconds(
+  parseInt(process.env.VISIBILITY_TIMEOUT_SECONDS ?? "5"),
 );
 const app = new App({
   outdir,
@@ -25,23 +25,23 @@ const stack = new aws.AwsStack(app, stackName, {
 new LocalBackend(stack, {
   path: `${stackName}.tfstate`,
 });
-const messageRetentionSeconds = Duration.days(14).toSeconds();
+const retentionPeriod = Duration.days(14);
 
 const dlq = new aws.notify.Queue(stack, "DLQ", {
-  namePrefix: "dlq",
-  messageRetentionSeconds,
-  visibilityTimeoutSeconds,
+  queueName: "dlq",
+  retentionPeriod,
+  visibilityTimeout,
   registerOutputs: true,
   outputName: "dlq_queue",
 });
 new aws.notify.Queue(stack, "Queue", {
-  namePrefix: "source",
+  queueName: "source",
   deadLetterQueue: {
     maxReceiveCount,
     queue: dlq,
   },
-  messageRetentionSeconds,
-  visibilityTimeoutSeconds,
+  retentionPeriod,
+  visibilityTimeout,
   registerOutputs: true,
   outputName: "queue",
 });

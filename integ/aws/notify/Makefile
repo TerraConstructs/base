@@ -4,6 +4,14 @@ all: ## Test all Notify integrations
 	go test -v -timeout 30m ./...
 .PHONY: all
 
+queue: ## Test Queue semantics
+	go test -v -timeout 30m ./... -run ^TestQueue$
+.PHONY: fifo-queue
+
+source-queue-permission: ## Test Queue with SourceQueue Permissions
+	go test -v -timeout 30m ./... -run ^TestSourceQueuePermission$
+.PHONY: fifo-queue
+
 fifo-queue: ## Test Queue with FIFO semantics
 	go test -v -timeout 30m ./... -run ^TestFifoQueue$
 .PHONY: fifo-queue

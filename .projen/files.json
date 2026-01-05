@@ -21,7 +21,6 @@
     "src/aws/compute/lb-shared/lb-target-group-attachment-config.generated.ts",
     "src/aws/iam/policy-document-config.generated.ts",
     "src/aws/iam/policy-statement-props.generated.ts",
-    "src/aws/notify/queue-config.generated.ts",
     "src/aws/provider-config.generated.ts",
     "src/aws/storage/cors-config.generated.ts",
     "src/aws/storage/cors-rule-config.generated.ts",

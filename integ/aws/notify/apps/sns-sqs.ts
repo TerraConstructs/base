@@ -1,5 +1,4 @@
-//https://github.com/aws/aws-cdk/blob/v2.176.0/packages/%40aws-cdk-testing/framework-integ/test/aws-sns-subscriptions/test/integ.sns-aws.notify.ts#L1
-
+// https://github.com/aws/aws-cdk/blob/v2.176.0/packages/%40aws-cdk-testing/framework-integ/test/aws-sns-subscriptions/test/integ.sns-sqs.ts
 import { App, LocalBackend } from "cdktf";
 import { aws } from "../../../../src";
 

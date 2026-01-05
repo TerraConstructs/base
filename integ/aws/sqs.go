@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/testing"
+	"github.com/stretchr/testify/require"
 )
 
 // SendMessageToFifoQueue sends the given message to the FIFO SQS queue with the given URL.
@@ -137,4 +139,75 @@ func WaitForQueueMessage(t testing.TestingT, awsRegion string, queueURL string, 
 	}
 
 	return QueueMessageResponse{Error: terratestaws.ReceiveMessageTimeout{QueueUrl: queueURL, TimeoutSec: timeout}}
+}
+
+// GetQueueAttributes fetches all attributes for an SQS queue
+func GetQueueAttributes(t testing.TestingT, awsRegion string, queueUrl string) map[string]string {
+	attrs, err := GetQueueAttributesE(t, awsRegion, queueUrl)
+	require.NoError(t, err)
+	return attrs
+}
+
+// GetQueueAttributesE fetches all attributes for an SQS queue, returning error if any
+func GetQueueAttributesE(t testing.TestingT, awsRegion string, queueUrl string) (map[string]string, error) {
+	logger.Log(t, fmt.Sprintf("Getting attributes for queue %s in %s", queueUrl, awsRegion))
+
+	sqsClient, err := terratestaws.NewSqsClientE(t, awsRegion)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := sqsClient.GetQueueAttributes(context.Background(), &sqs.GetQueueAttributesInput{
+		QueueUrl: aws.String(queueUrl),
+		AttributeNames: []types.QueueAttributeName{
+			types.QueueAttributeNameAll,
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Attributes, nil
+}
+
+// GetQueuePolicy fetches and parses the queue policy document
+func GetQueuePolicy(t testing.TestingT, awsRegion string, queueUrl string) map[string]any {
+	policy, err := GetQueuePolicyE(t, awsRegion, queueUrl)
+	require.NoError(t, err)
+	return policy
+}
+
+// GetQueuePolicyE fetches and parses the queue policy document, returning error if any
+func GetQueuePolicyE(t testing.TestingT, awsRegion string, queueUrl string) (map[string]any, error) {
+	logger.Log(t, fmt.Sprintf("Getting policy for queue %s in %s", queueUrl, awsRegion))
+
+	sqsClient, err := terratestaws.NewSqsClientE(t, awsRegion)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := sqsClient.GetQueueAttributes(context.Background(), &sqs.GetQueueAttributesInput{
+		QueueUrl: aws.String(queueUrl),
+		AttributeNames: []types.QueueAttributeName{
+			types.QueueAttributeNamePolicy,
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	policyStr, exists := result.Attributes["Policy"]
+	if !exists || policyStr == "" {
+		return nil, fmt.Errorf("no policy found for queue %s", queueUrl)
+	}
+
+	// Parse the JSON policy document
+	var policyDoc map[string]any
+	if err := json.Unmarshal([]byte(policyStr), &policyDoc); err != nil {
+		return nil, fmt.Errorf("failed to parse policy document: %w", err)
+	}
+
+	return policyDoc, nil
 }

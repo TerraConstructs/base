@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.176.0/packages/aws-cdk-lib/aws-sns-subscriptions/lib/subscription.ts
 
 import * as sns from "..";
-import { IQueue } from "../queue";
+import { IQueue } from "../queue-base";
 
 /**
  * Options to subscribing to an SNS topic
