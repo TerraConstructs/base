@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns/types"
 	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
+	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/terraconstructs/base/integ"
@@ -23,6 +25,20 @@ import (
 )
 
 var terratestLogger = loggers.Default
+
+// Test the sqs app
+func TestQueue(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	// Confirm the queue is working as expected
+	runNotifyIntegrationTest(t, "sqs", "us-east-1", envVars, validateQueue)
+}
+
+// Test the sqs-source-queue-permission app
+func TestSourceQueuePermission(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	// Confirm the Source Queue Permissions are working as expected
+	runNotifyIntegrationTest(t, "sqs-source-queue-permission", "us-east-1", envVars, validateSourceQueuePermission)
+}
 
 // Test the fifo-queue app
 func TestFifoQueue(t *testing.T) {
@@ -254,6 +270,251 @@ func TestSnsUrl(t *testing.T) {
 	// test_structure.RunTestStage(t, "validate", func() {
 	// 	validate(t, tfWorkingDir, awsRegion)
 	// })
+}
+
+func validateQueue(t *testing.T, workingDir string, awsRegion string) {
+	snapshotPath := filepath.Join("snapshots", "sqs")
+
+	// Load the Terraform Options and outputs
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+	outputs := terraform.OutputAll(t, terraformOptions)
+
+	// Extract all queue URLs and role ARN from outputs
+	dlqUrl := outputs["DlqUrl"].(string)
+	queueUrl := outputs["QueueUrl"].(string)
+	fifoUrl := outputs["FifoUrl"].(string)
+	highThroughputFifoUrl := outputs["HighThroughputFifoUrl"].(string)
+	sqsManagedUrl := outputs["SqsManagedUrl"].(string)
+	unencryptedUrl := outputs["UnencryptedUrl"].(string)
+	sslUrl := outputs["SslUrl"].(string)
+	roleArn := outputs["RoleArn"].(string)
+
+	// ===== 1. Validate DLQ (Dead Letter Queue) - basic standard queue =====
+	terratestLogger.Logf(t, "Validating DeadLetterQueue...")
+	dlqAttrs := util.GetQueueAttributes(t, awsRegion, dlqUrl)
+
+	// Verify it's not a FIFO queue
+	assert.NotEqual(t, "true", dlqAttrs["FifoQueue"], "DLQ should not be FIFO")
+
+	// Verify no custom KMS encryption (DLQ has no encryption configured, may use AWS default SSE)
+	assert.Empty(t, dlqAttrs["KmsMasterKeyId"], "DLQ should not have KMS encryption")
+
+	// Verify standard attributes exist
+	assert.NotEmpty(t, dlqAttrs["QueueArn"], "DLQ should have ARN")
+	assert.NotEmpty(t, dlqAttrs["MessageRetentionPeriod"], "DLQ should have message retention period")
+	assert.NotEmpty(t, dlqAttrs["VisibilityTimeout"], "DLQ should have visibility timeout")
+
+	// ===== 2. Validate Queue - with DLQ config and KMS_MANAGED encryption =====
+	terratestLogger.Logf(t, "Validating Queue with DLQ and KMS_MANAGED encryption...")
+	queueAttrs := util.GetQueueAttributes(t, awsRegion, queueUrl)
+
+	// Verify KMS_MANAGED encryption (uses AWS managed key)
+	assert.Equal(t, "alias/aws/sqs", queueAttrs["KmsMasterKeyId"], "Queue should use KMS_MANAGED encryption")
+
+	// Verify DLQ configuration
+	require.NotEmpty(t, queueAttrs["RedrivePolicy"], "Queue should have redrive policy")
+
+	var redrivePolicy map[string]interface{}
+	err := json.Unmarshal([]byte(queueAttrs["RedrivePolicy"]), &redrivePolicy)
+	require.NoError(t, err, "Should be able to parse redrive policy JSON")
+
+	// Verify maxReceiveCount
+	maxReceiveCount := int(redrivePolicy["maxReceiveCount"].(float64))
+	assert.Equal(t, 5, maxReceiveCount, "Queue should have maxReceiveCount of 5")
+
+	// Verify deadLetterTargetArn points to DLQ
+	assert.Equal(t, dlqAttrs["QueueArn"], redrivePolicy["deadLetterTargetArn"], "DLQ ARN should match")
+
+	// ===== 3. Validate FIFO Queue - with custom KMS key =====
+	terratestLogger.Logf(t, "Validating FIFO Queue with custom KMS key...")
+	fifoAttrs := util.GetQueueAttributes(t, awsRegion, fifoUrl)
+
+	// Verify FIFO
+	assert.Equal(t, "true", fifoAttrs["FifoQueue"], "Should be a FIFO queue")
+
+	// Verify queue URL contains .fifo
+	assert.Contains(t, fifoUrl, ".fifo", "FIFO queue URL should contain .fifo")
+
+	// Verify custom KMS key (should be a full ARN, not alias/aws/sqs)
+	assert.NotEmpty(t, fifoAttrs["KmsMasterKeyId"], "FIFO queue should have KMS key")
+	assert.Contains(t, fifoAttrs["KmsMasterKeyId"], "arn:aws:kms:", "Should have custom KMS key ARN")
+
+	// ===== 4. Validate High Throughput FIFO =====
+	terratestLogger.Logf(t, "Validating High Throughput FIFO Queue...")
+	htFifoAttrs := util.GetQueueAttributes(t, awsRegion, highThroughputFifoUrl)
+
+	// Verify FIFO
+	assert.Equal(t, "true", htFifoAttrs["FifoQueue"], "Should be a FIFO queue")
+
+	// Verify deduplication scope
+	assert.Equal(t, "messageGroup", htFifoAttrs["DeduplicationScope"], "Should have messageGroup deduplication scope")
+
+	// Verify throughput limit
+	assert.Equal(t, "perMessageGroupId", htFifoAttrs["FifoThroughputLimit"], "Should have perMessageGroupId throughput limit")
+
+	// ===== 5. Validate SQS-Managed Encrypted Queue =====
+	terratestLogger.Logf(t, "Validating SQS-Managed Encrypted Queue...")
+	sqsManagedAttrs := util.GetQueueAttributes(t, awsRegion, sqsManagedUrl)
+
+	// Verify SQS-managed SSE is enabled
+	assert.Equal(t, "true", sqsManagedAttrs["SqsManagedSseEnabled"], "Should have SQS-managed SSE enabled")
+
+	// Verify no KMS key (mutually exclusive with SQS-managed SSE)
+	assert.Empty(t, sqsManagedAttrs["KmsMasterKeyId"], "Should not have KMS key with SQS-managed SSE")
+
+	// ===== 6. Validate Unencrypted Queue =====
+	terratestLogger.Logf(t, "Validating Unencrypted Queue...")
+	unencryptedAttrs := util.GetQueueAttributes(t, awsRegion, unencryptedUrl)
+
+	// Verify no encryption (explicitly set to UNENCRYPTED in sqs.ts)
+	assert.Empty(t, unencryptedAttrs["KmsMasterKeyId"], "Should not have KMS encryption")
+	// SqsManagedSseEnabled should be explicitly false for UNENCRYPTED queues
+	sqsManagedSse, exists := unencryptedAttrs["SqsManagedSseEnabled"]
+	if exists {
+		assert.Equal(t, "false", sqsManagedSse, "Should have SQS-managed SSE explicitly disabled")
+	}
+	// Also check that it's not just missing the key but actually set to false
+	assert.NotEqual(t, "true", unencryptedAttrs["SqsManagedSseEnabled"], "Should not have SQS-managed SSE enabled")
+
+	// ===== 7. Validate SSL Queue - with enforceSSL policy =====
+	terratestLogger.Logf(t, "Validating SSL Queue policy...")
+	sslPolicyDoc := util.GetQueuePolicy(t, awsRegion, sslUrl)
+
+	if os.Getenv("WRITE_SNAPSHOTS") == "true" {
+		writeSnapshot(t, snapshotPath, sslPolicyDoc, "SSLQueuePolicy")
+	} else {
+		// Validate policy has Deny statement with aws:SecureTransport condition
+		actionRe := "^sqs:\\*$"
+		effectRe := "^Deny$"
+
+		integ.Assert(t, sslPolicyDoc, []integ.Assertion{
+			{
+				Path:           "Statement[?Effect=='Deny'].Action[]",
+				ExpectedRegexp: &actionRe,
+			},
+			{
+				Path:           "Statement[?Effect=='Deny'].Effect",
+				ExpectedRegexp: &effectRe,
+			},
+		})
+	}
+
+	// ===== 8. Validate IAM Role Permissions =====
+	terratestLogger.Logf(t, "Validating IAM Role permissions...")
+	// Extract role name from ARN (format: arn:aws:iam::ACCOUNT:role/ROLE_NAME)
+	roleName := roleArn[strings.LastIndex(roleArn, "/")+1:]
+	role := util.GetIamRole(t, awsRegion, roleName)
+
+	// Verify inline policies exist
+	require.Greater(t, len(role.InlinePolicies), 0, "Role should have inline policies")
+
+	// Parse first policy document
+	var rolePolicyDoc map[string]interface{}
+	err = json.Unmarshal([]byte(role.InlinePolicies[0].PolicyDocument), &rolePolicyDoc)
+	require.NoError(t, err, "Should be able to parse policy document JSON")
+
+	if os.Getenv("WRITE_SNAPSHOTS") == "true" {
+		writeSnapshot(t, snapshotPath, role, "RoleWithQueuePermissions")
+		writeSnapshot(t, snapshotPath, rolePolicyDoc, "QueueConsumePolicyDocument")
+	} else {
+		// Validate consume actions are present
+		actionsRe := "^sqs:(ChangeMessageVisibility|DeleteMessage|ReceiveMessage|GetQueueAttributes|GetQueueUrl)$"
+		integ.Assert(t, rolePolicyDoc, []integ.Assertion{
+			{
+				Path:           "Statement[].Action[]",
+				ExpectedRegexp: &actionsRe,
+			},
+		})
+
+		// Validate resources point to queues (should be queue ARNs)
+		resourceRe := "^arn:aws:sqs:"
+		integ.Assert(t, rolePolicyDoc, []integ.Assertion{
+			{
+				Path:           "Statement[].Resource[]",
+				ExpectedRegexp: &resourceRe,
+			},
+		})
+	}
+
+	terratestLogger.Logf(t, "All queue validations passed!")
+}
+
+func validateSourceQueuePermission(t *testing.T, workingDir string, awsRegion string) {
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+	outputs := terraform.OutputAll(t, terraformOptions)
+
+	// Extract queue URLs and ARNs
+	sourceQueue1Url := outputs["SourceQueue1Url"].(string)
+	sourceQueue1Arn := outputs["SourceQueue1Arn"].(string)
+	sourceQueue2Url := outputs["SourceQueue2Url"].(string)
+	sourceQueue2Arn := outputs["SourceQueue2Arn"].(string)
+	dlqUrl := outputs["DeadLetterQueueUrl"].(string)
+	dlqArn := outputs["DeadLetterQueueArn"].(string)
+
+	terratestLogger.Logf(t, "Retrieved queue URLs and ARNs from outputs")
+
+	// Validate SourceQueue1 (ALLOW_ALL)
+	terratestLogger.Logf(t, "Validating SourceQueue1 with ALLOW_ALL...")
+	sq1Attrs := util.GetQueueAttributes(t, awsRegion, sourceQueue1Url)
+
+	// Parse RedriveAllowPolicy
+	require.NotEmpty(t, sq1Attrs["RedriveAllowPolicy"], "SourceQueue1 should have redrive allow policy")
+	var sq1RedriveAllowPolicy map[string]any
+	err := json.Unmarshal([]byte(sq1Attrs["RedriveAllowPolicy"]), &sq1RedriveAllowPolicy)
+	require.NoError(t, err, "Should be able to parse SourceQueue1 RedriveAllowPolicy JSON")
+
+	// Validate redrivePermission is ALLOW_ALL
+	assert.Equal(t, "allowAll", sq1RedriveAllowPolicy["redrivePermission"],
+		"SourceQueue1 should have ALLOW_ALL redrive permission")
+
+	// Validate SourceQueue2 (DENY_ALL)
+	terratestLogger.Logf(t, "Validating SourceQueue2 with DENY_ALL...")
+	sq2Attrs := util.GetQueueAttributes(t, awsRegion, sourceQueue2Url)
+
+	// Parse RedriveAllowPolicy
+	require.NotEmpty(t, sq2Attrs["RedriveAllowPolicy"], "SourceQueue2 should have redrive allow policy")
+	var sq2RedriveAllowPolicy map[string]any
+	err = json.Unmarshal([]byte(sq2Attrs["RedriveAllowPolicy"]), &sq2RedriveAllowPolicy)
+	require.NoError(t, err, "Should be able to parse SourceQueue2 RedriveAllowPolicy JSON")
+
+	// Validate redrivePermission is DENY_ALL
+	assert.Equal(t, "denyAll", sq2RedriveAllowPolicy["redrivePermission"],
+		"SourceQueue2 should have DENY_ALL redrive permission")
+
+	// Validate DeadLetterQueue (BY_QUEUE)
+	terratestLogger.Logf(t, "Validating DeadLetterQueue with BY_QUEUE...")
+	dlqAttrs := util.GetQueueAttributes(t, awsRegion, dlqUrl)
+
+	// Parse RedriveAllowPolicy
+	require.NotEmpty(t, dlqAttrs["RedriveAllowPolicy"], "DLQ should have redrive allow policy")
+	var dlqRedriveAllowPolicy map[string]any
+	err = json.Unmarshal([]byte(dlqAttrs["RedriveAllowPolicy"]), &dlqRedriveAllowPolicy)
+	require.NoError(t, err, "Should be able to parse DLQ RedriveAllowPolicy JSON")
+
+	// Validate redrivePermission is BY_QUEUE
+	assert.Equal(t, "byQueue", dlqRedriveAllowPolicy["redrivePermission"],
+		"DLQ should have BY_QUEUE redrive permission")
+
+	// Validate sourceQueueArns contains both source queues
+	sourceQueueArns, ok := dlqRedriveAllowPolicy["sourceQueueArns"].([]any)
+	require.True(t, ok, "Should have sourceQueueArns array")
+	require.Len(t, sourceQueueArns, 2, "Should have exactly 2 source queue ARNs")
+
+	// Convert to string slice for easier comparison
+	arnsSlice := make([]string, len(sourceQueueArns))
+	for i, arn := range sourceQueueArns {
+		arnsSlice[i] = arn.(string)
+	}
+
+	// Verify both source queue ARNs are present (order may vary)
+	assert.Contains(t, arnsSlice, sourceQueue1Arn, "Should contain SourceQueue1 ARN")
+	assert.Contains(t, arnsSlice, sourceQueue2Arn, "Should contain SourceQueue2 ARN")
+
+	// Suppress unused variable warnings
+	_ = dlqArn
+
+	terratestLogger.Logf(t, "All source queue permission validations passed!")
 }
 
 func validateFifoQueue(t *testing.T, workingDir string, awsRegion string) {

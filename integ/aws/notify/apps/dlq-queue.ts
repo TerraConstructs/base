@@ -8,9 +8,9 @@ const stackName = process.env.STACK_NAME ?? "dlq-queue";
 
 // force high chance of failure
 const maxReceiveCount = parseInt(process.env.MAX_RECEIVE_COUNT ?? "1");
-const visibilityTimeout = Duration.seconds(parseInt(
-  process.env.VISIBILITY_TIMEOUT_SECONDS ?? "5",
-));
+const visibilityTimeout = Duration.seconds(
+  parseInt(process.env.VISIBILITY_TIMEOUT_SECONDS ?? "5"),
+);
 const app = new App({
   outdir,
 });

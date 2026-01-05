@@ -2,15 +2,15 @@
 
 import { Construct } from "constructs";
 import { QueueGrants } from "./sqs-grants.generated";
-import * as kms from "../encryption";
-import * as iam from "../iam";
-import { GrantOnKeyResult, IEncryptedResource, IGrantable } from "../iam";
-import { QueuePolicy } from "./queue-policy";
 import {
   AwsConstructBase,
   AwsConstructProps,
   IAwsConstruct,
 } from "../aws-construct";
+import * as kms from "../encryption";
+import * as iam from "../iam";
+import { GrantOnKeyResult, IEncryptedResource, IGrantable } from "../iam";
+import { QueuePolicy } from "./queue-policy";
 
 /**
  * Outputs which may be registered for output via the Grid.

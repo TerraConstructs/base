@@ -1,0 +1,18 @@
+{
+  "Statement": [
+    {
+      "Action": "sqs:*",
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      },
+      "Effect": "Deny",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Resource": "arn:aws:sqs:us-east-1:694710432912:12345678-1234-sqsSSLQueue20260105090853908900000006"
+    }
+  ],
+  "Version": "2012-10-17"
+}

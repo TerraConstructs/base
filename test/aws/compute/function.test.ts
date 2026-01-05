@@ -96,6 +96,7 @@ describe("Function", () => {
   });
 });
 
+// https://github.com/aws/aws-cdk/blob/v2.232.2/packages/aws-cdk-lib/aws-lambda/test/function.test.ts#L4703
 describe("latest Lambda node runtime", () => {
   test("with region agnostic stack", () => {
     // GIVEN

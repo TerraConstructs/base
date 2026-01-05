@@ -3,6 +3,7 @@
 import * as cdktf from "cdktf";
 import { IAwsStack } from "./aws-stack";
 import { filterUndefined } from "./util";
+import { UnscopedValidationError } from "../errors";
 import { Fn } from "../terra-func";
 
 /**
@@ -139,7 +140,7 @@ export class Arn {
 
     // Catch both 'null' and 'undefined'
     if (partition == null || region == null || account == null) {
-      throw new Error(
+      throw new UnscopedValidationError(
         `Arn.format: partition (${partition}), region (${region}), and account (${account}) must all be passed if stack is not passed.`,
       );
     }
