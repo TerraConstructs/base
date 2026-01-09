@@ -808,6 +808,37 @@ describe("rule", () => {
     ).toThrow(/Cannot associate rule with 'eventBus' when using 'schedule'/);
   });
 
+  test("event bus name is present in target props", () => {
+    // GIVEN
+    const eventBus = new EventBus(stack, "EventBus");
+
+    // WHEN
+    const rule = new Rule(stack, "MyRule", {
+      eventPattern: {
+        detail: ["detail"],
+      },
+      eventBus,
+      targets: [new SomeTarget()],
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(
+      cloudwatchEventRule.CloudwatchEventRule,
+      {
+        event_bus_name: stack.resolve(eventBus.eventBusName),
+      },
+    );
+    t.expect.toHaveResourceWithProperties(
+      cloudwatchEventTarget.CloudwatchEventTarget,
+      {
+        arn: "ARN1",
+        rule: stack.resolve(rule.ruleName),
+        event_bus_name: stack.resolve(eventBus.eventBusName),
+      },
+    );
+  });
+
   test("allow an imported target if is in the same account and region", () => {
     const sourceAccount = "123456789012";
     const sourceRegion = "us-west-2";

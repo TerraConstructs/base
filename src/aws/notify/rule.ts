@@ -176,6 +176,8 @@ export class Rule extends AwsConstructBase implements IRule {
 
   private readonly scheduleExpression?: string;
   private readonly description?: string;
+  private readonly eventBusName?: string;
+
   constructor(scope: Construct, name: string, props: RuleProps = {}) {
     super(scope, name, props);
 
@@ -195,6 +197,7 @@ export class Rule extends AwsConstructBase implements IRule {
     }
     this.description = props.description;
     this.scheduleExpression = props.schedule?.expressionString;
+    this.eventBusName = props.eventBus?.eventBusName;
 
     // add a warning on synth when minute is not defined in a cron schedule
     props.schedule?._bind(this);
@@ -218,7 +221,7 @@ export class Rule extends AwsConstructBase implements IRule {
         }),
         // terraform-provider-aws separates targets to different resources.
         // targets: Lazy.anyValue({ produce: () => this.renderTargets() }),
-        eventBusName: props.eventBus?.eventBusName,
+        eventBusName: this.eventBusName,
         dependsOn: props.dependsOn,
       },
     );
@@ -330,6 +333,7 @@ export class Rule extends AwsConstructBase implements IRule {
       targetId,
       roleArn: targetProps.role?.roleArn,
       rule: this.resource.name,
+      eventBusName: this.eventBusName, // If omitted, it will use `default` event bus
       arn: targetProps.arn,
       ecsTarget: targetProps.ecsParameters,
       httpTarget: targetProps.httpParameters,

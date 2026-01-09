@@ -5,6 +5,7 @@ import {
   cloudwatchEventTarget,
   dataAwsIamPolicyDocument,
   sqsQueuePolicy,
+  cloudwatchEventRule,
 } from "@cdktf/provider-aws";
 import { Testing, App } from "cdktf";
 import { Construct } from "constructs";
@@ -69,6 +70,10 @@ describe("LambdaFunction as an event rule target", () => {
       principal: "events.amazonaws.com",
       source_arn: "${aws_cloudwatch_event_rule.Rule2_70732244.arn}",
     });
+    Template.resources(
+      stack,
+      cloudwatchEventRule.CloudwatchEventRule,
+    ).toHaveLength(2);
     template.toHaveResourceWithProperties(
       cloudwatchEventTarget.CloudwatchEventTarget,
       {
@@ -85,34 +90,6 @@ describe("LambdaFunction as an event rule target", () => {
         arn: lambdaArn,
       },
     );
-
-    // .hasResourceProperties("AWS::Lambda::Permission", {
-    //   Action: "lambda:InvokeFunction",
-    //   FunctionName: {
-    //     "Fn::GetAtt": [lambdaId, "Arn"],
-    //   },
-    //   Principal: "events.amazonaws.com",
-    //   SourceArn: { "Fn::GetAtt": ["Rule4C995B7F", "Arn"] },
-    // });
-
-    // .hasResourceProperties("AWS::Lambda::Permission", {
-    //   Action: "lambda:InvokeFunction",
-    //   FunctionName: {
-    //     "Fn::GetAtt": [lambdaId, "Arn"],
-    //   },
-    //   Principal: "events.amazonaws.com",
-    //   SourceArn: { "Fn::GetAtt": ["Rule270732244", "Arn"] },
-    // });
-
-    // .resourceCountIs("AWS::Events::Rule", 2);
-    // .hasResourceProperties("AWS::Events::Rule", {
-    //   Targets: [
-    //     {
-    //       Arn: { "Fn::GetAtt": [lambdaId, "Arn"] },
-    //       Id: "Target0",
-    //     },
-    //   ],
-    // });
   });
 
   test("adding same lambda function as target mutiple times creates permission only once", () => {
