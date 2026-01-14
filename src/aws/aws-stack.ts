@@ -1,3 +1,4 @@
+import * as cxschema from "@aws-cdk/cloud-assembly-schema";
 import { Fact, RegionInfo } from "@aws-cdk/region-info";
 import {
   dataAwsAvailabilityZones,
@@ -156,6 +157,13 @@ export class AwsStack extends StackBase implements IAwsStack {
   private regionalAwsProviders: { [region: string]: provider.AwsProvider } = {};
 
   /**
+   * Lists all missing contextual information.
+   * This is returned when the stack is synthesized under the 'missing' attribute
+   * and allows tooling to obtain the context and re-synthesize.
+   */
+  private readonly _missingContext: cxschema.MissingContext[];
+
+  /**
    * Cache these tokens for reliable comparisons.
    *
    * Every call for the same Token will produce a new unique string, no
@@ -180,6 +188,7 @@ export class AwsStack extends StackBase implements IAwsStack {
     //   "cdktf:stack",
     //   props.providerConfig.defaultTags,
     // );
+    this._missingContext = new Array<cxschema.MissingContext>();
     this._providerConfig = props.providerConfig;
     this._assetOptions = props.assetOptions;
     this._assetManager = props.assetManager;
@@ -535,6 +544,18 @@ export class AwsStack extends StackBase implements IAwsStack {
   //   // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/stack.ts#L572
   //   return resolve(this, obj);
   // }
+
+  /**
+   * Indicate that a context key was expected
+   *
+   * Contains instructions which will be emitted into the cloud assembly on how
+   * the key should be supplied.
+   *
+   * @param report The set of parameters needed to obtain the context
+   */
+  public reportMissingContextKey(report: cxschema.MissingContext) {
+    this._missingContext.push(report);
+  }
 
   /**
    * Look up a fact value for the given fact for the region of this stack
