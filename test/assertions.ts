@@ -215,6 +215,19 @@ export class Template {
     return Object.values(this.dataSourcesByType(type));
   }
 
+  /**
+   * Jest Matcher for dataSourceTypeArray
+   *
+   * shortcut for expect(template.dataSourceTypeArray(type))
+   */
+  public expectDataSources(type: TerraformConstructor): jest.JestMatchers<any> {
+    return expect(this.dataSourceTypeArray(type));
+  }
+
+  public dataSourceCountIs(type: TerraformConstructor, count: number): void {
+    return this.expectDataSources(type).toHaveLength(count);
+  }
+
   public get output(): object | undefined {
     return this.template.output;
   }

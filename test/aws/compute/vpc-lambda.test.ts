@@ -1,7 +1,10 @@
-// https://github.com/aws/aws-cdk/blob/v2.232.2/packages/aws-cdk-lib/aws-lambda/test/vpc-lambda.test.ts
+// https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-lambda/test/vpc-lambda.test.ts
 
 import * as path from "path";
 import {
+  dataAwsSecurityGroup,
+  dataAwsSubnet,
+  dataAwsVpc,
   lambdaFunction,
   vpcSecurityGroupEgressRule,
   vpcSecurityGroupIngressRule,
@@ -19,6 +22,7 @@ import {
   SecurityGroup,
   IConnectable,
   Port,
+  PrivateSubnet,
 } from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
@@ -371,6 +375,54 @@ test("specifying vpcSubnets without a vpc throws an Error", () => {
       vpcSubnets: { subnetType: SubnetType.PRIVATE },
     });
   }).toThrow("Cannot configure 'vpcSubnets' without configuring a VPC");
+});
+
+test("can have looked up vpc, subnets and security group in config", () => {
+  // GIVEN
+  const stack = new AwsStack();
+  const vpcName = "vpc-name";
+  const vpc = Vpc.fromLookup(stack, "Vpc", {
+    vpcName,
+  });
+  const subnets = ["a", "b", "c"].map((suffix, index) => {
+    const subnetName = `${vpcName}-private-${stack.region}${suffix}`;
+    return PrivateSubnet.fromSubnetAttributes(vpc, `PrivateSubnet${index}`, {
+      subnetName,
+    });
+  });
+  const defaultSecurityGroup = SecurityGroup.fromLookupByName(
+    stack,
+    "SecurityGroup",
+    "default",
+    vpc,
+    true,
+  );
+
+  // WHEN
+  new LambdaFunction(stack, "PrivateLambda", {
+    code: new InlineCode("foo"),
+    handler: "index.handler",
+    runtime: Runtime.NODEJS_LATEST,
+    vpc,
+    vpcSubnets: { subnets },
+    securityGroups: [defaultSecurityGroup],
+  });
+
+  // THEN
+  const t = new Template(stack);
+  t.dataSourceCountIs(dataAwsVpc.DataAwsVpc, 1);
+  t.dataSourceCountIs(dataAwsSubnet.DataAwsSubnet, 3);
+  t.dataSourceCountIs(dataAwsSecurityGroup.DataAwsSecurityGroup, 1);
+  t.expect.toHaveResourceWithProperties(lambdaFunction.LambdaFunction, {
+    vpc_config: {
+      security_group_ids: ["${data.aws_security_group.DataSecurityGroup.id}"],
+      subnet_ids: [
+        "${data.aws_subnet.Vpc_PrivateSubnet0_3FB0679D.id}",
+        "${data.aws_subnet.Vpc_PrivateSubnet1_F6513F49.id}",
+        "${data.aws_subnet.Vpc_PrivateSubnet2_53755717.id}",
+      ],
+    },
+  });
 });
 
 class SomethingConnectable implements IConnectable {
