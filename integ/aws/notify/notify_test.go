@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	eventbridgetypes "github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
 	"github.com/aws/aws-sdk-go-v2/service/sns/types"
 	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
@@ -270,6 +271,15 @@ func TestSnsUrl(t *testing.T) {
 	// test_structure.RunTestStage(t, "validate", func() {
 	// 	validate(t, tfWorkingDir, awsRegion)
 	// })
+}
+
+// Test the eventbridge-rule-lambda app
+// Regression test for: https://github.com/TerraConstructs/base/pull/89
+// Bug: EventBridge Rule with custom event bus was not setting event_bus_name on targets
+func TestEventBridgeRuleLambda(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	// Confirm the EventBridge Rule with custom event bus works as expected
+	runNotifyIntegrationTest(t, "eventbridge-rule-lambda", "us-east-1", envVars, validateEventBridgeRuleLambda)
 }
 
 func validateQueue(t *testing.T, workingDir string, awsRegion string) {
@@ -664,6 +674,86 @@ func runNotifyIntegrationTest(t *testing.T, testApp, awsRegion string, envVars m
 	test_structure.RunTestStage(t, "validate", func() {
 		validate(t, tfWorkingDir, awsRegion)
 	})
+}
+
+func validateEventBridgeRuleLambda(t *testing.T, tfDir, awsRegion string) {
+	opts := test_structure.LoadTerraformOptions(t, tfDir)
+
+	// Get outputs
+	eventBusName := util.LoadOutputAttribute(t, opts, "event_bus", "name")
+	ruleName := util.LoadOutputAttribute(t, opts, "rule", "name")
+	targetFunctionName := util.LoadOutputAttribute(t, opts, "target_function", "name")
+	importedBusRuleName := util.LoadOutputAttribute(t, opts, "imported_bus_rule", "name")
+	importedBusFunctionName := util.LoadOutputAttribute(t, opts, "imported_bus_function", "name")
+
+	// ===== 1. Validate Rule is on the correct event bus =====
+	terratestLogger.Logf(t, "Validating rule %s is on event bus %s...", ruleName, eventBusName)
+	rule := util.DescribeEventBridgeRule(t, awsRegion, ruleName, eventBusName)
+
+	// Verify rule is on the custom event bus
+	assert.Equal(t, eventBusName, *rule.EventBusName, "Rule should be on the custom event bus")
+	assert.Equal(t, ruleName, *rule.Name, "Rule name should match")
+
+	// ===== 2. Validate Targets have correct event bus name =====
+	terratestLogger.Logf(t, "Validating targets for rule %s have correct event bus name...", ruleName)
+	targets := util.ListEventBridgeTargets(t, awsRegion, ruleName, eventBusName)
+
+	// Verify we have at least one target
+	require.Greater(t, len(targets), 0, "Rule should have at least one target")
+
+	// Note: The EventBridge API doesn't expose the event_bus_name on the target itself
+	// But the fact that ListTargetsByRule succeeds with the custom event bus name
+	// proves that the target was created with the correct event bus name
+	// (otherwise the API would fail to find the target)
+	terratestLogger.Logf(t, "Found %d target(s) for rule %s on event bus %s", len(targets), ruleName, eventBusName)
+
+	// ===== 3. Validate imported event bus rule and targets =====
+	terratestLogger.Logf(t, "Validating imported event bus rule %s...", importedBusRuleName)
+	importedRule := util.DescribeEventBridgeRule(t, awsRegion, importedBusRuleName, eventBusName)
+
+	assert.Equal(t, eventBusName, *importedRule.EventBusName, "Imported rule should be on the custom event bus")
+	assert.Equal(t, importedBusRuleName, *importedRule.Name, "Imported rule name should match")
+
+	importedTargets := util.ListEventBridgeTargets(t, awsRegion, importedBusRuleName, eventBusName)
+	require.Greater(t, len(importedTargets), 0, "Imported rule should have at least one target")
+
+	// ===== 4. Test triggering the rule by sending an event =====
+	terratestLogger.Logf(t, "Testing rule trigger by sending event to event bus %s...", eventBusName)
+
+	targetFunctionLogGroup := fmt.Sprintf("/aws/lambda/%s", targetFunctionName)
+	importedBusFunctionLogGroup := fmt.Sprintf("/aws/lambda/%s", importedBusFunctionName)
+
+	// Send an event that matches the first rule's pattern
+	util.PutEvents(t, awsRegion, []eventbridgetypes.PutEventsRequestEntry{
+		{
+			Source:       aws.String("custom.source"),
+			DetailType:   aws.String("Custom Event"),
+			Detail:       aws.String(`{"test": "data", "message": "Hello from custom event bus"}`),
+			EventBusName: aws.String(eventBusName),
+		},
+	})
+
+	// Wait for Lambda to be invoked and check logs
+	messages := util.WaitForLogEvents(t, awsRegion, targetFunctionLogGroup, 12, 5*time.Second)
+	require.Greater(t, len(messages), 0, "Expected Lambda function to be invoked and log messages")
+	terratestLogger.Logf(t, "Successfully triggered rule %s, Lambda logged %d messages", ruleName, len(messages))
+
+	// Send an event that matches the imported bus rule's pattern
+	util.PutEvents(t, awsRegion, []eventbridgetypes.PutEventsRequestEntry{
+		{
+			Source:       aws.String("imported.source"),
+			DetailType:   aws.String("Imported Event"),
+			Detail:       aws.String(`{"test": "data", "message": "Hello from imported event bus"}`),
+			EventBusName: aws.String(eventBusName),
+		},
+	})
+
+	// Wait for the imported bus Lambda to be invoked
+	importedMessages := util.WaitForLogEvents(t, awsRegion, importedBusFunctionLogGroup, 12, 5*time.Second)
+	require.Greater(t, len(importedMessages), 0, "Expected imported bus Lambda function to be invoked and log messages")
+	terratestLogger.Logf(t, "Successfully triggered imported bus rule %s, Lambda logged %d messages", importedBusRuleName, len(importedMessages))
+
+	terratestLogger.Logf(t, "All EventBridge rule validations passed!")
 }
 
 // writeSnapshot writes the full entity to a snapshot file
