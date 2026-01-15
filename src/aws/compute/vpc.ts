@@ -1,5 +1,6 @@
-// https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/vpc.ts
+// https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-ec2/lib/vpc.ts
 
+import * as cxschema from "@aws-cdk/cloud-assembly-schema";
 import {
   eip,
   egressOnlyInternetGateway,
@@ -16,9 +17,9 @@ import {
   vpnGatewayAttachment,
   vpnGatewayRoutePropagation,
   dataAwsSubnet,
+  dataAwsVpc,
 } from "@cdktf/provider-aws";
 import {
-  // ContextProvider,
   // CustomResource,
   // FeatureFlags,
   Annotations,
@@ -69,7 +70,7 @@ import {
   InterfaceVpcEndpointOptions,
 } from "./vpc-endpoint";
 import { FlowLog, FlowLogOptions, FlowLogResourceType } from "./vpc-flow-logs";
-// import { VpcLookupOptions } from "./vpc-lookup";
+import { VpcLookupOptions } from "./vpc-lookup";
 import {
   EnableVpnGatewayOptions,
   VpnConnection,
@@ -77,11 +78,14 @@ import {
   VpnConnectionType,
   VpnGateway,
 } from "./vpn";
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import { Arn } from "../arn";
 import { AwsConstructBase, IAwsConstruct } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
-// TODO: Use TagManager and tag-aspect instead
 import { Tags } from "../aws-tags";
+import { ContextProvider } from "../context-provider";
+import * as cxapi from "../cx-api";
+// TODO: Use TagManager and tag-aspect instead
 // import { Tags } from "../tag-aspect";
 
 const VPC_SUBNET_SYMBOL = Symbol.for(
@@ -617,21 +621,6 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
    */
   public abstract readonly internetConnectivityEstablished: IDependable;
 
-  public get vpcOutputs(): VpcOutputs {
-    return {
-      availabilityZones: this.availabilityZones,
-      isolatedSubnetIds: this.isolatedSubnets.map((s) => s.subnetId),
-      privateSubnetIds: this.privateSubnets.map((s) => s.subnetId),
-      publicSubnetIds: this.publicSubnets.map((s) => s.subnetId),
-      vpcArn: this.vpcArn,
-      vpcCidrBlock: this.vpcCidrBlock,
-      vpcId: this.vpcId,
-      vpnGatewayId: this.vpnGatewayId,
-    };
-  }
-  public get outputs(): Record<string, any> {
-    return this.vpcOutputs;
-  }
   /**
    * Dependencies for NAT connectivity
    *
@@ -650,6 +639,22 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
    * @internal
    */
   protected _vpnGatewayId?: string;
+
+  public get vpcOutputs(): VpcOutputs {
+    return {
+      availabilityZones: this.availabilityZones,
+      isolatedSubnetIds: this.isolatedSubnets.map((s) => s.subnetId),
+      privateSubnetIds: this.privateSubnets.map((s) => s.subnetId),
+      publicSubnetIds: this.publicSubnets.map((s) => s.subnetId),
+      vpcArn: this.vpcArn,
+      vpcCidrBlock: this.vpcCidrBlock,
+      vpcId: this.vpcId,
+      vpnGatewayId: this.vpnGatewayId,
+    };
+  }
+  public get outputs(): Record<string, any> {
+    return this.vpcOutputs;
+  }
 
   /**
    * Returns IDs of selected subnets
@@ -677,7 +682,10 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
    */
   public enableVpnGateway(options: EnableVpnGatewayOptions): void {
     if (this.vpnGatewayId) {
-      throw new Error("The VPN Gateway has already been enabled.");
+      throw new ValidationError(
+        "The VPN Gateway has already been enabled.",
+        this,
+      );
     }
 
     const vpnGateway = new VpnGateway(this, "VpnGateway", {
@@ -847,8 +855,9 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
       const names = Array.from(
         new Set(allSubnets.map(subnetGroupNameFromConstructId)),
       );
-      throw new Error(
+      throw new ValidationError(
         `There are no subnet groups with name '${groupName}' in this VPC. Available names: ${names}`,
+        this,
       );
     }
 
@@ -874,8 +883,9 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
       const availableTypes = Object.entries(allSubnets)
         .filter(([_, subs]) => subs.length > 0)
         .map(([typeName, _]) => typeName);
-      throw new Error(
+      throw new ValidationError(
         `There are no '${subnetType}' subnet groups in this VPC. Available types: ${availableTypes}`,
+        this,
       );
     }
 
@@ -891,8 +901,9 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
   private reifySelectionDefaults(placement: SubnetSelection): SubnetSelection {
     if (placement.subnetName !== undefined) {
       if (placement.subnetGroupName !== undefined) {
-        throw new Error(
+        throw new ValidationError(
           "Please use only 'subnetGroupName' ('subnetName' is deprecated and has the same behavior)",
+          this,
         );
       } else {
         // "@aws-cdk/aws-ec2:subnetNameDeprecated",
@@ -912,8 +923,9 @@ abstract class VpcBase extends AwsConstructBase implements IVpc {
       (key) => placement[key] !== undefined,
     );
     if (providedSelections.length > 1) {
-      throw new Error(
+      throw new ValidationError(
         `Only one of '${providedSelections}' can be supplied to subnet selection.`,
+        this,
       );
     }
 
@@ -1125,8 +1137,17 @@ export interface SubnetAttributes {
 
   /**
    * The subnetId for this particular subnet
+   *
+   * You must specify either this property or the `subnetName` property.
    */
-  readonly subnetId: string;
+  readonly subnetId?: string;
+
+  /**
+   * The subnetName for this particular subnet
+   *
+   * You must specify either this property or the `subnetId` property.
+   */
+  readonly subnetName?: string;
 
   /**
    * Whether to register Terraform outputs for this TerraConstruct
@@ -1521,6 +1542,12 @@ export interface SubnetConfiguration {
  */
 export class Vpc extends VpcBase {
   /**
+   * Uniquely identifies this class.
+   */
+  public static readonly PROPERTY_INJECTION_ID: string =
+    "terraconstructs.aws.ec2.Vpc";
+
+  /**
    * The default CIDR range used when creating VPCs.
    * This can be overridden using VpcProps when creating a VPCNetwork resource.
    * e.g. new Vpc(this, { cidr: '192.168.0.0./16' })
@@ -1569,9 +1596,10 @@ export class Vpc extends VpcBase {
    * constructs that need a list of subnets (like `AutoScalingGroup` and `eks.Cluster`)
    * but it does not work for constructs that need individual subnets (like`Instance`).
    * See https://github.com/aws/aws-cdk/issues/4118 for more information.
+   *
+   * Prefer to use `Vpc.fromLookup()` instead.
    */
   public static fromVpcAttributes(
-    // TODO: Prefer to use `Vpc.fromLookup()` instead.
     scope: Construct,
     id: string,
     attrs: VpcAttributes,
@@ -1579,95 +1607,105 @@ export class Vpc extends VpcBase {
     return new ImportedVpc(scope, id, attrs, false);
   }
 
-  // TODO: Add Grid Lookup support
-  // /**
-  //  * Import an existing VPC by querying the AWS environment this stack is deployed to.
-  //  *
-  //  * This function only needs to be used to use VPCs not defined in your CDK
-  //  * application. If you are looking to share a VPC between stacks, you can
-  //  * pass the `Vpc` object between stacks and use it as normal.
-  //  *
-  //  * Calling this method will lead to a lookup when the CDK CLI is executed.
-  //  * You can therefore not use any values that will only be available at
-  //  * CloudFormation execution time (i.e., Tokens).
-  //  *
-  //  * The VPC information will be cached in `cdk.context.json` and the same VPC
-  //  * will be used on future runs. To refresh the lookup, you will have to
-  //  * evict the value from the cache using the `cdk context` command. See
-  //  * https://docs.aws.amazon.com/cdk/latest/guide/context.html for more information.
-  //  */
-  // public static fromLookup(
-  //   scope: Construct,
-  //   id: string,
-  //   options: VpcLookupOptions,
-  // ): IVpc {
-  //   if (
-  //     Token.isUnresolved(options.vpcId) ||
-  //     Token.isUnresolved(options.vpcName) ||
-  //     Object.values(options.tags || {}).some(Token.isUnresolved) ||
-  //     Object.keys(options.tags || {}).some(Token.isUnresolved)
-  //   ) {
-  //     throw new Error(
-  //       "All arguments to Vpc.fromLookup() must be concrete (no Tokens)",
-  //     );
-  //   }
+  /**
+   * Import an existing VPC by querying the AWS environment this stack is deployed to.
+   *
+   * This function only needs to be used to use VPCs not defined in your CDK
+   * application. If you are looking to share a VPC between stacks, you can
+   * pass the `Vpc` object between stacks and use it as normal.
+   *
+   * Calling this method will lead to a lookup when the CDK CLI is executed.
+   * You can therefore not use any values that will only be available at
+   * Terraform execution time (i.e., Tokens).
+   */
+  public static fromLookup(
+    scope: Construct,
+    id: string,
+    options: VpcLookupOptions,
+  ): IVpc {
+    if (
+      Token.isUnresolved(options.vpcId) ||
+      Token.isUnresolved(options.vpcName) ||
+      Object.values(options.tags || {}).some(Token.isUnresolved) ||
+      Object.keys(options.tags || {}).some(Token.isUnresolved)
+    ) {
+      throw new ValidationError(
+        "All arguments to Vpc.fromLookup() must be concrete (no Tokens)",
+        scope,
+      );
+    }
 
-  //   const filter: { [key: string]: string } = makeTagFilter(options.tags);
+    const filter: { [key: string]: string } = makeTagFilter(options.tags);
 
-  //   // We give special treatment to some tags
-  //   if (options.vpcId) {
-  //     filter["vpc-id"] = options.vpcId;
-  //   }
-  //   if (options.vpcName) {
-  //     filter["tag:Name"] = options.vpcName;
-  //   }
-  //   if (options.ownerAccountId) {
-  //     filter["owner-id"] = options.ownerAccountId;
-  //   }
-  //   if (options.isDefault !== undefined) {
-  //     filter.isDefault = options.isDefault ? "true" : "false";
-  //   }
+    // We give special treatment to some tags
+    if (options.vpcId) {
+      filter["vpc-id"] = options.vpcId;
+    }
+    if (options.vpcName) {
+      filter["tag:Name"] = options.vpcName;
+    }
+    if (options.ownerAccountId) {
+      filter["owner-id"] = options.ownerAccountId;
+    }
+    if (options.isDefault !== undefined) {
+      filter.isDefault = options.isDefault ? "true" : "false";
+    }
 
-  //   const overrides: { [key: string]: string } = {};
-  //   if (options.region) {
-  //     overrides.region = options.region;
-  //   }
+    const overrides: { [key: string]: string } = {};
+    if (options.region) {
+      overrides.region = options.region;
+    }
 
-  //   const attributes: cxapi.VpcContextResponse = ContextProvider.getValue(
-  //     scope,
-  //     {
-  //       provider: cxschema.ContextProvider.VPC_PROVIDER,
-  //       props: {
-  //         ...overrides,
-  //         filter,
-  //         returnAsymmetricSubnets: true,
-  //         returnVpnGateways: options.returnVpnGateways,
-  //         subnetGroupNameTag: options.subnetGroupNameTag,
-  //       } as cxschema.VpcContextQuery,
-  //       dummyValue: undefined,
-  //     },
-  //   ).value;
+    // TODO: Use context provider in the future
+    let attributes: cxapi.VpcContextResponse = ContextProvider.getValue(scope, {
+      provider: cxschema.ContextProvider.VPC_PROVIDER,
+      props: {
+        ...overrides,
+        filter,
+        returnAsymmetricSubnets: true,
+        returnVpnGateways: options.returnVpnGateways,
+        subnetGroupNameTag: options.subnetGroupNameTag,
+      } as cxschema.VpcContextQuery,
+      dummyValue: undefined,
+    }).value;
 
-  //   return new LookedUpVpc(
-  //     scope,
-  //     id,
-  //     attributes ?? DUMMY_VPC_PROPS,
-  //     attributes === undefined,
-  //   );
+    const isIncomplete = attributes === undefined;
+    if (isIncomplete) {
+      const data = new dataAwsVpc.DataAwsVpc(scope, "Data" + id, {
+        filter: Object.entries(filter).map(([key, value]) => ({
+          name: key,
+          values: [value],
+        })),
+      });
+      const stack = AwsStack.ofAwsConstruct(scope);
+      attributes = {
+        vpcId: data.id,
+        vpcCidrBlock: data.cidrBlock,
+        availabilityZones: stack.availabilityZones(),
+        region: options.region,
+      };
+    }
 
-  //   /**
-  //    * Prefixes all keys in the argument with `tag:`.`
-  //    */
-  //   function makeTagFilter(tags: { [name: string]: string } | undefined): {
-  //     [name: string]: string;
-  //   } {
-  //     const result: { [name: string]: string } = {};
-  //     for (const [name, value] of Object.entries(tags || {})) {
-  //       result[`tag:${name}`] = value;
-  //     }
-  //     return result;
-  //   }
-  // }
+    return new LookedUpVpc(
+      scope,
+      id,
+      attributes ?? DUMMY_VPC_PROPS,
+      isIncomplete,
+    );
+
+    /**
+     * Prefixes all keys in the argument with `tag:`.`
+     */
+    function makeTagFilter(tags: { [name: string]: string } | undefined): {
+      [name: string]: string;
+    } {
+      const result: { [name: string]: string } = {};
+      for (const [name, value] of Object.entries(tags || {})) {
+        result[`tag:${name}`] = value;
+      }
+      return result;
+    }
+  }
 
   /**
    * Identifier for this VPC
@@ -1812,26 +1850,32 @@ export class Vpc extends VpcBase {
 
     // Can't have enabledDnsHostnames without enableDnsSupport
     if (props.enableDnsHostnames && !props.enableDnsSupport) {
-      throw new Error(
+      throw new ValidationError(
         "To use DNS Hostnames, DNS Support must be enabled, however, it was explicitly disabled.",
+        this,
       );
     }
 
     if (props.availabilityZones && props.maxAzs) {
-      throw new Error(
+      throw new ValidationError(
         "Vpc supports 'availabilityZones' or 'maxAzs', but not both.",
+        this,
       );
     }
 
     const cidrBlock = ifUndefined(props.cidr, Vpc.DEFAULT_CIDR_RANGE);
     if (Token.isUnresolved(cidrBlock)) {
-      throw new Error(
+      throw new ValidationError(
         "'cidr' property must be a concrete CIDR string, got a Token (we need to parse it for automatic subdivision)",
+        this,
       );
     }
 
     if (props.ipAddresses && props.cidr) {
-      throw new Error("supply at most one of ipAddresses or cidr");
+      throw new ValidationError(
+        "supply at most one of ipAddresses or cidr",
+        this,
+      );
     }
 
     const ipProtocol = props.ipProtocol ?? IpProtocol.IPV4_ONLY;
@@ -1846,8 +1890,9 @@ export class Vpc extends VpcBase {
     if (!this.useIpv6) {
       for (const prop of ipv6OnlyProps) {
         if (props[prop] !== undefined) {
-          throw new Error(
+          throw new ValidationError(
             `${prop} can only be set if IPv6 is enabled. Set ipProtocol to DUAL_STACK`,
+            this,
           );
         }
       }
@@ -1895,8 +1940,9 @@ export class Vpc extends VpcBase {
       //     (az) => Token.isUnresolved(az) || resolvedStackAzs.includes(az),
       //   );
       // if (!areGivenAzsSubsetOfStack) {
-      //   throw new Error(
+      //   throw new ValidationError(
       //     `Given VPC 'availabilityZones' ${props.availabilityZones} must be a subset of the stack's availability zones ${resolvedStackAzs}`,
+      //     this,
       //   );
       // }
       this.availabilityZones = props.availabilityZones;
@@ -2016,8 +2062,9 @@ export class Vpc extends VpcBase {
       this.privateSubnets.length === 0 &&
       this.isolatedSubnets.length === 0
     ) {
-      throw new Error(
+      throw new ValidationError(
         "Can not enable the VPN gateway while the VPC has no subnets at all",
+        this,
       );
     }
 
@@ -2025,8 +2072,9 @@ export class Vpc extends VpcBase {
       (props.vpnConnections || props.vpnGatewayAsn) &&
       props.vpnGateway === false
     ) {
-      throw new Error(
+      throw new ValidationError(
         "Cannot specify `vpnConnections` or `vpnGatewayAsn` when `vpnGateway` is set to false.",
+        this,
       );
     }
 
@@ -2123,8 +2171,9 @@ export class Vpc extends VpcBase {
     ) as PublicSubnet[];
     for (const sub of natSubnets) {
       if (this.publicSubnets.indexOf(sub) === -1) {
-        throw new Error(
+        throw new ValidationError(
           `natGatewayPlacement ${placement} contains non public subnet ${sub}`,
+          this,
         );
       }
     }
@@ -2159,19 +2208,21 @@ export class Vpc extends VpcBase {
     });
 
     if (allocatedSubnets.length != requestedSubnets.length) {
-      throw new Error(
+      throw new ValidationError(
         "Incomplete Subnet Allocation; response array dose not equal input array",
+        this,
       );
     }
 
     if (this.useIpv6) {
       if (this.ipv6SelectedCidr === undefined) {
-        throw new Error(
+        throw new ValidationError(
           "No IPv6 CIDR block associated with this VPC could be found",
+          this,
         );
       }
       if (this.ipv6Addresses === undefined) {
-        throw new Error("No IPv6 IpAddresses were found");
+        throw new ValidationError("No IPv6 IpAddresses were found", this);
       }
       // create the IPv6 CIDR blocks
       const subnetIpv6Cidrs = this.ipv6Addresses.createIpv6CidrBlocks({
@@ -2225,8 +2276,9 @@ export class Vpc extends VpcBase {
         : !this.useIpv6; // changes default based on protocol of vpc
     } else {
       if (subnetConfig.mapPublicIpOnLaunch !== undefined) {
-        throw new Error(
+        throw new ValidationError(
           `${subnetConfig.subnetType} subnet cannot include mapPublicIpOnLaunch parameter`,
+          this,
         );
       }
       return false;
@@ -2259,8 +2311,9 @@ export class Vpc extends VpcBase {
       if (!this.useIpv6) {
         for (const prop of ipv6OnlyProps) {
           if (subnetConfig[prop] !== undefined) {
-            throw new Error(
+            throw new ValidationError(
               `${prop} can only be set if IPv6 is enabled. Set ipProtocol to DUAL_STACK`,
+              this,
             );
           }
         }
@@ -2310,8 +2363,9 @@ export class Vpc extends VpcBase {
           sn = isolatedSubnet;
           break;
         default:
-          throw new Error(
+          throw new ValidationError(
             `Unrecognized subnet type: ${subnetConfig.subnetType}`,
+            this,
           );
       }
 
@@ -2447,6 +2501,12 @@ export interface SubnetProps {
  * @resource aws_subnet
  */
 export class Subnet extends AwsConstructBase implements ISubnet {
+  /**
+   * Uniquely identifies this class.
+   */
+  public static readonly PROPERTY_INJECTION_ID: string =
+    "terraconstructs.aws.ec2.Subnet";
+
   public static isVpcSubnet(x: any): x is Subnet {
     return VPC_SUBNET_SYMBOL in x;
   }
@@ -2618,7 +2678,7 @@ export class Subnet extends AwsConstructBase implements ISubnet {
     });
     r.node.addDependency(gatewayAttachment);
 
-    // Since the 'r' depends on the gateway attachment, just
+    // Since the 'route' depends on the gateway attachment, just
     // depending on the route is enough.
     this._internetConnectivityEstablished.add(r);
   }
@@ -2697,8 +2757,9 @@ export class Subnet extends AwsConstructBase implements ISubnet {
    */
   public addRoute(id: string, options: AddRouteOptions) {
     if (options.destinationCidrBlock && options.destinationIpv6CidrBlock) {
-      throw new Error(
+      throw new ValidationError(
         "Cannot specify both 'destinationCidrBlock' and 'destinationIpv6CidrBlock'",
+        this,
       );
     }
 
@@ -2824,12 +2885,13 @@ export enum RouterType {
    * VPC Endpoint for gateway load balancers
    */
   VPC_ENDPOINT = "VpcEndpoint",
+
+  /**
+   * AWS Network Manager Core Network
+   */
+  CORE_NETWORK = "CoreNetwork",
 }
 
-/**
- * inverse of
- * https://github.com/hashicorp/terraform-provider-aws/blob/v5.87.0/internal/service/ec2/vpc_route.go#L219-L239
- */
 function routerTypeToPropName(routerType: RouterType) {
   const lookupMap: Record<RouterType, keyof route.RouteConfig> = {
     [RouterType.CARRIER_GATEWAY]: "carrierGatewayId",
@@ -2844,6 +2906,7 @@ function routerTypeToPropName(routerType: RouterType) {
     [RouterType.TRANSIT_GATEWAY]: "transitGatewayId",
     [RouterType.VPC_PEERING_CONNECTION]: "vpcPeeringConnectionId",
     [RouterType.VPC_ENDPOINT]: "vpcEndpointId",
+    [RouterType.CORE_NETWORK]: "coreNetworkArn",
   };
   return lookupMap[routerType];
 }
@@ -2858,6 +2921,12 @@ export interface PublicSubnetAttributes extends SubnetAttributes {}
  * Represents a public VPC subnet resource
  */
 export class PublicSubnet extends Subnet implements IPublicSubnet {
+  /**
+   * Uniquely identifies this class.
+   */
+  public static readonly PROPERTY_INJECTION_ID: string =
+    "terraconstructs.aws.ec2.PublicSubnet";
+
   public static fromPublicSubnetAttributes(
     scope: Construct,
     id: string,
@@ -2900,6 +2969,12 @@ export interface PrivateSubnetAttributes extends SubnetAttributes {}
  * Represents a private VPC subnet resource
  */
 export class PrivateSubnet extends Subnet implements IPrivateSubnet {
+  /**
+   * Uniquely identifies this class.
+   */
+  public static readonly PROPERTY_INJECTION_ID: string =
+    "terraconstructs.aws.ec2.PrivateSubnet";
+
   public static fromPrivateSubnetAttributes(
     scope: Construct,
     id: string,
@@ -2918,6 +2993,9 @@ function ifUndefined<T>(value: T | undefined, defaultValue: T): T {
 }
 
 class ImportedVpc extends VpcBase {
+  /** Uniquely identifies this class. */
+  public static readonly PROPERTY_INJECTION_ID: string =
+    "terraconstructs.aws.ec2.ImportedVpc";
   public readonly vpcId: string;
   public readonly vpcArn: string;
   public readonly publicSubnets: ISubnet[];
@@ -3006,123 +3084,128 @@ class ImportedVpc extends VpcBase {
 
   public get vpcCidrBlock(): string {
     if (this.cidr === undefined) {
-      throw new Error(
+      throw new ValidationError(
         "Cannot perform this operation: 'vpcCidrBlock' was not supplied when creating this VPC",
+        this,
       );
     }
     return this.cidr;
   }
 }
 
-// class LookedUpVpc extends VpcBase {
-//   public readonly vpcId: string;
-//   public readonly vpcArn: string;
-//   public readonly internetConnectivityEstablished: IDependable =
-//     new DependencyGroup();
-//   public readonly availabilityZones: string[];
-//   public readonly publicSubnets: ISubnet[];
-//   public readonly privateSubnets: ISubnet[];
-//   public readonly isolatedSubnets: ISubnet[];
-//   private readonly cidr?: string | undefined;
+class LookedUpVpc extends VpcBase {
+  /** Uniquely identifies this class. */
+  public static readonly PROPERTY_INJECTION_ID: string =
+    "terraconstructs.aws.ec2.LookedUpVpc";
+  public readonly vpcId: string;
+  public readonly vpcArn: string;
+  public readonly internetConnectivityEstablished: IDependable =
+    new DependencyGroup();
+  public readonly availabilityZones: string[];
+  public readonly publicSubnets: ISubnet[];
+  public readonly privateSubnets: ISubnet[];
+  public readonly isolatedSubnets: ISubnet[];
+  private readonly cidr?: string | undefined;
 
-//   constructor(
-//     scope: Construct,
-//     id: string,
-//     props: cxapi.VpcContextResponse,
-//     isIncomplete: boolean,
-//   ) {
-//     super(scope, id, {
-//       region: props.region,
-//       account: props.ownerAccountId,
-//     });
+  constructor(
+    scope: Construct,
+    id: string,
+    props: cxapi.VpcContextResponse,
+    isIncomplete: boolean,
+  ) {
+    super(scope, id, {
+      region: props.region,
+      account: props.ownerAccountId,
+    });
 
-//     this.vpcId = props.vpcId;
-//     this.vpcArn = Arn.format(
-//       {
-//         service: "ec2",
-//         resource: "vpc",
-//         resourceName: this.vpcId,
-//         region: this.env.region,
-//         account: this.env.account,
-//       },
-//       AwsStack.ofAwsConstruct(this),
-//     );
-//     this.cidr = props.vpcCidrBlock;
-//     this._vpnGatewayId = props.vpnGatewayId;
-//     this.incompleteSubnetDefinition = isIncomplete;
+    this.vpcId = props.vpcId;
+    this.vpcArn = Arn.format(
+      {
+        service: "ec2",
+        resource: "vpc",
+        resourceName: this.vpcId,
+        region: this.env.region,
+        account: this.env.account,
+      },
+      AwsStack.ofAwsConstruct(this),
+    );
+    this.cidr = props.vpcCidrBlock;
+    this._vpnGatewayId = props.vpnGatewayId;
+    this.incompleteSubnetDefinition = isIncomplete;
 
-//     const subnetGroups = props.subnetGroups || [];
-//     const availabilityZones = Array.from(
-//       new Set<string>(
-//         flatMap(subnetGroups, (subnetGroup) => {
-//           return subnetGroup.subnets.map((subnet) => subnet.availabilityZone);
-//         }),
-//       ),
-//     );
-//     availabilityZones.sort((az1, az2) => az1.localeCompare(az2));
-//     this.availabilityZones = availabilityZones;
+    const subnetGroups = props.subnetGroups || [];
+    const availabilityZones = Array.from(
+      new Set<string>(
+        flatMap(subnetGroups, (subnetGroup) => {
+          return subnetGroup.subnets.map((sn) => sn.availabilityZone);
+        }),
+      ),
+    );
+    availabilityZones.sort((az1, az2) => az1.localeCompare(az2));
+    this.availabilityZones = availabilityZones;
 
-//     this.publicSubnets = this.extractSubnetsOfType(
-//       subnetGroups,
-//       cxapi.VpcSubnetGroupType.PUBLIC,
-//     );
-//     this.privateSubnets = this.extractSubnetsOfType(
-//       subnetGroups,
-//       cxapi.VpcSubnetGroupType.PRIVATE,
-//     );
-//     this.isolatedSubnets = this.extractSubnetsOfType(
-//       subnetGroups,
-//       cxapi.VpcSubnetGroupType.ISOLATED,
-//     );
-//   }
+    this.publicSubnets = this.extractSubnetsOfType(
+      subnetGroups,
+      cxapi.VpcSubnetGroupType.PUBLIC,
+    );
+    this.privateSubnets = this.extractSubnetsOfType(
+      subnetGroups,
+      cxapi.VpcSubnetGroupType.PRIVATE,
+    );
+    this.isolatedSubnets = this.extractSubnetsOfType(
+      subnetGroups,
+      cxapi.VpcSubnetGroupType.ISOLATED,
+    );
+  }
 
-//   public get vpcCidrBlock(): string {
-//     if (this.cidr === undefined) {
-//       // Value might be cached from an old CLI version, so bumping the CX API protocol to
-//       // force the value to exist would not have helped.
-//       throw new Error(
-//         "Cannot perform this operation: 'vpcCidrBlock' was not found when looking up this VPC. Use a newer version of the CDK CLI and clear the old context value.",
-//       );
-//     }
-//     return this.cidr;
-//   }
+  public get vpcCidrBlock(): string {
+    if (this.cidr === undefined) {
+      // Value might be cached from an old CLI version, so bumping the CX API protocol to
+      // force the value to exist would not have helped.
+      throw new ValidationError(
+        "Cannot perform this operation: 'vpcCidrBlock' was not found when looking up this VPC. Use a newer version of the CDK CLI and clear the old context value.",
+        this,
+      );
+    }
+    return this.cidr;
+  }
 
-//   private extractSubnetsOfType(
-//     subnetGroups: cxapi.VpcSubnetGroup[],
-//     subnetGroupType: cxapi.VpcSubnetGroupType,
-//   ): ISubnet[] {
-//     return flatMap(
-//       subnetGroups.filter(
-//         (subnetGroup) => subnetGroup.type === subnetGroupType,
-//       ),
-//       (subnetGroup) => this.subnetGroupToSubnets(subnetGroup),
-//     );
-//   }
+  private extractSubnetsOfType(
+    subnetGroups: cxapi.VpcSubnetGroup[],
+    subnetGroupType: cxapi.VpcSubnetGroupType,
+  ): ISubnet[] {
+    return flatMap(
+      subnetGroups.filter(
+        (subnetGroup) => subnetGroup.type === subnetGroupType,
+      ),
+      (subnetGroup) => this.subnetGroupToSubnets(subnetGroup),
+    );
+  }
 
-//   private subnetGroupToSubnets(subnetGroup: cxapi.VpcSubnetGroup): ISubnet[] {
-//     const ret = new Array<ISubnet>();
-//     for (let i = 0; i < subnetGroup.subnets.length; i++) {
-//       const vpcSubnet = subnetGroup.subnets[i];
-//       ret.push(
-//         Subnet.fromSubnetAttributes(this, `${subnetGroup.name}Subnet${i + 1}`, {
-//           availabilityZone: vpcSubnet.availabilityZone,
-//           subnetId: vpcSubnet.subnetId,
-//           routeTableId: vpcSubnet.routeTableId,
-//           ipv4CidrBlock: vpcSubnet.cidr,
-//         }),
-//       );
-//     }
-//     return ret;
-//   }
-// }
+  private subnetGroupToSubnets(subnetGroup: cxapi.VpcSubnetGroup): ISubnet[] {
+    const ret = new Array<ISubnet>();
+    for (let i = 0; i < subnetGroup.subnets.length; i++) {
+      const vpcSubnet = subnetGroup.subnets[i];
+      ret.push(
+        Subnet.fromSubnetAttributes(this, `${subnetGroup.name}Subnet${i + 1}`, {
+          availabilityZone: vpcSubnet.availabilityZone,
+          subnetId: vpcSubnet.subnetId,
+          routeTableId: vpcSubnet.routeTableId,
+          ipv4CidrBlock: vpcSubnet.cidr,
+        }),
+      );
+    }
+    return ret;
+  }
+}
 
-// function flatMap<T, U>(xs: T[], fn: (x: T) => U[]): U[] {
-//   const ret = new Array<U>();
-//   for (const x of xs) {
-//     ret.push(...fn(x));
-//   }
-//   return ret;
-// }
+function flatMap<T, U>(xs: T[], fn: (x: T) => U[]): U[] {
+  const ret = new Array<U>();
+  for (const x of xs) {
+    ret.push(...fn(x));
+  }
+  return ret;
+}
 
 class CompositeDependable implements IDependable {
   private readonly dependables = new Array<IDependable>();
@@ -3160,6 +3243,9 @@ class ImportedSubnet
   extends AwsConstructBase
   implements ISubnet, IPublicSubnet, IPrivateSubnet
 {
+  /** Uniquely identifies this class. */
+  public static readonly PROPERTY_INJECTION_ID: string =
+    "terraconstructs.aws.ec2.ImportedSubnet";
   public readonly subnetOutputs: SubnetOutputs;
   public get outputs(): Record<string, any> {
     return this.subnetOutputs;
@@ -3177,7 +3263,7 @@ class ImportedSubnet
       registerOutputs: attrs.registerOutputs,
     });
 
-    if (!attrs.routeTableId) {
+    if (!attrs.routeTableId && !attrs.subnetName) {
       // The following looks a little weird, but comes down to:
       //
       // * Is the subnetId itself unresolved ({ Ref: Subnet }); or
@@ -3203,13 +3289,36 @@ class ImportedSubnet
         `No routeTableId was provided to the subnet ${ref}. Attempting to read its .routeTable.routeTableId will return null/undefined. (More info: https://github.com/aws/aws-cdk/pull/3171)`,
       );
     }
-    const lookup = new dataAwsSubnet.DataAwsSubnet(this, "Resource", {
-      id: attrs.subnetId,
-    });
+    let lookupConfig: dataAwsSubnet.DataAwsSubnetConfig | undefined;
+    if (attrs.subnetId) {
+      lookupConfig = {
+        id: attrs.subnetId,
+      };
+    } else if (attrs.subnetName) {
+      lookupConfig = {
+        filter: [
+          {
+            name: "tag:Name",
+            values: [attrs.subnetName],
+          },
+        ],
+      };
+    }
+    if (!lookupConfig) {
+      throw new ValidationError(
+        "Either 'subnetId' or 'subnetName' must be specified",
+        this,
+      );
+    }
+    const lookup = new dataAwsSubnet.DataAwsSubnet(
+      this,
+      "Resource",
+      lookupConfig,
+    );
 
     this._ipv4CidrBlock = attrs.ipv4CidrBlock; // ?? lookup.cidrBlock;
     this._availabilityZone = attrs.availabilityZone; // ?? lookup.availabilityZone;
-    this.subnetId = attrs.subnetId;
+    this.subnetId = attrs.subnetId ?? lookup.id;
     this.routeTable = {
       // Forcing routeTableId to pretend non-null to maintain backwards-compatibility. See https://github.com/aws/aws-cdk/pull/3171
       routeTableId: attrs.routeTableId!,
@@ -3223,8 +3332,9 @@ class ImportedSubnet
 
   public get availabilityZone(): string {
     if (!this._availabilityZone) {
-      throw new Error(
+      throw new ValidationError(
         "You cannot reference a Subnet's availability zone if it was not supplied. Add the availabilityZone when importing using Subnet.fromSubnetAttributes()",
+        this,
       );
     }
     return this._availabilityZone;
@@ -3233,8 +3343,9 @@ class ImportedSubnet
   public get ipv4CidrBlock(): string {
     if (!this._ipv4CidrBlock) {
       // tslint:disable-next-line: max-line-length
-      throw new Error(
+      throw new ValidationError(
         "You cannot reference an imported Subnet's IPv4 CIDR if it was not supplied. Add the ipv4CidrBlock when importing using Subnet.fromSubnetAttributes()",
+        this,
       );
     }
     return this._ipv4CidrBlock;
@@ -3288,13 +3399,13 @@ function determineNatGatewayCount(
         : 0;
 
   if (count === 0 && hasPrivateSubnets && !hasCustomEgress) {
-    throw new Error(
+    throw new UnscopedValidationError(
       "If you do not want NAT gateways (natGateways=0), make sure you don't configure any PRIVATE(_WITH_NAT) subnets in 'subnetConfiguration' (make them PUBLIC or ISOLATED instead)",
     );
   }
 
   if (count > 0 && !hasPublicSubnets) {
-    throw new Error(
+    throw new UnscopedValidationError(
       `If you configure PRIVATE subnets in 'subnetConfiguration', you must also configure PUBLIC subnets to put the NAT gateways into (got ${JSON.stringify(subnetConfig)}.`,
     );
   }
@@ -3302,98 +3413,78 @@ function determineNatGatewayCount(
   return count;
 }
 
-// /**
-//  * There are returned when the provider has not supplied props yet
-//  *
-//  * It's only used for testing and on the first run-through.
-//  */
-// const DUMMY_VPC_PROPS: cxapi.VpcContextResponse = {
-//   availabilityZones: [],
-//   vpcCidrBlock: "1.2.3.4/5",
-//   isolatedSubnetIds: undefined,
-//   isolatedSubnetNames: undefined,
-//   isolatedSubnetRouteTableIds: undefined,
-//   privateSubnetIds: undefined,
-//   privateSubnetNames: undefined,
-//   privateSubnetRouteTableIds: undefined,
-//   publicSubnetIds: undefined,
-//   publicSubnetNames: undefined,
-//   publicSubnetRouteTableIds: undefined,
-//   subnetGroups: [
-//     {
-//       name: "Public",
-//       type: cxapi.VpcSubnetGroupType.PUBLIC,
-//       subnets: [
-//         {
-//           availabilityZone: "dummy1a",
-//           subnetId: "s-12345",
-//           routeTableId: "rtb-12345s",
-//           cidr: "1.2.3.4/5",
-//         },
-//         {
-//           availabilityZone: "dummy1b",
-//           subnetId: "s-67890",
-//           routeTableId: "rtb-67890s",
-//           cidr: "1.2.3.4/5",
-//         },
-//       ],
-//     },
-//     {
-//       name: "Private",
-//       type: cxapi.VpcSubnetGroupType.PRIVATE,
-//       subnets: [
-//         {
-//           availabilityZone: "dummy1a",
-//           subnetId: "p-12345",
-//           routeTableId: "rtb-12345p",
-//           cidr: "1.2.3.4/5",
-//         },
-//         {
-//           availabilityZone: "dummy1b",
-//           subnetId: "p-67890",
-//           routeTableId: "rtb-57890p",
-//           cidr: "1.2.3.4/5",
-//         },
-//       ],
-//     },
-//     {
-//       name: "Isolated",
-//       type: cxapi.VpcSubnetGroupType.ISOLATED,
-//       subnets: [
-//         {
-//           availabilityZone: "dummy1a",
-//           subnetId: "p-12345",
-//           routeTableId: "rtb-12345p",
-//           cidr: "1.2.3.4/5",
-//         },
-//         {
-//           availabilityZone: "dummy1b",
-//           subnetId: "p-67890",
-//           routeTableId: "rtb-57890p",
-//           cidr: "1.2.3.4/5",
-//         },
-//       ],
-//     },
-//   ],
-//   vpcId: "vpc-12345",
-// };
-
-// moved due to cycles
-// ref: https://github.com/aws/aws-cdk/blob/a2c633f1e698249496f11338312ab42bd7b1e4f0/packages/aws-cdk-lib/aws-ec2/lib/util.ts
-
-// /**
-//  * The default names for every subnet type
-//  */
-// export function defaultSubnetName(type: SubnetType) {
-//   switch (type) {
-//     case SubnetType.PUBLIC:
-//       return "Public";
-//     case SubnetType.PRIVATE_WITH_NAT:
-//     case SubnetType.PRIVATE_WITH_EGRESS:
-//     case SubnetType.PRIVATE:
-//       return "Private";
-//     case SubnetType.PRIVATE_ISOLATED:
-//     case SubnetType.ISOLATED:
-//       return "Isolated";
-//   }
-// }
+/**
+ * There are returned when the provider has not supplied props yet
+ *
+ * It's only used for testing and on the first run-through.
+ */
+const DUMMY_VPC_PROPS: cxapi.VpcContextResponse = {
+  availabilityZones: [],
+  vpcCidrBlock: "1.2.3.4/5",
+  isolatedSubnetIds: undefined,
+  isolatedSubnetNames: undefined,
+  isolatedSubnetRouteTableIds: undefined,
+  privateSubnetIds: undefined,
+  privateSubnetNames: undefined,
+  privateSubnetRouteTableIds: undefined,
+  publicSubnetIds: undefined,
+  publicSubnetNames: undefined,
+  publicSubnetRouteTableIds: undefined,
+  subnetGroups: [
+    {
+      name: "Public",
+      type: cxapi.VpcSubnetGroupType.PUBLIC,
+      subnets: [
+        {
+          availabilityZone: "dummy1a",
+          subnetId: "s-12345",
+          routeTableId: "rtb-12345s",
+          cidr: "1.2.3.4/5",
+        },
+        {
+          availabilityZone: "dummy1b",
+          subnetId: "s-67890",
+          routeTableId: "rtb-67890s",
+          cidr: "1.2.3.4/5",
+        },
+      ],
+    },
+    {
+      name: "Private",
+      type: cxapi.VpcSubnetGroupType.PRIVATE,
+      subnets: [
+        {
+          availabilityZone: "dummy1a",
+          subnetId: "p-12345",
+          routeTableId: "rtb-12345p",
+          cidr: "1.2.3.4/5",
+        },
+        {
+          availabilityZone: "dummy1b",
+          subnetId: "p-67890",
+          routeTableId: "rtb-57890p",
+          cidr: "1.2.3.4/5",
+        },
+      ],
+    },
+    {
+      name: "Isolated",
+      type: cxapi.VpcSubnetGroupType.ISOLATED,
+      subnets: [
+        {
+          availabilityZone: "dummy1a",
+          subnetId: "p-12345",
+          routeTableId: "rtb-12345p",
+          cidr: "1.2.3.4/5",
+        },
+        {
+          availabilityZone: "dummy1b",
+          subnetId: "p-67890",
+          routeTableId: "rtb-57890p",
+          cidr: "1.2.3.4/5",
+        },
+      ],
+    },
+  ],
+  vpcId: "vpc-12345",
+};

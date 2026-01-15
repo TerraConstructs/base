@@ -59,6 +59,7 @@ const project = new cdk.JsiiProject({
     "@cdktf/provider-cloudinit@^11.0.0",
     "@cdktf/provider-docker@^12.0.2",
     "constructs@^10.4.2",
+    "@aws-cdk/cloud-assembly-schema@^49.4.0",
     "@aws-cdk/region-info@^2.233.0",
   ],
   devDeps: [
@@ -70,6 +71,7 @@ const project = new cdk.JsiiProject({
     "@cdktf/provider-cloudinit@^11.0.0",
     "@cdktf/provider-docker@^12.0.2",
     "constructs@^10.4.2",
+    "@aws-cdk/cloud-assembly-schema@^49.4.0",
     "@aws-cdk/region-info@^2.233.0",
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",

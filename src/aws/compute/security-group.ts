@@ -1,5 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/security-group.ts
 
+import * as cxschema from "@aws-cdk/cloud-assembly-schema";
 import {
   dataAwsSecurityGroup,
   securityGroup,
@@ -12,12 +13,15 @@ import { Connections } from "./connections";
 import { IPeer, Peer } from "./peer";
 import { Port } from "./port";
 import { IVpc } from "./vpc";
+import { ValidationError } from "../../errors";
 import {
   AwsConstructBase,
   IAwsConstruct,
   AwsConstructProps,
 } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
+import { ContextProvider } from "../context-provider";
+import * as cxapi from "../cx-api";
 // import { allowAllOutboundLocal } from "./private/context-stub";
 
 const SECURITY_GROUP_SYMBOL = Symbol.for(
@@ -568,28 +572,62 @@ export class SecurityGroup extends SecurityGroupBase {
   ) {
     if (
       Token.isUnresolved(options.securityGroupId) ||
-      Token.isUnresolved(options.securityGroupName) ||
-      Token.isUnresolved(options.vpc?.vpcId)
+      Token.isUnresolved(options.securityGroupName)
+      // We can have an unresolved id when using a lookedup vpc
+      // || Token.isUnresolved(options.vpc?.vpcId)
     ) {
-      throw new Error(
+      throw new ValidationError(
         "All arguments to look up a security group must be concrete (no Tokens)",
+        scope,
       );
     }
-
-    const data = new dataAwsSecurityGroup.DataAwsSecurityGroup(scope, id, {
-      vpcId: options.vpc?.vpcId,
-      id: options.securityGroupId,
-      name: options.securityGroupName,
-    });
 
     // TODO: Use Grid as contextProvider
     // Warning: using data source to determine if the security group allows
     // all outbound with allowAllOutboundLocal(scope, id, data.id)
     // would force all depending code to deal with Tokens
-    return SecurityGroup.fromSecurityGroupId(scope, id, data.id, {
-      allowAllOutbound: options.allowAllOutbound ?? true,
-      mutable: true,
-    });
+    const dummyValue = {
+      securityGroupId: "sg-12345678",
+      allowAllOutbound: true,
+    } as cxapi.SecurityGroupContextResponse;
+    let attributes: cxapi.SecurityGroupContextResponse =
+      ContextProvider.getValue(scope, {
+        provider: cxschema.ContextProvider.SECURITY_GROUP_PROVIDER,
+        props: {
+          securityGroupId: options.securityGroupId,
+          securityGroupName: options.securityGroupName,
+          vpcId: Token.isUnresolved(options.vpc?.vpcId)
+            ? undefined
+            : options.vpc?.vpcId,
+        },
+        dummyValue,
+      }).value;
+
+    if (attributes === dummyValue) {
+      const data = new dataAwsSecurityGroup.DataAwsSecurityGroup(
+        scope,
+        "Data" + id,
+        {
+          vpcId: options.vpc?.vpcId,
+          id: options.securityGroupId,
+          name: options.securityGroupName,
+        },
+      );
+      attributes = {
+        securityGroupId: data.id,
+        allowAllOutbound: options.allowAllOutbound ?? true,
+      };
+    }
+
+    return SecurityGroup.fromSecurityGroupId(
+      scope,
+      id,
+      attributes.securityGroupId,
+      {
+        allowAllOutbound: attributes.allowAllOutbound,
+        mutable: true,
+      },
+    );
   }
 
   /**
@@ -764,8 +802,9 @@ export class SecurityGroup extends SecurityGroupBase {
       // to "allOutbound=true" mode, because we might have already emitted
       // EgressRule objects (which count as rules added later) and there's no way
       // to recall those. Better to prevent this for now.
-      throw new Error(
+      throw new ValidationError(
         'Cannot add an "all traffic" egress rule in this way; set allowAllOutbound=true (for ipv6) or allowAllIpv6Outbound=true (for ipv6) on the SecurityGroup instead.',
+        this,
       );
     }
 
