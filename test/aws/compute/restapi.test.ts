@@ -153,13 +153,17 @@ describe("restapi", () => {
           "my-api_CloudWatchRole_095452E5": {
             assume_role_policy:
               "${data.aws_iam_policy_document.my-api_CloudWatchRole_AssumeRolePolicy_428BCDBB.json}",
-            managed_policy_arns: [
-              "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs",
-            ],
             name_prefix: "123e4567-e89b-12d3-y-apiCloudWatchRole",
             tags: {
               Name: "test-env-my-api",
             },
+          },
+        },
+        aws_iam_role_policy_attachment: {
+          "my-api_AmazonAPIGatewayPushToCloudWatchLogs_Roles0_044E734E": {
+            policy_arn:
+              "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs",
+            role: "${aws_iam_role.my-api_CloudWatchRole_095452E5.name}",
           },
         },
       },
@@ -660,6 +664,7 @@ ${stack.resolve(api.restApiId)}/stage/method/path`.replace(/\n/g, ""),
       {
         depends_on: [
           "aws_api_gateway_rest_api.myapi_162F20B8",
+          "aws_iam_role_policy_attachment.myapi_AmazonAPIGatewayPushToCloudWatchLogs_Roles0_A656E4F8",
           "data.aws_iam_policy_document.myapi_CloudWatchRole_AssumeRolePolicy_D01A67E8",
           "aws_iam_role.myapi_CloudWatchRole_EB425128",
           "aws_api_gateway_account.myapi_Account_C3A4750C",

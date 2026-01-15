@@ -126,10 +126,13 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            managed_policy_arns: [
-              "${aws_iam_policy.MyManagedPolicy_9F3720AE.arn}",
-            ],
             name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+          },
+        },
+        aws_iam_role_policy_attachment: {
+          MyManagedPolicy_Roles0_8B8C8B56: {
+            policy_arn: "${aws_iam_policy.MyManagedPolicy_9F3720AE.arn}",
+            role: "${aws_iam_role.MyRole_F48FFE04.name}",
           },
         },
       },
@@ -282,9 +285,13 @@ describe("managed policy", () => {
         },
         aws_iam_role: {
           MyRole_F48FFE04: {
-            managed_policy_arns: [
-              "${aws_iam_policy.MyManagedPolicy_9F3720AE.arn}",
-            ],
+            name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+          },
+        },
+        aws_iam_role_policy_attachment: {
+          MyManagedPolicy_Roles0_8B8C8B56: {
+            policy_arn: "${aws_iam_policy.MyManagedPolicy_9F3720AE.arn}",
+            role: "${aws_iam_role.MyRole_F48FFE04.name}",
           },
         },
       },
@@ -617,10 +624,13 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            managed_policy_arns: [
-              "${aws_iam_policy.MyManagedPolicy_9F3720AE.arn}",
-            ],
             name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+          },
+        },
+        aws_iam_role_policy_attachment: {
+          MyManagedPolicy_Roles0_8B8C8B56: {
+            policy_arn: "${aws_iam_policy.MyManagedPolicy_9F3720AE.arn}",
+            role: "${aws_iam_role.MyRole_F48FFE04.name}",
           },
         },
       },
@@ -653,10 +663,14 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            managed_policy_arns: [
-              "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/AnAWSManagedPolicy",
-            ],
             name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+          },
+        },
+        aws_iam_role_policy_attachment: {
+          polRef_Roles0_EAE7DD30: {
+            policy_arn:
+              "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/AnAWSManagedPolicy",
+            role: "${aws_iam_role.MyRole_F48FFE04.name}",
           },
         },
       },
@@ -689,10 +703,14 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            managed_policy_arns: [
-              "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:policy/ACustomerManagedPolicyName",
-            ],
             name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+          },
+        },
+        aws_iam_role_policy_attachment: {
+          MyManagedPolicy_Roles0_8B8C8B56: {
+            policy_arn:
+              "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:policy/ACustomerManagedPolicyName",
+            role: "${aws_iam_role.MyRole_F48FFE04.name}",
           },
         },
       },
@@ -729,10 +747,13 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            managed_policy_arns: [
-              "${data.aws_iam_policy.MyManagedPolicy_9F3720AE.arn}",
-            ],
             name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+          },
+        },
+        aws_iam_role_policy_attachment: {
+          MyManagedPolicy_Roles0_8B8C8B56: {
+            policy_arn: "${data.aws_iam_policy.MyManagedPolicy_9F3720AE.arn}",
+            role: "${aws_iam_role.MyRole_F48FFE04.name}",
           },
         },
       },

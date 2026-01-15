@@ -8,6 +8,7 @@ import {
   dataAwsIamPolicyDocument,
   iamInstanceProfile,
   iamRole,
+  iamRolePolicyAttachment,
 } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
@@ -987,11 +988,14 @@ test("ssm permissions adds right managed policy", () => {
     ssmSessionPermissions: true,
   });
 
-  Template.synth(stack).toHaveResourceWithProperties(iamRole.IamRole, {
-    managed_policy_arns: [
-      "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/AmazonSSMManagedInstanceCore",
-    ],
-  });
+  Template.synth(stack).toHaveResourceWithProperties(
+    iamRolePolicyAttachment.IamRolePolicyAttachment,
+    {
+      policy_arn:
+        "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/AmazonSSMManagedInstanceCore",
+      role: "${aws_iam_role.InstanceOne_InstanceRole_FAC7C1D7.name}",
+    },
+  );
 });
 
 test("sameInstanceClassAs compares identical InstanceTypes correctly", () => {

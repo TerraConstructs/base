@@ -73,10 +73,17 @@ describe("Function", () => {
         tfResourceType: "aws_iam_role",
       },
       {
-        managed_policy_arns: [
-          "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+        name_prefix: "123e4567-e89b-12d3-lloWorldServiceRole",
+      },
+    );
+    template.toHaveResourceWithProperties(
+      {
+        tfResourceType: "aws_iam_role_policy_attachment",
+      },
+      {
+        policy_arn:
           "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
-        ],
+        role: "${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.name}",
       },
     );
     template.toHaveResourceWithProperties(
