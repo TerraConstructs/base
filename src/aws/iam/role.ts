@@ -24,7 +24,7 @@ import { defaultAddPrincipalToAssumeRole } from "./private/assume-role-policy";
 import { ImmutableRole } from "./private/immutable-role";
 import { ImportedRole } from "./private/imported-role";
 // import { PrecreatedRole } from "./private/precreated-role";
-import { AttachedPolicies, UniqueStringSet } from "./private/util";
+import { AttachedPolicies } from "./private/util";
 import { TokenComparison, tokenCompareStrings } from "../../token";
 
 // TODO: Re-Add LazyRole?
@@ -460,14 +460,18 @@ export class Role extends AwsConstructBase implements IRole {
       props.assumedBy,
       externalIds,
     );
-    this.managedPolicies.push(...(props.managedPolicies || []));
+    if (props.managedPolicies && props.managedPolicies.length > 0) {
+      for (const policy of props.managedPolicies) {
+        this.addManagedPolicy(policy);
+      }
+    }
     this.inlinePolicies = props.inlinePolicies || {};
     this.permissionsBoundary = props.permissionsBoundary;
     const maxSessionDuration =
       props.maxSessionDuration && props.maxSessionDuration.toSeconds();
     validateMaxSessionDuration(maxSessionDuration);
     const description =
-      props.description && props.description?.length > 0
+      props.description && props.description.length > 0
         ? props.description
         : undefined;
 
@@ -491,9 +495,11 @@ export class Role extends AwsConstructBase implements IRole {
     this.resource = new iamRole.IamRole(this, "Resource", {
       ...props, // copy over Terraform Meta Arguments from ConstructProps
       assumeRolePolicy: this.assumeRolePolicy.json,
-      managedPolicyArns: UniqueStringSet.from(() =>
-        this.managedPolicies.map((p) => p.managedPolicyArn),
-      ),
+      // Deprecated as documented here:
+      // https://github.com/hashicorp/terraform-provider-aws/blob/main/docs/design-decisions/exclusive-relationship-management-resources.md
+      // managedPolicyArns: UniqueStringSet.from(() =>
+      //   this.managedPolicies.map((p) => p.managedPolicyArn),
+      // ),
       inlinePolicy: _flatten(this.inlinePolicies),
       path: props.path,
       permissionsBoundary: this.permissionsBoundary
@@ -618,6 +624,7 @@ export class Role extends AwsConstructBase implements IRole {
       return;
     }
     this.managedPolicies.push(policy);
+    policy.attachToRole(this);
   }
 
   /**

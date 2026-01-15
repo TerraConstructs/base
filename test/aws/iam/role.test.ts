@@ -3,6 +3,7 @@ import {
   iamPolicy,
   iamRolePolicy,
   iamRole,
+  iamRolePolicyAttachment,
 } from "@cdktf/provider-aws";
 import {
   Testing,
@@ -404,12 +405,24 @@ describe("IAM role", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            managed_policy_arns: [
-              "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:policy/managed1",
-              "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:policy/managed2",
-              "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:policy/managed3",
-            ],
             name_prefix: "123e4567-e89b-12d3-RoleStackMyRole",
+          },
+        },
+        aws_iam_role_policy_attachment: {
+          fromProp1_Roles0_6E098A61: {
+            policy_arn:
+              "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:policy/managed1",
+            role: "${aws_iam_role.MyRole_F48FFE04.name}",
+          },
+          fromProp2_Roles0_FABE88E9: {
+            policy_arn:
+              "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:policy/managed2",
+            role: "${aws_iam_role.MyRole_F48FFE04.name}",
+          },
+          fromMethod1_Roles0_22BA2368: {
+            policy_arn:
+              "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:policy/managed3",
+            role: "${aws_iam_role.MyRole_F48FFE04.name}",
           },
         },
       },
@@ -1232,22 +1245,16 @@ test("managed policy ARNs are deduplicated", () => {
   );
   expect(warnings.length).toBe(0);
 
-  const synthesized = Testing.synth(stack);
-  // refer to full snapshot for debug
-  // expect(synthesized).toMatchSnapshot();
-  const template = JSON.parse(synthesized);
-  expect(template).toMatchObject({
-    resource: {
-      aws_iam_role: {
-        MyRole_F48FFE04: {
-          // expect single managed policy ARN attached
-          managed_policy_arns: [
-            "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/SuperDeveloper",
-          ],
-        },
-      },
+  const template = new Template(stack);
+  template.resourceCountIs(iamRolePolicyAttachment.IamRolePolicyAttachment, 1);
+  template.expect.toHaveResourceWithProperties(
+    iamRolePolicyAttachment.IamRolePolicyAttachment,
+    {
+      policy_arn:
+        "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/SuperDeveloper",
+      role: "${aws_iam_role.MyRole_F48FFE04.name}",
     },
-  });
+  );
 });
 
 // TODO: too many managed policies warning is set in splitLargePolicy
