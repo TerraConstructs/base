@@ -1,5 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-dynamodb/lib/shared.ts
 
+import { Construct } from "constructs";
+import { ValidationError } from "../../errors";
 import { IAwsConstruct } from "../aws-construct";
 import * as cloudwatch from "../cloudwatch";
 import * as kms from "../encryption";
@@ -118,8 +120,6 @@ export interface PointInTimeRecoverySpecification {
    * Your table data is only recoverable to any point-in-time from within the configured recovery period.
    * If no value is provided, the value will default to 35.
    *
-   * NOTE: Unused pending upgrade to v5.98.0 of the AWS Provider for Terraform.
-   *
    * @default 35
    */
   readonly recoveryPeriodInDays?: number;
@@ -160,6 +160,38 @@ export enum BillingMode {
    * Explicitly specified Read/Write capacity units.
    */
   PROVISIONED = "PROVISIONED",
+}
+
+/**
+ * DynamoDB's Contributor Insights Mode
+ * @see https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-dynamodb-table-contributorinsightsspecification.html
+ */
+export enum ContributorInsightsMode {
+  /**
+   * Emits metrics for all read and write requests, whether successful or throttled.
+   */
+  ACCESSED_AND_THROTTLED_KEYS = "ACCESSED_AND_THROTTLED_KEYS",
+
+  /**
+   * Emits metrics for read and write requests that were throttled.
+   */
+  THROTTLED_KEYS = "THROTTLED_KEYS",
+}
+
+/**
+ * Reference to ContributorInsightsSpecification
+ */
+export interface ContributorInsightsSpecification {
+  /**
+   * Indicates whether contributor insights is enabled.
+   * @default false
+   */
+  readonly enabled: boolean;
+  /**
+   * Indicates the type of metrics captured by contributor insights.
+   * @default ACCESSED_AND_THROTTLED_KEYS
+   */
+  readonly mode?: ContributorInsightsMode;
 }
 
 /**
@@ -497,4 +529,30 @@ export interface ITable extends IAwsConstruct {
   metricSuccessfulRequestLatency(
     props?: cloudwatch.MetricOptions,
   ): cloudwatch.Metric;
+}
+
+export function validateContributorInsights(
+  contributorInsights: boolean | undefined,
+  contributorInsightsSpecification:
+    | ContributorInsightsSpecification
+    | undefined,
+  deprecatedPropertyName: string,
+  construct: Construct,
+): ContributorInsightsSpecification | undefined {
+  if (
+    contributorInsightsSpecification !== undefined &&
+    contributorInsights !== undefined
+  ) {
+    throw new ValidationError(
+      `\`contributorInsightsSpecification\` and \`${deprecatedPropertyName}\` are set. Use \`contributorInsightsSpecification\` only.`,
+      construct,
+    );
+  }
+
+  return (
+    contributorInsightsSpecification ??
+    (contributorInsights !== undefined
+      ? { enabled: contributorInsights }
+      : undefined)
+  );
 }

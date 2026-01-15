@@ -26,6 +26,9 @@ export * from "./capacity";
 export * from "./billing";
 export * from "./encryption";
 
+export * from "./stream-grants";
+export * from "./table-grants";
+
 // aws-ecr
 export * from "./ecr-repository";
 export * from "./ecr-lifecycle";
