@@ -8,7 +8,7 @@ import {
   sqsQueue,
   sqsQueuePolicy,
 } from "@cdktf/provider-aws";
-import { App, Testing, Token, ref } from "cdktf";
+import { App, TerraformVariable, Testing, Token, ref } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as compute from "../../../../src/aws/compute";
@@ -34,12 +34,7 @@ const gridBackendConfig2 = {
 
 beforeEach(() => {
   const app = Testing.app();
-  stack = new AwsStack(app, "MyStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  stack = new AwsStack(app);
   topic = new notify.Topic(stack, "MyTopic", {
     topicName: "topicName",
     displayName: "displayName",
@@ -92,7 +87,7 @@ test("url subscription with user provided dlq", () => {
   t.expect.toHaveResourceWithProperties(sqsQueue.SqsQueue, {
     message_retention_seconds: 1209600,
     // TODO: Fix namePrefix
-    name_prefix: "MySubscription_DLQMyStackDeadLetterQueue",
+    name_prefix: "MySubscription_DLQDeadLetterQueue",
   });
   t.expect.toHaveDataSourceWithProperties(
     dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -942,10 +937,15 @@ test("encrypted queue subscription", () => {
         },
       },
       [snsTopicSubscription.SnsTopicSubscription.tfResourceType]: {
-        MyQueue_MyStackMyTopicDFB2578F_8EEC5EA1: {
+        MyQueue_MyTopic_9B00631B: {
           protocol: "sqs",
           topic_arn: stack.resolve(topic.topicArn),
           endpoint: stack.resolve(queue.queueArn),
+          region: "${data.aws_region.Region.name}",
+          depends_on: [
+            "data.aws_iam_policy_document.MyQueue_Policy_B72AE551",
+            "aws_sqs_queue_policy.MyQueue_Policy_6BBEDDAC",
+          ],
         },
       },
     },
@@ -1477,7 +1477,7 @@ test("throws with multiple subscriptions of the same subscriber", () => {
   topic.addSubscription(new subs.SqsSubscription(queue));
 
   expect(() => topic.addSubscription(new subs.SqsSubscription(queue))).toThrow(
-    /A subscription with id \".*\" already exists under the scope MyStack\/MyQueue/,
+    /A subscription with id \".*\" already exists under the scope Default\/MyQueue/,
   );
 });
 
@@ -1606,95 +1606,89 @@ test("with filter policy scope MessageBody", () => {
   );
 });
 
-// // TODO: provider-aws version 5.88.0 does not support region prop on sns topic subscription
-// test("region property is present on an imported topic - sqs", () => {
-//   const imported = notify.Topic.fromTopicArn(
-//     stack,
-//     "mytopic",
-//     "arn:aws:sns:us-east-1:1234567890:mytopic",
-//   );
-//   const queue = new notify.Queue(stack, "myqueue");
-//   imported.addSubscription(new subs.SqsSubscription(queue));
+test("region property is present on an imported topic - sqs", () => {
+  const imported = notify.Topic.fromTopicArn(
+    stack,
+    "mytopic",
+    "arn:aws:sns:us-east-1:1234567890:mytopic",
+  );
+  const queue = new notify.Queue(stack, "myqueue");
+  imported.addSubscription(new subs.SqsSubscription(queue));
 
-//   Template.synth(stack).toHaveResourceWithProperties(
-//     snsTopicSubscription.SnsTopicSubscription,
-//     {
-//       region: "us-east-1",
-//     },
-//   );
-// });
+  Template.synth(stack).toHaveResourceWithProperties(
+    snsTopicSubscription.SnsTopicSubscription,
+    {
+      region: "us-east-1",
+    },
+  );
+});
 
-// // TODO: provider-aws version 5.88.0 does not support region prop on sns topic subscription
-// test("region property on an imported topic as a parameter - sqs", () => {
-//   const topicArn = new TerraformVariable(stack, "topicArn", {});
-//   const imported = notify.Topic.fromTopicArn(
-//     stack,
-//     "mytopic",
-//     topicArn.stringValue,
-//   );
-//   const queue = new notify.Queue(stack, "myqueue");
-//   imported.addSubscription(new subs.SqsSubscription(queue));
+test("region property on an imported topic as a parameter - sqs", () => {
+  const topicArn = new TerraformVariable(stack, "topicArn", {});
+  const imported = notify.Topic.fromTopicArn(
+    stack,
+    "mytopic",
+    topicArn.stringValue,
+  );
+  const queue = new notify.Queue(stack, "myqueue");
+  imported.addSubscription(new subs.SqsSubscription(queue));
 
-//   Template.synth(stack).toHaveResourceWithProperties(
-//     snsTopicSubscription.SnsTopicSubscription,
-//     {
-//       region: {
-//         "Fn::Select": [3, { "Fn::Split": [":", { Ref: "topicArn" }] }],
-//       },
-//     },
-//   );
-// });
+  Template.synth(stack).toHaveResourceWithProperties(
+    snsTopicSubscription.SnsTopicSubscription,
+    {
+      region: '${element(split(":", var.topicArn), 3)}',
+    },
+  );
+});
 
-// TODO: provider-aws version 5.88.0 does not support region prop on sns topic subscription
-// test("region property is present on an imported topic - lambda", () => {
-//   const imported = notify.Topic.fromTopicArn(
-//     stack,
-//     "mytopic",
-//     "arn:aws:sns:us-east-1:1234567890:mytopic",
-//   );
-//   const func = new compute.LambdaFunction(stack, "MyFunc", {
-//     // path: path.join(__dirname, "fixtures", "noop.ts"),
-//     runtime: compute.Runtime.NODEJS_LATEST,
-//     handler: "index.handler",
-//     code: compute.Code.fromInline(
-//       "exports.handler = function(e, c, cb) { return cb() }",
-//     ),
-//   });
-//   imported.addSubscription(new subs.LambdaSubscription(func));
+test("region property is present on an imported topic - lambda", () => {
+  const imported = notify.Topic.fromTopicArn(
+    stack,
+    "mytopic",
+    "arn:aws:sns:us-east-1:1234567890:mytopic",
+  );
+  const func = new compute.LambdaFunction(stack, "MyFunc", {
+    // path: path.join(__dirname, "fixtures", "noop.ts"),
+    runtime: compute.Runtime.NODEJS_LATEST,
+    handler: "index.handler",
+    code: compute.Code.fromInline(
+      "exports.handler = function(e, c, cb) { return cb() }",
+    ),
+  });
+  imported.addSubscription(new subs.LambdaSubscription(func));
 
-//   Template.synth(stack).toHaveResourceWithProperties(
-//     snsTopicSubscription.SnsTopicSubscription,
-//     {
-//       region: "us-east-1",
-//     },
-//   );
-// });
+  Template.synth(stack).toHaveResourceWithProperties(
+    snsTopicSubscription.SnsTopicSubscription,
+    {
+      region: "us-east-1",
+    },
+  );
+});
 
-// TODO: provider-aws version 5.88.0 does not support region prop on sns topic subscription
-// test("region property on an imported topic as a parameter - lambda", () => {
-//   const topicArn = new TerraformVariable(stack, "topicArn", {});
-//   const imported = notify.Topic.fromTopicArn(
-//     stack,
-//     "mytopic",
-//     topicArn.stringValue,
-//   );
-//   const func = new compute.LambdaFunction(stack, "MyFunc", {
-//     // path: path.join(__dirname, "fixtures", "noop.ts"),
-//     runtime: compute.Runtime.NODEJS_LATEST,
-//     handler: "index.handler",
-//     code: compute.Code.fromInline(
-//       "exports.handler = function(e, c, cb) { return cb() }",
-//     ),
-//   });
-//   imported.addSubscription(new subs.LambdaSubscription(func));
+test("region property on an imported topic as a parameter - lambda", () => {
+  const topicArn = new TerraformVariable(stack, "topicArn", {});
+  const imported = notify.Topic.fromTopicArn(
+    stack,
+    "mytopic",
+    topicArn.stringValue,
+  );
+  const func = new compute.LambdaFunction(stack, "MyFunc", {
+    // path: path.join(__dirname, "fixtures", "noop.ts"),
+    runtime: compute.Runtime.NODEJS_LATEST,
+    handler: "index.handler",
+    code: compute.Code.fromInline(
+      "exports.handler = function(e, c, cb) { return cb() }",
+    ),
+  });
+  imported.addSubscription(new subs.LambdaSubscription(func));
 
-//   Template.synth(stack).toHaveResourceWithProperties(
-//     snsTopicSubscription.SnsTopicSubscription,
-//     {
-//       region: `\${element(split(\":\", ${stack.resolve(topic.topicArn)}), 3)}`,
-//     },
-//   );
-// });
+  Template.synth(stack).toHaveResourceWithProperties(
+    snsTopicSubscription.SnsTopicSubscription,
+    {
+      region: '${element(split(":", var.topicArn), 3)}',
+    },
+  );
+});
 
 test("sms subscription", () => {
   topic.addSubscription(new subs.SmsSubscription("+15551231234"));

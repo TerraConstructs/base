@@ -6,7 +6,7 @@ import { DeliveryPolicy } from "./delivery-policy";
 import { SubscriptionFilter } from "./subscription-filter";
 import { ITopic } from "./topic-base";
 import { ValidationError } from "../../errors";
-import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
+import { AwsConstructBase } from "../aws-construct";
 import * as iam from "../iam";
 import * as notify from "../notify";
 
@@ -23,7 +23,7 @@ export interface SubscriptionOutputs {
 /**
  * Options for creating a new subscription
  */
-export interface SubscriptionOptions extends AwsConstructProps {
+export interface SubscriptionOptions {
   /**
    * What type of subscription to add.
    */
@@ -62,14 +62,12 @@ export interface SubscriptionOptions extends AwsConstructProps {
     [attribute: string]: FilterOrPolicy;
   };
 
-  // TODO: Cross-region subscriptions might require provider aliases in CDKTF.
-  // The sns_topic_subscription resource itself doesn't have a region parameter.
-  // /**
-  //  * The region where the topic resides, in the case of cross-region subscriptions
-  //  * @link https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sns-subscription.html#cfn-sns-subscription-region
-  //  * @default - the region where the stack is being deployed.
-  //  */
-  // readonly region?: string;
+  /**
+   * The region where the topic resides, in the case of cross-region subscriptions
+   * @link https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sns-subscription.html#cfn-sns-subscription-region
+   * @default - the region where the stack is being deployed.
+   */
+  readonly region?: string;
 
   /**
    * Queue to be used as dead letter queue.
@@ -221,8 +219,8 @@ export class Subscription extends AwsConstructBase {
         redrivePolicy: redrivePolicyJson,
         subscriptionRoleArn: props.subscriptionRoleArn,
         deliveryPolicy: deliveryPolicyJson,
-        // TODO: Bump to newer provider-aws version to get 'region' property support
-        // region: props.topic.stack.region,
+        region:
+          props.region ?? props.topic.env.region ?? props.topic.stack.region,
         // confirmationTimeoutInMinutes: // Not directly available in CDK props
         // endpointAutoConfirms: // Not directly available in CDK props
         // replayPolicy: // Not directly available in CDK props (missing in AWS CDK)

@@ -28,6 +28,10 @@ export * from "./subscription-filter";
 export * from "./delivery-policy";
 
 import "./sns-augmentations.generated";
+
+// Exporting as it is part of the public API
+export * from "./sns-grants.generated";
+
 // codestarnotifications
 export * from "./notification-rule";
 export * from "./notification-rule-source";

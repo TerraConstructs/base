@@ -1,8 +1,9 @@
-// https://github.com/aws/aws-cdk/blob/a7633a98ce325a620f364bfdeda354342751900a/packages/aws-cdk-lib/aws-sns/lib/topic.ts
+// https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-sns/lib/topic.ts
 
 import { snsTopic } from "@cdktf/provider-aws";
 import { Token } from "cdktf";
 import { Construct } from "constructs";
+import { ValidationError } from "../../errors";
 import { ArnFormat } from "../arn";
 import { AwsConstructProps } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
@@ -104,36 +105,34 @@ export interface TopicProps extends AwsConstructProps {
    */
   readonly tracingConfig?: TracingConfig;
 
-  // TODO: fifoThroughputScope is not directly supported by aws_sns_topic in Terraform as of provider v5.93.0
-  // /**
-  //  * Specifies the throughput quota and deduplication behavior to apply for the FIFO topic.
-  //  *
-  //  * You can only set this property when `fifo` is `true`.
-  //  *
-  //  * @default undefined - SNS default setting is FifoThroughputScope.TOPIC
-  //  */
-  // readonly fifoThroughputScope?: FifoThroughputScope;
+  /**
+   * Specifies the throughput quota and deduplication behavior to apply for the FIFO topic.
+   *
+   * You can only set this property when `fifo` is `true`.
+   *
+   * @default undefined - SNS default setting is FifoThroughputScope.TOPIC
+   */
+  readonly fifoThroughputScope?: FifoThroughputScope;
 }
 
-// TODO: fifoThroughputScope is not directly supported by aws_sns_topic in Terraform as of provider v5.93.0
-// /**
-//  * The throughput quota and deduplication behavior to apply for the FIFO topic.
-//  */
-// export enum FifoThroughputScope {
-//   /**
-//    * Topic scope
-//    * - Throughput: 3000 messages per second and a bandwidth of 20MB per second.
-//    * - Deduplication: Message deduplication is verified on the entire FIFO topic.
-//    */
-//   TOPIC = 'Topic',
+/**
+ * The throughput quota and deduplication behavior to apply for the FIFO topic.
+ */
+export enum FifoThroughputScope {
+  /**
+   * Topic scope
+   * - Throughput: 3000 messages per second and a bandwidth of 20MB per second.
+   * - Deduplication: Message deduplication is verified on the entire FIFO topic.
+   */
+  TOPIC = "Topic",
 
-//   /**
-//    * Message group scope
-//    * - Throughput: Maximum regional limits.
-//    * - Deduplication: Message deduplication is only verified within a message group.
-//    */
-//   MESSAGE_GROUP = 'MessageGroup',
-// }
+  /**
+   * Message group scope
+   * - Throughput: Maximum regional limits.
+   * - Deduplication: Message deduplication is only verified within a message group.
+   */
+  MESSAGE_GROUP = "MessageGroup",
+}
 
 /**
  * A logging configuration for delivery status of messages sent from SNS topic to subscribed endpoints.
@@ -247,6 +246,12 @@ export interface TopicAttributes {
  */
 export class Topic extends TopicBase {
   /**
+   * Uniquely identifies this class.
+   */
+  public static readonly PROPERTY_INJECTION_ID: string =
+    "terraconstructs.aws.sns.Topic";
+
+  /**
    * Import an existing SNS topic provided an ARN
    *
    * @param scope The parent creating construct
@@ -281,8 +286,9 @@ export class Topic extends TopicBase {
     const fifo = topicName.endsWith(".fifo");
 
     if (attrs.contentBasedDeduplication && !fifo) {
-      throw new Error(
+      throw new ValidationError(
         "Cannot import topic; contentBasedDeduplication is only available for FIFO SNS topics.",
+        scope,
       );
     }
 
@@ -319,19 +325,23 @@ export class Topic extends TopicBase {
     this.enforceSSL = props.enforceSSL;
 
     if (props.contentBasedDeduplication && !props.fifo) {
-      throw new Error(
+      throw new ValidationError(
         "Content based deduplication can only be enabled for FIFO SNS topics.",
+        this,
       );
     }
     if (props.messageRetentionPeriodInDays && !props.fifo) {
-      throw new Error(
+      throw new ValidationError(
         "`messageRetentionPeriodInDays` is only valid for FIFO SNS topics.",
+        this,
       );
     }
-    // TODO: fifoThroughputScope validation removed as property is not supported
-    // if (props.fifoThroughputScope && !props.fifo) {
-    //   throw new Error('`fifoThroughputScope` can only be set for FIFO SNS topics.');
-    // }
+    if (props.fifoThroughputScope && !props.fifo) {
+      throw new ValidationError(
+        "`fifoThroughputScope` can only be set for FIFO SNS topics.",
+        this,
+      );
+    }
     if (
       props.messageRetentionPeriodInDays !== undefined &&
       !Token.isUnresolved(props.messageRetentionPeriodInDays) &&
@@ -339,8 +349,9 @@ export class Topic extends TopicBase {
         props.messageRetentionPeriodInDays > 365 ||
         props.messageRetentionPeriodInDays < 1)
     ) {
-      throw new Error(
+      throw new ValidationError(
         "`messageRetentionPeriodInDays` must be an integer between 1 and 365",
+        this,
       );
     }
 
@@ -362,8 +373,9 @@ export class Topic extends TopicBase {
       props.signatureVersion !== "1" &&
       props.signatureVersion !== "2"
     ) {
-      throw new Error(
+      throw new ValidationError(
         `signatureVersion must be "1" or "2", received: "${props.signatureVersion}"`,
+        this,
       );
     }
 
@@ -372,14 +384,20 @@ export class Topic extends TopicBase {
       !Token.isUnresolved(props.displayName) &&
       props.displayName.length > 100
     ) {
-      throw new Error(
+      throw new ValidationError(
         `displayName must be less than or equal to 100 characters, got ${props.displayName.length}`,
+        this,
       );
     }
 
     this.resource = new snsTopic.SnsTopic(this, "Resource", {
-      name: topicName,
+      archivePolicy: props.messageRetentionPeriodInDays
+        ? JSON.stringify({
+            MessageRetentionPeriod: props.messageRetentionPeriodInDays,
+          })
+        : undefined,
       displayName: props.displayName,
+      name: topicName,
       kmsMasterKeyId: props.masterKey?.keyArn,
       contentBasedDeduplication: props.contentBasedDeduplication,
       fifoTopic: props.fifo,
@@ -387,12 +405,7 @@ export class Topic extends TopicBase {
         ? parseInt(props.signatureVersion, 10)
         : undefined,
       tracingConfig: props.tracingConfig,
-      archivePolicy: props.messageRetentionPeriodInDays
-        ? JSON.stringify({
-            MessageRetentionPeriod: props.messageRetentionPeriodInDays,
-          })
-        : undefined,
-      // TODO: fifoThroughputScope is not supported in Terraform as of provider v5.93.0
+      fifoThroughputScope: props.fifoThroughputScope,
     });
 
     // add logging config overrides
@@ -418,55 +431,26 @@ export class Topic extends TopicBase {
     if (config.successFeedbackSampleRate !== undefined) {
       const rate = config.successFeedbackSampleRate;
       if (!Number.isInteger(rate) || rate < 0 || rate > 100) {
-        throw new Error(
+        throw new ValidationError(
           "Success feedback sample rate must be an integer between 0 and 100",
+          this,
         );
       }
     }
 
     if (config.failureFeedbackRole) {
-      this.resource.addOverride(
-        `${config.protocol}_failure_feedback_role_arn`,
-        config.failureFeedbackRole.roleArn,
-      );
+      this.resource[`${config.protocol}FailureFeedbackRoleArn`] =
+        config.failureFeedbackRole.roleArn;
     }
 
     if (config.successFeedbackRole) {
-      this.resource.addOverride(
-        `${config.protocol}_success_feedback_role_arn`,
-        config.successFeedbackRole.roleArn,
-      );
+      this.resource[`${config.protocol}SuccessFeedbackRoleArn`] =
+        config.successFeedbackRole.roleArn;
     }
 
     if (config.successFeedbackSampleRate !== undefined) {
-      this.resource.addOverride(
-        `${config.protocol}_success_feedback_sample_rate`,
-        config.successFeedbackSampleRate.toString(),
-      );
+      this.resource[`${config.protocol}SuccessFeedbackSampleRate`] =
+        config.successFeedbackSampleRate;
     }
-  }
-
-  /**
-   * Adds an IAM policy statement to enforce the use of TLS for publishing to this topic.
-   *
-   * @see https://docs.aws.amazon.com/sns/latest/dg/sns-security-best-practices.html#enforce-encryption-data-in-transit
-   */
-  protected addSSLPolicy(): void {
-    this.addToResourcePolicy(
-      new iam.PolicyStatement({
-        sid: "EnforcePublishSSL",
-        actions: ["sns:Publish"],
-        effect: iam.Effect.DENY,
-        resources: [this.topicArn],
-        principals: [new iam.AnyPrincipal()],
-        condition: [
-          {
-            test: "Bool",
-            variable: "aws:SecureTransport",
-            values: ["false"],
-          },
-        ],
-      }),
-    );
   }
 }

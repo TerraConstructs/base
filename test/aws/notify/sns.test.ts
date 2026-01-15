@@ -1,16 +1,11 @@
-// https://github.com/aws/aws-cdk/blob/f1c092634a391b0b7aed0f75626dd6d0ffd56564/packages/aws-cdk-lib/aws-sns/test/sns.test.ts
+// https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-sns/test/sns.test.ts
 
 import {
   snsTopic,
   snsTopicPolicy,
   snsTopicSubscription,
   dataAwsIamPolicyDocument,
-  iamRole,
-  iamUser,
-  kmsKey,
-  iamRolePolicy,
   iamUserPolicy,
-  codestarnotificationsNotificationRule,
 } from "@cdktf/provider-aws";
 import { App, Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
@@ -21,26 +16,13 @@ import * as sns from "../../../src/aws/notify";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridUUID2 = "123e4567-e89b-12d4";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("Topic", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   describe("topic tests", () => {
@@ -107,7 +89,7 @@ describe("Topic", () => {
       const t = new Template(stack);
       t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
         fifo_topic: true,
-        name: "MyStack-MyTopic-DFB2578F.fifo", // Name is auto-generated
+        name: "MyTopic.fifo",
       });
     });
 
@@ -262,7 +244,7 @@ describe("Topic", () => {
       {
         statement: [
           {
-            sid: "EnforcePublishSSL",
+            sid: "AllowPublishThroughSSLOnly",
             actions: ["sns:Publish"],
             effect: "Deny",
             resources: ["${aws_sns_topic.Topic_BFC7AF6E.arn}"],
@@ -275,7 +257,7 @@ describe("Topic", () => {
             ],
             principals: [
               {
-                type: "AWS",
+                type: "*",
                 identifiers: ["*"],
               },
             ],
@@ -311,7 +293,7 @@ describe("Topic", () => {
       {
         statement: [
           {
-            sid: "EnforcePublishSSL",
+            sid: "AllowPublishThroughSSLOnly",
             actions: ["sns:Publish"],
             effect: "Deny",
             resources: ["${aws_sns_topic.Topic_BFC7AF6E.arn}"],
@@ -324,7 +306,7 @@ describe("Topic", () => {
             ],
             principals: [
               {
-                type: "AWS",
+                type: "*",
                 identifiers: ["*"],
               },
             ],
@@ -391,6 +373,9 @@ describe("Topic", () => {
 
   test("give publishing permissions with masterKey", () => {
     // GIVEN
+    stack = new AwsStack(undefined, undefined, {
+      providerConfig: { region: "us-east-1" },
+    });
     const key = new kms.Key(stack, "CustomKey");
     const topic = new sns.Topic(stack, "Topic", { masterKey: key });
     const user = new iam.User(stack, "User");
@@ -567,8 +552,6 @@ describe("Topic", () => {
               },
             ],
             principals: [
-              // AWSCDK uses Star Principal, TerraConstructs uses AnyPrincipal.
-              // Most of the time, you should use `AnyPrincipal` instead.
               {
                 type: "*",
                 identifiers: ["*"],
@@ -640,12 +623,7 @@ describe("Topic", () => {
 
   test("fromTopicArn", () => {
     // GIVEN
-    const stack2 = new AwsStack(app, "stack2", {
-      environmentName,
-      gridUUID: gridUUID2,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack();
 
     // WHEN
     const imported = sns.Topic.fromTopicArn(
@@ -766,7 +744,6 @@ describe("Topic", () => {
       namespace: "AWS/SNS",
       metricName: "NumberOfMessagesPublished",
       period: Duration.minutes(5),
-      region: "us-east-1",
       statistic: "Sum",
     });
 
@@ -775,7 +752,6 @@ describe("Topic", () => {
       namespace: "AWS/SNS",
       metricName: "PublishSize",
       period: Duration.minutes(5),
-      region: "us-east-1",
       statistic: "Average",
     });
   });
@@ -808,12 +784,8 @@ describe("Topic", () => {
 
   test('if "scope" is defined, subscription will be created under that scope', () => {
     // GIVEN
-    const stack2 = new AwsStack(app, "B", {
-      environmentName,
-      gridUUID: gridUUID2,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app, "A");
+    const stack2 = new AwsStack(app, "B");
     const topic = new sns.Topic(stack, "Topic");
 
     // WHEN
@@ -836,7 +808,7 @@ describe("Topic", () => {
       {
         // TODO: Figure out cross stack reference resolving?
         topic_arn:
-          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_sns_topicTopic_BFC7AF6Earn}", //stack.resolve(topic.topicArn),
+          "${data.terraform_remote_state.cross-stack-reference-input-A.outputs.cross-stack-output-aws_sns_topicTopic_BFC7AF6Earn}", //stack.resolve(topic.topicArn),
         protocol: "http",
         endpoint: "http://foo/bar",
       },
@@ -943,7 +915,7 @@ describe("Topic", () => {
     t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
       sqs_failure_feedback_role_arn: stack.resolve(feedbackRole.roleArn),
       sqs_success_feedback_role_arn: stack.resolve(feedbackRole.roleArn),
-      sqs_success_feedback_sample_rate: "50",
+      sqs_success_feedback_sample_rate: 50,
     });
   });
 
@@ -967,7 +939,7 @@ describe("Topic", () => {
     t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
       http_failure_feedback_role_arn: stack.resolve(feedbackRole.roleArn),
       http_success_feedback_role_arn: stack.resolve(feedbackRole.roleArn),
-      http_success_feedback_sample_rate: "50",
+      http_success_feedback_sample_rate: 50,
     });
   });
 
@@ -1078,38 +1050,32 @@ describe("Topic", () => {
     });
   });
 
-  // // TODO: fifoThroughputScope is not supported in Terraform as of provider v5.93.0
-  // // ref:
-  // // - https://github.com/aws/aws-cdk/pull/33056
-  // // - https://github.com/hashicorp/terraform-provider-aws/issues/42501
-  // describe("fifoThroughputScope", () => {
-  //   test.each([
-  //     sns.FifoThroughputScope.MESSAGE_GROUP,
-  //     sns.FifoThroughputScope.TOPIC,
-  //   ])("set fifoThroughputScope to %s", (fifoThroughputScope) => {
-  //     // WHEN
-  //     new sns.Topic(stack, "MyTopic", {
-  //       fifo: true,
-  //       fifoThroughputScope,
-  //     });
+  describe("fifoThroughputScope", () => {
+    test.each([
+      sns.FifoThroughputScope.MESSAGE_GROUP,
+      sns.FifoThroughputScope.TOPIC,
+    ])("set fifoThroughputScope to %s", (fifoThroughputScope) => {
+      // WHEN
+      new sns.Topic(stack, "MyTopic", {
+        fifo: true,
+        fifoThroughputScope,
+      });
 
-  //     // THEN
-  //     const t = new Template(stack);
-  //     t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
-  //       fifo_topic: true,
-  //       // fifo_throughput_scope: fifoThroughputScope, // Not directly available in aws provider sns_topic
-  //     });
-  //     // Note: fifo_throughput_scope is not a direct attribute in the Terraform AWS provider for sns_topic.
-  //     // This might be managed via other means or not exposed.
-  //   });
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(snsTopic.SnsTopic, {
+        fifo_topic: true,
+        fifo_throughput_scope: fifoThroughputScope,
+      });
+    });
 
-  //   test("throw error when specify fifoThroughputScope to standard topic", () => {
-  //     expect(
-  //       () =>
-  //         new sns.Topic(stack, "MyTopic", {
-  //           fifoThroughputScope: sns.FifoThroughputScope.MESSAGE_GROUP,
-  //         }),
-  //     ).toThrow("`fifoThroughputScope` can only be set for FIFO SNS topics.");
-  //   });
-  // });
+    test("throw error when specify fifoThroughputScope to standard topic", () => {
+      expect(
+        () =>
+          new sns.Topic(stack, "MyTopic", {
+            fifoThroughputScope: sns.FifoThroughputScope.MESSAGE_GROUP,
+          }),
+      ).toThrow("`fifoThroughputScope` can only be set for FIFO SNS topics.");
+    });
+  });
 });

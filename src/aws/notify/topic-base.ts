@@ -1,4 +1,4 @@
-// https://github.com/aws/aws-cdk/blob/f1c092634a391b0b7aed0f75626dd6d0ffd56564/packages/aws-cdk-lib/aws-sns/lib/topic-base.ts
+// https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-sns/lib/topic-base.ts
 
 import { Token } from "cdktf";
 import * as constructs from "constructs";
@@ -8,6 +8,7 @@ import {
   NotificationRuleTargetConfig,
 } from "./notification-rule-target";
 import { TopicPolicy } from "./policy";
+import { TopicGrants } from "./sns-grants.generated";
 import { ITopicSubscription } from "./subscriber";
 import { Subscription } from "./subscription";
 import { ValidationError } from "../../errors";
@@ -46,6 +47,7 @@ export interface ITopic extends IAwsConstruct, INotificationRuleTarget {
    * strongly typed outputs for the topic
    */
   readonly topicOutputs: TopicOutputs;
+
   /**
    * The ARN of the topic
    *
@@ -134,6 +136,11 @@ export abstract class TopicBase extends AwsConstructBase implements ITopic {
   public abstract readonly fifo: boolean;
 
   public abstract readonly contentBasedDeduplication: boolean;
+
+  /**
+   * Collection of grant methods for a Topic
+   */
+  public readonly grants: TopicGrants = TopicGrants.fromTopic(this);
 
   /**
    * Controls automatic creation of policy objects.
@@ -258,32 +265,29 @@ export abstract class TopicBase extends AwsConstructBase implements ITopic {
     });
   }
 
+  public grantOnKey(
+    grantee: iam.IGrantable,
+    ...actions: string[]
+  ): iam.GrantOnKeyResult {
+    const grant = this.masterKey
+      ? this.masterKey.grant(grantee, ...actions)
+      : undefined;
+
+    return { grant };
+  }
+
   /**
    * Grant topic publishing permissions to the given identity
    */
   public grantPublish(grantee: iam.IGrantable) {
-    const ret = iam.Grant.addToPrincipalOrResource({
-      grantee,
-      actions: ["sns:Publish"],
-      resourceArns: [this.topicArn],
-      resource: this,
-    });
-    if (this.masterKey) {
-      this.masterKey.grant(grantee, "kms:Decrypt", "kms:GenerateDataKey*");
-    }
-    return ret;
+    return this.grants.publish(grantee);
   }
 
   /**
    * Grant topic subscribing permissions to the given identity
    */
   public grantSubscribe(grantee: iam.IGrantable) {
-    return iam.Grant.addToPrincipalOrResource({
-      grantee,
-      actions: ["sns:Subscribe"],
-      resourceArns: [this.topicArn],
-      resource: this,
-    });
+    return this.grants.subscribe(grantee);
   }
 
   /**
