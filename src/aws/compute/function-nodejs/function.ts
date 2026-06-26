@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { Annotations } from "cdktf";
+import { Annotations } from "cdktn";
 import { Construct } from "constructs";
 import { Bundling } from "./bundling";
 import { LockFile } from "./package-manager";

@@ -1,5 +1,5 @@
-import { apiGatewayBasePathMapping } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { apiGatewayBasePathMapping } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { IDomainName } from "./domain-name";
 import { IRestApi } from "./restapi";

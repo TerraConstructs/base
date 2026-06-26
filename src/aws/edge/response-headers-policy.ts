@@ -2,8 +2,8 @@
 import {
   cloudfrontResponseHeadersPolicy,
   dataAwsCloudfrontResponseHeadersPolicy,
-} from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { Duration } from "../../duration";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";

@@ -6,17 +6,17 @@ import {
   ecrRepository,
   dataAwsEcrRepository,
   dataAwsS3Bucket,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   provider as dockerProvider,
   image as dockerImage,
   registryImage as dockerRegistryImage,
-} from "@cdktf/provider-docker";
+} from "@cdktn/provider-docker";
 import {
   AssetType,
   TerraformAsset,
   // ref,
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
 import * as mime from "mime-types";
 import { IAssetManager } from "../asset-manager";

@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ssm/test/parameter-store-string.test.ts
 
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { StringParameter } from "../../../src/aws/storage/parameter";
 import { Template } from "../../assertions";

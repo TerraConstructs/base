@@ -3,9 +3,9 @@ import {
   sqsQueuePolicy,
   dataAwsIamPolicyDocument,
   kmsKey,
-} from "@cdktf/provider-aws";
-import { TerraformVariable, Testing, Token } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { TerraformVariable, Testing, Token } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as encryption from "../../../src/aws/encryption";
 import * as iam from "../../../src/aws/iam";

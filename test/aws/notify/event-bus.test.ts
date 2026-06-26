@@ -8,13 +8,13 @@ import {
   dataAwsIamPolicyDocument,
   kmsKey,
   iamRolePolicy,
-} from "@cdktf/provider-aws";
-import { Lazy, TerraformOutput, Testing } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Lazy, TerraformOutput, Testing } from "cdktn";
 import { AwsStack, Arn } from "../../../src/aws";
 import * as kms from "../../../src/aws/encryption";
 import * as iam from "../../../src/aws/iam";
 import * as sqs from "../../../src/aws/notify";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { EventBus } from "../../../src/aws/notify/event-bus";
 import { Template } from "../../assertions";
 import { TestResource } from "../../test-resource";

@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/nlb/network-listener-certificate.ts
 
-import { lbListenerCertificate as tfListenerCertificate } from "@cdktf/provider-aws";
+import { lbListenerCertificate as tfListenerCertificate } from "@cdktn/provider-aws";
 
 import { Construct } from "constructs";
 import { INetworkListener } from "./network-listener";

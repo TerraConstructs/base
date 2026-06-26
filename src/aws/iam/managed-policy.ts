@@ -2,7 +2,7 @@ import {
   iamPolicy,
   dataAwsIamPolicy,
   iamRolePolicyAttachment,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { PolicyDocument } from "./policy-document";
 import { PolicyStatement } from "./policy-statement";

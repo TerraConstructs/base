@@ -2,7 +2,7 @@ import {
   IPostProcessor,
   IResolveContext,
   //Token
-} from "cdktf";
+} from "cdktn";
 import { PolicyStatement } from "../policy-statement";
 /**
  * A Token postprocesser for policy documents

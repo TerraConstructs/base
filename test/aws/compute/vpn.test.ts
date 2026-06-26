@@ -6,9 +6,9 @@ import {
   vpnGatewayAttachment,
   vpnConnectionRoute as tfVpnConnectionRoute,
   // vpnGateway as tfVpnGateway,
-} from "@cdktf/provider-aws";
-import { App, Testing, Token } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing, Token } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 // import { SecretValue} from "../../../src";
 import { PublicSubnet, Vpc, VpnConnection } from "../../../src/aws/compute";

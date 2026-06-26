@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/nat.ts
 
-import { Fn, Token } from "cdktf";
+import { Fn, Token } from "cdktn";
 import { Connections, IConnectable } from "./connections";
 import { Instance } from "./instance";
 import { InstanceArchitecture, InstanceType } from "./instance-types";

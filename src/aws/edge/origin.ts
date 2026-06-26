@@ -1,7 +1,7 @@
 // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-cloudfront/lib/origin.ts
 
-import { cloudfrontDistribution } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { cloudfrontDistribution } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Duration } from "../../";
 import { IBucket } from "../storage";
 

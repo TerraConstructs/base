@@ -1,6 +1,6 @@
-import { Testing } from "cdktf";
+import { Testing } from "cdktn";
 import { Construct } from "constructs";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { render } from "./private/render-util";
 import { iam, compute, AwsStack } from "../../../src/aws";
 import { Duration } from "../../../src/duration";

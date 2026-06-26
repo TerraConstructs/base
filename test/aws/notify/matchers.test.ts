@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-events/test/matchers.test.ts
 
-import { App, Testing } from "cdktf";
+import { App, Testing } from "cdktn";
 import { AwsStack } from "../../../src/aws/aws-stack";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { Match } from "../../../src/aws/notify";
 
 const environmentName = "Test";

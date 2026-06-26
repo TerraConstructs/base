@@ -1,6 +1,6 @@
-import { apiGatewayRequestValidator } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { apiGatewayRequestValidator } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { RestApi, Method, RequestValidator } from "../../../src/aws/compute";
 import { Template } from "../../assertions";

@@ -1,6 +1,6 @@
 import * as fs from "fs";
-import { iamSamlProvider } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { iamSamlProvider } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import {
   IAwsConstruct,

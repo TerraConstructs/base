@@ -5,7 +5,7 @@ import {
   iamUserPolicyAttachment,
   iamUserGroupMembership,
   iamUserLoginProfile,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import * as iam from ".";
 import { Arn, ArnFormat } from "../arn";

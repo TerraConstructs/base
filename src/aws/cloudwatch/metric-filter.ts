@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/metric-filter.ts
 
-import { cloudwatchLogMetricFilter } from "@cdktf/provider-aws";
+import { cloudwatchLogMetricFilter } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { ILogGroup, MetricFilterOptions } from "./log-group";
 import { Metric, MetricOptions } from "./metric";

@@ -6,7 +6,7 @@ import { isAbsolute, join } from "path";
 import { DockerCacheOption } from "./assets";
 import { ExecutionError } from "./errors";
 import { FileSystem } from "./fs";
-// TODO: Replace with @cdktf/provider-docker?
+// TODO: Replace with @cdktn/provider-docker?
 import { dockerExec } from "./private/asset-staging";
 import { quiet, reset } from "./private/jsii-deprecated";
 

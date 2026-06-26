@@ -1,4 +1,4 @@
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import * as compute from "../../";
 import * as iam from "../../../iam";

@@ -1,13 +1,13 @@
 // https://github.com/aws/aws-cdk/blob/41cd57290e03e9256cc77466fd39e7f3e7a295b4/packages/aws-cdk-lib/aws-ec2/lib/machine-image/machine-image.ts
 
-import { dataAwsAmi } from "@cdktf/provider-aws";
+import { dataAwsAmi } from "@cdktn/provider-aws";
 // import {
 //   // TODO: Use Grid as contextProvider
 //   // ContextProvider,
 //   // CfnMapping,
 //   // Aws,
 //   Token,
-// } from "cdktf";
+// } from "cdktn";
 import { Construct } from "constructs";
 import {
   AmazonLinux2022ImageSsmParameter,

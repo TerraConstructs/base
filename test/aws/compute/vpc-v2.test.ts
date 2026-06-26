@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/@aws-cdk/aws-ec2-alpha/test/vpc-v2.test.ts
 
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   AddressFamily,

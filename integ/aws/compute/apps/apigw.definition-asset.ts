@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/%40aws-cdk-testing/framework-integ/test/aws-apigateway/test/integ.api-definition.asset.ts
 
 import * as path from "path";
-import { App, LocalBackend, TerraformOutput } from "cdktf";
+import { App, LocalBackend, TerraformOutput } from "cdktn";
 import { Construct } from "constructs";
 import { aws } from "../../../../src";
 

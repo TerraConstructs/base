@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-sns/lib/topic.ts
 
-import { snsTopic } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { snsTopic } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { ValidationError } from "../../errors";
 import { ArnFormat } from "../arn";

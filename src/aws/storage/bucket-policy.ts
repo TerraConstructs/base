@@ -1,4 +1,4 @@
-import { s3BucketPolicy } from "@cdktf/provider-aws";
+import { s3BucketPolicy } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { AwsConstructProps, AwsConstructBase } from "../aws-construct";
 import { IBucket } from "./bucket";

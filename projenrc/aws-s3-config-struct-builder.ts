@@ -29,7 +29,7 @@ export class S3BucketWebsiteConfigurationConfigStructBuilder extends Component {
     struct
       .mixin(
         Struct.fromFqn(
-          "@cdktf/provider-aws.s3BucketWebsiteConfiguration.S3BucketWebsiteConfigurationConfig",
+          "@cdktn/provider-aws.s3BucketWebsiteConfiguration.S3BucketWebsiteConfigurationConfig",
         ),
       )
       .omit("bucket", "redirectAllRequestsTo", "expectedBucketOwner")
@@ -79,7 +79,7 @@ export class S3BucketCorsConfigurationConfigStructBuilder extends Component {
     corsRuleConfigStruct
       .mixin(
         Struct.fromFqn(
-          "@cdktf/provider-aws.s3BucketCorsConfiguration.S3BucketCorsConfigurationCorsRule",
+          "@cdktn/provider-aws.s3BucketCorsConfiguration.S3BucketCorsConfigurationCorsRule",
         ),
       )
       .update("allowedMethods", {
@@ -121,7 +121,7 @@ export class S3BucketCorsConfigurationConfigStructBuilder extends Component {
     corsConfigStruct
       .mixin(
         Struct.fromFqn(
-          "@cdktf/provider-aws.s3BucketCorsConfiguration.S3BucketCorsConfigurationConfig",
+          "@cdktn/provider-aws.s3BucketCorsConfiguration.S3BucketCorsConfigurationConfig",
         ),
       )
       .omit("bucket")
@@ -133,7 +133,7 @@ export class S3BucketCorsConfigurationConfigStructBuilder extends Component {
         type: {
           union: {
             types: [
-              { fqn: "cdktf.IResolvable" },
+              { fqn: "cdktn.IResolvable" },
               {
                 collection: {
                   kind: CollectionKind.Array,
@@ -168,7 +168,7 @@ export class S3BucketLifecycleConfigurationRuleStructBuilder extends Component {
     struct
       .mixin(
         Struct.fromFqn(
-          "@cdktf/provider-aws.s3BucketLifecycleConfiguration.S3BucketLifecycleConfigurationRule",
+          "@cdktn/provider-aws.s3BucketLifecycleConfiguration.S3BucketLifecycleConfigurationRule",
         ),
       )
       .omit(

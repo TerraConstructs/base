@@ -1,11 +1,11 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/user-data.ts
 
-import { dataCloudinitConfig } from "@cdktf/provider-cloudinit";
+import { dataCloudinitConfig } from "@cdktn/provider-cloudinit";
 import {
   // TerraformResource
   IResolvable,
   Lazy,
-} from "cdktf";
+} from "cdktn";
 // import { AwsConstructBase } from "../aws-construct";
 // import { AwsStack } from "../aws-stack";
 import { IConstruct } from "constructs";

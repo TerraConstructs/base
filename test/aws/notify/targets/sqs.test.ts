@@ -4,9 +4,9 @@ import {
   dataAwsServicePrincipal,
   cloudwatchEventRule,
   sqsQueuePolicy,
-} from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import { Key } from "../../../../src/aws/encryption";
 import { Queue } from "../../../../src/aws/notify/queue";

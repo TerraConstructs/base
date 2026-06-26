@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/vpc-flow-logs.ts
 
-import { flowLog } from "@cdktf/provider-aws";
-import { TerraformResource } from "cdktf";
+import { flowLog } from "@cdktn/provider-aws";
+import { TerraformResource } from "cdktn";
 import { Construct } from "constructs";
 import { ISubnet, IVpc } from "./vpc";
 import { IAwsConstruct, AwsConstructBase } from "../aws-construct";

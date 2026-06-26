@@ -1,4 +1,4 @@
-import { Lazy } from "cdktf";
+import { Lazy } from "cdktn";
 import { Method } from "./method";
 import { IVpcLink, VpcLink } from "./vpc-link";
 import { Duration } from "../../duration";

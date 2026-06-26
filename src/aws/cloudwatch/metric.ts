@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-cloudwatch/lib/metric.ts
 
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 import { Construct, IConstruct } from "constructs";
 import { Alarm, ComparisonOperator, TreatMissingData } from "./alarm";
 import {

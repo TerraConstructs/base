@@ -1,16 +1,16 @@
-import { AppautoscalingPolicy } from "@cdktf/provider-aws/lib/appautoscaling-policy";
-import { AppautoscalingTarget } from "@cdktf/provider-aws/lib/appautoscaling-target";
-import { DataAwsIamPolicyDocument } from "@cdktf/provider-aws/lib/data-aws-iam-policy-document";
-import { DynamodbContributorInsights } from "@cdktf/provider-aws/lib/dynamodb-contributor-insights";
-import { DynamodbKinesisStreamingDestination } from "@cdktf/provider-aws/lib/dynamodb-kinesis-streaming-destination";
-import { DynamodbResourcePolicy } from "@cdktf/provider-aws/lib/dynamodb-resource-policy";
-import { DynamodbTable } from "@cdktf/provider-aws/lib/dynamodb-table";
-import { IamRolePolicy } from "@cdktf/provider-aws/lib/iam-role-policy";
-import { IamUserPolicy } from "@cdktf/provider-aws/lib/iam-user-policy";
-import { KmsKey } from "@cdktf/provider-aws/lib/kms-key";
-import { App, Testing } from "cdktf";
+import { AppautoscalingPolicy } from "@cdktn/provider-aws/lib/appautoscaling-policy";
+import { AppautoscalingTarget } from "@cdktn/provider-aws/lib/appautoscaling-target";
+import { DataAwsIamPolicyDocument } from "@cdktn/provider-aws/lib/data-aws-iam-policy-document";
+import { DynamodbContributorInsights } from "@cdktn/provider-aws/lib/dynamodb-contributor-insights";
+import { DynamodbKinesisStreamingDestination } from "@cdktn/provider-aws/lib/dynamodb-kinesis-streaming-destination";
+import { DynamodbResourcePolicy } from "@cdktn/provider-aws/lib/dynamodb-resource-policy";
+import { DynamodbTable } from "@cdktn/provider-aws/lib/dynamodb-table";
+import { IamRolePolicy } from "@cdktn/provider-aws/lib/iam-role-policy";
+import { IamUserPolicy } from "@cdktn/provider-aws/lib/iam-user-policy";
+import { KmsKey } from "@cdktn/provider-aws/lib/kms-key";
+import { App, Testing } from "cdktn";
 // import { Construct } from "constructs";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { Tags } from "../../../src/aws/aws-tags";
 import { Alarm } from "../../../src/aws/cloudwatch";
@@ -3289,7 +3289,7 @@ describe("global", () => {
   // });
 });
 
-// // TODO: removalPolicy + @cdktf/provider-aws dynamodb table does not throw
+// // TODO: removalPolicy + @cdktn/provider-aws dynamodb table does not throw
 // test("L1 inside L2 expects removalpolicy to have been set", () => {
 //   // Check that the "stateful L1 validation generation" works. Do it here
 //   // because we know DDB tables are stateful.

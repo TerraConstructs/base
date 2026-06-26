@@ -3,8 +3,8 @@
 // This synths directly to the terraform-provider-aws `aws_iam_policy_document` data source.
 // This is not undefined when the policy document is empty.
 // TODO: Add validation and errors for empty policy documents
-import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
-import { Lazy, IResolveContext } from "cdktf";
+import { dataAwsIamPolicyDocument } from "@cdktn/provider-aws";
+import { Lazy, IResolveContext } from "cdktn";
 import { Construct } from "constructs";
 import { PolicyDocumentConfig } from "./policy-document-config.generated";
 import { PolicyStatement } from "./policy-statement";

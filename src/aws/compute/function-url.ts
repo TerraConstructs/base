@@ -1,4 +1,4 @@
-import { lambdaFunctionUrl } from "@cdktf/provider-aws";
+import { lambdaFunctionUrl } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { IAwsConstruct, AwsConstructBase } from "../aws-construct";
 import { IAlias } from "./function-alias";

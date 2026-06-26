@@ -1,6 +1,6 @@
-import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
-import "cdktf/lib/testing/adapters/jest";
-import { Testing } from "cdktf";
+import { dataAwsIamPolicyDocument } from "@cdktn/provider-aws";
+import "cdktn/lib/testing/adapters/jest";
+import { Testing } from "cdktn";
 import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import { StepFunctionsStartExecution } from "../../../../../src/aws/compute/tasks/stepfunctions/start-execution";

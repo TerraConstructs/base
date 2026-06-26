@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.176.0/packages/aws-cdk-lib/aws-sns-subscriptions/test/sqs.test.ts
-import { snsTopicSubscription } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { snsTopicSubscription } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as encryption from "../../../../src/aws/encryption";
 import * as notify from "../../../../src/aws/notify";

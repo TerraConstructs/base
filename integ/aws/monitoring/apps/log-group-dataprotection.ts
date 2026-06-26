@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/81cde0e2e1f83f80273d14724d5518cc20dc5a80/packages/@aws-cdk-testing/framework-integ/test/aws-logs/test/integ.log-group.ts
 
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

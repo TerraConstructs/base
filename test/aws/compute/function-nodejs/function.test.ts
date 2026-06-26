@@ -3,9 +3,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import * as child_process from "child_process";
 import * as path from "path";
-import { lambdaFunction } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { lambdaFunction } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import bockfs from "./bockfs";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import { Vpc, Code, CodeConfig, Runtime } from "../../../../src/aws/compute";

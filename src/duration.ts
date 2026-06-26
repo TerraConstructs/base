@@ -1,5 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.154.1/packages/aws-cdk-lib/core/lib/duration.ts
-import { Token, Tokenization } from "cdktf";
+import { Token, Tokenization } from "cdktn";
 
 /**
  * Represents a length of time.

@@ -4,15 +4,15 @@ import {
   iamRolePolicy,
   iamRole,
   iamRolePolicyAttachment,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   Testing,
   Token,
   Lazy,
   TerraformElement,
   AnnotationMetadataEntryType,
-} from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 // import {
 //   Stage,
 //   DefaultStackSynthesizer,

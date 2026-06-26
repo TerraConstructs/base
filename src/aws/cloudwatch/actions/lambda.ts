@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/a12887b593ef6796f63bf754a3d381676d2e5155/packages/aws-cdk-lib/aws-cloudwatch-actions/lib/lambda.ts
 
-import { lambdaPermission } from "@cdktf/provider-aws";
+import { lambdaPermission } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import * as cloudwatch from "..";
 import { AwsStack } from "../../aws-stack";

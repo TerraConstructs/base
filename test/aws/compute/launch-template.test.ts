@@ -4,10 +4,10 @@ import {
   iamInstanceProfile,
   iamRole,
   launchTemplate as tfLaunchTemplate,
-} from "@cdktf/provider-aws";
-import { dataCloudinitConfig } from "@cdktf/provider-cloudinit";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { dataCloudinitConfig } from "@cdktn/provider-cloudinit";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { Duration, Expiration } from "../../../src";
 import { AwsStack, Tags } from "../../../src/aws";
 import {

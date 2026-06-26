@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/test/userdata.test.ts
 
-import { dataCloudinitConfig } from "@cdktf/provider-cloudinit";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { dataCloudinitConfig } from "@cdktn/provider-cloudinit";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import * as ec2 from "../../../src/aws/compute";
 import { Bucket } from "../../../src/aws/storage";

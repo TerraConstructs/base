@@ -1,12 +1,12 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/shared/base-listener.ts
 
-import { lbListener as tfListener } from "@cdktf/provider-aws";
+import { lbListener as tfListener } from "@cdktn/provider-aws";
 import {
   Annotations,
   // ContextProvider,
   Lazy,
   // Token,
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
 import {
   LoadBalancerType,

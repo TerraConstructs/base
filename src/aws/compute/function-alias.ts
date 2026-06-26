@@ -1,4 +1,4 @@
-import { lambdaAlias, dataAwsLambdaAlias } from "@cdktf/provider-aws";
+import { lambdaAlias, dataAwsLambdaAlias } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { Architecture } from "./architecture";
 import { EventInvokeConfigOptions } from "./event-invoke-config";

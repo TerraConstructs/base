@@ -1,10 +1,10 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/private/ebs-util.ts
 
-import { instance, launchTemplate } from "@cdktf/provider-aws";
+import { instance, launchTemplate } from "@cdktn/provider-aws";
 import {
   Annotations,
   //IResolvable
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
 import { AmazonLinuxVirt } from "../machine-image/common";
 import { BlockDevice, BlockDeviceVolume, EbsDeviceVolumeType } from "../volume";

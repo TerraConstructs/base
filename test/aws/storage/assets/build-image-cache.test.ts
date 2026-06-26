@@ -2,10 +2,10 @@
 
 // import * as fs from "fs";
 import * as path from "path";
-import { ecrRepository } from "@cdktf/provider-aws";
-import { image as dockerImage } from "@cdktf/provider-docker";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { ecrRepository } from "@cdktn/provider-aws";
+import { image as dockerImage } from "@cdktn/provider-docker";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import { DockerImageAsset } from "../../../../src/aws/storage/assets/image-asset";
 import { Template } from "../../../assertions";

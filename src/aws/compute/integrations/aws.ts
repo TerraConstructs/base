@@ -1,4 +1,4 @@
-import * as cdk from "cdktf";
+import * as cdk from "cdktn";
 import { IConstruct } from "constructs";
 import { UnscopedValidationError } from "../../../errors";
 import { ArnFormat } from "../../arn";

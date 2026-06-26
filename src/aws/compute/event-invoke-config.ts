@@ -1,4 +1,4 @@
-import { lambdaFunctionEventInvokeConfig } from "@cdktf/provider-aws";
+import { lambdaFunctionEventInvokeConfig } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { IFunction } from "./function-base";

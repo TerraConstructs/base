@@ -1,4 +1,4 @@
-import { IResolvable } from "cdktf";
+import { IResolvable } from "cdktn";
 import { ISubnet } from "./subnet";
 import { ISubnetGroup } from "./subnet-group";
 import { IAwsConstruct } from "../";

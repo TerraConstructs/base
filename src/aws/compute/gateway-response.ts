@@ -1,4 +1,4 @@
-import { apiGatewayGatewayResponse } from "@cdktf/provider-aws";
+import { apiGatewayGatewayResponse } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { IRestApi } from "./restapi";
 import {

@@ -6,7 +6,7 @@ import {
   TerraformMetaArguments,
   Aspects,
   IAspect,
-} from "cdktf";
+} from "cdktn";
 import { Construct, IConstruct } from "constructs";
 import { StackBase } from "./stack-base";
 

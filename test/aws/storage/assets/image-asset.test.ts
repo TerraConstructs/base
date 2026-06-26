@@ -2,13 +2,13 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { dataAwsEcrRepository, ecrRepository } from "@cdktf/provider-aws";
+import { dataAwsEcrRepository, ecrRepository } from "@cdktn/provider-aws";
 import {
   image as dockerImage,
   registryImage as dockerRegistryImage,
-} from "@cdktf/provider-docker";
-import { App, Testing, Lazy } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-docker";
+import { App, Testing, Lazy } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { DockerBuildSecret, IgnoreMode } from "../../../../src/";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import { DockerImageAsset } from "../../../../src/aws/storage/assets/image-asset";

@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-stepfunctions/lib/states/state.ts
 
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 import { IConstruct, Construct } from "constructs";
 import { Condition } from "../condition";
 import { FieldUtils } from "../fields";

@@ -5,8 +5,8 @@ import {
   ecrLifecyclePolicy,
   ecrRepository,
   ecrRepositoryPolicy,
-} from "@cdktf/provider-aws";
-import { Annotations, Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Annotations, Token } from "cdktn";
 import { IConstruct, Construct } from "constructs";
 import { LifecycleRule, TagStatus } from "./ecr-lifecycle";
 import { UnscopedValidationError, ValidationError } from "../../errors";

@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/alb/application-listener-rule.ts
 
-import { lbListenerRule as tfListenerRule } from "@cdktf/provider-aws";
-import { Annotations, Token, Lazy } from "cdktf";
+import { lbListenerRule as tfListenerRule } from "@cdktn/provider-aws";
+import { Annotations, Token, Lazy } from "cdktn";
 import { Construct } from "constructs";
 import { IApplicationListener } from "./application-listener";
 import { ListenerAction } from "./application-listener-action";

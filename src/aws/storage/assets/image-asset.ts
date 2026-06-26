@@ -2,7 +2,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { Annotations, Token } from "cdktf";
+import { Annotations, Token } from "cdktn";
 import { Construct } from "constructs";
 import * as ecr from "..";
 import {

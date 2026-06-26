@@ -1,6 +1,6 @@
-import { sfnActivity, dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { sfnActivity, dataAwsIamPolicyDocument } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { iam, compute, AwsStack } from "../../../src/aws";
 // import { Duration } from "../../../src/duration";
 

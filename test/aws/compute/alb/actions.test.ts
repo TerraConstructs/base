@@ -4,13 +4,13 @@ import {
   lbListener as tfListener,
   lbListenerRule as tfListenerRule,
   securityGroup as tfSecurityGroup,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   App,
   // TerraformElement,
   Testing,
-} from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
 import { Duration } from "../../../../src/duration";

@@ -1,6 +1,6 @@
-import { apiGatewayIntegration } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { apiGatewayIntegration } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import { RestApi, HttpIntegration } from "../../../src/aws/compute";
 import { Template } from "../../assertions";

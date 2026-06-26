@@ -1,9 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-apigateway/test/api-definition.test.ts
 
 import * as path from "path";
-import { apiGatewayRestApi } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { apiGatewayRestApi } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 // import * as storage from "../../../src/aws/storage";
 import {

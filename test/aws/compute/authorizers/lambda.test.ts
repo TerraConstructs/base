@@ -7,9 +7,9 @@ import {
   iamRolePolicy,
   apiGatewayDeployment,
   dataAwsIamPolicyDocument,
-} from "@cdktf/provider-aws";
-import { Testing, App } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { Testing, App } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as compute from "../../../../src/aws/compute";
 import * as iam from "../../../../src/aws/iam";

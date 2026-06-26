@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.232.2/packages/aws-cdk-lib/aws-route53-targets/test/apigateway-target.test.ts
 
-import "cdktf/lib/testing/adapters/jest";
-import { route53Record } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
+import "cdktn/lib/testing/adapters/jest";
+import { route53Record } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
 import { edge, AwsStack, compute } from "../../../src/aws";
 import { Template } from "../../assertions";
 

@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-iam/lib/instance-profile.ts
 
-import { iamInstanceProfile } from "@cdktf/provider-aws";
+import { iamInstanceProfile } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { Arn } from "../arn";
 import {

@@ -2,7 +2,7 @@
 
 import * as os from "os";
 import * as path from "path";
-import { Annotations } from "cdktf";
+import { Annotations } from "cdktn";
 import { IConstruct } from "constructs";
 import { Architecture, AssetCode, Code, Runtime } from "..";
 import { PackageInstallation } from "./package-installation";

@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.176.0/packages/%40aws-cdk-testing/framework-integ/test/aws-sns/test/integ.sns.ts
 
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { aws, Duration } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

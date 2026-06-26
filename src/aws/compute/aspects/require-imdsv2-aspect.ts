@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/aspects/require-imdsv2-aspect.ts
-import { launchTemplate } from "@cdktf/provider-aws";
-import { IAspect, Annotations } from "cdktf";
+import { launchTemplate } from "@cdktn/provider-aws";
+import { IAspect, Annotations } from "cdktn";
 import { IConstruct } from "constructs";
 import { AwsStack } from "../../aws-stack";
 import { Instance } from "../instance";

@@ -57,8 +57,8 @@ exports[`IAM policy statement from JSON parses a given Principal 1`] = `
   "terraform": {
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }
@@ -122,8 +122,8 @@ exports[`IAM policy statement from JSON parses a given notPrincipal 1`] = `
   "terraform": {
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }
@@ -179,8 +179,8 @@ exports[`IAM policy statement from JSON parses with no principal 1`] = `
   "terraform": {
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }
@@ -226,8 +226,8 @@ exports[`IAM policy statement from JSON parses with notAction 1`] = `
   "terraform": {
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }
@@ -274,8 +274,8 @@ exports[`IAM policy statement from JSON parses with notActions 1`] = `
   "terraform": {
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }
@@ -322,8 +322,8 @@ exports[`IAM policy statement from JSON parses with notResource 1`] = `
   "terraform": {
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }
@@ -371,8 +371,8 @@ exports[`IAM policy statement from JSON parses with notResources 1`] = `
   "terraform": {
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }
@@ -426,8 +426,8 @@ exports[`IAM policy statement from JSON should not convert \`Principal: *\` to \
   "terraform": {
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }
@@ -505,8 +505,8 @@ exports[`IAM policy statement from JSON the kitchen sink 1`] = `
   "terraform": {
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }

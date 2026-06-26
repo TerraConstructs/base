@@ -3,8 +3,8 @@
 import {
   iamGroupPolicyAttachment,
   iamGroup as tfIamGroup,
-} from "@cdktf/provider-aws";
-import { Annotations } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Annotations } from "cdktn";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
 import {

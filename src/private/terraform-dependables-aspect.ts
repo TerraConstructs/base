@@ -4,7 +4,7 @@ import {
   ITerraformDependable,
   TerraformDataSource,
   dependable,
-} from "cdktf";
+} from "cdktn";
 import { IConstruct } from "constructs";
 
 export const SKIP_DEPENDENCY_PROPAGATION = Symbol.for(

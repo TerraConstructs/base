@@ -10,9 +10,9 @@ import {
   // lambdaFunctionEventInvokeConfig,
   // lambdaPermission,
   // s3BucketNotification,
-} from "@cdktf/provider-aws";
-import { Testing, Lazy } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { Testing, Lazy } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { TestFunction } from "./test-function";
 import {
   iam,

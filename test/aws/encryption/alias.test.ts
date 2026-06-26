@@ -1,9 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/6126413bc6bbc700edf46509a6934ef615f8bbb1/packages/aws-cdk-lib/aws-kms/test/alias.test.ts
 
-import { kmsAlias, dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
-import { App, Testing, TerraformOutput } from "cdktf";
+import { kmsAlias, dataAwsIamPolicyDocument } from "@cdktn/provider-aws";
+import { App, Testing, TerraformOutput } from "cdktn";
 import { Construct } from "constructs";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack, Arn } from "../../../src/aws";
 // import { Grant, IAwsConstructWithPolicy } from "../../../src/aws/iam/grant";
 // import { ManagedPolicy } from "../../../src/aws/iam/managed-policy";

@@ -1,8 +1,8 @@
 import {
   dataAwsVpcSecurityGroupRules,
   dataAwsVpcSecurityGroupRule,
-} from "@cdktf/provider-aws";
-import { Token, TerraformLocal, TerraformIterator } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Token, TerraformLocal, TerraformIterator } from "cdktn";
 import { Construct } from "constructs";
 import { AwsStack } from "../../aws-stack";
 

@@ -1,6 +1,6 @@
-import { sfnStateMachine } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { sfnStateMachine } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { Construct } from "constructs";
 import { innerJson } from "./private/render-util";
 import { compute, AwsStack } from "../../../src/aws";

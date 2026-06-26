@@ -5,10 +5,10 @@ import {
   lbListenerCertificate as tfListenerCertificate,
   lbTargetGroup as tfLbTargetGroup,
   lbTargetGroupAttachment as tfTargetGroupAttachment,
-} from "@cdktf/provider-aws";
-import { App, Testing, TerraformResource } from "cdktf";
+} from "@cdktn/provider-aws";
+import { App, Testing, TerraformResource } from "cdktn";
 import { Construct } from "constructs";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
 import { ITargetGroup } from "../../../../src/aws/compute/lb-shared/base-target-group.ts";

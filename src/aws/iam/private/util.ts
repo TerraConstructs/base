@@ -4,7 +4,7 @@ import {
   IResolveContext,
   Lazy,
   Token,
-} from "cdktf";
+} from "cdktn";
 import { IPolicy } from "../policy";
 
 export const MAX_POLICY_NAME_LEN = 128;

@@ -2,9 +2,9 @@ import {
   apiGatewayDeployment,
   apiGatewayGatewayResponse,
   apiGatewayMethod,
-} from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { ResponseType, RestApi } from "../../../src/aws/compute";
 import { Template } from "../../assertions";

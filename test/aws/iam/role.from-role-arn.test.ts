@@ -1,10 +1,10 @@
-import { iamRolePolicy, dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
+import { iamRolePolicy, dataAwsIamPolicyDocument } from "@cdktn/provider-aws";
 import {
   // TerraformResource,
   Testing,
   Lazy,
-} from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { Grant } from "../../../src/aws/iam/grant";
 import { Policy } from "../../../src/aws/iam/policy";

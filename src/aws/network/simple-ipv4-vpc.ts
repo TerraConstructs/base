@@ -5,8 +5,8 @@ import {
   internetGateway,
   defaultRouteTable,
   serviceDiscoveryPrivateDnsNamespace,
-} from "@cdktf/provider-aws";
-import { Fn, Lazy } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Fn, Lazy } from "cdktn";
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { INetwork, NetworkOutputs } from "./network";

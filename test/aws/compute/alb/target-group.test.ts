@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/test/alb/target-group.test.ts
 
-import { lbTargetGroup as tfTargetGroup } from "@cdktf/provider-aws";
-import { App, TerraformOutput, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { lbTargetGroup as tfTargetGroup } from "@cdktn/provider-aws";
+import { App, TerraformOutput, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
 import { Duration } from "../../../../src/duration";

@@ -5,8 +5,8 @@ import {
   dynamodbKinesisStreamingDestination,
   dynamodbResourcePolicy,
   dynamodbTable,
-} from "@cdktf/provider-aws";
-import { Token, Lazy } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Token, Lazy } from "cdktn";
 import { Construct } from "constructs";
 import * as storage from ".";
 import { ArnFormat, AwsConstructBase, AwsConstructProps, AwsStack } from "..";

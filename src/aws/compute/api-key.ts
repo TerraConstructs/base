@@ -1,5 +1,5 @@
-import { apiGatewayApiKey } from "@cdktf/provider-aws";
-import { Annotations } from "cdktf";
+import { apiGatewayApiKey } from "@cdktn/provider-aws";
+import { Annotations } from "cdktn";
 import { Construct } from "constructs";
 import {
   ArnFormat,

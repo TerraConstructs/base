@@ -3,8 +3,8 @@
 import {
   ec2ClientVpnEndpoint,
   ec2ClientVpnNetworkAssociation,
-} from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct, DependencyGroup, IDependable } from "constructs";
 import {
   ClientVpnAuthorizationRule,

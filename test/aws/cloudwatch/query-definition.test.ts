@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/efbe6debaf1ccebbcd884912ccb38cb13a989061/packages/aws-cdk-lib/aws-logs/test/query-definition.test.ts
 
-import { cloudwatchQueryDefinition } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { cloudwatchQueryDefinition } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   LogGroup,

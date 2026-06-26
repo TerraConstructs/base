@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/client-vpn-authorization-rule.ts
 
-import { ec2ClientVpnAuthorizationRule } from "@cdktf/provider-aws";
+import { ec2ClientVpnAuthorizationRule } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { IClientVpnEndpoint } from "./client-vpn-endpoint-types";
 import { AwsConstructBase } from "../aws-construct";

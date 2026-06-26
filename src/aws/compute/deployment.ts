@@ -3,8 +3,8 @@ import {
   apiGatewayMethod,
   apiGatewayRestApi,
   apiGatewayStage,
-} from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Lazy } from "cdktn";
 import { Construct } from "constructs";
 import { Method } from "./method";
 import { IRestApi, RestApi, RestApiBase, SpecRestApi } from "./restapi";

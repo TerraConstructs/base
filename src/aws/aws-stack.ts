@@ -7,14 +7,14 @@ import {
   dataAwsRegion,
   dataAwsServicePrincipal,
   provider,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   TerraformStack,
   TerraformIterator,
   Token,
   Fn,
   ResourceTerraformIterator,
-} from "cdktf";
+} from "cdktn";
 import { Construct, IConstruct } from "constructs";
 import { Arn, ArnComponents, ArnFormat } from "./arn";
 import * as cxapi from "./cx-api";

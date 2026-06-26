@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/test/client-vpn-authorization-rule.test.ts
 
-import { ec2ClientVpnAuthorizationRule } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { ec2ClientVpnAuthorizationRule } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import { Connections, IClientVpnEndpoint } from "../../../src/aws/compute";
 import { ClientVpnAuthorizationRule } from "../../../src/aws/compute/client-vpn-authorization-rule";

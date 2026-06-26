@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/test/nlb/actions.test.ts
 
-import { lbListener as tfLbListener } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { lbListener as tfLbListener } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as ec2 from "../../../../src/aws/compute";
 import { NetworkListenerAction } from "../../../../src/aws/compute/nlb/network-listener-action";

@@ -6,10 +6,10 @@ import {
   iamRolePolicy,
   iamRole,
   iamInstanceProfile,
-} from "@cdktf/provider-aws";
-import { Token, Testing } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Token, Testing } from "cdktn";
 import { AwsStack } from "../../../src/aws/aws-stack";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { Role, ServicePrincipal, InstanceProfile } from "../../../src/aws/iam";
 // // without Barrel file, getting cyclic dependency error:
 // import { InstanceProfile } from "../../../src/aws/iam/instance-profile";

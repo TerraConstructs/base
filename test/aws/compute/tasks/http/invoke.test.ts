@@ -1,5 +1,5 @@
-import "cdktf/lib/testing/adapters/jest";
-import { Testing } from "cdktf";
+import "cdktn/lib/testing/adapters/jest";
+import { Testing } from "cdktn";
 import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import * as tasks from "../../../../../src/aws/compute/tasks";

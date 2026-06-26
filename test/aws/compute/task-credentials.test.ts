@@ -1,5 +1,5 @@
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { iam, compute, AwsStack } from "../../../src/aws";
 
 const gridUUID = "123e4567-e89b-12d3";

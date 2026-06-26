@@ -1,6 +1,6 @@
-import { iamGroup, iamGroupPolicyAttachment } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { iamGroup, iamGroupPolicyAttachment } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { Group, ManagedPolicy, User } from "../../../src/aws/iam";
 import { Annotations, Template } from "../../assertions";

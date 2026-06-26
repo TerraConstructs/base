@@ -5,8 +5,8 @@ import {
   apiGatewayIntegration,
   apiGatewayMethodResponse,
   apiGatewayIntegrationResponse,
-} from "@cdktf/provider-aws";
-import { Annotations, TerraformElement } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Annotations, TerraformElement } from "cdktn";
 import { Construct } from "constructs";
 import { ApiGatewayMetrics } from "./apigateway-canned-metrics.generated";
 import { validateHttpMethod } from "./apigateway-util";

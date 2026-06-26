@@ -17,11 +17,11 @@
     "apigw.token-authorizer-iam-role": "bun run ./apigw.token-authorizer-iam-role.ts"
   },
   "dependencies": {
-    "@cdktf/provider-aws": "^20.1.0",
-    "@cdktf/provider-cloudinit": "^11.0.0",
+    "@cdktn/provider-aws": "^24.8.0",
+    "@cdktn/provider-cloudinit": "^13.1.0",
     "@types/aws-lambda": "^8.10.76",
-    "cdktf": "^0.21.0",
-    "constructs": "^10.4.2"
+    "cdktn": "^0.23.0",
+    "constructs": "^10.6.0"
   },
   "devDependencies": {
     "@types/bun": "^1.1.3",

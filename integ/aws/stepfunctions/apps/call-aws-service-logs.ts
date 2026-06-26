@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.164.1/packages/%40aws-cdk-testing/framework-integ/test/aws-stepfunctions-tasks/test/aws-sdk/integ.call-aws-service-logs.ts
-import { cloudwatchLogGroup } from "@cdktf/provider-aws";
-import { App, LocalBackend } from "cdktf";
+import { cloudwatchLogGroup } from "@cdktn/provider-aws";
+import { App, LocalBackend } from "cdktn";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

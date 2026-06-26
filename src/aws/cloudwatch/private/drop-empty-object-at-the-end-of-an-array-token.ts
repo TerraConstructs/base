@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-cloudwatch/lib/private/drop-empty-object-at-the-end-of-an-array-token.ts
 
-import { IResolvable, IResolveContext, IPostProcessor } from "cdktf";
+import { IResolvable, IResolveContext, IPostProcessor } from "cdktn";
 import { dropUndefined } from "./object";
 
 /**

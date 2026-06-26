@@ -12,9 +12,9 @@ import {
   vpcPeeringConnection as tfVpcPeeringConnection,
   vpnGatewayRoutePropagation,
   dataAwsIamPolicyDocument,
-} from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import { NatConnectivityType } from "../../../src/aws/compute/route";
 import { IpCidr, SubnetV2 } from "../../../src/aws/compute/subnet-v2";

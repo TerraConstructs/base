@@ -4,9 +4,9 @@ import {
   vpc as tfVpc,
   ec2ClientVpnEndpoint,
   ec2ClientVpnRoute,
-} from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import * as ec2 from "../../../src/aws/compute";
 import { ClientVpnUserBasedAuthentication } from "../../../src/aws/compute/client-vpn-endpoint";

@@ -1,4 +1,4 @@
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { aws, Duration } from "../../../../src";
 
 /**

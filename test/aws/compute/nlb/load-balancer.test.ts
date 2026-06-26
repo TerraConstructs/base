@@ -6,13 +6,13 @@ import {
   route53Record,
   s3BucketPolicy,
   dataAwsIamPolicyDocument,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   App,
   // TerraformElement,
   Testing,
-} from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
 import * as edge from "../../../../src/aws/edge";

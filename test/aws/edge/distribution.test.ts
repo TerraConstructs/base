@@ -1,9 +1,9 @@
 import {
   s3BucketWebsiteConfiguration,
   dataAwsIamPolicyDocument,
-} from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { edge, storage, AwsStack } from "../../../src/aws";
 import { Template } from "../../assertions";
 

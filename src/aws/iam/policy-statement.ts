@@ -1,6 +1,6 @@
 // ref: https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-iam/lib/policy-statement.ts
-import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { dataAwsIamPolicyDocument } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { IConstruct } from "constructs";
 import { PolicyStatementProps } from "./policy-statement-props.generated";
 import {

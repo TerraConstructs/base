@@ -1,8 +1,8 @@
 // source: https://github.com/cdktf-plus/cdktf-plus/blob/586aabad3ab2fb2a2e93e05ed33f94474ebe9397/packages/%40cdktf-plus/aws/lib/aws-lambda-function/index.ts\
 // update to align with https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-lambda/lib/function-base.ts
 import * as crypto from "crypto";
-import { lambdaPermission } from "@cdktf/provider-aws";
-import { IResolvable, Annotations, Token } from "cdktf";
+import { lambdaPermission } from "@cdktn/provider-aws";
+import { IResolvable, Annotations, Token } from "cdktn";
 import { Node } from "constructs";
 import { ArnFormat } from "../arn";
 import { AwsConstructBase, IAwsConstruct } from "../aws-construct";
@@ -645,6 +645,7 @@ export abstract class LambdaFunctionBase
         environmentName: this.environmentName,
         gridUUID: this.gridUUID,
         outputs: {},
+        with: (...mixins) => this.with(...mixins),
       },
     });
 

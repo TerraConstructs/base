@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/log-stream.ts
 
-import { cloudwatchLogStream } from "@cdktf/provider-aws";
+import { cloudwatchLogStream } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import {
   IAwsConstruct,

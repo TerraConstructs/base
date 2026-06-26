@@ -1,5 +1,5 @@
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { edge, storage, AwsStack } from "../../../src/aws";
 
 const environmentName = "Test";

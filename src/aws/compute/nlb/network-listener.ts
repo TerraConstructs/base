@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/nlb/network-listener.ts
 
-import { Lazy, Token } from "cdktf";
+import { Lazy, Token } from "cdktn";
 import { Construct } from "constructs";
 import { NetworkListenerAction } from "./network-listener-action";
 import { NetworkListenerCertificate } from "./network-listener-certificate";

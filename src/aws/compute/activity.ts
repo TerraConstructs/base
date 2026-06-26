@@ -1,5 +1,5 @@
-import { sfnActivity } from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+import { sfnActivity } from "@cdktn/provider-aws";
+import { Lazy } from "cdktn";
 import { Construct } from "constructs";
 // import { CustomerManagedEncryptionConfiguration } from "./customer-managed-key-encryption-configuration";
 // import { EncryptionConfiguration } from "./encryption-configuration";

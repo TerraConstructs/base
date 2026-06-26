@@ -4,14 +4,14 @@ import {
   instance,
   iamInstanceProfile as tfInstanceProfile,
   networkInterface as tfNetworkInterface,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   Annotations,
   Aspects,
   // AspectPriority,
   Lazy,
   Token,
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
 import { Duration } from "../../duration";
 import { IAwsConstruct, AwsConstructBase } from "../aws-construct";

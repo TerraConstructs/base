@@ -1,7 +1,7 @@
 import { spawnSync } from "child_process";
 import { join as pathtJoin } from "path";
-import { dataArchiveFile } from "@cdktf/provider-archive";
-import * as cdktf from "cdktf";
+import { dataArchiveFile } from "@cdktn/provider-archive";
+import * as cdktn from "cdktn";
 import { Construct } from "constructs";
 import { DockerImage, DockerBuildOptions } from "../../bundling";
 import { UnscopedValidationError, ValidationError } from "../../errors";
@@ -452,7 +452,7 @@ export class InlineCode extends Code {
     const provider = AwsStack.ofAwsConstruct(scope).archiveProvider;
     // ensure the code is hashed for consistency
     const id = AwsStack.ofAwsConstruct(scope).uniqueResourceName(
-      new cdktf.TerraformElement(scope, md5hash(this.code)),
+      new cdktn.TerraformElement(scope, md5hash(this.code)),
       {
         maxLength: 64,
         allowedSpecialCharacters: "-_",
@@ -473,7 +473,7 @@ export class InlineCode extends Code {
 
       this.dataArchive = new dataArchiveFile.DataArchiveFile(scope, id, {
         outputPath: pathtJoin(
-          cdktf.Token.asString(cdktf.ref("path.root")),
+          cdktn.Token.asString(cdktn.ref("path.root")),
           ".archive_files",
           `${id}.zip`,
         ),
@@ -574,7 +574,7 @@ export interface TerraformVariablesCodeProps {
    *
    * @default a new variable will be created
    */
-  readonly bucketNameVar?: cdktf.TerraformVariable;
+  readonly bucketNameVar?: cdktn.TerraformVariable;
 
   /**
    * The Terraform variable that represents the path inside the S3 Bucket
@@ -583,7 +583,7 @@ export interface TerraformVariablesCodeProps {
    *
    * @default a new variable will be created
    */
-  readonly objectKeyVar?: cdktf.TerraformVariable;
+  readonly objectKeyVar?: cdktn.TerraformVariable;
   /**
    * The ARN of the KMS key used to encrypt the handler code.
    * @default - the default server-side encryption with Amazon S3 managed keys(SSE-S3) key will be used.
@@ -598,8 +598,8 @@ export interface TerraformVariablesCodeProps {
  */
 export class TerraformVariablesCode extends Code {
   public readonly isInline = false;
-  private _bucketNameVar?: cdktf.TerraformVariable;
-  private _objectKeyVar?: cdktf.TerraformVariable;
+  private _bucketNameVar?: cdktn.TerraformVariable;
+  private _objectKeyVar?: cdktn.TerraformVariable;
   private _sourceKMSKey?: IKey;
 
   constructor(props: TerraformVariablesCodeProps = {}) {
@@ -612,7 +612,7 @@ export class TerraformVariablesCode extends Code {
 
   public bind(scope: Construct): CodeConfig {
     if (!this._bucketNameVar) {
-      this._bucketNameVar = new cdktf.TerraformVariable(
+      this._bucketNameVar = new cdktn.TerraformVariable(
         scope,
         "LambdaSourceBucketNameParameter",
         {
@@ -622,7 +622,7 @@ export class TerraformVariablesCode extends Code {
     }
 
     if (!this._objectKeyVar) {
-      this._objectKeyVar = new cdktf.TerraformVariable(
+      this._objectKeyVar = new cdktn.TerraformVariable(
         scope,
         "LambdaSourceObjectKeyParameter",
         {

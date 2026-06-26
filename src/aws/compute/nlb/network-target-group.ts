@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/nlb/network-target-group.ts
 
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { INetworkListener } from "./network-listener";
 import * as cloudwatch from "../../cloudwatch";

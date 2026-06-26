@@ -1,5 +1,5 @@
-import { Testing, TerraformOutput } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { Testing, TerraformOutput } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import { allowAllOutboundLocal } from "../../../../src/aws/compute/private/context-stub";
 import { Template } from "../../../assertions";

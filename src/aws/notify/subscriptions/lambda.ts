@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.176.0/packages/aws-cdk-lib/aws-sns-subscriptions/lib/lambda.ts
 
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { SubscriptionProps } from "./subscription";
 import * as sns from "../";

@@ -3,8 +3,8 @@
 import {
   // vpcIpv4CidrBlockAssociation,
   vpcIpv6CidrBlockAssociation,
-} from "@cdktf/provider-aws";
-import { Fn, Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Fn, Token } from "cdktn";
 import { Construct } from "constructs";
 import { calculateCidrSplits } from "./cidr-splits";
 import { NetworkBuilder } from "./network-util";

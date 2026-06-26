@@ -4,7 +4,7 @@ import {
   networkAcl as tfNetworkAcl,
   networkAclRule as tfNetworkAclRule,
   networkAclAssociation as tfNetworkAclAssociation,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { AclCidr, AclTraffic } from "./network-acl-types";
 import { ISubnet, IVpc, SubnetSelection } from "./vpc";

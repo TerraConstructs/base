@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/a2c633f1e698249496f11338312ab42bd7b1e4f0/packages/aws-cdk-lib/aws-cloudwatch/test/alarm-status-widget.test.ts
 
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   Metric,

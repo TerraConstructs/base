@@ -2,10 +2,10 @@ import {
   appautoscalingPolicy,
   // appautoscalingTarget,
   cloudwatchMetricAlarm,
-} from "@cdktf/provider-aws";
-import { Testing, App } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Testing, App } from "cdktn";
 import * as fc from "fast-check";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { arbitrary_input_intervals, createScalableTarget } from "./util";
 import { AwsStack } from "../../../src/aws";
 import { Metric } from "../../../src/aws/cloudwatch";

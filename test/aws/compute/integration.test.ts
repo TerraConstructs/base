@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-apigateway/test/integration.test.ts
 
-import { apiGatewayIntegration, apiGatewayMethod } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
+import { apiGatewayIntegration, apiGatewayMethod } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
 import { AwsStack } from "../../../src/aws";
 import {
   Vpc,

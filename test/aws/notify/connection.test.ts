@@ -1,9 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-events/test/connection.test.ts
 
-import { cloudwatchEventConnection } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
+import { cloudwatchEventConnection } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
 import { AwsStack } from "../../../src/aws/aws-stack";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import * as notify from "../../../src/aws/notify";
 // import { SecretValue, Stack } from "../../core";
 import { Template } from "../../assertions";

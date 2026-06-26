@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/query-definition.ts
 
-import { cloudwatchQueryDefinition } from "@cdktf/provider-aws";
+import { cloudwatchQueryDefinition } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { ILogGroup } from "./log-group";

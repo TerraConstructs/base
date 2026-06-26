@@ -1,5 +1,5 @@
-import { dynamodbTable } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { dynamodbTable } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { TableEncryption } from "./shared";
 import { ValidationError } from "../../errors";

@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/@aws-cdk-testing/framework-integ/test/aws-apigateway/test/authorizers/integ.request-authorizer.lit.ts
 
 import * as path from "path";
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { Construct } from "constructs";
 import { aws } from "../../../../src";
 

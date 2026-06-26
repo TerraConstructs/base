@@ -1,6 +1,6 @@
-import { iamOpenidConnectProvider } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { iamOpenidConnectProvider } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { OpenIdConnectProvider } from "../../../src/aws/iam/oidc-provider";
 

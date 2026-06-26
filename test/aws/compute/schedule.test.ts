@@ -1,4 +1,4 @@
-import { Lazy, Testing, App } from "cdktf";
+import { Lazy, Testing, App } from "cdktn";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { Schedule } from "../../../src/aws/compute/schedule";
 import { Duration } from "../../../src/duration";

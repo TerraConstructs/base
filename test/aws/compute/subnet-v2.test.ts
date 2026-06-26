@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/@aws-cdk/aws-ec2-alpha/test/subnet-v2.test.ts
 
-import { networkAclAssociation as tfNetworkAclAssociation } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { networkAclAssociation as tfNetworkAclAssociation } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { createTestSubnet } from "./alpha-util";
 import { AwsStack } from "../../../src/aws";
 import {

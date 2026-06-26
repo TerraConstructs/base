@@ -4,9 +4,9 @@ import {
   cloudwatchEventTarget,
   dataAwsIamPolicyDocument,
   cloudwatchEventRule,
-} from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { Duration } from "../../../../src//duration";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as logs from "../../../../src/aws/cloudwatch";

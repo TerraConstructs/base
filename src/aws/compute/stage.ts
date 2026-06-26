@@ -1,5 +1,5 @@
-import { apiGatewayStage, apiGatewayMethodSettings } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { apiGatewayStage, apiGatewayMethodSettings } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { AccessLogFormat, IAccessLogDestination } from "./access-log";
 import { IApiKey, ApiKeyOptions, ApiKey } from "./api-key";

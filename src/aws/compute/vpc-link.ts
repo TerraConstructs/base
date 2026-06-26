@@ -1,5 +1,5 @@
-import { apiGatewayVpcLink } from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+import { apiGatewayVpcLink } from "@cdktn/provider-aws";
+import { Lazy } from "cdktn";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
 import {

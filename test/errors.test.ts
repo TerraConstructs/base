@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.232.2/packages/aws-cdk-lib/core/test/errors.test.ts
 
-import { App } from "cdktf";
+import { App } from "cdktn";
 import { AwsStack } from "../src/aws";
 import {
   Errors,

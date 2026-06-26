@@ -2,8 +2,8 @@ import {
   apiGatewayAuthorizer,
   lambdaFunction,
   lambdaPermission,
-} from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Lazy } from "cdktn";
 import { Construct } from "constructs";
 import * as lambda from "..";
 import { Duration } from "../../../duration";

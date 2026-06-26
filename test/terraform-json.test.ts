@@ -7,15 +7,15 @@ import {
   Lazy,
   Token,
   ref,
-} from "cdktf";
+} from "cdktn";
 import {
   terraformFunction,
   asAny,
   stringValue,
   anyValue,
-} from "cdktf/lib/functions/helpers";
-import { Intrinsic } from "cdktf/lib/tokens/private/intrinsic";
-import "cdktf/lib/testing/adapters/jest";
+} from "cdktn/lib/functions/helpers";
+import { Intrinsic } from "cdktn/lib/tokens/private/intrinsic";
+import "cdktn/lib/testing/adapters/jest";
 import { StackBase } from "../src/stack-base";
 
 const environmentName = "Test";

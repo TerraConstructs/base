@@ -1,4 +1,4 @@
-import { sqsQueuePolicy } from "@cdktf/provider-aws";
+import { sqsQueuePolicy } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { IQueue } from "./";

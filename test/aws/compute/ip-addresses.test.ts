@@ -1,10 +1,10 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/test/ip-addresses.test.ts
 
-import { vpc, subnet } from "@cdktf/provider-aws";
-import { App, Testing, Fn } from "cdktf";
+import { vpc, subnet } from "@cdktn/provider-aws";
+import { App, Testing, Fn } from "cdktn";
 import { AwsStack } from "../../../src/aws";
 import { IpAddresses, SubnetType, Vpc } from "../../../src/aws/compute";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { Template } from "../../assertions";
 
 const environmentName = "Test";

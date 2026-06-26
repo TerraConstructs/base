@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-lambda/test/event-source-mapping.test.ts
 
-import { lambdaEventSourceMapping } from "@cdktf/provider-aws";
-import { Testing, Token, Lazy, TerraformVariable } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { lambdaEventSourceMapping } from "@cdktn/provider-aws";
+import { Testing, Token, Lazy, TerraformVariable } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { Duration } from "../../../src/";
 import { compute, AwsStack } from "../../../src/aws";
 

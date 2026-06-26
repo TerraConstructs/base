@@ -6,11 +6,11 @@ import {
   vpnConnection,
   vpnConnectionRoute,
   vpnGateway,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   //SecretValue,
   Token,
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
 import { IVpc, SubnetSelection } from "./vpc";
 import { Duration } from "../../duration";

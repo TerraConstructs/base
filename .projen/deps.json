@@ -11,33 +11,33 @@
       "type": "build"
     },
     {
-      "name": "@cdktf/provider-archive",
-      "version": "^11.0.0",
+      "name": "@cdktn/provider-archive",
+      "version": "^13.1.0",
       "type": "build"
     },
     {
-      "name": "@cdktf/provider-aws",
-      "version": "^21.22.0",
+      "name": "@cdktn/provider-aws",
+      "version": "^24.8.0",
       "type": "build"
     },
     {
-      "name": "@cdktf/provider-cloudinit",
-      "version": "^11.0.0",
+      "name": "@cdktn/provider-cloudinit",
+      "version": "^13.1.0",
       "type": "build"
     },
     {
-      "name": "@cdktf/provider-docker",
-      "version": "^12.0.2",
+      "name": "@cdktn/provider-docker",
+      "version": "^15.3.0",
       "type": "build"
     },
     {
-      "name": "@cdktf/provider-time",
-      "version": "^11.0.0",
+      "name": "@cdktn/provider-time",
+      "version": "^13.1.0",
       "type": "build"
     },
     {
-      "name": "@cdktf/provider-tls",
-      "version": "^11.0.0",
+      "name": "@cdktn/provider-tls",
+      "version": "^13.1.0",
       "type": "build"
     },
     {
@@ -73,8 +73,8 @@
       "type": "build"
     },
     {
-      "name": "cdktf",
-      "version": "^0.21.0",
+      "name": "cdktn",
+      "version": "^0.23.0",
       "type": "build"
     },
     {
@@ -84,7 +84,7 @@
     },
     {
       "name": "constructs",
-      "version": "^10.4.2",
+      "version": "^10.6.0",
       "type": "build"
     },
     {
@@ -206,43 +206,43 @@
       "type": "peer"
     },
     {
-      "name": "@cdktf/provider-archive",
-      "version": "^11.0.0",
+      "name": "@cdktn/provider-archive",
+      "version": "^13.1.0",
       "type": "peer"
     },
     {
-      "name": "@cdktf/provider-aws",
-      "version": "^21.22.0",
+      "name": "@cdktn/provider-aws",
+      "version": "^24.8.0",
       "type": "peer"
     },
     {
-      "name": "@cdktf/provider-cloudinit",
-      "version": "^11.0.0",
+      "name": "@cdktn/provider-cloudinit",
+      "version": "^13.1.0",
       "type": "peer"
     },
     {
-      "name": "@cdktf/provider-docker",
-      "version": "^12.0.2",
+      "name": "@cdktn/provider-docker",
+      "version": "^15.3.0",
       "type": "peer"
     },
     {
-      "name": "@cdktf/provider-time",
-      "version": "^11.0.0",
+      "name": "@cdktn/provider-time",
+      "version": "^13.1.0",
       "type": "peer"
     },
     {
-      "name": "@cdktf/provider-tls",
-      "version": "^11.0.0",
+      "name": "@cdktn/provider-tls",
+      "version": "^13.1.0",
       "type": "peer"
     },
     {
-      "name": "cdktf",
-      "version": "^0.21.0",
+      "name": "cdktn",
+      "version": "^0.23.0",
       "type": "peer"
     },
     {
       "name": "constructs",
-      "version": "^10.4.2",
+      "version": "^10.6.0",
       "type": "peer"
     }
   ],

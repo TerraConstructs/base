@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-cloudwatch/lib/private/env-tokens.ts
 
-import { Token, IResolvable, IResolveContext } from "cdktf";
+import { Token, IResolvable, IResolveContext } from "cdktn";
 import { AwsStack } from "../../aws-stack";
 
 /**

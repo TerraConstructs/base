@@ -1,6 +1,6 @@
 import { FactName } from "@aws-cdk/region-info";
 import { Construct } from "constructs";
-// TODO: use @cdktf/provider-docker for bundling
+// TODO: use @cdktn/provider-docker for bundling
 import { DockerImage } from "../../bundling";
 import { AwsStack } from "../aws-stack";
 

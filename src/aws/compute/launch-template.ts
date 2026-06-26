@@ -3,8 +3,8 @@
 import {
   launchTemplate as tfLaunchTemplate,
   iamInstanceProfile as tfIamInstanceProfile,
-} from "@cdktf/provider-aws";
-import { Annotations, Lazy, Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Annotations, Lazy, Token } from "cdktn";
 import { Construct } from "constructs";
 import { Connections, IConnectable } from "./connections";
 import { InstanceType } from "./instance-types";

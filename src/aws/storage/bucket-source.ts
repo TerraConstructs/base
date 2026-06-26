@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { s3Object } from "@cdktf/provider-aws";
-import { TerraformAsset, AssetType, Fn, ITerraformDependable } from "cdktf";
+import { s3Object } from "@cdktn/provider-aws";
+import { TerraformAsset, AssetType, Fn, ITerraformDependable } from "cdktn";
 import { Construct } from "constructs";
 import * as mime from "mime-types";
 import { IBucket, AddSourceOptions } from "./bucket";

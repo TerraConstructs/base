@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/bastion-host.ts
 
-import { TerraformOutput } from "cdktf";
+import { TerraformOutput } from "cdktn";
 import { Construct } from "constructs";
 import {
   InstanceArchitecture,

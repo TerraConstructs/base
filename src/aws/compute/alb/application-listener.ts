@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/alb/application-listener.ts
 
-import { Lazy, Token } from "cdktf";
+import { Lazy, Token } from "cdktn";
 import { Construct } from "constructs";
 import { ListenerAction } from "./application-listener-action";
 import { ApplicationListenerCertificate } from "./application-listener-certificate";

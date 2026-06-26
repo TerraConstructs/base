@@ -2,9 +2,9 @@ import {
   cloudwatchEventTarget,
   dataAwsIamPolicyDocument,
   iamRole,
-} from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 // import { LambdaFunction } from "../../../../src/aws/compute/function";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import { Role, ServicePrincipal } from "../../../../src/aws/iam"; // TODO: Get rid of barrel file imports?

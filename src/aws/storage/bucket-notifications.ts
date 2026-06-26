@@ -1,5 +1,5 @@
-import { s3BucketNotification } from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+import { s3BucketNotification } from "@cdktn/provider-aws";
+import { Lazy } from "cdktn";
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { IBucket, EventType, NotificationKeyFilter } from "./bucket";

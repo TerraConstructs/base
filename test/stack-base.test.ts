@@ -6,9 +6,9 @@ import {
   TerraformVariable,
   TerraformOutput,
   TerraformLocal,
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { StackBase } from "../src";
 import { Template } from "./assertions";
 import { TestResource } from "./test-resource";

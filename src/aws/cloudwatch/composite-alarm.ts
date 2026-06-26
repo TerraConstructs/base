@@ -1,5 +1,5 @@
-import { cloudwatchCompositeAlarm } from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+import { cloudwatchCompositeAlarm } from "@cdktn/provider-aws";
+import { Lazy } from "cdktn";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
 import { AwsConstructProps } from "../aws-construct";

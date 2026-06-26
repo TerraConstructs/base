@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/port.ts
 
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 
 /**
  * Protocol for use in Connection Rules

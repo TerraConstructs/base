@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/key-pair.ts
 
-import { keyPair as tfKeyPair } from "@cdktf/provider-aws";
-import { privateKey } from "@cdktf/provider-tls";
-import { Fn } from "cdktf";
+import { keyPair as tfKeyPair } from "@cdktn/provider-aws";
+import { privateKey } from "@cdktn/provider-tls";
+import { Fn } from "cdktn";
 import { Construct } from "constructs";
 import { OperatingSystemType } from "./machine-image";
 import {

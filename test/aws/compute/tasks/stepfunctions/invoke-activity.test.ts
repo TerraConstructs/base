@@ -1,6 +1,6 @@
-import { sfnStateMachine } from "@cdktf/provider-aws";
-import "cdktf/lib/testing/adapters/jest";
-import { Testing } from "cdktf";
+import { sfnStateMachine } from "@cdktn/provider-aws";
+import "cdktn/lib/testing/adapters/jest";
+import { Testing } from "cdktn";
 import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import { StepFunctionsInvokeActivity } from "../../../../../src/aws/compute/tasks/stepfunctions/invoke-activity";

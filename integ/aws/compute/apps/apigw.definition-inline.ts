@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/%40aws-cdk-testing/framework-integ/test/aws-apigateway/test/integ.api-definition.inline.ts
 
-import { App, LocalBackend, TerraformOutput } from "cdktf";
+import { App, LocalBackend, TerraformOutput } from "cdktn";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

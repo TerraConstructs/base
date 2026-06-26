@@ -3,8 +3,8 @@
 import {
   apiGatewayDomainName,
   apigatewayv2ApiMapping,
-} from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { BasePathMapping, BasePathMappingOptions } from "./base-path-mapping"; // Assuming this will be converted
 import { EndpointType, IRestApi } from "./restapi"; // Assuming these will be converted/available

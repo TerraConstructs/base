@@ -7,10 +7,10 @@ import {
   cloudwatchLogMetricFilter,
   cloudwatchLogDataProtectionPolicy,
   cloudwatchLogSubscriptionFilter,
-} from "@cdktf/provider-aws";
-import { App, Testing, TerraformVariable } from "cdktf";
+} from "@cdktn/provider-aws";
+import { App, Testing, TerraformVariable } from "cdktn";
 import { Construct } from "constructs";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack, RetentionDays } from "../../../src/aws";
 import {
   LogGroup,

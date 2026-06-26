@@ -3,7 +3,7 @@
 import {
   appautoscalingTarget,
   appautoscalingScheduledAction,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { Schedule } from "./schedule";
 import {

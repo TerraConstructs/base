@@ -2,7 +2,7 @@ import {
   dbSubnetGroup,
   elasticacheSubnetGroup,
   // docdbSubnetGroup, // not needed, rds and docdb share subnet groups
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import {
   AwsConstructBase,

@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { sfnStateMachine } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { sfnStateMachine } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { RequestContext } from ".";
 import * as sfn from "..";
 import { AwsIntegration } from "./aws";

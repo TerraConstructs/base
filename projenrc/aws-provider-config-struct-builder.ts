@@ -19,7 +19,7 @@ export class AwsProviderStructBuilder extends Component {
     });
 
     struct
-      .mixin(Struct.fromFqn("@cdktf/provider-aws.provider.AwsProviderConfig"))
+      .mixin(Struct.fromFqn("@cdktn/provider-aws.provider.AwsProviderConfig"))
       .omit("alias");
   }
 }

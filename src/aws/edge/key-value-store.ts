@@ -2,7 +2,7 @@ import * as fs from "fs";
 import {
   cloudfrontKeyValueStore,
   cloudfrontkeyvaluestoreKey,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import {
   AwsConstructBase,

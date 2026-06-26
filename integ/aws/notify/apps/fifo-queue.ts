@@ -1,4 +1,4 @@
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { aws, Duration } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

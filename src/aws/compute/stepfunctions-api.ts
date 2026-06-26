@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-apigateway/lib/stepfunctions-api.ts
 
-import { sfnStateMachine } from "@cdktf/provider-aws";
+import { sfnStateMachine } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { RestApi, RestApiProps } from ".";
 import * as sfn from ".";

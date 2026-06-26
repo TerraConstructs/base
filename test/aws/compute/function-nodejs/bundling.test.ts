@@ -5,8 +5,8 @@ import * as child_process from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { version as delayVersion } from "delay/package.json";
 import {
   AssetHashType,

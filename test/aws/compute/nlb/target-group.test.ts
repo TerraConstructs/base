@@ -4,14 +4,14 @@ import {
   lb as tfLoadBalancer,
   securityGroup as tfSecurityGroup,
   lbTargetGroup as tfLbTargetGroup,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   App,
   TerraformOutput,
   // TerraformElement,
   Testing,
-} from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as cloudwatch from "../../../../src/aws/cloudwatch";
 import * as ec2 from "../../../../src/aws/compute";

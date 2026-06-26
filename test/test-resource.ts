@@ -1,4 +1,4 @@
-import { TerraformMetaArguments, TerraformResource } from "cdktf";
+import { TerraformMetaArguments, TerraformResource } from "cdktn";
 import { Construct } from "constructs";
 
 export enum TestProviderMetadata {

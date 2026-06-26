@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/4f8aae50884b9238b3e0862874bcca6daea72a31/packages/aws-cdk-lib/aws-logs/test/metricfilter.test.ts
 
-import { cloudwatchLogMetricFilter } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { cloudwatchLogMetricFilter } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   FilterPattern,

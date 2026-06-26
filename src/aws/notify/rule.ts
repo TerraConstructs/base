@@ -4,8 +4,8 @@ import {
   cloudwatchEventRule,
   cloudwatchEventTarget,
   //schedulerScheduleGroup //TODO: support scheduler groups?
-} from "@cdktf/provider-aws";
-import { Lazy, Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Lazy, Token } from "cdktn";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
 import {

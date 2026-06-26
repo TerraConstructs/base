@@ -1,9 +1,9 @@
 import {
   Testing,
   //Annotations,
-} from "cdktf";
+} from "cdktn";
 import { render } from "./private/render-util";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { Duration } from "../../../src";
 import { compute, AwsStack } from "../../../src/aws";
 import { Errors } from "../../../src/aws/compute/types";

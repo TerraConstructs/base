@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/token.ts
 
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 
 /**
  * An enum-like class that represents the result of comparing two Tokens.

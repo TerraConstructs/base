@@ -1,5 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.164.1/packages/%40aws-cdk-testing/framework-integ/test/aws-stepfunctions-tasks/test/sqs/integ.send-message.ts
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { aws, Duration } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

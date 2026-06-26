@@ -5,7 +5,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 // import * as sinon from "sinon";
-import { App, Testing } from "cdktf";
+import { App, Testing } from "cdktn";
 import {
   AssetHashType,
   AssetStaging,

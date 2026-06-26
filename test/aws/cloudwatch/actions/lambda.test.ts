@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/a12887b593ef6796f63bf754a3d381676d2e5155/packages/aws-cdk-lib/aws-cloudwatch-actions/test/lambda.test.ts
 
-import { cloudwatchMetricAlarm, lambdaPermission } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { cloudwatchMetricAlarm, lambdaPermission } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as cloudwatch from "../../../../src/aws/cloudwatch";
 import * as actions from "../../../../src/aws/cloudwatch/actions";

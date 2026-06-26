@@ -1,12 +1,12 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/vpc-endpoint.ts
 
-import { vpcEndpoint } from "@cdktf/provider-aws";
+import { vpcEndpoint } from "@cdktn/provider-aws";
 import {
   // TODO: Use Grid as contextProvider
   // ContextProvider,
   // Token,
   Lazy,
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
 import { Connections, IConnectable } from "./connections";
 import { allRouteTableIds, flatten } from "./ec2-util";

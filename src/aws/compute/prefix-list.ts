@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/prefix-list.ts
 
-import { ec2ManagedPrefixList } from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+import { ec2ManagedPrefixList } from "@cdktn/provider-aws";
+import { Lazy } from "cdktn";
 import { Construct } from "constructs";
 import {
   IAwsConstruct,

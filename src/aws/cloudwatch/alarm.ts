@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-cloudwatch/lib/alarm.ts
 
 // TODO: use https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/cloudwatch_alarm
-import { cloudwatchMetricAlarm } from "@cdktf/provider-aws";
-import { Lazy, Token, Annotations } from "cdktf";
+import { cloudwatchMetricAlarm } from "@cdktn/provider-aws";
+import { Lazy, Token, Annotations } from "cdktn";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
 import { AwsConstructProps } from "../aws-construct";

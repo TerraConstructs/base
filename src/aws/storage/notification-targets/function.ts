@@ -1,4 +1,4 @@
-import { TerraformResource } from "cdktf";
+import { TerraformResource } from "cdktn";
 import { Construct } from "constructs";
 import * as storage from "..";
 import { AwsStack } from "../../aws-stack";

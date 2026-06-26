@@ -1,4 +1,4 @@
-import { kinesisFirehoseDeliveryStream } from "@cdktf/provider-aws";
+import { kinesisFirehoseDeliveryStream } from "@cdktn/provider-aws";
 import { IStage } from "./stage";
 // import * as firehose from "../../aws-kinesisfirehose";
 // import * as firehose from "../notify/firehose";

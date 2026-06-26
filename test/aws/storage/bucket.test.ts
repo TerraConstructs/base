@@ -1,8 +1,8 @@
 import { mkdtempSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
-import { App, Testing, TerraformLocal } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { App, Testing, TerraformLocal } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as iam from "../../../src/aws/iam";
 import * as storage from "../../../src/aws/storage";

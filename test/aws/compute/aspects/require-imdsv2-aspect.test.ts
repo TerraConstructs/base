@@ -3,9 +3,9 @@
 import {
   launchTemplate as tfLaunchTemplate,
   instance as tfInstance,
-} from "@cdktf/provider-aws";
-import { App, Testing, Aspects } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing, Aspects } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { Construct } from "constructs";
 import { AwsStack } from "../../../../src/aws";
 import {
