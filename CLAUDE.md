@@ -75,9 +75,9 @@ make instance-public-cleanup-only  # Clean up when done
 ### Dependencies
 
 - **CDKTN** (0.23.0) - Core Terraform CDK framework (CDK Terrain, the community CDKTF fork)
-- **AWS Provider** (19.54.0) - Primary cloud provider
-- **JSII** (~5.7) - Multi-language library generation
-- **Projen** (^0.88.0) - Project synthesis and configuration management
+- **AWS Provider** (24.8.0) - Primary cloud provider
+- **JSII** (~5.9) - Multi-language library generation
+- **Projen** (^0.98.32) - Project synthesis and configuration management
 
 ## Testing Strategy
 
