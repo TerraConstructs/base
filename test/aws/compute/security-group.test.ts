@@ -1,6 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/test/security-group.test.ts
 
 import {
+  dataAwsSecurityGroup,
   securityGroup as tfSecurityGroup,
   vpcSecurityGroupEgressRule as tfVpcSecurityGroupEgressRule,
   vpcSecurityGroupIngressRule as tfVpcSecurityGroupIngressRule,
@@ -652,197 +653,192 @@ describe("security group", () => {
   });
 });
 
-// describe("security group lookup", () => {
-//   // DEPRECATED
-//   test("can look up a security group", () => {
-//     const app = new App();
-//     const stack = new AwsStack(app, "stack", {
-//       env: {
-//         account: "1234",
-//         region: "us-east-1",
-//       },
-//     });
+describe("security group lookup", () => {
+  test("can look up a security group by id", () => {
+    // GIVEN
+    const app = new App();
+    const stack = new AwsStack(app, "stack", {
+      providerConfig: {
+        region: "us-east-1",
+      },
+    });
 
-//     const securityGroup = SecurityGroup.fromLookup(stack, "stack", "sg-1234");
+    // WHEN
+    const securityGroup = SecurityGroup.fromLookupById(
+      stack,
+      "SG1",
+      "sg-12345",
+    );
 
-//     expect(securityGroup.securityGroupId).toEqual("sg-12345678");
-//     expect(securityGroup.allowAllOutbound).toEqual(true);
-//   });
+    // THEN
+    expect(stack.resolve(securityGroup.securityGroupId)).toEqual(
+      "${data.aws_security_group.DataSG1.id}",
+    );
+    expect(securityGroup.allowAllOutbound).toEqual(true);
+  });
 
-//   test("can look up a security group by id", () => {
-//     // GIVEN
-//     const app = new App();
-//     const stack = new AwsStack(app, "stack", {
-//       env: {
-//         account: "1234",
-//         region: "us-east-1",
-//       },
-//     });
+  test("can look up a security group by name and vpc", () => {
+    // GIVEN
+    const app = new App();
+    const stack = new AwsStack(app, "stack", {
+      providerConfig: {
+        region: "us-east-1",
+      },
+    });
 
-//     // WHEN
-//     const securityGroup = SecurityGroup.fromLookupById(
-//       stack,
-//       "SG1",
-//       "sg-12345",
-//     );
+    const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
+      vpcId: "vpc-1234",
+      availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
+    });
 
-//     // THEN
-//     expect(securityGroup.securityGroupId).toEqual("sg-12345678");
-//     expect(securityGroup.allowAllOutbound).toEqual(true);
-//   });
+    // WHEN
+    const securityGroup = SecurityGroup.fromLookupByName(
+      stack,
+      "SG1",
+      "sg-12345",
+      vpc,
+    );
 
-//   test("can look up a security group by name and vpc", () => {
-//     // GIVEN
-//     const app = new App();
-//     const stack = new AwsStack(app, "stack", {
-//       env: {
-//         account: "1234",
-//         region: "us-east-1",
-//       },
-//     });
+    // THEN
+    expect(stack.resolve(securityGroup.securityGroupId)).toEqual(
+      "${data.aws_security_group.DataSG1.id}",
+    );
+    expect(securityGroup.allowAllOutbound).toEqual(true);
+    Template.synth(stack).toHaveDataSourceWithProperties(
+      dataAwsSecurityGroup.DataAwsSecurityGroup,
+      {
+        name: "sg-12345",
+        vpc_id: "vpc-1234",
+      },
+    );
+  });
 
-//     const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
-//       vpc_id: "vpc-1234",
-//       availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
-//     });
+  test("can look up a security group by id and vpc", () => {
+    // GIVEN
+    const app = new App();
+    const stack = new AwsStack(app, "stack", {
+      providerConfig: {
+        region: "us-east-1",
+      },
+    });
 
-//     // WHEN
-//     const securityGroup = SecurityGroup.fromLookupByName(
-//       stack,
-//       "SG1",
-//       "sg-12345",
-//       vpc,
-//     );
+    const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
+      vpcId: "vpc-1234",
+      availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
+    });
 
-//     // THEN
-//     expect(securityGroup.securityGroupId).toEqual("sg-12345678");
-//     expect(securityGroup.allowAllOutbound).toEqual(true);
-//   });
+    // WHEN
+    const securityGroup = SecurityGroup.fromLookupByName(
+      stack,
+      "SG1",
+      "my-security-group",
+      vpc,
+    );
 
-//   test("can look up a security group by id and vpc", () => {
-//     // GIVEN
-//     const app = new App();
-//     const stack = new AwsStack(app, "stack", {
-//       env: {
-//         account: "1234",
-//         region: "us-east-1",
-//       },
-//     });
+    // THEN
+    expect(stack.resolve(securityGroup.securityGroupId)).toEqual(
+      "${data.aws_security_group.DataSG1.id}",
+    );
+    expect(securityGroup.allowAllOutbound).toEqual(true);
+  });
 
-//     const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
-//       vpc_id: "vpc-1234",
-//       availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
-//     });
+  test("can look up a security group and use it as a peer", () => {
+    // GIVEN
+    const app = new App();
+    const stack = new AwsStack(app, "stack", {
+      providerConfig: {
+        region: "us-east-1",
+      },
+    });
 
-//     // WHEN
-//     const securityGroup = SecurityGroup.fromLookupByName(
-//       stack,
-//       "SG1",
-//       "my-security-group",
-//       vpc,
-//     );
+    const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
+      vpcId: "vpc-1234",
+      availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
+    });
 
-//     // THEN
-//     expect(securityGroup.securityGroupId).toEqual("sg-12345678");
-//     expect(securityGroup.allowAllOutbound).toEqual(true);
-//   });
+    // WHEN
+    const securityGroup = SecurityGroup.fromLookupByName(
+      stack,
+      "SG1",
+      "my-security-group",
+      vpc,
+    );
 
-//   test("can look up a security group and use it as a peer", () => {
-//     // GIVEN
-//     const app = new App();
-//     const stack = new AwsStack(app, "stack", {
-//       env: {
-//         account: "1234",
-//         region: "us-east-1",
-//       },
-//     });
+    // THEN
+    expect(() => {
+      Peer.securityGroupId(securityGroup.securityGroupId);
+    }).not.toThrow();
+  });
 
-//     const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
-//       vpcId: "vpc-1234",
-//       availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
-//     });
+  test("throws if securityGroupId is tokenized", () => {
+    // GIVEN
+    const app = new App();
+    const stack = new AwsStack(app, "stack", {
+      providerConfig: {
+        region: "us-east-1",
+      },
+    });
 
-//     // WHEN
-//     const securityGroup = SecurityGroup.fromLookupByName(
-//       stack,
-//       "SG1",
-//       "my-security-group",
-//       vpc,
-//     );
+    // WHEN
+    expect(() => {
+      SecurityGroup.fromLookupById(
+        stack,
+        "stack",
+        Lazy.stringValue({ produce: () => "sg-12345" }),
+      );
+    }).toThrow(
+      "All arguments to look up a security group must be concrete (no Tokens)",
+    );
+  });
 
-//     // THEN
-//     expect(() => {
-//       Peer.securityGroupId(securityGroup.securityGroupId);
-//     }).not.toThrow();
-//   });
+  test("throws if securityGroupName is tokenized", () => {
+    // GIVEN
+    const app = new App();
+    const stack = new AwsStack(app, "stack", {
+      providerConfig: {
+        region: "us-east-1",
+      },
+    });
 
-//   test("throws if securityGroupId is tokenized", () => {
-//     // GIVEN
-//     const app = new App();
-//     const stack = new AwsStack(app, "stack", {
-//       env: {
-//         account: "1234",
-//         region: "us-east-1",
-//       },
-//     });
+    // WHEN
+    expect(() => {
+      SecurityGroup.fromLookupById(
+        stack,
+        "stack",
+        Lazy.stringValue({ produce: () => "my-security-group" }),
+      );
+    }).toThrow(
+      "All arguments to look up a security group must be concrete (no Tokens)",
+    );
+  });
 
-//     // WHEN
-//     expect(() => {
-//       SecurityGroup.fromLookupById(
-//         stack,
-//         "stack",
-//         Lazy.stringValue({ produce: () => "sg-12345" }),
-//       );
-//     }).toThrow(
-//       "All arguments to look up a security group must be concrete (no Tokens)",
-//     );
-//   });
+  test("throws if vpc id is tokenized", () => {
+    // GIVEN
+    const app = new App();
+    const stack = new AwsStack(app, "stack", {
+      providerConfig: {
+        region: "us-east-1",
+      },
+    });
 
-//   test("throws if securityGroupName is tokenized", () => {
-//     // GIVEN
-//     const app = new App();
-//     const stack = new AwsStack(app, "stack", {
-//       env: {
-//         account: "1234",
-//         region: "us-east-1",
-//       },
-//     });
+    const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
+      vpcId: "vpc-1234",
+      availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
+    });
 
-//     // WHEN
-//     expect(() => {
-//       SecurityGroup.fromLookupById(
-//         stack,
-//         "stack",
-//         Lazy.stringValue({ produce: () => "my-security-group" }),
-//       );
-//     }).toThrow(
-//       "All arguments to look up a security group must be concrete (no Tokens)",
-//     );
-//   });
-
-//   test("throws if vpc id is tokenized", () => {
-//     // GIVEN
-//     const app = new App();
-//     const stack = new AwsStack(app, "stack", {
-//       env: {
-//         account: "1234",
-//         region: "us-east-1",
-//       },
-//     });
-
-//     const vpc = Vpc.fromVpcAttributes(stack, "VPC", {
-//       vpcId: Lazy.stringValue({ produce: () => "vpc-1234" }),
-//       availabilityZones: ["dummy1a", "dummy1b", "dummy1c"],
-//     });
-
-//     // WHEN
-//     expect(() => {
-//       SecurityGroup.fromLookupByName(stack, "stack", "my-security-group", vpc);
-//     }).toThrow(
-//       "All arguments to look up a security group must be concrete (no Tokens)",
-//     );
-//   });
-// });
+    // WHEN
+    expect(() => {
+      SecurityGroup.fromLookupByName(
+        stack,
+        "stack",
+        Lazy.stringValue({ produce: () => "my-security-group" }),
+        vpc,
+      );
+    }).toThrow(
+      "All arguments to look up a security group must be concrete (no Tokens)",
+    );
+  });
+});
 
 function testRulesAreInlined(
   contextDisableInlineRules: boolean | undefined | null,
