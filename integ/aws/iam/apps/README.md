@@ -1,6 +1,6 @@
-# IAM CDKTF Apps
+# IAM CDKTN Apps
 
-These are the CDKTF Apps for integration testing.
+These are the CDKTN Apps for integration testing.
 
 You may run them directly using `bun role` for example.
 

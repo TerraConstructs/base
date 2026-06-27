@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TerraConstructs is a TypeScript library that provides AWS CDK-like constructs for infrastructure as code, built on top of CDKTF (Terraform CDK). It combines AWS CDK patterns with Terraform's provider ecosystem and state management capabilities.
+TerraConstructs is a TypeScript library that provides AWS CDK-like constructs for infrastructure as code, built on top of CDKTN (CDK Terrain, the community fork of CDKTF / Terraform CDK). It combines AWS CDK patterns with Terraform's provider ecosystem and state management capabilities.
 
 ## Development Commands
 
@@ -74,7 +74,7 @@ make instance-public-cleanup-only  # Clean up when done
 
 ### Dependencies
 
-- **CDKTF** (0.20.8) - Core Terraform CDK framework
+- **CDKTN** (0.23.0) - Core Terraform CDK framework (CDK Terrain, the community CDKTF fork)
 - **AWS Provider** (19.54.0) - Primary cloud provider
 - **JSII** (~5.7) - Multi-language library generation
 - **Projen** (^0.88.0) - Project synthesis and configuration management
@@ -83,7 +83,7 @@ make instance-public-cleanup-only  # Clean up when done
 
 ### Unit Tests (Jest)
 
-- Custom setup in `setup.js` for CDKTF testing
+- Custom setup in `setup.js` for CDKTN testing
 - Assertions helpers in `test/assertions.ts`
 - Snapshot testing supported for template validation
 
