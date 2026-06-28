@@ -1,7 +1,11 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-ec2/test/vpc.from-lookup.test.ts
 
 import * as cxschema from "@aws-cdk/cloud-assembly-schema";
-import { dataAwsSubnet, dataAwsVpc } from "@cdktn/provider-aws";
+import {
+  dataAwsAvailabilityZones,
+  dataAwsSubnet,
+  dataAwsVpc,
+} from "@cdktn/provider-aws";
 import { Lazy } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { Construct } from "constructs";
@@ -444,6 +448,35 @@ describe("vpc from lookup", () => {
           },
         ],
       });
+    });
+
+    test("cross-region fallback resolves availabilityZones for the lookup region", () => {
+      // GIVEN - a stack in us-east-1 looking up a VPC in us-west-2
+      const stack = new AwsStack(undefined, undefined, {
+        providerConfig: { region: "us-east-1" },
+      });
+
+      // WHEN - fromLookup with a different region triggers the data-source fallback
+      const vpc = Vpc.fromLookup(stack, "Vpc", {
+        vpcId: "vpc-1234",
+        region: "us-west-2",
+      });
+
+      // THEN - the fallback AZs reference a region-scoped data source, not the
+      // stack's default-region one (issue #102)
+      expect(stack.resolve(vpc.availabilityZones)).toEqual([
+        "${element(data.aws_availability_zones.AvailabilityZones_us_west_2.names, 0)}",
+        "${element(data.aws_availability_zones.AvailabilityZones_us_west_2.names, 1)}",
+      ]);
+
+      // AND - that data source carries the per-resource region argument
+      const t = new Template(stack);
+      t.expect.toHaveDataSourceWithProperties(
+        dataAwsAvailabilityZones.DataAwsAvailabilityZones,
+        {
+          region: "us-west-2",
+        },
+      );
     });
 
     test("fallback lookup VPC preserves availabilityZones from stack when no subnet groups", () => {
