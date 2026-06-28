@@ -1,0 +1,41 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "integ-aws-monitoring",
+      "dependencies": {
+        "@cdktn/provider-aws": "^24.8.0",
+        "cdktn": "^0.23.0",
+        "constructs": "^10.6.0",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.1.3",
+        "typescript": "5.7.3",
+      },
+    },
+  },
+  "packages": {
+    "@cdktn/provider-aws": ["@cdktn/provider-aws@24.8.0", "", { "peerDependencies": { "cdktn": "^0.23.0", "constructs": "^10.6.0" } }, "sha512-UI7qJhjkE5VQB6WacXentpOg5mKWv2RbbCNZCMR28Tww35gT8nr7zG9WhFCBebQ0+l1nnLgOd/KRYMJ6puIBSw=="],
+
+    "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
+
+    "@types/node": ["@types/node@26.0.1", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-fc3KiUoBt6kie0N9bIW3E47vZsuaMf0PM2AaUpLCLT0s/LvX1nxAim6Fc049cNxODPpGm6qRAuUOB86SkRuPQw=="],
+
+    "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
+
+    "cdktn": ["cdktn@0.23.3", "", { "dependencies": { "fflate": "0.8.2", "safe-stable-stringify": "2.5.0", "semver": "7.7.4" }, "peerDependencies": { "constructs": "^10.6.0" } }, "sha512-itMa781HsaZzVTNTJPbNuVk2sPhFQh7ek3yYkWqnKk5nCVwesefs50Hm83id9l18phj1HJJ7lQYsAa3t9u3Yzg=="],
+
+    "constructs": ["constructs@10.6.0", "", {}, "sha512-TxHOnBO5zMo/G76ykzGF/wMpEHu257TbWiIxP9K0Yv/+t70UzgBQiTqjkAsWOPC6jW91DzJI0+ehQV6xDRNBuQ=="],
+
+    "typescript": ["typescript@5.7.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw=="],
+
+    "undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "cdktn/fflate": ["fflate@0.8.2", "", { "bundled": true }, "sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A=="],
+
+    "cdktn/safe-stable-stringify": ["safe-stable-stringify@2.5.0", "", { "bundled": true }, "sha512-b3rppTKm9T+PsVCBEOUR46GWI7fdOs00VKZ1+9c1EWDaDMvjQc6tUwuFyIprgGgTcWoVHSKrU8H31ZHA2e0RHA=="],
+
+    "cdktn/semver": ["semver@7.7.4", "", { "bundled": true, "bin": { "semver": "bin/semver.js" } }, "sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA=="],
+  }
+}
