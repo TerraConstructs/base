@@ -89,6 +89,47 @@ describe("stack", () => {
       "${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
     ]);
   });
+
+  test("stack.availabilityZones(region) returns references to a region-scoped data source", () => {
+    // GIVEN
+    const app = new App();
+    const stack = new AwsStack(app, "MyStack", {
+      providerConfig: {
+        region: "us-east-1",
+      },
+    });
+    // WHEN
+    const azs = stack.availabilityZones(2, "us-west-2");
+    // THEN - resolves against a region-suffixed data source, not the default one
+    expect(stack.resolve(azs)).toEqual([
+      "${element(data.aws_availability_zones.AvailabilityZones_us_west_2.names, 0)}",
+      "${element(data.aws_availability_zones.AvailabilityZones_us_west_2.names, 1)}",
+    ]);
+    // AND - the region-scoped data source carries the per-resource region arg
+    const synthesized = JSON.parse(JSON.stringify(stack.toTerraform()));
+    expect(
+      synthesized.data.aws_availability_zones.AvailabilityZones_us_west_2
+        .region,
+    ).toEqual("us-west-2");
+  });
+
+  test("stack.availabilityZones(region) caches per region", () => {
+    // GIVEN
+    const app = new App();
+    const stack = new AwsStack(app, "MyStack", {
+      providerConfig: {
+        region: "us-east-1",
+      },
+    });
+    // WHEN - two calls for the same region
+    stack.availabilityZones(2, "us-west-2");
+    stack.availabilityZones(3, "us-west-2");
+    // THEN - only a single region-scoped data source is created
+    const synthesized = JSON.parse(JSON.stringify(stack.toTerraform()));
+    expect(Object.keys(synthesized.data.aws_availability_zones)).toEqual([
+      "AvailabilityZones_us_west_2",
+    ]);
+  });
 });
 
 describe("regionalFact", () => {

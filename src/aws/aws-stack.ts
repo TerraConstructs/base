@@ -37,6 +37,12 @@ import { SKIP_DEPENDENCY_PROPAGATION } from "../private/terraform-dependables-as
 
 const AWS_STACK_SYMBOL = Symbol.for("terraconstructs/lib/aws.AwsStack");
 
+/**
+ * Cache key used for region-scoped lookups that target the stack's own
+ * provider region (i.e. no explicit region was requested).
+ */
+const DEFAULT_REGION_KEY = "default_region";
+
 export interface AwsStackProps extends StackBaseProps {
   /**
    * The AWS Provider configuration (without the alias field)
@@ -103,7 +109,12 @@ interface AwsLookup {
   dataAwsRegion?: dataAwsRegion.DataAwsRegion;
   dataAwsCallerIdentity?: dataAwsCallerIdentity.DataAwsCallerIdentity;
   dataAwsPartition?: dataAwsPartition.DataAwsPartition;
-  dataAwsAvailabilityZones?: dataAwsAvailabilityZones.DataAwsAvailabilityZones;
+  // AWS Availability Zones data sources keyed by region (DEFAULT_REGION_KEY for
+  // the stack's own provider region).
+  dataAwsAvailabilityZones: Record<
+    string,
+    dataAwsAvailabilityZones.DataAwsAvailabilityZones
+  >;
   // AWS Service Principals by region and by service
   dataAwsServicePrincipals: Record<
     string,
@@ -204,6 +215,7 @@ export class AwsStack extends StackBase implements IAwsStack {
         // defaultTags: this.cdkTagManager.renderedTags,
         ...(this._providerConfig ?? {}),
       }),
+      dataAwsAvailabilityZones: {},
       dataAwsServicePrincipals: {},
     };
     return this._lookup;
@@ -264,20 +276,36 @@ export class AwsStack extends StackBase implements IAwsStack {
     return this.lookup.dataAwsCallerIdentity;
   }
 
-  private get dataAwsAvailabilityZones(): dataAwsAvailabilityZones.DataAwsAvailabilityZones {
-    if (!this.lookup.dataAwsAvailabilityZones) {
+  /**
+   * Get (or lazily create) the `aws_availability_zones` data source for a
+   * region.
+   *
+   * When `region` is omitted the data source resolves against the stack's
+   * default provider region. When `region` is provided the AWS provider v6
+   * per-resource `region` argument is used to query that region directly,
+   * without requiring a separate provider alias.
+   */
+  private getDataAwsAvailabilityZones(
+    region?: string,
+  ): dataAwsAvailabilityZones.DataAwsAvailabilityZones {
+    const key = region ?? DEFAULT_REGION_KEY;
+    if (!this.lookup.dataAwsAvailabilityZones[key]) {
       const azs = new dataAwsAvailabilityZones.DataAwsAvailabilityZones(
         this,
-        "AvailabilityZones",
+        region
+          ? `AvailabilityZones_${toTerraformIdentifier(region)}`
+          : "AvailabilityZones",
         {
           provider: this.lookup.awsProvider,
+          // undefined for the default region -> omitted from synthesized output
+          region,
         },
       );
       // these should never depend on anything (HACK to avoid cycles)
       Object.defineProperty(azs, SKIP_DEPENDENCY_PROPAGATION, { value: true });
-      this.lookup.dataAwsAvailabilityZones = azs;
+      this.lookup.dataAwsAvailabilityZones[key] = azs;
     }
-    return this.lookup.dataAwsAvailabilityZones;
+    return this.lookup.dataAwsAvailabilityZones[key];
   }
 
   private get dataAwsPartition(): dataAwsPartition.DataAwsPartition {
@@ -363,7 +391,6 @@ export class AwsStack extends StackBase implements IAwsStack {
    * @param region The region to get the service principal ID for
    */
   public servicePrincipalName(service: string, region?: string): string {
-    const DEFAULT_REGION_KEY = "default_region";
     if (!region) {
       region = DEFAULT_REGION_KEY;
     }
@@ -498,7 +525,7 @@ export class AwsStack extends StackBase implements IAwsStack {
    * To specify a different strategy for selecting availability zones override this method.
    */
   public get availabilityZoneIterator(): ResourceTerraformIterator {
-    const azs = this.dataAwsAvailabilityZones;
+    const azs = this.getDataAwsAvailabilityZones();
     return TerraformIterator.fromDataSources(azs);
   }
 
@@ -508,11 +535,17 @@ export class AwsStack extends StackBase implements IAwsStack {
    *
    * The list length is `maxCount` which defaults to 2.
    *
+   * When `region` is provided, the AZs are resolved for that region using the
+   * AWS provider v6 per-resource `region` argument (no provider alias is
+   * required). This is primarily useful for cross-region lookups such as
+   * `Vpc.fromLookup({ region })`.
+   *
    * @param maxCount the maximum number of AZs to return
+   * @param region the region to resolve AZs for (defaults to the stack region)
    */
-  public availabilityZones(maxCount: number = 2): string[] {
+  public availabilityZones(maxCount: number = 2, region?: string): string[] {
     // TODO: Implement ContextProvider
-    const azs = this.dataAwsAvailabilityZones;
+    const azs = this.getDataAwsAvailabilityZones(region);
     const azLookups: any[] = [];
     for (let i = 0; i < maxCount; i++) {
       azLookups.push(Fn.element(azs.names, i));

@@ -1682,7 +1682,9 @@ export class Vpc extends VpcBase {
       attributes = {
         vpcId: data.id,
         vpcCidrBlock: data.cidrBlock,
-        availabilityZones: stack.availabilityZones(),
+        // Resolve AZs for the looked-up region so cross-region lookups do not
+        // mix the enclosing stack region's AZs (see issue #102).
+        availabilityZones: stack.availabilityZones(2, options.region),
         region: options.region,
       };
     }
