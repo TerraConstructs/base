@@ -48,6 +48,10 @@ machine-image: ## Test Machine Image
 	go test -v -count 1 -timeout 15m ./... -run ^TestMachineImage$
 .PHONY: machine-image
 
+vpc-lookup: ## Test VPC lookup
+	go test -v -count 1 -timeout 15m ./... -run ^TestVpcLookup$
+.PHONY: vpc-lookup
+
 apigw-authorizer: ## Test All API Gateway Authorizer tests (sequential)
 	go test -v -count 1 -p 1 -parallel 1 -timeout 15m ./... -run '^TestApigw.*Authorizer.*$$'
 .PHONY: apigw-authorizer
