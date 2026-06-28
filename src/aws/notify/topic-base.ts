@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-sns/lib/topic-base.ts
 
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 import * as constructs from "constructs";
 import { Construct } from "constructs";
 import {

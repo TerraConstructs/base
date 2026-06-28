@@ -1,13 +1,13 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/shared/base-load-balancer.ts
 
 import { RegionInfo } from "@aws-cdk/region-info";
-import { lb as tfLoadBalancer } from "@cdktf/provider-aws";
+import { lb as tfLoadBalancer } from "@cdktn/provider-aws";
 import {
   TerraformResource,
   // ContextProvider,
   Lazy,
   Token,
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
 import { IpAddressType } from "./enums";
 import {

@@ -7,9 +7,9 @@ import {
   dataAwsIamPolicyDocument as tfDataAwsIamPolicyDocument,
   s3Bucket as tfS3Bucket,
   s3BucketServerSideEncryptionConfiguration,
-} from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { Construct } from "constructs";
 import { AwsStack } from "../../../../src/aws";
 import { Metric } from "../../../../src/aws/cloudwatch";

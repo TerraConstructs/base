@@ -3,7 +3,7 @@
 import {
   lbListener as tfListener,
   lbListenerRule as tfListenerRule,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 
 /**
  * Interface for listener actions

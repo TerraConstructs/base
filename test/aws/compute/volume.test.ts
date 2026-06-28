@@ -5,9 +5,9 @@ import {
   ebsVolume as tfEbsVolume,
   kmsKey as tfKey,
   dataAwsIamPolicyDocument as tfIamPolicyDocument,
-} from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack, Tags } from "../../../src/aws";
 // import * as cxapi from "../../cx-api";
 import {

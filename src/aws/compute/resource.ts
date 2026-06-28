@@ -1,4 +1,4 @@
-import { apiGatewayResource } from "@cdktf/provider-aws";
+import { apiGatewayResource } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { Cors, CorsOptions } from "./cors";
 import { Integration } from "./integration";

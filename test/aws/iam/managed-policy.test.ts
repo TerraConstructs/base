@@ -1,6 +1,6 @@
-import { iamPolicy, dataAwsIamPolicy } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { iamPolicy, dataAwsIamPolicy } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack, AwsConstructBase } from "../../../src/aws";
 import { Grant, IAwsConstructWithPolicy } from "../../../src/aws/iam/grant";
 import { ManagedPolicy } from "../../../src/aws/iam/managed-policy";

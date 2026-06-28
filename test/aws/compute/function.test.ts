@@ -1,6 +1,6 @@
 import path from "path";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { compute, AwsStack } from "../../../src/aws";
 import { Bucket } from "../../../src/aws/storage/bucket";
 import { Template } from "../../assertions";

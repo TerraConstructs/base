@@ -1,9 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-ec2/test/vpc.from-lookup.test.ts
 
 import * as cxschema from "@aws-cdk/cloud-assembly-schema";
-import { dataAwsSubnet, dataAwsVpc } from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { dataAwsSubnet, dataAwsVpc } from "@cdktn/provider-aws";
+import { Lazy } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { Construct } from "constructs";
 import { AwsStack } from "../../../src/aws";
 import {

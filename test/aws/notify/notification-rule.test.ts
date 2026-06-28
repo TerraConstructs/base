@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/81cde0e2e1f83f80273d14724d5518cc20dc5a80/packages/aws-cdk-lib/aws-codestarnotifications/test/notification-rule.test.ts
 
-import { codestarnotificationsNotificationRule } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { codestarnotificationsNotificationRule } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { Construct } from "constructs";
 import {
   FakeCodeBuild,

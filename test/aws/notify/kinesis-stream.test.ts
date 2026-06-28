@@ -5,9 +5,9 @@ import {
   kinesisResourcePolicy,
   kmsKey,
   dataAwsIamPolicyDocument,
-} from "@cdktf/provider-aws";
-import { App, Testing, TerraformVariable, VariableType, Op } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing, TerraformVariable, VariableType, Op } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as kms from "../../../src/aws/encryption";
 import * as iam from "../../../src/aws/iam";

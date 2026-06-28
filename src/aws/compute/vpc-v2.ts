@@ -4,8 +4,8 @@ import {
   vpc,
   vpcIpv4CidrBlockAssociation,
   vpcIpv6CidrBlockAssociation,
-} from "@cdktf/provider-aws";
-import { TerraformResource } from "cdktf";
+} from "@cdktn/provider-aws";
+import { TerraformResource } from "cdktn";
 import { Construct, DependencyGroup, IDependable } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { AwsStack } from "../aws-stack";

@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.164.1/packages/%40aws-cdk-testing/framework-integ/test/aws-ec2/test/integ.machine-image.ts
 
-import { ssmParameter } from "@cdktf/provider-aws";
-import { CloudinitProvider } from "@cdktf/provider-cloudinit/lib/provider";
-import { App, LocalBackend, TerraformOutput } from "cdktf";
+import { ssmParameter } from "@cdktn/provider-aws";
+import { CloudinitProvider } from "@cdktn/provider-cloudinit/lib/provider";
+import { App, LocalBackend, TerraformOutput } from "cdktn";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

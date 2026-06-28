@@ -1,4 +1,4 @@
-import { Annotations } from "cdktf";
+import { Annotations } from "cdktn";
 import { Construct } from "constructs";
 import * as storage from "..";
 import * as iam from "../../iam";

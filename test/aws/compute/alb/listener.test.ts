@@ -9,15 +9,15 @@ import {
   lbListenerCertificate as tfListenerCertificate,
   vpcSecurityGroupIngressRule as tfVpcSecurityGroupIngressRule,
   vpcSecurityGroupEgressRule as tfVpcSecurityGroupEgressRule,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   App,
   TerraformResource,
   TerraformVariable,
   // TerraformElement,
   Testing,
-} from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import * as constructs from "constructs";
 import { AwsStack } from "../../../../src/aws";
 import { Metric } from "../../../../src/aws/cloudwatch";

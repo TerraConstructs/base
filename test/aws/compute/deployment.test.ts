@@ -1,9 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-apigateway/test/deployment.test.ts
 
 import * as path from "path";
-import { apiGatewayDeployment, apiGatewayStage } from "@cdktf/provider-aws";
-import { App, Lazy, TerraformResource, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { apiGatewayDeployment, apiGatewayStage } from "@cdktn/provider-aws";
+import { App, Lazy, TerraformResource, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   Deployment,

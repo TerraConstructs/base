@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/alb/trust-store.ts
 
-import { lbTrustStore as tfTrustStore } from "@cdktf/provider-aws";
-import { Fn, Token } from "cdktf";
+import { lbTrustStore as tfTrustStore } from "@cdktn/provider-aws";
+import { Fn, Token } from "cdktn";
 import { Construct } from "constructs";
 import {
   IAwsConstruct,

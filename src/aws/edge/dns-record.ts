@@ -1,5 +1,5 @@
-import { route53Record } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { route53Record } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 // import { GeoLocation } from "./geo-location";
 import { IDnsZone, IAliasRecordTarget } from ".";

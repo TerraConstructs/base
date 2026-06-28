@@ -5,9 +5,9 @@ import {
   sqsQueue,
   sqsQueuePolicy,
   dataAwsIamPolicyDocument,
-} from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { Queue, SubscriptionProtocol } from "../../../src/aws/notify";
 import * as sns from "../../../src/aws/notify";

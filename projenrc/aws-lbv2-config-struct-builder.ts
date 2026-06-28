@@ -21,7 +21,7 @@ export class LbListenerConfigStructBuilder extends Component {
     });
 
     struct
-      .mixin(Struct.fromFqn("@cdktf/provider-aws.lbListener.LbListenerConfig"))
+      .mixin(Struct.fromFqn("@cdktn/provider-aws.lbListener.LbListenerConfig"))
       .omit("defaultAction");
   }
 }
@@ -47,7 +47,7 @@ export class LbTargetGroupAttachmentConfigStructBuilder extends Component {
     struct
       .mixin(
         Struct.fromFqn(
-          "@cdktf/provider-aws.lbTargetGroupAttachment.LbTargetGroupAttachmentConfig",
+          "@cdktn/provider-aws.lbTargetGroupAttachment.LbTargetGroupAttachmentConfig",
         ),
       )
       .omit("loadBalancerArn")

@@ -22,16 +22,16 @@ import {
   vpnGatewayRoutePropagation,
   vpcIpv6CidrBlockAssociation,
   // dataAwsIamPolicyDocument,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   // App,
   TerraformOutput,
   Lazy,
   Testing,
   TerraformVariable,
-} from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
-import { TerraformConstructor } from "cdktf/lib/testing/matchers";
+} from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
+import { TerraformConstructor } from "cdktn/lib/testing/matchers";
 import { AwsStack } from "../../../src/aws";
 import { Tags } from "../../../src/aws/aws-tags";
 import {

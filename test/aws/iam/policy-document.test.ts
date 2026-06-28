@@ -1,6 +1,6 @@
-import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
-import { Testing, Token, Lazy } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { dataAwsIamPolicyDocument } from "@cdktn/provider-aws";
+import { Testing, Token, Lazy } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { PolicyDocument } from "../../../src/aws/iam/policy-document";
 import { PolicyStatement, Effect } from "../../../src/aws/iam/policy-statement";

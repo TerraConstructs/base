@@ -1,4 +1,4 @@
-import { provider as archiveProvider } from "@cdktf/provider-archive";
+import { provider as archiveProvider } from "@cdktn/provider-archive";
 import {
   TerraformStack,
   TerraformElement,
@@ -11,7 +11,7 @@ import {
   IResolveContext,
   Lazy,
   App,
-} from "cdktf";
+} from "cdktn";
 import { Construct, IConstruct, Node } from "constructs";
 import { ValidationError } from "./errors";
 import {

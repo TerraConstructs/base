@@ -1,4 +1,4 @@
-import { Annotations } from "cdktf";
+import { Annotations } from "cdktn";
 import { Construct, IConstruct, Node } from "constructs";
 import * as notify from "..";
 import { Duration } from "../../../duration";

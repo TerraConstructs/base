@@ -7,7 +7,7 @@
  * See https://github.com/aws/aws-cdk/issues/4398
  */
 
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ssm/test/util.test.ts
 
-import { App, TerraformVariable, Testing, Token } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { App, TerraformVariable, Testing, Token } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { arnForParameterName } from "../../../src/aws/storage/parameter-util";
 

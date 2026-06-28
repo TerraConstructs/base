@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/alb/conditions.ts
 
-import { lbListenerRule as tfLbListenerRule } from "@cdktf/provider-aws";
+import { lbListenerRule as tfLbListenerRule } from "@cdktn/provider-aws";
 
 /**
  * ListenerCondition providers definition.

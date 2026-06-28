@@ -1,4 +1,4 @@
-import { apiGatewayModel } from "@cdktf/provider-aws";
+import { apiGatewayModel } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import * as util from "./apigateway-util";
 import * as jsonSchema from "./json-schema";

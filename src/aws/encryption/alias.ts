@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-kms/lib/alias.ts
 
-import { kmsAlias } from "@cdktf/provider-aws";
-import { Token, Tokenization } from "cdktf";
+import { kmsAlias } from "@cdktn/provider-aws";
+import { Token, Tokenization } from "cdktn";
 import { Construct } from "constructs";
 import { AwsConstructProps, AwsConstructBase } from "../aws-construct";
 import { AwsStack } from "../aws-stack";

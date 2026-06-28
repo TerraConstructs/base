@@ -1,7 +1,7 @@
-import { dataAwsIamPolicyDocument, sfnStateMachine } from "@cdktf/provider-aws";
+import { dataAwsIamPolicyDocument, sfnStateMachine } from "@cdktn/provider-aws";
 // import * as cloudwatch from "../../aws-cloudwatch";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { FakeTask } from "./private/fake-task";
 import { iam, compute, AwsStack } from "../../../src/aws";
 

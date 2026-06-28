@@ -1,5 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-stepfunctions/lib/private/json-path.ts
-import { Token, IResolvable, IResolveContext, Tokenization } from "cdktf";
+import { Token, IResolvable, IResolveContext, Tokenization } from "cdktn";
 import { IntrinsicParser, IntrinsicExpression } from "./intrinstics";
 
 const JSON_PATH_TOKEN_SYMBOL = Symbol.for(

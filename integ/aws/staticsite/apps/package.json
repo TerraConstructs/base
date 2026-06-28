@@ -6,9 +6,9 @@
     "cdn-website-bucket": "bun run ./cdn-website-bucket.ts"
   },
   "dependencies": {
-    "cdktf": "^0.21.0",
-    "constructs": "^10.4.2",
-    "@cdktf/provider-aws": "^20.1.0",
+    "cdktn": "^0.23.0",
+    "constructs": "^10.6.0",
+    "@cdktn/provider-aws": "^24.8.0",
     "@types/aws-lambda": "^8.10.76"
   },
   "devDependencies": {

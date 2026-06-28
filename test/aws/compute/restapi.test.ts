@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-apigateway/test/restapi.test.ts
 
-// import { UserPool as CognitoUserPoolProvider } from "@cdktf/provider-aws/lib/cognito-user-pool";
+// import { UserPool as CognitoUserPoolProvider } from "@cdktn/provider-aws/lib/cognito-user-pool";
 import {
   apiGatewayAccount,
   apiGatewayApiKey,
@@ -16,9 +16,9 @@ import {
   apiGatewayUsagePlanKey,
   dataAwsIamPolicyDocument,
   iamRole,
-} from "@cdktf/provider-aws";
-import { App, Lazy, TerraformResource, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Lazy, TerraformResource, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import {
   AwsStack,
   // RemovalPolicy

@@ -4,8 +4,8 @@ import {
   cloudwatchEventBus,
   cloudwatchEventBusPolicy,
   cloudwatchEventPermission,
-} from "@cdktf/provider-aws";
-import { Lazy, Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Lazy, Token } from "cdktn";
 import { Construct } from "constructs";
 import { UnscopedValidationError, ValidationError } from "../../errors";
 import { ArnFormat } from "../arn";

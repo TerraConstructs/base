@@ -1,6 +1,6 @@
 import * as crypto from "crypto";
-// import { Token } from "cdktf";
-import { cannotCalcIdForEmptySetOfComponents } from "cdktf/lib/errors";
+// import { Token } from "cdktn";
+import { cannotCalcIdForEmptySetOfComponents } from "cdktn/lib/errors";
 import {
   UniqueResourceNameOptions,
   UniqueResourceNamePrefixOptions,

@@ -1,4 +1,4 @@
-import { Token, IResolvable, IResolveContext } from "cdktf";
+import { Token, IResolvable, IResolveContext } from "cdktn";
 import { IDependable } from "constructs";
 import { AwsStack } from "../aws-stack";
 import { IOpenIdConnectProvider } from "./oidc-provider";

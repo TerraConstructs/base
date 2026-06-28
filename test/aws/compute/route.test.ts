@@ -9,9 +9,9 @@ import {
   natGateway as tfNatGateway,
   vpcEndpoint as tfVpcEndpoint,
   vpcPeeringConnection as tfVpcPeeringConnection,
-} from "@cdktf/provider-aws";
-import { Testing, Fn } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { Testing, Fn } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   RouteTable,

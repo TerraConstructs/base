@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/23238774aa3ca9a80dd406a43e51c3a6bbb68d42/packages/aws-cdk-lib/aws-kms/test/key.test.ts
 
-import { kmsKey, dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
-import { App, Testing, TerraformOutput, Fn } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { kmsKey, dataAwsIamPolicyDocument } from "@cdktn/provider-aws";
+import { App, Testing, TerraformOutput, Fn } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack, Tags } from "../../../src/aws";
 import { IKey, Key, KeySpec, KeyUsage } from "../../../src/aws/encryption/key";
 import * as iam from "../../../src/aws/iam";

@@ -4,16 +4,16 @@ import {
   ssmParameter,
   dataAwsSsmParameter,
   dataAwsIamPolicyDocument,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   App,
   Testing,
   // Fn,
   // TerraformOutput,
   TerraformVariable,
-} from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
-import * as cdk from "cdktf";
+} from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
+import * as cdk from "cdktn";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as kms from "../../../src/aws/encryption";
 import * as iam from "../../../src/aws/iam";

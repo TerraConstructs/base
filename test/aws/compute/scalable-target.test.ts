@@ -4,9 +4,9 @@ import {
   appautoscalingScheduledAction,
   cloudwatchMetricAlarm,
   iamRole as AwsIamRoleResource, // Renamed to avoid conflict with local iam module
-} from "@cdktf/provider-aws";
-import { App, Lazy, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Lazy, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { createScalableTarget } from "./util";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as cloudwatch from "../../../src/aws/cloudwatch";

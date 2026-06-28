@@ -1,4 +1,4 @@
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 import { IConstruct } from "constructs";
 import { ArnFormat } from "../arn";
 import { AwsStack } from "../aws-stack";

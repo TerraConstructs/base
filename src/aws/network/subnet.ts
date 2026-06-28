@@ -6,7 +6,7 @@ import {
   dataAwsEip,
   routeTable,
   routeTableAssociation,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import {
   AwsConstructBase,

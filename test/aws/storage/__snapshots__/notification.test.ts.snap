@@ -57,8 +57,8 @@ exports[`notification can specify prefix and suffix filter rules 1`] = `
     },
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }
@@ -112,8 +112,8 @@ exports[`notification when notification is added a custom s3 bucket notification
     },
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }

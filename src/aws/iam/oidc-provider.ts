@@ -1,4 +1,4 @@
-import { iamOpenidConnectProvider } from "@cdktf/provider-aws";
+import { iamOpenidConnectProvider } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { Arn } from "../arn";
 import {

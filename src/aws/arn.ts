@@ -1,6 +1,6 @@
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/arn.ts
 
-import * as cdktf from "cdktf";
+import * as cdktn from "cdktn";
 import { IAwsStack } from "./aws-stack";
 import { filterUndefined } from "./util";
 import { UnscopedValidationError } from "../errors";
@@ -352,7 +352,7 @@ export class Arn {
     // resource type (to notify authors of incorrect assumptions right away).
     const parsed = Arn.split(arn, ArnFormat.SLASH_RESOURCE_NAME);
     if (
-      !cdktf.Token.isUnresolved(parsed.resource) &&
+      !cdktn.Token.isUnresolved(parsed.resource) &&
       parsed.resource !== resourceType
     ) {
       throw new Error(
@@ -455,7 +455,7 @@ function parseArnShape(arn: string): "token" | string[] {
   const looksLikeArn = arn.startsWith("arn:");
 
   if (!looksLikeArn) {
-    if (cdktf.Token.isUnresolved(arn)) {
+    if (cdktn.Token.isUnresolved(arn)) {
       return "token";
     } else {
       throw new Error(

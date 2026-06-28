@@ -1,10 +1,10 @@
 // https://github.com/aws/aws-cdk/blob/7926560f0a150d8fd39d0775df5259621b8068ae/packages/@aws-cdk-testing/framework-integ/test/aws-cloudfront/test/integ.distribution-policies.ts
-import { cloudfrontDistribution } from "@cdktf/provider-aws";
+import { cloudfrontDistribution } from "@cdktn/provider-aws";
 import {
   App,
   LocalBackend,
   // TerraformVariable,
-} from "cdktf";
+} from "cdktn";
 // import { TestOrigin } from "./test-origin";
 import { Duration, aws } from "../../../../src";
 

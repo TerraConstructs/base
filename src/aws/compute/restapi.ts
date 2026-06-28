@@ -2,8 +2,8 @@ import {
   apiGatewayAccount,
   apiGatewayRestApi,
   apiGatewayRestApiPolicy,
-} from "@cdktf/provider-aws";
-import { Lazy, Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Lazy, Token } from "cdktn";
 import { Construct } from "constructs";
 import { ApiDefinition } from "./api-definition";
 import { ApiKey, ApiKeyOptions, IApiKey } from "./api-key";

@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-apigateway/test/vpc-link.test.ts
 
-import { apiGatewayVpcLink } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { apiGatewayVpcLink } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import { Vpc, NetworkLoadBalancer, VpcLink } from "../../../src/aws/compute";
 import { Template } from "../../assertions";

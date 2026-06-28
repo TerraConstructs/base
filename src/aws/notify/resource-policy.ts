@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-kinesis/lib/resource-policy.ts
 
-import { kinesisResourcePolicy } from "@cdktf/provider-aws";
+import { kinesisResourcePolicy } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { IStream } from "./kinesis-stream";

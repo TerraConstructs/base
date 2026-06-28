@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.232.2/packages/aws-cdk-lib/aws-sqs/lib/queue.ts
 
-import { sqsQueue } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { sqsQueue } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { Duration } from "../../duration";
 import { ValidationError } from "../../errors";

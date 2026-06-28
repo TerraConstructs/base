@@ -1,7 +1,7 @@
 // import { LogGroup } from '../../../aws-logs';
-import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
-import "cdktf/lib/testing/adapters/jest";
-import { Testing, TerraformVariable, Lazy } from "cdktf";
+import { dataAwsIamPolicyDocument } from "@cdktn/provider-aws";
+import "cdktn/lib/testing/adapters/jest";
+import { Testing, TerraformVariable, Lazy } from "cdktn";
 import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import * as iam from "../../../../../src/aws/iam";

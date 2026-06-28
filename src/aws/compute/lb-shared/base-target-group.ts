@@ -3,8 +3,8 @@
 import {
   lbTargetGroup as tfTargetGroup,
   lbTargetGroupAttachment as tfTargetGroupAttachment,
-} from "@cdktf/provider-aws";
-import { Lazy, Token, Fn, Annotations } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Lazy, Token, Fn, Annotations } from "cdktn";
 import {
   Construct,
   DependencyGroup,

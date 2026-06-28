@@ -4,10 +4,10 @@ import {
   cloudwatchEventRule,
   cloudwatchEventTarget,
   cloudwatchEventBusPolicy,
-} from "@cdktf/provider-aws";
-import { App, Testing, Lazy } from "cdktf";
+} from "@cdktn/provider-aws";
+import { App, Testing, Lazy } from "cdktn";
 import { Construct, IConstruct } from "constructs";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as iam from "../../../src/aws/iam";
 import {

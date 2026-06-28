@@ -31,7 +31,12 @@ exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`
         ],
         "name": "123e4567-e89b-12d3-hello-world",
         "publish": true,
-        "runtime": "cloudfront-js-2.0"
+        "runtime": "cloudfront-js-2.0",
+        "tags": {
+          "Name": "Test-Function",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "123e4567-e89b-12d3"
+        }
       }
     },
     "aws_cloudfront_key_value_store": {
@@ -60,8 +65,8 @@ exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`
     },
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }
@@ -121,8 +126,8 @@ exports[`KeyValueStore Should synth and match SnapShot 1`] = `
     },
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }

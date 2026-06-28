@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/log-group.ts
 
-import { cloudwatchLogGroup } from "@cdktf/provider-aws";
-import { Annotations, Token } from "cdktf";
+import { cloudwatchLogGroup } from "@cdktn/provider-aws";
+import { Annotations, Token } from "cdktn";
 import { Construct } from "constructs";
 import { Arn, ArnFormat } from "../arn";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";

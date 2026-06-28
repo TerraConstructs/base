@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/subscription-filter.ts
 
-import { cloudwatchLogSubscriptionFilter } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { cloudwatchLogSubscriptionFilter } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { ILogGroup, SubscriptionFilterOptions } from "./log-group";

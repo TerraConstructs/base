@@ -4,8 +4,8 @@ import {
   dataAwsCloudfrontCachePolicy,
   dataAwsCloudfrontOriginRequestPolicy,
   dataAwsCloudfrontResponseHeadersPolicy,
-} from "@cdktf/provider-aws";
-import { IResolvable, Token, Lazy } from "cdktf";
+} from "@cdktn/provider-aws";
+import { IResolvable, Token, Lazy } from "cdktn";
 import { Construct } from "constructs";
 import { ICertificate, IOrigin, FunctionAssociation } from ".";
 import { Duration } from "../../duration";

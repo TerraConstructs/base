@@ -2,8 +2,8 @@ import {
   iamGroupPolicy,
   iamRolePolicy,
   iamUserPolicy,
-} from "@cdktf/provider-aws";
-import { TerraformElement } from "cdktf";
+} from "@cdktn/provider-aws";
+import { TerraformElement } from "cdktn";
 import { Construct } from "constructs";
 import {
   IAwsConstruct,

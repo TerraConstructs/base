@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-cloudwatch/lib/dashboard.ts
 
-import { cloudwatchDashboard } from "@cdktf/provider-aws";
-import { Lazy, Token, Annotations } from "cdktf";
+import { cloudwatchDashboard } from "@cdktn/provider-aws";
+import { Lazy, Token, Annotations } from "cdktn";
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { AwsStack } from "../aws-stack";

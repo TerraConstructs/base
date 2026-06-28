@@ -3,8 +3,8 @@
 import {
   cloudfrontOriginAccessIdentity,
   dataAwsCloudfrontOriginAccessIdentity,
-} from "@cdktf/provider-aws";
-import { ITerraformDependable } from "cdktf";
+} from "@cdktn/provider-aws";
+import { ITerraformDependable } from "cdktn";
 import { Construct } from "constructs";
 import {
   AwsConstructBase,

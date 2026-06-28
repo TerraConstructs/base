@@ -7,9 +7,9 @@ import {
   snsTopicSubscription,
   sqsQueue,
   sqsQueuePolicy,
-} from "@cdktf/provider-aws";
-import { App, TerraformVariable, Testing, Token, ref } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, TerraformVariable, Testing, Token, ref } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as compute from "../../../../src/aws/compute";
 import * as encryption from "../../../../src/aws/encryption";

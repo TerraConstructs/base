@@ -3,9 +3,9 @@
 import {
   instance as tfInstance,
   launchTemplate as tfLaunchTemplate,
-} from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 // import { BASTION_HOST_USE_AMAZON_LINUX_2023_BY_DEFAULT } from "../../cx-api";
 import {

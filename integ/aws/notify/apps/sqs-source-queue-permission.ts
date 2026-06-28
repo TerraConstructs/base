@@ -1,5 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.232.2/packages/@aws-cdk-testing/framework-integ/test/aws-sqs/test/integ.sqs-source-queue-permission.ts
-import { App, LocalBackend, TerraformOutput } from "cdktf";
+import { App, LocalBackend, TerraformOutput } from "cdktn";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

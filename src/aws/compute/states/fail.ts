@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-stepfunctions/lib/states/fail.ts
 
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { StateType } from "./private/state-type";
 import { renderJsonPath, State } from "./state";

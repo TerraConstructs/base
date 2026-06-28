@@ -1,6 +1,6 @@
-import { lambdaPermission, s3BucketNotification } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { lambdaPermission, s3BucketNotification } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { TestFunction } from "./test-function";
 import { compute, storage, AwsStack } from "../../../../src/aws";
 import { Template } from "../../../assertions";

@@ -1,5 +1,5 @@
 import * as cxschema from "@aws-cdk/cloud-assembly-schema";
-import { Annotations, Token } from "cdktf";
+import { Annotations, Token } from "cdktn";
 import { Construct, Node } from "constructs";
 import { ValidationError } from "../errors";
 import { AwsStack } from "./aws-stack";

@@ -11,9 +11,9 @@ import {
   s3BucketVersioning,
   s3BucketServerSideEncryptionConfiguration,
   dataAwsS3Bucket,
-} from "@cdktf/provider-aws";
-import { sleep } from "@cdktf/provider-time";
-import { Lazy, Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { sleep } from "@cdktn/provider-time";
+import { Lazy, Token } from "cdktn";
 // import { Fn } from "../../terra-func";
 import { Construct } from "constructs";
 import { IBucketNotificationDestination } from "./bucket-destination";

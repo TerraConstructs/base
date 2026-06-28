@@ -3,7 +3,7 @@
 import {
   lbListener as tfListener,
   lbListenerRule as tfListenerRule,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { INetworkListener } from "./network-listener";
 import { INetworkTargetGroup } from "./network-target-group";

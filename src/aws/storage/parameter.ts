@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ssm/lib/parameter.ts
 
-import { ssmParameter, dataAwsSsmParameter } from "@cdktf/provider-aws";
+import { ssmParameter, dataAwsSsmParameter } from "@cdktn/provider-aws";
 import {
   // CfnDynamicReference,
   // CfnDynamicReferenceService,
@@ -11,7 +11,7 @@ import {
   Token,
   Tokenization,
   IResolvable,
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
 import { arnForParameterName } from "./parameter-util";
 import { Fn } from "../../terra-func";

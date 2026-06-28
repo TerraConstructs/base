@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/34bdecad76ac93d7dc4f8321352e851cebc75e17/packages/aws-cdk-lib/aws-kms/test/key.from-lookup.test.ts
 
-// import { iamPolicy, dataAwsIamPolicy } from "@cdktf/provider-aws";
-import { App, Testing, Lazy } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+// import { iamPolicy, dataAwsIamPolicy } from "@cdktn/provider-aws";
+import { App, Testing, Lazy } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import { Key } from "../../../src/aws/encryption/key";
 // import { Template } from "../../assertions";

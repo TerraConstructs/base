@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-stepfunctions-tasks/test/lambda/invoke.test.ts
 
-import "cdktf/lib/testing/adapters/jest";
-import { Testing } from "cdktf";
+import "cdktn/lib/testing/adapters/jest";
+import { Testing } from "cdktn";
 import { AwsStack } from "../../../../../src/aws/aws-stack";
 import * as compute from "../../../../../src/aws/compute";
 import {

@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/a2c633f1e698249496f11338312ab42bd7b1e4f0/packages/aws-cdk-lib/aws-events/test/input.test.ts
 
-import { cloudwatchEventTarget } from "@cdktf/provider-aws";
-import { Testing, ref, Lazy } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { cloudwatchEventTarget } from "@cdktn/provider-aws";
+import { Testing, ref, Lazy } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { Role, ServicePrincipal } from "../../../src/aws/iam"; // TODO: Get rid of barrel file imports?
 import { EventField, RuleTargetInput } from "../../../src/aws/notify/input";

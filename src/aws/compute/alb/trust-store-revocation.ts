@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/alb/trust-store-revocation.ts
 
-import { lbTrustStoreRevocation as tfTrustStoreRevocation } from "@cdktf/provider-aws";
+import { lbTrustStoreRevocation as tfTrustStoreRevocation } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { ITrustStore } from "./trust-store";
 import { AwsConstructBase } from "../../aws-construct";

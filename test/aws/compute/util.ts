@@ -3,7 +3,7 @@
 import {
   appautoscalingTarget,
   appautoscalingPolicy,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import * as constructs from "constructs";
 import * as fc from "fast-check";
 import { AwsStack } from "../../../src/aws/aws-stack";

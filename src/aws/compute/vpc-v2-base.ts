@@ -3,8 +3,8 @@
 import {
   vpnGatewayAttachment,
   vpnGatewayRoutePropagation,
-} from "@cdktf/provider-aws";
-import { Annotations } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Annotations } from "cdktn";
 import {
   IDependable,
   Dependable,

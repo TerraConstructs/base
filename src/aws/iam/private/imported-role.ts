@@ -1,4 +1,4 @@
-import { Annotations } from "cdktf";
+import { Annotations } from "cdktn";
 import { Construct } from "constructs";
 import { TokenComparison, tokenCompareStrings } from "../../../token";
 import { AwsConstructBase } from "../../aws-construct";

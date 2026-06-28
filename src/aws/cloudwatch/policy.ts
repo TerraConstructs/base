@@ -1,6 +1,6 @@
 //https://github.com/aws/aws-cdk/blob/v2.170.0/packages/aws-cdk-lib/aws-logs/lib/policy.ts
 
-import { cloudwatchLogResourcePolicy } from "@cdktf/provider-aws";
+import { cloudwatchLogResourcePolicy } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { PolicyDocument, PolicyStatement } from "../iam";

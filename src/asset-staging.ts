@@ -16,7 +16,7 @@ import {
 } from "./private/asset-staging";
 import { Cache } from "./private/cache";
 import { StackBase } from "./stack-base";
-// import { TerraformAsset } from "cdktf";
+// import { TerraformAsset } from "cdktn";
 // import { Stage } from "./stage";
 
 const ARCHIVE_EXTENSIONS = [".tar.gz", ".zip", ".jar", ".tar", ".tgz"];

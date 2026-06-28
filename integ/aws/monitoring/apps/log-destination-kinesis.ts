@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/dc4bbec03741eea5bb5b69caa22dbaf18f727262/packages/@aws-cdk-testing/framework-integ/test/aws-logs-destinations/test/integ.kinesis.ts
 
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import * as constructs from "constructs";
 import { aws } from "../../../../src";
 

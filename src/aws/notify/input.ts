@@ -8,7 +8,7 @@ import {
   StringConcat,
   Token,
   Tokenization,
-} from "cdktf";
+} from "cdktn";
 import { IRule } from "./rule";
 import { AwsStack } from "../aws-stack";
 

@@ -5,7 +5,7 @@ import {
   TerraformVariableConfig,
   Token,
   Fn as tfFn,
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
 
 /**

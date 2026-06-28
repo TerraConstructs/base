@@ -1,6 +1,6 @@
-import { cloudwatchMetricAlarm } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { cloudwatchMetricAlarm } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as cloudwatch from "../../../../src/aws/cloudwatch";
 import * as actions from "../../../../src/aws/cloudwatch/actions";

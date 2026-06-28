@@ -29,7 +29,7 @@ export class LambdaFunctionVpcConfigStructBuilder extends Component {
     struct
       .mixin(
         Struct.fromFqn(
-          "@cdktf/provider-aws.lambdaFunction.LambdaFunctionVpcConfig",
+          "@cdktn/provider-aws.lambdaFunction.LambdaFunctionVpcConfig",
         ),
       )
       .add(
@@ -51,7 +51,7 @@ export class LambdaFunctionVpcConfigStructBuilder extends Component {
             collection: {
               kind: CollectionKind.Array,
               elementtype: {
-                fqn: "@cdktf/provider-aws.securityGroup.SecurityGroupEgress",
+                fqn: "@cdktn/provider-aws.securityGroup.SecurityGroupEgress",
               },
             },
           },

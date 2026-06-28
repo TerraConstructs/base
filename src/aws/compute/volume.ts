@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/volume.ts
 
-import { ebsVolume } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { ebsVolume } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { AccountRootPrincipal, Grant, IGrantable } from "../iam";
 import { IInstance } from "./instance";

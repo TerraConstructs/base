@@ -31,7 +31,7 @@ export class PolicyDocumentStatementStructBuilder extends Component {
     struct
       .mixin(
         Struct.fromFqn(
-          "@cdktf/provider-aws.dataAwsIamPolicyDocument.DataAwsIamPolicyDocumentStatement",
+          "@cdktn/provider-aws.dataAwsIamPolicyDocument.DataAwsIamPolicyDocumentStatement",
         ),
       )
       .update("effect", {
@@ -117,14 +117,14 @@ export class PolicyDocumentConfigStructBuilder extends Component {
     struct
       .mixin(
         Struct.fromFqn(
-          "@cdktf/provider-aws.dataAwsIamPolicyDocument.DataAwsIamPolicyDocumentConfig",
+          "@cdktn/provider-aws.dataAwsIamPolicyDocument.DataAwsIamPolicyDocumentConfig",
         ),
       )
       .update("statement", {
         type: {
           // union: {
           //   types: [
-          //     { fqn: "cdktf.IResolvable" },
+          //     { fqn: "cdktn.IResolvable" },
           //     {
           //     },
           //   ],

@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-cloudwatch-actions/test/ssm.test.ts
 
-import { cloudwatchMetricAlarm } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { cloudwatchMetricAlarm } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as cloudwatch from "../../../../src/aws/cloudwatch";
 import * as actions from "../../../../src/aws/cloudwatch/actions";

@@ -1,6 +1,6 @@
-import { dataAwsIamPolicyDocument, sfnStateMachine } from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { dataAwsIamPolicyDocument, sfnStateMachine } from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { FakeTask } from "./private/fake-task";
 import { storage, iam, compute, AwsStack } from "../../../src/aws";
 // import * as task from "../../../src/aws/compute/tasks";

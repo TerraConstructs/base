@@ -1,5 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.161.1/packages/%40aws-cdk-testing/framework-integ/test/aws-s3/test/integ.bucket.notifications.ts
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

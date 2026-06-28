@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/alb/application-target-group.ts
 
-import { Annotations, Token } from "cdktf";
+import { Annotations, Token } from "cdktn";
 import { IConstruct, Construct } from "constructs";
 import { IApplicationListener } from "./application-listener";
 import { HttpCodeTarget } from "./application-load-balancer";

@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/6b9e47a1529319561bc1040739fe02bac15895bf/packages/aws-cdk-lib/aws-sns/lib/subscription.ts
 
-import { snsTopicSubscription } from "@cdktf/provider-aws";
+import { snsTopicSubscription } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { DeliveryPolicy } from "./delivery-policy";
 import { SubscriptionFilter } from "./subscription-filter";

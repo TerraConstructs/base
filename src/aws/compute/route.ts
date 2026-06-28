@@ -12,8 +12,8 @@ import {
   internetGatewayAttachment as tfInternetGatewayAttachment,
   vpnGateway as tfVpnGateway,
   vpnGatewayRoutePropagation as tfVpnGatewayRoutePropagation,
-} from "@cdktf/provider-aws";
-import { Annotations } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Annotations } from "cdktn";
 import { Construct, IDependable } from "constructs";
 import { IRouteTable, RouterType, RouteTableOutputs } from "./vpc";
 import {

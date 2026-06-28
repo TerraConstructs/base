@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-applicationautoscaling/lib/schedule.ts
 
-import { Annotations } from "cdktf";
+import { Annotations } from "cdktn";
 import { Construct } from "constructs";
 import { Duration } from "../../duration";
 import { UnscopedValidationError } from "../../errors";

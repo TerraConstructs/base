@@ -1,5 +1,5 @@
-import { sfnStateMachine } from "@cdktf/provider-aws";
-import { Token, IResolvable } from "cdktf";
+import { sfnStateMachine } from "@cdktn/provider-aws";
+import { Token, IResolvable } from "cdktn";
 import { Construct } from "constructs";
 import { Arn, ArnFormat } from "../arn";
 import {

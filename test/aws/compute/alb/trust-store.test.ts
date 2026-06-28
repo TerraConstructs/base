@@ -1,8 +1,8 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/test/alb/trust-store.test.ts
 
-import { lbTrustStore as tfTrustStore } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { lbTrustStore as tfTrustStore } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as elbv2 from "../../../../src/aws/compute";
 import * as s3 from "../../../../src/aws/storage";

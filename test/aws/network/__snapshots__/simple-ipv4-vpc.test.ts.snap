@@ -283,8 +283,8 @@ exports[`Environment Should synth and match SnapShot 1`] = `
   "terraform": {
     "required_providers": {
       "aws": {
-        "source": "aws",
-        "version": "6.25.0"
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
       }
     }
   }

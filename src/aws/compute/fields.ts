@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-stepfunctions/lib/fields.ts
 
-import { Token, IResolvable } from "cdktf";
+import { Token, IResolvable } from "cdktn";
 import {
   findReferencedPaths,
   jsonPathString,

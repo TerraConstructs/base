@@ -6,8 +6,8 @@ import {
   securityGroup,
   vpcSecurityGroupEgressRule,
   vpcSecurityGroupIngressRule,
-} from "@cdktf/provider-aws";
-import { Annotations, Lazy, Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Annotations, Lazy, Token } from "cdktn";
 import { Construct } from "constructs";
 import { Connections } from "./connections";
 import { IPeer, Peer } from "./peer";

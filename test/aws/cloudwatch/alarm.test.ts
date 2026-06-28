@@ -1,9 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/cc377785c00a021c9b519bdda945be8e99cb1148/packages/aws-cdk-lib/aws-cloudwatch/test/alarm.test.ts
 
-import { cloudwatchMetricAlarm } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
+import { cloudwatchMetricAlarm } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
 import { Construct } from "constructs";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   Alarm,

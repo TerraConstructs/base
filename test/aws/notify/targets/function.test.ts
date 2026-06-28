@@ -6,10 +6,10 @@ import {
   dataAwsIamPolicyDocument,
   sqsQueuePolicy,
   cloudwatchEventRule,
-} from "@cdktf/provider-aws";
-import { Testing, App } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Testing, App } from "cdktn";
 import { Construct } from "constructs";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import { InlineCode } from "../../../../src/aws/compute/code";
 import { LambdaFunction } from "../../../../src/aws/compute/function";

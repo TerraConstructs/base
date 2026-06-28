@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-stepfunctions/lib/states/custom-state.ts
 
-import { Annotations } from "cdktf";
+import { Annotations } from "cdktn";
 import { Construct } from "constructs";
 import { Chain } from "..";
 import { State } from "./state";

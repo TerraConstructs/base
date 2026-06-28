@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/bc96ee17a18c19b98e4ad052bed7c24da2371050/packages/aws-cdk-lib/aws-codestarnotifications/lib/notification-rule.ts
 
-import { codestarnotificationsNotificationRule } from "@cdktf/provider-aws";
-import { Annotations, Lazy, Token } from "cdktf";
+import { codestarnotificationsNotificationRule } from "@cdktn/provider-aws";
+import { Annotations, Lazy, Token } from "cdktn";
 import * as constructs from "constructs";
 import {
   AwsConstructBase,

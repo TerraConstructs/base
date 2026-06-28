@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/lib/client-vpn-route.ts
 
-import { ec2ClientVpnRoute } from "@cdktf/provider-aws";
+import { ec2ClientVpnRoute } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { IClientVpnEndpoint } from "./client-vpn-endpoint-types";
 import { ISubnet } from "./vpc";

@@ -1,4 +1,4 @@
-import { TerraformAsset, AssetType, Fn } from "cdktf";
+import { TerraformAsset, AssetType, Fn } from "cdktn";
 import {
   Construct,
   // Node

@@ -4,9 +4,9 @@ import {
   securityGroup as tfSecurityGroup,
   vpcSecurityGroupIngressRule as tfVpcSecurityGroupIngressRule,
   vpcSecurityGroupEgressRule as tfVpcSecurityGroupEgressRule,
-} from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
 import { Template } from "../../../assertions";

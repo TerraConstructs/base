@@ -1,5 +1,5 @@
 // ref: https://github.com/aws/aws-cdk/blob/v2.161.1/packages/%40aws-cdk-testing/framework-integ/test/aws-iam/test/integ.condition-with-ref.ts
-import { App, LocalBackend, Lazy, TerraformVariable } from "cdktf";
+import { App, LocalBackend, Lazy, TerraformVariable } from "cdktn";
 // when bun run fails on        /src   <<< use /lib
 import { aws } from "../../../../src";
 

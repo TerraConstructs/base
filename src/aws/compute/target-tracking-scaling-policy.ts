@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-applicationautoscaling/lib/target-tracking-scaling-policy.ts
 
-import { appautoscalingPolicy } from "@cdktf/provider-aws";
+import { appautoscalingPolicy } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { IScalableTarget } from "./scalable-target";
 import { Duration } from "../../duration";

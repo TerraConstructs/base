@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/shared/util.ts
 
-import { Fn, Token } from "cdktf";
+import { Fn, Token } from "cdktn";
 import { ApplicationProtocol, LbProtocol } from "./enums";
 // import * as cxschema from "../../../cloud-assembly-schema";
 import { Arn, ArnFormat } from "../../arn";

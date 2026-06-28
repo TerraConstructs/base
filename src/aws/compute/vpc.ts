@@ -18,14 +18,14 @@ import {
   vpnGatewayRoutePropagation,
   dataAwsSubnet,
   dataAwsVpc,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   // CustomResource,
   // FeatureFlags,
   Annotations,
   Lazy,
   Token,
-} from "cdktf";
+} from "cdktn";
 // import { RestrictDefaultSgProvider } from "../../custom-resource-handlers/dist/aws-ec2/restrict-default-sg-provider.generated";
 import {
   Construct,

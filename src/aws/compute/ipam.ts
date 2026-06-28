@@ -5,8 +5,8 @@ import {
   vpcIpamPool as tfIpamPool,
   vpcIpamPoolCidr as tfIpamPoolCidr,
   vpcIpamScope as tfIpamScope,
-} from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+} from "@cdktn/provider-aws";
+import { Lazy } from "cdktn";
 import { Construct } from "constructs";
 import {
   IAwsConstruct,

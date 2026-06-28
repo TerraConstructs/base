@@ -2,9 +2,9 @@ import {
   dataAwsIamPolicyDocument,
   iamRole,
   dataAwsServicePrincipal,
-} from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { OpenIdConnectProvider } from "../../../src/aws/iam/oidc-provider";
 import { PolicyDocument } from "../../../src/aws/iam/policy-document";

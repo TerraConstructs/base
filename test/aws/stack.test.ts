@@ -1,5 +1,5 @@
 import { Fact } from "@aws-cdk/region-info";
-import { App, TerraformOutput } from "cdktf";
+import { App, TerraformOutput } from "cdktn";
 import { Node } from "constructs";
 import { AwsStack } from "../../src/aws";
 import * as cxapi from "../../src/aws/cx-api";

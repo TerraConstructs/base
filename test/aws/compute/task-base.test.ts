@@ -1,6 +1,6 @@
 // import { testDeprecated } from "@aws-cdk/cdk-build-tools";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { FakeTask } from "./private/fake-task";
 import { renderGraph } from "./private/render-util";
 // import { Metric } from "../../aws-cloudwatch"; // TODO: Re-add metrics

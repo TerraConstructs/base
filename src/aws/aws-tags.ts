@@ -1,4 +1,4 @@
-import { IAspect, Aspects } from "cdktf";
+import { IAspect, Aspects } from "cdktn";
 import { IConstruct } from "constructs";
 import { TaggableConstruct } from "../construct-base";
 

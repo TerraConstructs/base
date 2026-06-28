@@ -1,4 +1,4 @@
-import { apiGatewayRequestValidator } from "@cdktf/provider-aws";
+import { apiGatewayRequestValidator } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { IRestApi, RestApi } from "./restapi";
 // import { Fn } from "../../terra-func";

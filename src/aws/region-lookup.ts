@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.232.2/packages/aws-cdk-lib/core/lib/private/region-lookup.ts
 
 import { RegionInfo } from "@aws-cdk/region-info";
-import { Fn, TerraformLocal } from "cdktf";
+import { Fn, TerraformLocal } from "cdktn";
 import * as cxapi from "./cx-api";
 import { AwsStack } from "../aws/aws-stack";
 import { UnscopedValidationError } from "../errors";

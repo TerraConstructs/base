@@ -1,6 +1,6 @@
 // http://github.com/aws/aws-cdk/blob/v2.176.0/packages/%40aws-cdk-testing/framework-integ/test/aws-sns-subscriptions/test/integ.sns-lambda.ts
 
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { aws } from "../../../../src";
 
 /**

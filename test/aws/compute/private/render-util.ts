@@ -1,5 +1,5 @@
-import { Testing } from "cdktf";
-import { TerraformConstructor } from "cdktf/lib/testing/matchers";
+import { Testing } from "cdktn";
+import { TerraformConstructor } from "cdktn/lib/testing/matchers";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import { StateGraph } from "../../../../src/aws/compute/state-graph";
 import { IChainable } from "../../../../src/aws/compute/types";

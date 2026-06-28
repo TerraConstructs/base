@@ -6,8 +6,8 @@ import {
   securityGroup,
   lambdaEventSourceMapping,
   dataAwsLambdaFunction,
-} from "@cdktf/provider-aws";
-import { IResolveContext, Lazy, IResolvable, Token } from "cdktf";
+} from "@cdktn/provider-aws";
+import { IResolveContext, Lazy, IResolvable, Token } from "cdktn";
 import { Construct } from "constructs";
 import { UnscopedValidationError, ValidationError } from "../../errors";
 import { ArnFormat, Arn } from "../arn";

@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.232.2/packages/@aws-cdk-testing/framework-integ/test/aws-lambda/test/integ.vpc-lambda.ts
 
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

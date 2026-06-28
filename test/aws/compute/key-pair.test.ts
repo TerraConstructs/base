@@ -1,9 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-ec2/test/key-pair.test.ts
 
-import { keyPair as tfKeyPair } from "@cdktf/provider-aws";
-import { privateKey } from "@cdktf/provider-tls";
-import { App, Testing, TerraformOutput } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+import { keyPair as tfKeyPair } from "@cdktn/provider-aws";
+import { privateKey } from "@cdktn/provider-tls";
+import { App, Testing, TerraformOutput } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   KeyPair,

@@ -1,4 +1,4 @@
-import { Testing } from "cdktf";
+import { Testing } from "cdktn";
 import { render } from "./private/render-util";
 import { compute, AwsStack } from "../../../src/aws";
 

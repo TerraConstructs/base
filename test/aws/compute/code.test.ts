@@ -2,15 +2,15 @@
 
 import * as child_process from "child_process";
 import * as path from "path";
-import { dataArchiveFile } from "@cdktf/provider-archive";
+import { dataArchiveFile } from "@cdktn/provider-archive";
 import {
   dataAwsIamPolicyDocument,
   ecrRepositoryPolicy,
   lambdaFunction,
   s3Object,
-} from "@cdktf/provider-aws";
-import { App, Testing, TerraformVariable } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing, TerraformVariable } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import * as compute from "../../../src/aws/compute";
 import * as storage from "../../../src/aws/storage";

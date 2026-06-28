@@ -1,5 +1,5 @@
-import { route53Zone, dataAwsRoute53Zone } from "@cdktf/provider-aws";
-import { Lazy, IResolvable } from "cdktf";
+import { route53Zone, dataAwsRoute53Zone } from "@cdktn/provider-aws";
+import { Lazy, IResolvable } from "cdktn";
 import { Construct } from "constructs";
 import {
   AwsStack,

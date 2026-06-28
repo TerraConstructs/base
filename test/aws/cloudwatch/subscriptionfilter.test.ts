@@ -1,9 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/0e95bf0032f1beada8a1806724ef241613c3b41d/packages/aws-cdk-lib/aws-logs/test/subscriptionfilter.test.ts
 
-import { cloudwatchLogSubscriptionFilter } from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
+import { cloudwatchLogSubscriptionFilter } from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
 import { Construct } from "constructs";
-import "cdktf/lib/testing/adapters/jest";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   Distribution,

@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.176.0/packages/aws-cdk-lib/aws-sns-subscriptions/lib/sqs.ts
 
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import * as notify from "..";
 import { SubscriptionProps } from "./subscription";

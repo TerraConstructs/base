@@ -4,9 +4,9 @@ import {
   lambdaAlias,
   lambdaFunctionEventInvokeConfig,
   lambdaFunctionUrl,
-} from "@cdktf/provider-aws";
-import { Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { compute, AwsStack } from "../../../src/aws";
 import { Template } from "../../assertions";
 

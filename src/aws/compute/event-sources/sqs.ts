@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-lambda-event-sources/test/sqs.test.ts
 
-import { Token, Annotations } from "cdktf";
+import { Token, Annotations } from "cdktn";
 import * as compute from "..";
 import { AwsStack } from "../..";
 import { Duration } from "../../..";

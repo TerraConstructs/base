@@ -3,8 +3,8 @@
 import {
   subnet as tfSubnet,
   routeTableAssociation as tfRouteTableAssociation,
-} from "@cdktf/provider-aws";
-// import { Lazy } from "cdktf";
+} from "@cdktn/provider-aws";
+// import { Lazy } from "cdktn";
 import { Construct, DependencyGroup, IDependable } from "constructs";
 // TODO: Use TagManager and tag-aspect instead
 import { Tags } from "../aws-tags";

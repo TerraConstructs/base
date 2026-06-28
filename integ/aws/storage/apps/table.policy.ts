@@ -1,5 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/%40aws-cdk-testing/framework-integ/test/aws-dynamodb/test/integ.dynamodb.policy.ts
-import { App, LocalBackend } from "cdktf";
+import { App, LocalBackend } from "cdktn";
 import { Construct } from "constructs";
 import { aws } from "../../../../src";
 

@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/6b9e47a1529319561bc1040739fe02bac15895bf/packages/aws-cdk-lib/aws-sns/lib/policy.ts
 
-import { snsTopicPolicy } from "@cdktf/provider-aws";
+import { snsTopicPolicy } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { ITopic } from "./topic-base";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";

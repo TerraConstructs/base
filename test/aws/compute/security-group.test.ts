@@ -5,9 +5,9 @@ import {
   securityGroup as tfSecurityGroup,
   vpcSecurityGroupEgressRule as tfVpcSecurityGroupEgressRule,
   vpcSecurityGroupIngressRule as tfVpcSecurityGroupIngressRule,
-} from "@cdktf/provider-aws";
-import { App, Token, Lazy, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Token, Lazy, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
   Peer,

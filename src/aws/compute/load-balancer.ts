@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancing/lib/load-balancer.ts
 
-import { elb as tfElb, loadBalancerListenerPolicy } from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+import { elb as tfElb, loadBalancerListenerPolicy } from "@cdktn/provider-aws";
+import { Lazy } from "cdktn";
 import { Construct } from "constructs";
 import { Connections, IConnectable } from "./connections";
 import { Instance } from "./instance";

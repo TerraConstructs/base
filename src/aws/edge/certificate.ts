@@ -5,13 +5,13 @@ import {
   acmCertificateValidation,
   dataAwsAcmCertificate,
   // route53Record,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   Token,
   // TerraformIterator,
   // TerraformLocal,
   // Fn
-} from "cdktf";
+} from "cdktn";
 import { Construct } from "constructs";
 import { IDnsZone, RecordSet, RecordTarget, RecordType } from ".";
 import { CertificateBase } from "./certificate-base";

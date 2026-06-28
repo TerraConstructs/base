@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-apigateway/lib/integrations/lambda.ts
 
-import { lambdaFunction } from "@cdktf/provider-aws";
-import { Lazy, Token } from "cdktf";
+import { lambdaFunction } from "@cdktn/provider-aws";
+import { Lazy, Token } from "cdktn";
 import * as lambda from "..";
 import { AwsIntegration } from "./aws";
 import { AwsStack } from "../../aws-stack";

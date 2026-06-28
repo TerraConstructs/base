@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-stepfunctions/lib/states/distributed-map.ts
 
-import { Annotations } from "cdktf";
+import { Annotations } from "cdktn";
 import { Construct } from "constructs";
 import { ItemBatcher } from "./distributed-map/item-batcher";
 import { IItemReader } from "./distributed-map/item-reader";

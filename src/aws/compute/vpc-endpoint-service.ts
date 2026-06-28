@@ -4,7 +4,7 @@ import {
   vpcEndpointService,
   vpcEndpointServiceAllowedPrincipal,
   vpcEndpointServicePrivateDnsVerification,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { IAwsConstruct, AwsConstructBase } from "../aws-construct";
 import { IDnsZone, TxtRecord } from "../edge";

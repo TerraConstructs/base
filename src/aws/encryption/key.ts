@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/2.170.0/packages/aws-cdk-lib/aws-kms/lib/key.ts
 
-import { kmsKey, dataAwsKmsKey } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { kmsKey, dataAwsKmsKey } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
 import {

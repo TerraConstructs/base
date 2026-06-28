@@ -3,12 +3,12 @@
 import {
   lbListener as tfListener,
   lbListenerRule as tfListenerRule,
-} from "@cdktf/provider-aws";
+} from "@cdktn/provider-aws";
 import {
   //SecretValue,
   Token,
   Tokenization,
-} from "cdktf";
+} from "cdktn";
 import { Construct, IConstruct } from "constructs";
 import { IApplicationListener } from "./application-listener";
 import { IApplicationTargetGroup } from "./application-target-group";

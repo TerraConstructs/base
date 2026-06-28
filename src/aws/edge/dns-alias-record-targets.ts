@@ -1,4 +1,4 @@
-import { route53Record } from "@cdktf/provider-aws";
+import { route53Record } from "@cdktn/provider-aws";
 import { IRecordSet, IDnsZone, IDistribution } from ".";
 import { IDomainName } from "../compute/domain-name";
 import {

@@ -1,6 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-applicationautoscaling/lib/step-scaling-policy.ts
 
-import { Token } from "cdktf";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import {
   findAlarmThresholds,

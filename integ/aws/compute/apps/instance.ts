@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.164.1/packages/%40aws-cdk-testing/framework-integ/test/aws-ec2/test/integ.instance.ts
 
-import { CloudinitProvider } from "@cdktf/provider-cloudinit/lib/provider";
-import { App, LocalBackend } from "cdktf";
+import { CloudinitProvider } from "@cdktn/provider-cloudinit/lib/provider";
+import { App, LocalBackend } from "cdktn";
 import { aws } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";

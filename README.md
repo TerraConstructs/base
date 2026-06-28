@@ -1,6 +1,6 @@
 # TerraConstructs
 
-**TerraConstructs** is a library of classes and interfaces inspired by [AWS CDK](https://github.com/aws/aws-cdk), but designed to leverage the power and flexibility of Terraform. Built using [CDKTF](https://github.com/hashicorp/terraform-cdk), TerraConstructs enables developers to define cloud infrastructure using familiar object-oriented programming patterns, while taking advantage of Terraform/OpenTofu's broad provider ecosystem and efficient state management.
+**TerraConstructs** is a library of classes and interfaces inspired by [AWS CDK](https://github.com/aws/aws-cdk), but designed to leverage the power and flexibility of Terraform. Built using [CDKTN](https://github.com/open-constructs/cdk-terrain) (CDK Terrain, the community fork of [CDKTF](https://github.com/hashicorp/terraform-cdk)), TerraConstructs enables developers to define cloud infrastructure using familiar object-oriented programming patterns, while taking advantage of Terraform/OpenTofu's broad provider ecosystem and efficient state management.
 
 With TerraConstructs, you can write infrastructure as code that is intuitive, modular, and maintainable. It combines the ease of high-level constructs with the powerful capabilities of Terraform providers, offering an exceptional developer experience for defining and managing cloud resources.
 

@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { cloudfrontFunction } from "@cdktf/provider-aws";
+import { cloudfrontFunction } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import { IKeyValueStore } from ".";
 import {

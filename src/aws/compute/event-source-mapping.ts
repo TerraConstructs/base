@@ -1,5 +1,5 @@
-import { lambdaEventSourceMapping } from "@cdktf/provider-aws";
-import * as cdktf from "cdktf";
+import { lambdaEventSourceMapping } from "@cdktn/provider-aws";
+import * as cdktn from "cdktn";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
 import {
@@ -352,7 +352,7 @@ export class EventSourceMapping
 
     if (
       props.maxConcurrency &&
-      !cdktf.Token.isUnresolved(props.maxConcurrency) &&
+      !cdktn.Token.isUnresolved(props.maxConcurrency) &&
       (props.maxConcurrency < 2 || props.maxConcurrency > 1000)
     ) {
       throw new Error(
@@ -390,7 +390,7 @@ export class EventSourceMapping
 
     if (
       props.tumblingWindow &&
-      !cdktf.Token.isUnresolved(props.tumblingWindow) &&
+      !cdktn.Token.isUnresolved(props.tumblingWindow) &&
       props.tumblingWindow.toSeconds() > 900
     ) {
       throw new Error(
@@ -512,7 +512,7 @@ export class EventSourceMapping
   }
 
   private validateKafkaConsumerGroupIdOrThrow(kafkaConsumerGroupId: string) {
-    if (cdktf.Token.isUnresolved(kafkaConsumerGroupId)) {
+    if (cdktn.Token.isUnresolved(kafkaConsumerGroupId)) {
       return;
     }
 

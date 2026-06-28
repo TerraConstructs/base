@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.175.1/packages/aws-cdk-lib/aws-elasticloadbalancingv2/lib/alb/application-load-balancer.ts
 
-import { lb as tfLoadBalancer } from "@cdktf/provider-aws";
-import { TerraformResource, Lazy } from "cdktf";
+import { lb as tfLoadBalancer } from "@cdktn/provider-aws";
+import { TerraformResource, Lazy } from "cdktn";
 import { Construct } from "constructs";
 import {
   ApplicationListener,

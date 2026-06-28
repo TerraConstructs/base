@@ -1,5 +1,5 @@
-import { iamRole } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { iamRole } from "@cdktn/provider-aws";
+import { Token } from "cdktn";
 import { Construct } from "constructs";
 import { ArnFormat } from "../arn";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";

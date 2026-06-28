@@ -8,9 +8,9 @@ import {
   iamGroupPolicy,
   iamUserPolicy,
   s3Object,
-} from "@cdktf/provider-aws";
-import { App, Testing } from "cdktf";
-import "cdktf/lib/testing/adapters/jest";
+} from "@cdktn/provider-aws";
+import { App, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as iam from "../../../../src/aws/iam";
 import { Asset } from "../../../../src/aws/storage/assets/s3";
