@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -145,6 +146,48 @@ func TestInstancePublic(t *testing.T) {
 	})
 }
 
+func TestVpcLookup(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+
+	testApp := "vpc-lookup"
+	awsRegion := "us-east-1"
+	lookupRegion := "us-west-2"
+	t.Parallel()
+	tfWorkingDir := filepath.Join("tf", testApp)
+	envVars["AWS_REGION"] = awsRegion
+	envVars["LOOKUP_REGION"] = lookupRegion
+	envVars["ENVIRONMENT_NAME"] = "test"
+	envVars["STACK_NAME"] = testApp
+
+	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
+		util.UndeployUsingTerraform(t, tfWorkingDir)
+	})
+
+	test_structure.RunTestStage(t, "synth_app", func() {
+		util.SynthApp(t, testApp, tfWorkingDir, envVars)
+	})
+	test_structure.RunTestStage(t, "deploy_terraform", func() {
+		util.DeployUsingTerraform(t, tfWorkingDir, nil)
+	})
+	test_structure.RunTestStage(t, "validate", func() {
+		validateVpcLookup(t, tfWorkingDir, lookupRegion)
+	})
+}
+
+func validateVpcLookup(t *testing.T, tfWorkingDir string, lookupRegion string) {
+	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+	outputs := terraform.OutputAll(t, terraformOptions)
+
+	assert.Equal(t, "Region fromLookup: "+lookupRegion, outputs["OutputFromLookup"].(string))
+	assert.NotEmpty(t, outputs["VpcIdFromLookup"].(string))
+
+	availabilityZones := outputs["AvailabilityZonesFromLookup"].(string)
+	require.NotEmpty(t, availabilityZones)
+	for _, availabilityZone := range strings.Split(availabilityZones, ",") {
+		assert.Truef(t, strings.HasPrefix(availabilityZone, lookupRegion), "availability zone %q should be in lookup region %q", availabilityZone, lookupRegion)
+	}
+}
+
 // Test the machine-image app
 func TestMachineImage(t *testing.T) {
 	envVars := executors.EnvMap(os.Environ())
@@ -239,29 +282,29 @@ func validateInstancePublic(t *testing.T, tfWorkingDir, awsRegion string) {
 
 	// Wait for instance to be running before validation
 	util.WaitForEc2InstanceRunning(t, awsRegion, instanceID, 10, 10*time.Second)
-	
+
 	// Fetch instance details
 	instance := util.GetEc2InstanceDetails(t, awsRegion, instanceID)
 
 	// Validate basic instance properties
 	assert.Equal(t, "t3.nano", string(instance.InstanceType))
 	assert.Equal(t, vpcID, *instance.VpcId)
-	
+
 	// Validate instance has public IP
 	require.NotNil(t, instance.PublicIpAddress, "instance should have a public IP address")
 	assert.Equal(t, instancePublicIP, *instance.PublicIpAddress)
-	
+
 	// Validate associate_public_ip_address was set correctly
-	assert.True(t, instance.PublicIpAddress != nil && *instance.PublicIpAddress != "", 
+	assert.True(t, instance.PublicIpAddress != nil && *instance.PublicIpAddress != "",
 		"instance should have associate_public_ip_address=true resulting in a public IP")
-	
+
 	// Validate instance has private IP
 	require.NotNil(t, instance.PrivateIpAddress, "instance should have a private IP address")
 	assert.NotEmpty(t, *instance.PrivateIpAddress)
-	
+
 	// Validate security groups (should have at least one)
 	require.True(t, len(instance.SecurityGroups) > 0, "instance should have at least one security group")
-	
+
 	// Test network connectivity - ping the public IP
 	// This validates that ICMP is allowed and the instance is reachable
 	util.PingHost(t, instancePublicIP, 5*time.Second)
