@@ -27,7 +27,7 @@ importers:
         specifier: ^2.1.35
         version: 2.1.35
       minimatch:
-        specifier: ^3.1.2
+        specifier: ^3.1.5
         version: 3.1.5
     devDependencies:
       '@aws-cdk/cloud-assembly-schema':

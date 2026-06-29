@@ -88,7 +88,7 @@
     "esbuild-wasm": "^0.23.1",
     "ignore": "^5.3.2",
     "mime-types": "^2.1.35",
-    "minimatch": "^3.1.2"
+    "minimatch": "^3.1.5"
   },
   "bundledDependencies": [
     "@balena/dockerignore",

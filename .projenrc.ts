@@ -91,7 +91,7 @@ const project = new cdk.JsiiProject({
     "change-case@^4.1.1",
     "@balena/dockerignore@^1.0.2",
     "ignore@^5.3.2",
-    "minimatch@^3.1.2",
+    "minimatch@^3.1.5",
   ],
   // deps: ["@balena/dockerignore@^1.0.2", "ignore@^5.3.2"],
 
