@@ -33,8 +33,9 @@ const project = new cdk.JsiiProject({
   eslint: true,
   tsconfig: {
     compilerOptions: {
-      target: "ES2020",
-      lib: ["es2020"],
+      // jsii strict tsconfig validation requires es2022
+      target: "ES2022",
+      lib: ["es2022"],
       isolatedModules: true,
     },
   },
@@ -198,6 +199,13 @@ project.package.addField("pnpm", {
     "form-data": ">=4.0.4",
   },
 });
+
+// Pin actions/upload-artifact to a full commit SHA to satisfy the workflow
+// security policy (zizmor unpinned-uses). v7 -> 043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+project.github?.actions.set(
+  "actions/upload-artifact",
+  "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+);
 
 const releaseWorkflow = project.tryFindObjectFile(
   ".github/workflows/release.yml",

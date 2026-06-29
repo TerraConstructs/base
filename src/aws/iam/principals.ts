@@ -917,11 +917,15 @@ export class CompositePrincipal extends PrincipalBase {
  * Base class for Principals that wrap other principals
  */
 abstract class PrincipalAdapter extends PrincipalBase {
-  public readonly assumeRoleAction = this.wrapped.assumeRoleAction;
-  public readonly principalAccount = this.wrapped.principalAccount;
+  public readonly assumeRoleAction: string;
+  public readonly principalAccount: string | undefined;
 
   constructor(protected readonly wrapped: IPrincipal) {
     super();
+    // Assigned in the constructor body (rather than via field initializers) so
+    // that `wrapped` is initialized first under `useDefineForClassFields`.
+    this.assumeRoleAction = this.wrapped.assumeRoleAction;
+    this.principalAccount = this.wrapped.principalAccount;
   }
 
   public get policyFragment(): PrincipalPolicyFragment {
