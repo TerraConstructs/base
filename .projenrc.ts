@@ -198,13 +198,6 @@ new TextFile(project, "pnpm-workspace.yaml", {
     // brace-expansion Regular Expression Denial of Service vulnerability - https://github.com/advisories/GHSA-v6h2-p8h4-qcjw
     // brace-expansion: Zero-step sequence causes process hang and memory exhaustion - https://github.com/advisories/GHSA-f886-m6hf-6m8v
     '  brace-expansion: ">=2.0.1"',
-    // Fix CVE in form-data transitive dependency (via commit-and-tag-version -> jsdom)
-    // form-data <4.0.4 uses predictable Math.random() for boundary values
-    // https://github.com/advisories/GHSA-fjxv-7rqg-78g4 (form-data advisory)
-    '  form-data: ">=4.0.4"',
-    // Fix moderate CVE for uuid <11.1.1
-    // uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided - https://github.com/advisories/GHSA-w5hq-g745-h8pq
-    '  uuid: ">=11.1.1"',
     "allowBuilds:",
     "  unrs-resolver: true",
     "nodeLinker: hoisted",
