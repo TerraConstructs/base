@@ -22,6 +22,7 @@
 /LICENSE linguist-generated
 /package.json linguist-generated
 /pnpm-lock.yaml linguist-generated
+/pnpm-workspace.yaml linguist-generated
 /projenrc/tsconfig.json linguist-generated linguist-language=JSON-with-Comments
 /src/aws/compute/function-vpc-config.generated.ts linguist-generated
 /src/aws/compute/lb-shared/lb-listener-config.generated.ts linguist-generated

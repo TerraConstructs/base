@@ -88,7 +88,7 @@
     "esbuild-wasm": "^0.23.1",
     "ignore": "^5.3.2",
     "mime-types": "^2.1.35",
-    "minimatch": "^3.1.5"
+    "minimatch": "^5.1.0"
   },
   "bundledDependencies": [
     "@balena/dockerignore",
@@ -98,11 +98,7 @@
     "mime-types",
     "minimatch"
   ],
-  "pnpm": {
-    "overrides": {
-      "form-data": ">=4.0.4"
-    }
-  },
+  "pnpm": {},
   "keywords": [
     "terraconstructs"
   ],
@@ -112,7 +108,7 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "10.25.0",
+      "version": "11.5.0",
       "onFail": "ignore"
     }
   },
@@ -123,7 +119,7 @@
     "access": "public"
   },
   "version": "0.0.0",
-  "packageManager": "pnpm@10.25.0",
+  "packageManager": "pnpm@11.5.0",
   "jest": {
     "coverageProvider": "v8",
     "setupFilesAfterEnv": [

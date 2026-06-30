@@ -50,6 +50,7 @@ junit.xml
 !/.eslintrc.json
 !/projenrc/tsconfig.json
 .jsii
+!/pnpm-workspace.yaml
 .env
 !/.nvmrc
 !/.npmrc
