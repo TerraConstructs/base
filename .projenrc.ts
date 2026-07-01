@@ -13,7 +13,7 @@ import {
 
 // set strict node version compatible with webcontainers.io
 const nodeVersion = ">=20.9.0";
-const pnpmVersion = "10.25.0";
+const pnpmVersion = "11.5.0";
 const workflowNodeVersion = "24.12.0";
 
 const project = new cdk.JsiiProject({
@@ -91,7 +91,7 @@ const project = new cdk.JsiiProject({
     "change-case@^4.1.1",
     "@balena/dockerignore@^1.0.2",
     "ignore@^5.3.2",
-    "minimatch@^3.1.5",
+    "minimatch@^5.1.0",
   ],
   // deps: ["@balena/dockerignore@^1.0.2", "ignore@^5.3.2"],
 
@@ -191,13 +191,17 @@ const project = new cdk.JsiiProject({
   },
 });
 
-// Fix CVE in form-data transitive dependency (via commit-and-tag-version -> jsdom)
-// form-data <4.0.4 uses predictable Math.random() for boundary values
-// https://github.com/advisories/GHSA-fjxv-7rqg-78g4 (form-data advisory)
-project.package.addField("pnpm", {
-  overrides: {
-    "form-data": ">=4.0.4",
-  },
+new TextFile(project, "pnpm-workspace.yaml", {
+  lines: [
+    "overrides:",
+    // Fix moderate CVE for brace-expansion <=1.1.12
+    // brace-expansion Regular Expression Denial of Service vulnerability - https://github.com/advisories/GHSA-v6h2-p8h4-qcjw
+    // brace-expansion: Zero-step sequence causes process hang and memory exhaustion - https://github.com/advisories/GHSA-f886-m6hf-6m8v
+    '  brace-expansion: ">=2.0.1"',
+    "allowBuilds:",
+    "  unrs-resolver: true",
+    "nodeLinker: hoisted",
+  ],
 });
 
 // Pin actions/upload-artifact to a full commit SHA to satisfy the workflow

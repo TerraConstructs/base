@@ -16,6 +16,7 @@
     ".projen/files.json",
     ".projen/tasks.json",
     "LICENSE",
+    "pnpm-workspace.yaml",
     "projenrc/tsconfig.json",
     "src/aws/compute/function-vpc-config.generated.ts",
     "src/aws/compute/lb-shared/lb-listener-config.generated.ts",

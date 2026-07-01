@@ -1,0 +1,5 @@
+overrides:
+  brace-expansion: ">=2.0.1"
+allowBuilds:
+  unrs-resolver: true
+nodeLinker: hoisted
