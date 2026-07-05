@@ -9,23 +9,13 @@ import { compute, AwsStack } from "../../../src/aws";
 import { Errors } from "../../../src/aws/compute/types";
 import { Annotations } from "../../assertions";
 
-const gridUUID = "123e4567-e89b-12d3";
 describe("Custom State", () => {
   let stack: AwsStack;
   let stateJson: any;
 
   beforeEach(() => {
     // GIVEN
-    stack = new AwsStack(Testing.app(), `TestStack`, {
-      environmentName: "Test",
-      gridUUID,
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(Testing.app());
     stateJson = {
       Type: "Task",
       Resource: "arn:aws:states:::dynamodb:putItem",
@@ -503,7 +493,7 @@ describe("Custom State", () => {
 
     // expect(Annotations.fromStack(stack).warnings).toMatchSnapshot();
     Annotations.fromStack(stack).hasWarnings({
-      constructPath: "TestStack/my custom task",
+      constructPath: "Default/my custom task",
       message: /CustomState constructs can configure state retries/,
     });
 
@@ -553,7 +543,7 @@ describe("Custom State", () => {
 
     // expect(Annotations.fromStack(stack).warnings).toMatchSnapshot();
     Annotations.fromStack(stack).hasWarnings({
-      constructPath: "TestStack/my custom task",
+      constructPath: "Default/my custom task",
       message: /CustomState constructs can configure state catchers/,
     });
     // Annotations.of(stack).hasWarning(

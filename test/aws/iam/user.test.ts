@@ -25,12 +25,7 @@ describe("IAM user", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName: "Test",
-      gridUUID: "test-uuid",
-      providerConfig: { region: "us-east-1" },
-      gridBackendConfig: { address: "http://localhost" },
-    });
+    stack = new AwsStack(app);
   });
   test("default user", () => {
     new User(stack, "MyUser");

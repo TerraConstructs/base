@@ -20,27 +20,16 @@ describe("ValidationError", () => {
 
   test("ValidationError data", () => {
     const app = new App();
-    const environmentName = "Test";
-    const gridUUID = "123e4567-e89b-12d3";
-    const providerConfig = { region: "us-east-1" };
-    const gridBackendConfig = {
-      address: "http://localhost:3000",
-    };
-    const stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(app);
     const error = new ValidationError("this is an error", stack);
 
     expect(error.time).toBe("2020-01-01T00:00:00.000Z");
     expect(error.type).toBe("validation");
     expect(error.level).toBe("error");
-    expect(error.constructPath).toBe("MyStack");
+    expect(error.constructPath).toBe("Default");
     expect(error.message).toBe("this is an error");
     expect(error.stack).toContain("ValidationError: this is an error");
-    expect(error.stack).toContain("at path [MyStack]");
+    expect(error.stack).toContain("at path [Default]");
   });
 
   test("UnscopedValidationError is ValidationError and ConstructError", () => {

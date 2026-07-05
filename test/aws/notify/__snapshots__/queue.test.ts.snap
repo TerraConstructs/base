@@ -12,23 +12,27 @@ exports[`Queue Should synth and match SnapShot 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
   "resource": {
     "aws_sqs_queue": {
       "HelloWorld_7964D1E8": {
-        "name_prefix": "123e4567-e89b-12d3-TestStackHelloWorld",
+        "name_prefix": "gTestStack553BDD39-TestStackHelloWorld",
         "tags": {
-          "Name": "Test-HelloWorld",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-HelloWorld",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
         }
       }
     }
@@ -61,12 +65,16 @@ exports[`Queue Should synth and match SnapShot with prefix 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -77,9 +85,9 @@ exports[`Queue Should synth and match SnapShot with prefix 1`] = `
         "message_retention_seconds": 1209600,
         "name_prefix": "hello-worldTestStackHelloWorld",
         "tags": {
-          "Name": "Test-HelloWorld",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-HelloWorld",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
         },
         "visibility_timeout_seconds": 900
       }
@@ -113,12 +121,16 @@ exports[`Queue Should synth with DLQ and match SnapShot 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -127,23 +139,23 @@ exports[`Queue Should synth with DLQ and match SnapShot 1`] = `
       "DLQ_581697C4": {
         "kms_master_key_id": "alias/aws/sqs",
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3-TestStackDLQ",
+        "name_prefix": "gTestStack553BDD39-TestStackDLQ",
         "tags": {
-          "Name": "Test-DLQ",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-DLQ",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
         },
         "visibility_timeout_seconds": 900
       },
       "Queue_4A7E3555": {
         "kms_master_key_id": "alias/aws/sqs",
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3-TestStackQueue",
+        "name_prefix": "gTestStack553BDD39-TestStackQueue",
         "redrive_policy": "{\\"deadLetterTargetArn\\":\\"\${aws_sqs_queue.DLQ_581697C4.arn}\\",\\"maxReceiveCount\\":5}",
         "tags": {
-          "Name": "Test-Queue",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Queue",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
         },
         "visibility_timeout_seconds": 900
       }
@@ -177,12 +189,16 @@ exports[`Queue Should synth with contentBasedDeduplication and match SnapShot 1`
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -193,11 +209,11 @@ exports[`Queue Should synth with contentBasedDeduplication and match SnapShot 1`
         "fifo_queue": true,
         "kms_master_key_id": "alias/aws/sqs",
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3-TestStackQueue",
+        "name_prefix": "gTestStack553BDD39-TestStackQueue",
         "tags": {
-          "Name": "Test-Queue",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Queue",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
         },
         "visibility_timeout_seconds": 900
       }
@@ -231,12 +247,16 @@ exports[`Queue Should synth with fifo suffix and match SnapShot 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -248,9 +268,9 @@ exports[`Queue Should synth with fifo suffix and match SnapShot 1`] = `
         "message_retention_seconds": 1209600,
         "name_prefix": "queueTestStackQueue",
         "tags": {
-          "Name": "Test-Queue",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Queue",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
         },
         "visibility_timeout_seconds": 900
       }

@@ -7,23 +7,12 @@ import { storage, iam, compute, AwsStack } from "../../../src/aws";
 // import * as kms from "../../aws-kms";
 // import * as logs from "../../aws-logs";
 
-const gridUUID = "123e4567-e89b-12d3";
-
 describe("State Machine", () => {
   let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    stack = new AwsStack(app, `TestStack`, {
-      environmentName: "Test",
-      gridUUID,
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(app);
   });
   test("Instantiate Default State Machine with deprecated definition", () => {
     // WHEN
@@ -857,12 +846,11 @@ describe("State Machine", () => {
   });
 
   describe("StateMachine.fromStateMachineName()", () => {
-    // beforeEach(() => {
-    //   const app = new cdk.App();
-    //   stack = new AwsStack(app, "Base", {
-    //     env: { account: "111111111111", region: "stack-region" },
-    //   });
-    // });
+    beforeEach(() => {
+      stack = new AwsStack(undefined, "Base", {
+        providerConfig: { region: "stack-region" },
+      });
+    });
 
     describe("for a state machine in the same account and region", () => {
       let mach: compute.IStateMachine;
@@ -876,7 +864,7 @@ describe("State Machine", () => {
       });
 
       test("the state machine's region is taken from the current stack", () => {
-        expect(mach.env.region).toBe("us-east-1");
+        expect(mach.env.region).toBe("stack-region");
       });
 
       test("the state machine's account is taken from the current stack", () => {
@@ -890,7 +878,7 @@ describe("State Machine", () => {
           stack
             .resolve(mach.stateMachineArn)
             .endsWith(
-              ":states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:stateMachine:machine-name",
+              ":states:stack-region:${data.aws_caller_identity.CallerIdentity.account_id}:stateMachine:machine-name",
             ),
         ).toBeTruthy();
       });

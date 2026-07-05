@@ -7,13 +7,6 @@ import { IpAddresses, SubnetType, Vpc } from "../../../src/aws/compute";
 import "cdktn/lib/testing/adapters/jest";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("Cidr vpc allocation", () => {
   test("Default Cidr returns the correct vpc cidr", () => {
     const ipAddresses = IpAddresses.cidr("10.0.0.0/16");
@@ -252,12 +245,7 @@ describe("IpAddresses.cidr Vpc Integration", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("IpAddresses.cidr provides the correct Cidr allocation to the Vpc ", () => {
@@ -300,12 +288,7 @@ describe("AwsIpam Vpc Integration", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
   test("Should throw if there are subnets without explicit Cidr and no defaultCidr given", () => {
     const awsIpamProps = {

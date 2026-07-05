@@ -2,16 +2,10 @@ import { Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { edge, AwsStack } from "../../../src/aws";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
 describe("KeyValueStore", () => {
   test("Should synth and match SnapShot", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     // WHEN
     new edge.KeyValueStore(stack, "Store", {
       nameSuffix: "hello-world",
@@ -28,7 +22,7 @@ describe("KeyValueStore", () => {
   });
   test("Should associate with edge.Function and match SnapShot", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const store = new edge.KeyValueStore(stack, "Store", {
       nameSuffix: "hello-world",
       data: edge.KeyValuePairs.fromInline({
@@ -47,13 +41,3 @@ describe("KeyValueStore", () => {
     expect(Testing.synth(stack)).toMatchSnapshot();
   });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}

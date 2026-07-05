@@ -8,16 +8,7 @@ import { compute, AwsStack } from "../../../src/aws";
 describe("State Machine Fragment", () => {
   test("Prefix applied correctly on Fragments with Parallel states", () => {
     // GIVEN
-    const stack = new AwsStack(Testing.app(), `TestStack`, {
-      environmentName: "Test",
-      gridUUID: "123e4567-e89b-12d3",
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    const stack = new AwsStack(Testing.app());
 
     // WHEN
     const fragment1 = new ParallelMachineFragment(

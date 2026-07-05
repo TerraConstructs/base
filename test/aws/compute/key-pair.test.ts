@@ -13,25 +13,13 @@ import {
 } from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("Key Pair", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("basic test", () => {
@@ -50,7 +38,7 @@ describe("Key Pair", () => {
     expect(keyPair.keyPairName).toBeTruthy();
     Template.synth(stack).toHaveResourceWithProperties(tfKeyPair.KeyPair, {
       // TerraConstructs generate prefix only
-      key_name_prefix: expect.stringMatching(/(\\w|-){1,255}/),
+      key_name_prefix: expect.stringMatching(/(\w|-){1,255}/),
     });
   });
 

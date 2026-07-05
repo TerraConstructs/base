@@ -13,14 +13,7 @@ describe("SqsSendMessage", () => {
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName: "Test",
-      gridUUID: "123e4567-e89b-12d3",
-      providerConfig: { region: "us-east-1" },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(app);
     queue = new notify.Queue(stack, "Queue");
   });
 

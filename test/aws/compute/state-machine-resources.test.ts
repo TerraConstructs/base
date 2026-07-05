@@ -5,23 +5,12 @@ import "cdktn/lib/testing/adapters/jest";
 import { FakeTask } from "./private/fake-task";
 import { iam, compute, AwsStack } from "../../../src/aws";
 
-const gridUUID = "123e4567-e89b-12d3";
-
 describe("State Machine Resources", () => {
   let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    stack = new AwsStack(app, `TestStack`, {
-      environmentName: "Test",
-      gridUUID,
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(app);
   });
 
   // TODO: CDK Deprecated sfn.Task in favour of strongly typed Task classes
@@ -447,7 +436,7 @@ describe("State Machine Resources", () => {
             ],
             effect: "Allow",
             resources: [
-              'arn:${data.aws_partition.Partitition.partition}:states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${element(split(":", aws_sfn_state_machine.StateMachine_2E01A3A5.arn), 6)}:*',
+              'arn:${data.aws_partition.Partitition.partition}:states:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${element(split(":", aws_sfn_state_machine.StateMachine_2E01A3A5.arn), 6)}:*',
             ],
           },
           {
@@ -607,7 +596,7 @@ describe("State Machine Resources", () => {
             actions: ["states:GetExecutionHistory"],
             effect: "Allow",
             resources: [
-              'arn:${data.aws_partition.Partitition.partition}:states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${element(split(":", aws_sfn_state_machine.StateMachine_2E01A3A5.arn), 6)}:*',
+              'arn:${data.aws_partition.Partitition.partition}:states:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${element(split(":", aws_sfn_state_machine.StateMachine_2E01A3A5.arn), 6)}:*',
             ],
           },
         ],
@@ -793,7 +782,7 @@ describe("State Machine Resources", () => {
             ],
             effect: "Allow",
             resources: [
-              "arn:${data.aws_partition.Partitition.partition}:states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:execution:*",
+              "arn:${data.aws_partition.Partitition.partition}:states:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:execution:*",
             ],
           },
           {

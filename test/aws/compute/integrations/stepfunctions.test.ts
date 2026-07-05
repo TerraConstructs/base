@@ -27,11 +27,6 @@ import {
 } from "../../../../src/aws/compute";
 import { Template } from "../../../assertions";
 
-const environmentName = "TestEnv";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = { address: "http://localhost:3000" };
-
 describe("StepFunctionsIntegration", () => {
   describe("startExecution", () => {
     test("minimal setup", () => {
@@ -62,7 +57,7 @@ describe("StepFunctionsIntegration", () => {
             "${aws_api_gateway_method.my-rest-api_GET_3A49A218.http_method}",
           integration_http_method: "POST",
           type: "AWS",
-          uri: `arn:\${data.aws_partition.Partitition.partition}:apigateway:us-east-1:states:action/StartSyncExecution`,
+          uri: "arn:${data.aws_partition.Partitition.partition}:apigateway:${data.aws_region.Region.name}:states:action/StartSyncExecution",
           passthrough_behavior: "NEVER",
           request_templates: {
             "application/json": expect.stringContaining(
@@ -270,12 +265,7 @@ describe("StepFunctionsIntegration", () => {
 
     test("works for imported RestApi", () => {
       const app = Testing.app();
-      const stack = new AwsStack(app, "MyStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      const stack = new AwsStack(app);
       const api = RestApi.fromRestApiAttributes(stack, "RestApi", {
         restApiId: "imported-rest-api-id",
         rootResourceId: "imported-root-resource-id",
@@ -649,12 +639,7 @@ describe("StepFunctionsIntegration", () => {
   test("deployments depend on integrations", () => {
     //GIVEN
     const app = Testing.app();
-    const stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(app);
     // Create the set up take reference from integ/aws/compute/apps/apigw.stepfunctions.ts
     const passTask = new Pass(stack, "PassTask", {
       result: { value: "Hello" },
@@ -705,12 +690,7 @@ describe("StepFunctionsIntegration", () => {
 
 function givenSetup() {
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const stack = new AwsStack(app);
   const api = new RestApi(stack, "my-rest-api");
   const passTask = new Pass(stack, "passTask", {
     inputPath: "$.somekey",

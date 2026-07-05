@@ -2,23 +2,13 @@ import { Testing } from "cdktn";
 import { render } from "./private/render-util";
 import { compute, AwsStack } from "../../../src/aws";
 
-const gridUUID = "123e4567-e89b-12d3";
 describe("Fail State", () => {
   let stack: AwsStack;
   let stateJson: any;
 
   beforeEach(() => {
     // GIVEN
-    stack = new AwsStack(Testing.app(), `TestStack`, {
-      environmentName: "Test",
-      gridUUID,
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(Testing.app());
     stateJson = {
       Type: "Task",
       Resource: "arn:aws:states:::dynamodb:putItem",

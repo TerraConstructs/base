@@ -10,21 +10,14 @@ import "cdktn/lib/testing/adapters/jest";
 import { compute, AwsStack } from "../../../src/aws";
 import { Template } from "../../assertions";
 
-const gridUUID = "123e4567-e89b-12d3";
+const gridUUID = "a123e456-e89b-12d3";
 
 describe("alias", () => {
   let stack: AwsStack;
   let fn: compute.LambdaFunction;
   beforeEach(() => {
-    stack = new AwsStack(Testing.app(), `TestStack`, {
-      environmentName: "Test",
+    stack = new AwsStack(Testing.app(), "MyStack", {
       gridUUID,
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
     });
     fn = new compute.LambdaFunction(stack, "MyLambda", {
       code: new compute.InlineCode("hello()"),
@@ -47,7 +40,7 @@ describe("alias", () => {
     expect(synthesized).toHaveResourceWithProperties(lambdaAlias.LambdaAlias, {
       function_name: "${aws_lambda_function.MyLambda_CCE802FB.function_name}",
       function_version: "${aws_lambda_function.MyLambda_CCE802FB.version}",
-      name: "123e4567-e89b-12d3-latest",
+      name: `${gridUUID}-latest`,
     });
     // Template.fromStack(stack).hasResourceProperties("AWS::Lambda::Alias", {
     //   FunctionName: { Ref: "MyLambdaCCE802FB" },

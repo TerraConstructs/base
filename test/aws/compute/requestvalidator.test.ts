@@ -5,21 +5,11 @@ import { AwsStack } from "../../../src/aws/aws-stack";
 import { RestApi, Method, RequestValidator } from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = { address: "http://localhost:3000" };
-
 describe("request validator", () => {
   test("default setup", () => {
     // GIVEN
     const app = Testing.app();
-    const stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(app);
     const api = new RestApi(stack, "test-api", {
       cloudWatchRole: false,
       deploy: true,
@@ -53,12 +43,7 @@ describe("request validator", () => {
   test("no deployment", () => {
     // GIVEN
     const app = Testing.app();
-    const stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(app);
     const api = new RestApi(stack, "test-api", {
       cloudWatchRole: false,
       deploy: false,

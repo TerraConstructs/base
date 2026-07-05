@@ -16,7 +16,7 @@ const app = new App({
   outdir,
 });
 const stack = new aws.AwsStack(app, stackName, {
-  gridUUID: "12345678-444",
+  gridUUID: "g12345678-444",
   environmentName,
   providerConfig: {
     region,

@@ -22,11 +22,6 @@ import { LambdaFunction as LambdaFunctionTarget } from "../../../../src/aws/noti
 import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
 describe("LambdaFunction as an event rule target", () => {
   let app: App;
   let stack: AwsStack;
@@ -34,7 +29,7 @@ describe("LambdaFunction as an event rule target", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = getAwsStack(app);
+    stack = new AwsStack(app);
     // rule = new Rule(stack, "Rule", {
     //   schedule: Schedule.expression("rate(1 min)"),
     // });
@@ -241,7 +236,7 @@ describe("LambdaFunction as an event rule target", () => {
       {
         statement: [
           {
-            sid: "AllowEventRuleTestStackRule3795E55D",
+            sid: "AllowEventRuleRule",
             effect: "Allow",
             actions: ["sqs:SendMessage"],
             condition: [
@@ -315,7 +310,12 @@ describe("LambdaFunction as an event rule target", () => {
 
   test("throw an error when using a Dead Letter Queue for the rule target in a different region", () => {
     // GIVEN
-    const stack2 = getAwsStack(app, "us-east-2", "2");
+    stack = new AwsStack(app, "Stack1", {
+      providerConfig: { region: "eu-west-1" },
+    });
+    const stack2 = new AwsStack(app, "Stack2", {
+      providerConfig: { region: "eu-west-2" },
+    });
 
     const fn = newTestLambda(stack);
 
@@ -332,7 +332,7 @@ describe("LambdaFunction as an event rule target", () => {
         }),
       );
     }).toThrow(
-      /Cannot assign Dead Letter Queue in region us-east-2 to the rule TestStackRule3795E55D in region us-east-1. Both the queue and the rule must be in the same region./,
+      /Cannot assign Dead Letter Queue in region eu-west-2 to the rule Stack1Rule92BA1111 in region eu-west-1. Both the queue and the rule must be in the same region./,
     );
   });
 
@@ -496,20 +496,5 @@ function newTestLambda(scope: Construct, suffix = "") {
     code: new InlineCode("foo"),
     handler: "bar",
     runtime: Runtime.PYTHON_3_9,
-  });
-}
-
-function getAwsStack(
-  app: App,
-  region: string = "us-east-1",
-  suffix: string = "",
-): AwsStack {
-  return new AwsStack(app, `TestStack${suffix}`, {
-    environmentName,
-    gridUUID,
-    providerConfig: {
-      region,
-    },
-    gridBackendConfig,
   });
 }

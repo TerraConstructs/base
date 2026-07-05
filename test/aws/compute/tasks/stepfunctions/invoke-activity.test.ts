@@ -8,14 +8,7 @@ import { StepFunctionsInvokeActivity } from "../../../../../src/aws/compute/task
 test("Activity can be used in a Task", () => {
   // GIVEN
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestSpec", {
-    environmentName: "Test",
-    gridUUID: "123e4567-e89b-12d3",
-    providerConfig: { region: "us-east-1" },
-    gridBackendConfig: {
-      address: "http://localhost:3000",
-    },
-  });
+  const stack = new AwsStack(app);
 
   // WHEN
   const activity = new compute.Activity(stack, "Activity");

@@ -23,14 +23,8 @@ import {
 } from "../../../src/aws/iam/principals";
 import { Role } from "../../../src/aws/iam/role";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
 test("cannot have multiple principals with different conditions in the same statement", () => {
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const role = new Role(stack, "Role", {
     assumedBy: new ServicePrincipal("sns"),
   });
@@ -66,7 +60,7 @@ test("cannot have multiple principals with different conditions in the same stat
 });
 
 test("can have multiple principals with the same conditions in the same statement", () => {
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const role = new Role(stack, "Role", {
     assumedBy: new ServicePrincipal("sns"),
   });
@@ -108,7 +102,7 @@ test("can have multiple principals with the same conditions in the same statemen
 
 test("use federated principal", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
 
   // WHEN
   const principal = new FederatedPrincipal("federated");
@@ -123,7 +117,7 @@ test("use federated principal", () => {
 
 test("use Web Identity principal", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
 
   // WHEN
   const principal = new WebIdentityPrincipal("cognito-identity.amazonaws.com");
@@ -139,7 +133,7 @@ test("use Web Identity principal", () => {
 
 test("use OpenID Connect principal from provider", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const provider = new OpenIdConnectProvider(stack, "MyProvider", {
     url: "https://openid-endpoint",
     clientIds: ["266362248691-342342xasdasdasda-apps.googleusercontent.com"],
@@ -156,7 +150,7 @@ test("use OpenID Connect principal from provider", () => {
 
 test("StarPrincipal", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
 
   // WHEN
   const pol = new PolicyDocument(stack, "doc", {
@@ -185,7 +179,7 @@ test("StarPrincipal", () => {
 
 test("PrincipalWithConditions.addCondition should work", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const basePrincipal = new ServicePrincipal("service.amazonaws.com");
   const principalWithConditions = new PrincipalWithConditions(basePrincipal, [
     {
@@ -250,7 +244,7 @@ test("PrincipalWithConditions.addCondition should work", () => {
 
 test("PrincipalWithConditions.addCondition with a new condition operator should work", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const basePrincipal = new ServicePrincipal("service.amazonaws.com");
   const principalWithConditions = new PrincipalWithConditions(
     basePrincipal,
@@ -329,7 +323,7 @@ test("PrincipalWithConditions inherits principalAccount from AccountPrincipal ",
 
 test("AccountPrincipal can specify an organization", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
 
   // WHEN
   const pol = new PolicyDocument(stack, "doc", {
@@ -397,7 +391,7 @@ test("AccountPrincipal can specify an organization", () => {
 
 test("Can enable session tags", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
 
   // WHEN
   new Role(stack, "Role", {
@@ -450,7 +444,7 @@ test("Can enable session tags", () => {
 
 test("Can enable session tags with conditions (order of calls is irrelevant)", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
 
   // WHEN
   new Role(stack, "Role", {
@@ -590,13 +584,3 @@ describe("fromPrincipalJson", () => {
     expect(result).toEqual(expected);
   });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}

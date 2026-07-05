@@ -4,23 +4,18 @@ import "cdktn/lib/testing/adapters/jest";
 import { iam, compute, AwsStack } from "../../../src/aws";
 // import { Duration } from "../../../src/duration";
 
-const gridUUID = "123e4567-e89b-12d3";
 describe("Activity", () => {
   let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
-    stack = new AwsStack(Testing.app(), `TestStack`, {
-      environmentName: "Test",
-      gridUUID,
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(Testing.app());
   });
   test("instantiate Activity", () => {
+    // GIVEN
+    stack = new AwsStack(undefined, undefined, {
+      gridUUID: "a123e456-e89b-12d3",
+    });
+
     // WHEN
     new compute.Activity(stack, "Activity");
 
@@ -30,7 +25,7 @@ describe("Activity", () => {
     const synthesized = Testing.synth(stack);
     // expect(synthesized).toMatchSnapshot();
     expect(synthesized).toHaveResourceWithProperties(sfnActivity.SfnActivity, {
-      name: "123e4567-e89b-12d3-TestStackActivityFBB08750",
+      name: "a123e456-e89b-12d3-Activity",
     });
   });
 

@@ -15,21 +15,13 @@ import * as compute from "../../../src/aws/compute";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const providerConfig = { region: "us-east-1" };
-const defaultProps = {
-  environmentName: "test",
-  gridUUID: "123e4567-e89b-12d3",
-  providerConfig,
-  gridBackendConfig: { address: "http://localhost:3000" },
-};
-
 describe("lambda api", () => {
   let stack: AwsStack;
   let handler: compute.LambdaFunction;
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", defaultProps);
+    stack = new AwsStack(app);
     handler = new compute.LambdaFunction(stack, "handler", {
       handler: "index.handler",
       code: compute.Code.fromInline("boom"),
@@ -322,7 +314,7 @@ describe("lambda api", () => {
     template.expect.toHaveResourceWithProperties(
       apiGatewayRestApi.ApiGatewayRestApi,
       {
-        name: "TestStacklambdarestapi6A33C44D", // Default name generation pattern
+        name: "lambdarestapi", // Default name generation pattern
       },
     );
   });
@@ -375,7 +367,7 @@ describe("lambda api", () => {
   test("setting deployOptions variable with invalid value throws validation error", () => {
     // GIVEN
     const app = Testing.app();
-    const newStack = new AwsStack(app, "DeployOptionsStack", defaultProps);
+    const newStack = new AwsStack(app, "DeployOptionsStack");
     const newHandler = new compute.LambdaFunction(newStack, "handler", {
       handler: "index.handler",
       code: compute.Code.fromInline("boom"),

@@ -27,16 +27,7 @@ import { Template } from "../../../assertions";
 describe("SQSEventSource", () => {
   let stack: AwsStack;
   beforeEach(() => {
-    stack = new AwsStack(Testing.app(), `TestStack`, {
-      environmentName: "Test",
-      gridUUID: "123e4567-e89b-12d3",
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(Testing.app());
   });
   test("defaults", () => {
     // GIVEN

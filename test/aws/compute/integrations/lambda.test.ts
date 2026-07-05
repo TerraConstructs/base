@@ -15,12 +15,7 @@ import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const region = "us-east-1";
-const providerConfig = { region };
-const gridBackendConfig = { address: "http://localhost:3000" };
-
+const regionRef = "${data.aws_region.Region.name}";
 const partitionRef = "${data.aws_partition.Partitition.partition}";
 const accountRef = "${data.aws_caller_identity.CallerIdentity.account_id}";
 
@@ -30,12 +25,7 @@ describe("lambda integration", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("minimal setup", () => {
@@ -73,7 +63,7 @@ describe("lambda integration", () => {
           "${aws_api_gateway_method.my-api_GET_F990CE3C.http_method}",
         integration_http_method: "POST",
         type: "AWS_PROXY",
-        uri: `arn:${partitionRef}:apigateway:${region}:lambda:path/2015-03-31/functions/${stack.resolve(handler.functionArn)}/invocations`,
+        uri: `arn:${partitionRef}:apigateway:${regionRef}:lambda:path/2015-03-31/functions/${stack.resolve(handler.functionArn)}/invocations`,
       },
     );
   });
@@ -95,7 +85,7 @@ describe("lambda integration", () => {
     // THEN
     const template = new Template(stack);
     const deploymentStageName = stack.resolve(api.deploymentStage.stageName);
-    const prodStageArn = `arn:${partitionRef}:execute-api:${region}:${accountRef}:${stack.resolve(api.restApiId)}/${deploymentStageName}/GET/`;
+    const prodStageArn = `arn:${partitionRef}:execute-api:${regionRef}:${accountRef}:${stack.resolve(api.restApiId)}/${deploymentStageName}/GET/`;
 
     template.expect.toHaveResourceWithProperties(
       lambdaPermission.LambdaPermission,
@@ -109,7 +99,7 @@ describe("lambda integration", () => {
     const permissions = template.resourceTypeArray(
       lambdaPermission.LambdaPermission,
     );
-    const testInvokeArn = `arn:${partitionRef}:execute-api:${region}:${accountRef}:${stack.resolve(api.restApiId)}/test-invoke-stage/GET/`;
+    const testInvokeArn = `arn:${partitionRef}:execute-api:${regionRef}:${accountRef}:${stack.resolve(api.restApiId)}/test-invoke-stage/GET/`;
 
     expect(permissions).not.toEqual(
       expect.arrayContaining([
@@ -136,7 +126,7 @@ describe("lambda integration", () => {
 
     // THEN
     const template = new Template(stack);
-    const testInvokeArn = `arn:${partitionRef}:execute-api:${region}:${accountRef}:${stack.resolve(api.restApiId)}/test-invoke-stage/GET/`;
+    const testInvokeArn = `arn:${partitionRef}:execute-api:${regionRef}:${accountRef}:${stack.resolve(api.restApiId)}/test-invoke-stage/GET/`;
     template.expect.toHaveResourceWithProperties(
       lambdaPermission.LambdaPermission,
       {
@@ -184,7 +174,7 @@ describe("lambda integration", () => {
 
     // THEN
     const template = new Template(stack);
-    const testInvokeArn = `arn:${partitionRef}:execute-api:${region}:${accountRef}:${stack.resolve(api.restApiId)}/test-invoke-stage/*/`;
+    const testInvokeArn = `arn:${partitionRef}:execute-api:${regionRef}:${accountRef}:${stack.resolve(api.restApiId)}/test-invoke-stage/*/`;
     template.expect.toHaveResourceWithProperties(
       lambdaPermission.LambdaPermission,
       {
@@ -193,7 +183,7 @@ describe("lambda integration", () => {
     );
 
     const deploymentStageName = stack.resolve(api.deploymentStage.stageName);
-    const prodStageArn = `arn:${partitionRef}:execute-api:${region}:${accountRef}:${stack.resolve(api.restApiId)}/${deploymentStageName}/*/`;
+    const prodStageArn = `arn:${partitionRef}:execute-api:${regionRef}:${accountRef}:${stack.resolve(api.restApiId)}/${deploymentStageName}/*/`;
     template.expect.toHaveResourceWithProperties(
       lambdaPermission.LambdaPermission,
       {

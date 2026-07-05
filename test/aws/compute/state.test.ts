@@ -10,21 +10,10 @@ import {
   StateMachine,
 } from "../../../src/aws/compute";
 
-const gridUUID = "123e4567-e89b-12d3";
-
 test("JsonPath.DISCARD can be used to discard a state's output", () => {
   // GIVEN
   const app = Testing.app();
-  const stack = new AwsStack(app, `TestStack`, {
-    environmentName: "Test",
-    gridUUID,
-    providerConfig: {
-      region: "us-east-1",
-    },
-    gridBackendConfig: {
-      address: "http://localhost:3000",
-    },
-  });
+  const stack = new AwsStack(app);
   const task = new FakeTask(stack, "my-state", {
     inputPath: JsonPath.DISCARD,
     outputPath: JsonPath.DISCARD,

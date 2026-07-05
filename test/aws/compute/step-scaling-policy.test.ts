@@ -13,23 +13,13 @@ import { Metric } from "../../../src/aws/cloudwatch";
 import * as appscaling from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "TestEnv";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const defaultGridBackendConfig = { address: "http://localhost:3000" };
-
 describe("step scaling policy", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig: defaultGridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("alarm thresholds are valid numbers", () => {
@@ -465,12 +455,7 @@ describe("step scaling policy", () => {
  * Synthesize the given step scaling setup to a template
  */
 function setupStepScaling(intervals: appscaling.ScalingInterval[]) {
-  const stack = new AwsStack(Testing.app(), "MyStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig: defaultGridBackendConfig,
-  });
+  const stack = new AwsStack(Testing.app(), "MyStack");
   const target = createScalableTarget(stack);
 
   target.scaleOnMetric("ScaleInterval", {

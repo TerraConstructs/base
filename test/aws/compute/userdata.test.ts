@@ -8,22 +8,10 @@ import * as ec2 from "../../../src/aws/compute";
 import { Bucket } from "../../../src/aws/storage";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("user data", () => {
   let stack: AwsStack;
   beforeEach(() => {
-    stack = new AwsStack(Testing.app(), "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(Testing.app());
   });
 
   test("can create Windows user data", () => {

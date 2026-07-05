@@ -21,25 +21,13 @@ import {
 } from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("bastion host", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("default instance is created in basic", () => {
@@ -208,12 +196,7 @@ describe("bastion host", () => {
 
   test("appends new hash digest to instance logical Id if userDataCausesReplacement is true", () => {
     //GIVEN
-    const stackNew = new AwsStack(app, "StackNew", {
-      environmentName, // should be different
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stackNew = new AwsStack(app, "StackNew");
     const vpcOld = new Vpc(stack, "VPC");
     const vpcNew = new Vpc(stackNew, "VPC");
     const oldSshKeys = ["foo", "bar"];

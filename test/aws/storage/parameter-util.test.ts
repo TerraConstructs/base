@@ -5,13 +5,6 @@ import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { arnForParameterName } from "../../../src/aws/storage/parameter-util";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("arnForParameterName", () => {
   let app: App;
   let stack: AwsStack;
@@ -19,12 +12,7 @@ describe("arnForParameterName", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     varBoom = new TerraformVariable(stack, "Boom", {
       type: "string",
       default: "foo/bar",
@@ -35,7 +23,7 @@ describe("arnForParameterName", () => {
       expect(
         stack.resolve(arnForParameterName(stack, "myParam", undefined)),
       ).toEqual(
-        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/myParam",
+        "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/myParam",
       );
     });
 
@@ -47,7 +35,7 @@ describe("arnForParameterName", () => {
           }),
         ),
       ).toEqual(
-        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${var.Boom}",
+        "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${var.Boom}",
       );
     });
 
@@ -59,7 +47,7 @@ describe("arnForParameterName", () => {
           }),
         ),
       ).toEqual(
-        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${var.Boom}",
+        "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/${var.Boom}",
       );
     });
   });
@@ -69,7 +57,7 @@ describe("arnForParameterName", () => {
       expect(
         stack.resolve(arnForParameterName(stack, "/foo/bar", undefined)),
       ).toEqual(
-        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/foo/bar",
+        "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter/foo/bar",
       );
     });
 
@@ -81,7 +69,7 @@ describe("arnForParameterName", () => {
           }),
         ),
       ).toEqual(
-        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${var.Boom}",
+        "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${var.Boom}",
       );
     });
 
@@ -93,7 +81,7 @@ describe("arnForParameterName", () => {
           }),
         ),
       ).toEqual(
-        "arn:${data.aws_partition.Partitition.partition}:ssm:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${var.Boom}",
+        "arn:${data.aws_partition.Partitition.partition}:ssm:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:parameter${var.Boom}",
       );
     });
   });

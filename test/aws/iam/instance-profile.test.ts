@@ -17,26 +17,11 @@ import { Role, ServicePrincipal, InstanceProfile } from "../../../src/aws/iam";
 // import { Role } from "../../../src/aws/iam/role";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("IAM instance profiles", () => {
   let stack: AwsStack;
 
   beforeEach(() => {
-    stack = new AwsStack(Testing.app(), "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-      // TODO: Should support passing account via Stack props?
-      // account: "1234",
-      // region: "us-east-1",
-    });
+    stack = new AwsStack(Testing.app());
   });
   test("default instance profile", () => {
     // WHEN
@@ -72,7 +57,7 @@ describe("IAM instance profiles", () => {
       resource: {
         aws_iam_instance_profile: {
           InstanceProfile_9F2F41CB: {
-            name: "123e4567-e89b-12d3MyStackInstanceProfileF6A8DB39",
+            name: "gInstanceProfile",
             role: "${aws_iam_role.InstanceProfile_InstanceRole_3FE337A6.name}",
           },
         },
@@ -80,7 +65,7 @@ describe("IAM instance profiles", () => {
           InstanceProfile_InstanceRole_3FE337A6: {
             assume_role_policy:
               "${data.aws_iam_policy_document.InstanceProfile_InstanceRole_AssumeRolePolicy_58D2B4B4.json}",
-            name: "123e4567-e89b-12d3MyStackInstanceProfileF6A8DB39-role",
+            name: "gInstanceProfile-role",
           },
         },
       },
@@ -126,7 +111,7 @@ describe("IAM instance profiles", () => {
       resource: {
         aws_iam_instance_profile: {
           InstanceProfile_9F2F41CB: {
-            name: "123e4567-e89b-12d3MyStackInstanceProfileF6A8DB39",
+            name: "gInstanceProfile",
             role: "${aws_iam_role.Role_1ABCC5F0.name}",
           },
         },
@@ -134,7 +119,7 @@ describe("IAM instance profiles", () => {
           Role_1ABCC5F0: {
             assume_role_policy:
               "${data.aws_iam_policy_document.Role_AssumeRolePolicy_B27E8126.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackRole",
+            name_prefix: "g-Role",
           },
         },
       },
@@ -180,7 +165,7 @@ describe("IAM instance profiles", () => {
             name: "MyInstanceProfile",
             role: "${aws_iam_role.InstanceProfile_InstanceRole_3FE337A6.name}",
             tags: {
-              Name: "Test-InstanceProfile",
+              Name: "Default-InstanceProfile",
             },
           },
         },
@@ -190,7 +175,7 @@ describe("IAM instance profiles", () => {
               "${data.aws_iam_policy_document.InstanceProfile_InstanceRole_AssumeRolePolicy_58D2B4B4.json}",
             name: "MyInstanceProfile-role",
             tags: {
-              Name: "Test-InstanceProfile",
+              Name: "Default-InstanceProfile",
             },
           },
         },
@@ -234,11 +219,11 @@ describe("IAM instance profiles", () => {
       resource: {
         aws_iam_instance_profile: {
           InstanceProfile_9F2F41CB: {
-            name: "123e4567-e89b-12d3MyStackInstanceProfileF6A8DB39",
+            name: "gInstanceProfile",
             path: "/sample/path/",
             role: "${aws_iam_role.InstanceProfile_InstanceRole_3FE337A6.name}",
             tags: {
-              Name: "Test-InstanceProfile",
+              Name: "Default-InstanceProfile",
             },
           },
         },
@@ -246,9 +231,9 @@ describe("IAM instance profiles", () => {
           InstanceProfile_InstanceRole_3FE337A6: {
             assume_role_policy:
               "${data.aws_iam_policy_document.InstanceProfile_InstanceRole_AssumeRolePolicy_58D2B4B4.json}",
-            name: "123e4567-e89b-12d3MyStackInstanceProfileF6A8DB39-role",
+            name: "gInstanceProfile-role",
             tags: {
-              Name: "Test-InstanceProfile",
+              Name: "Default-InstanceProfile",
             },
           },
         },

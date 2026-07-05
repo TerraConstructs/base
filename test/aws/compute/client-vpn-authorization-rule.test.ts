@@ -9,11 +9,7 @@ import { ClientVpnAuthorizationRule } from "../../../src/aws/compute/client-vpn-
 import { Template } from "../../assertions";
 
 const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
+const gridUUID = "a123e456-e89b-12d3";
 
 let app: App;
 let stack: AwsStack;
@@ -22,8 +18,6 @@ beforeEach(() => {
   stack = new AwsStack(app, "MyStack", {
     environmentName,
     gridUUID,
-    providerConfig,
-    gridBackendConfig,
   });
 });
 

@@ -5,20 +5,15 @@ import { compute, AwsStack } from "../../../src/aws";
 import { Bucket } from "../../../src/aws/storage/bucket";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
 const gridBackendConfig = {
   address: "http://localhost:3000",
 };
 const DEFAULT_CONFIG = {
-  environmentName,
-  gridUUID,
   gridBackendConfig,
 };
 const TEST_APPDIR = path.join(__dirname, "fixtures", "app");
 const CDKTFJSON_PATH = path.join(TEST_APPDIR, "cdktf.json");
 
-const providerConfig = { region: "us-east-1" };
 describe("Function", () => {
   let app: App;
   let stack: AwsStack;
@@ -33,7 +28,6 @@ describe("Function", () => {
     );
     stack = new AwsStack(app, "TestStack", {
       ...DEFAULT_CONFIG,
-      providerConfig,
     });
   });
   test("Should synth and match SnapShot", () => {
@@ -73,7 +67,7 @@ describe("Function", () => {
         tfResourceType: "aws_iam_role",
       },
       {
-        name_prefix: "123e4567-e89b-12d3-lloWorldServiceRole",
+        name_prefix: "gTestStack553BDD39-lloWorldServiceRole",
       },
     );
     template.toHaveResourceWithProperties(
@@ -126,7 +120,6 @@ describe("latest Lambda node runtime", () => {
     // GIVEN
     const stack = new AwsStack(undefined, "Stack", {
       ...DEFAULT_CONFIG,
-      providerConfig,
     });
 
     // WHEN

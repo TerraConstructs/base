@@ -24,16 +24,9 @@ import { AccountRootPrincipal, Role } from "../../../src/aws/iam";
 import { Size } from "../../../src/size";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 // the Prefix for ARN using partition and account id data sources
 const arnPrefix =
-  "arn:${data.aws_partition.Partitition.partition}:ec2:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}";
+  "arn:${data.aws_partition.Partitition.partition}:ec2:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}";
 const arnAccountRoot =
   "arn:${data.aws_partition.Partitition.partition}:iam::${data.aws_caller_identity.CallerIdentity.account_id}:root";
 
@@ -43,12 +36,7 @@ describe("volume", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
   test("basic volume", () => {
     // GIVEN
@@ -187,7 +175,7 @@ describe("volume", () => {
               {
                 test: "StringEquals",
                 variable: "kms:ViaService",
-                values: ["ec2.us-east-1.amazonaws.com"],
+                values: ["ec2.${data.aws_region.Region.name}.amazonaws.com"],
               },
               {
                 test: "StringEquals",
@@ -473,7 +461,7 @@ describe("volume", () => {
                 {
                   test: "StringEquals",
                   variable: "kms:ViaService",
-                  values: ["ec2.us-east-1.amazonaws.com"],
+                  values: ["ec2.${data.aws_region.Region.name}.amazonaws.com"],
                 },
                 {
                   test: "StringEquals",
@@ -542,7 +530,7 @@ describe("volume", () => {
               {
                 test: "StringEquals",
                 variable: "kms:ViaService",
-                values: ["ec2.us-east-1.amazonaws.com"],
+                values: ["ec2.${data.aws_region.Region.name}.amazonaws.com"],
               },
               {
                 test: "StringEquals",
@@ -626,7 +614,7 @@ describe("volume", () => {
 
     // THEN
     // md5hash(constructs.map((c) => AwsStack.uniqueId(c)).join(""))
-    const resourceTagValue = "4e046610d980c5250ff5d02b76d47df3";
+    const resourceTagValue = "b2376b2bda65cb40f83c290dd844c4aa";
     const resourceTagKeySuffix = resourceTagValue.slice(0, 10).toUpperCase();
     const t = new Template(stack);
     t.expect.toHaveDataSourceWithProperties(
@@ -688,7 +676,7 @@ describe("volume", () => {
 
     // THEN
     // md5hash(constructs.map((c) => AwsStack.uniqueId(c)).join(""))
-    const resourceTagValue = "4e046610d980c5250ff5d02b76d47df3";
+    const resourceTagValue = "b2376b2bda65cb40f83c290dd844c4aa";
     const t = new Template(stack);
     t.expect.toHaveDataSourceWithProperties(
       tfIamPolicyDocument.DataAwsIamPolicyDocument,
@@ -825,7 +813,7 @@ describe("volume", () => {
 
     // THEN
     // // md5hash(constructs.map((c) => AwsStack.uniqueId(c)).join(""))
-    const resourceTagValue = "4e046610d980c5250ff5d02b76d47df3";
+    const resourceTagValue = "b2376b2bda65cb40f83c290dd844c4aa";
     const resourceTagKeySuffix = resourceTagValue.slice(0, 10).toUpperCase();
     const t = new Template(stack);
     t.expect.toHaveDataSourceWithProperties(
@@ -887,7 +875,7 @@ describe("volume", () => {
 
     // THEN
     // md5hash(constructs.map((c) => AwsStack.uniqueId(c)).join(""))
-    const resourceTagValue = "4e046610d980c5250ff5d02b76d47df3";
+    const resourceTagValue = "b2376b2bda65cb40f83c290dd844c4aa";
     const t = new Template(stack);
     t.expect.toHaveDataSourceWithProperties(
       tfIamPolicyDocument.DataAwsIamPolicyDocument,

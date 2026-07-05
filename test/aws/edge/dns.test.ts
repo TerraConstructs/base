@@ -2,17 +2,11 @@ import { Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { edge, storage, AwsStack } from "../../../src/aws";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
 const ipAddress = "123.123.123.0";
 describe("DnsZone", () => {
   test("Create should synth and match SnapShot", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const bucket = new storage.Bucket(stack, "HelloWorld", {
       namePrefix: "hello-world",
       websiteConfig: {
@@ -84,7 +78,7 @@ describe("DnsZone", () => {
   });
   test("Import should synth and match SnapShot", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     // WHEN
     const zone = edge.DnsZone.fromZoneId(stack, "Zone", "Z1234567890");
     new edge.ARecord(stack, "ARecordApex", {
@@ -101,7 +95,7 @@ describe("DnsZone", () => {
   });
   test("Should throw error if bucket has no website config", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const zone = edge.DnsZone.fromZoneId(stack, "Zone", "Z1234567890");
     // WHEN
     const bucket = new storage.Bucket(stack, "HelloWorld", {
@@ -119,7 +113,7 @@ describe("DnsZone", () => {
   });
   test("Should throw error if multiple routing policies are provided", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const zone = edge.DnsZone.fromZoneId(stack, "Zone", "Z1234567890");
     // THEN
     expect(() => {
@@ -132,13 +126,3 @@ describe("DnsZone", () => {
     }).toThrow("Only one of");
   });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}

@@ -12,28 +12,13 @@ import {
 } from "../../../src/aws/iam/principals";
 import { Role } from "../../../src/aws/iam/role";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("managed policy", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-      // TODO: Should support passing account via Stack props?
-      // account: "1234",
-      // region: "us-east-1",
-    });
+    stack = new AwsStack(app);
   });
 
   test("simple AWS managed policy", () => {
@@ -126,7 +111,7 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+            name_prefix: "g-MyRole",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -277,7 +262,7 @@ describe("managed policy", () => {
       resource: {
         aws_iam_policy: {
           MyManagedPolicy_9F3720AE: {
-            name_prefix: "123e4567-e89b-12d3-MyStackMyManagedPolicy",
+            name_prefix: "g-MyManagedPolicy",
             path: "/",
             policy:
               "${data.aws_iam_policy_document.MyManagedPolicy_2C71A5F2.json}",
@@ -285,7 +270,7 @@ describe("managed policy", () => {
         },
         aws_iam_role: {
           MyRole_F48FFE04: {
-            name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+            name_prefix: "g-MyRole",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -353,7 +338,7 @@ describe("managed policy", () => {
           Role1_3A5C70C1: {
             assume_role_policy:
               "${data.aws_iam_policy_document.Role1_AssumeRolePolicy_3ECFD151.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackRole1",
+            name_prefix: "g-Role1",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -404,7 +389,7 @@ describe("managed policy", () => {
       resource: {
         aws_iam_policy: {
           MyManagedPolicy_9F3720AE: {
-            name_prefix: "123e4567-e89b-12d3-MyStackMyManagedPolicy",
+            name_prefix: "g-MyManagedPolicy",
             path: "/",
             policy:
               "${data.aws_iam_policy_document.MyManagedPolicy_2C71A5F2.json}",
@@ -414,7 +399,7 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+            name_prefix: "g-MyRole",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -470,7 +455,7 @@ describe("managed policy", () => {
       resource: {
         aws_iam_policy: {
           MyManagedPolicy_9F3720AE: {
-            name_prefix: "123e4567-e89b-12d3-MyStackMyManagedPolicy",
+            name_prefix: "g-MyManagedPolicy",
             path: "/",
             policy:
               "${data.aws_iam_policy_document.MyManagedPolicy_2C71A5F2.json}",
@@ -480,7 +465,7 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+            name_prefix: "g-MyRole",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -551,12 +536,12 @@ describe("managed policy", () => {
           Role1_3A5C70C1: {
             assume_role_policy:
               "${data.aws_iam_policy_document.Role1_AssumeRolePolicy_3ECFD151.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackRole1",
+            name_prefix: "g-Role1",
           },
           Role2_91939BC6: {
             assume_role_policy:
               "${data.aws_iam_policy_document.Role2_AssumeRolePolicy_E4538858.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackRole2",
+            name_prefix: "g-Role2",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -614,7 +599,7 @@ describe("managed policy", () => {
       resource: {
         aws_iam_policy: {
           MyManagedPolicy_9F3720AE: {
-            name_prefix: "123e4567-e89b-12d3-MyStackMyManagedPolicy",
+            name_prefix: "g-MyManagedPolicy",
             path: "/",
             policy:
               "${data.aws_iam_policy_document.MyManagedPolicy_2C71A5F2.json}",
@@ -624,7 +609,7 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+            name_prefix: "g-MyRole",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -663,7 +648,7 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+            name_prefix: "g-MyRole",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -703,7 +688,7 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+            name_prefix: "g-MyRole",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -747,7 +732,7 @@ describe("managed policy", () => {
           MyRole_F48FFE04: {
             assume_role_policy:
               "${data.aws_iam_policy_document.MyRole_AssumeRolePolicy_4BED951C.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackMyRole",
+            name_prefix: "g-MyRole",
           },
         },
         aws_iam_role_policy_attachment: {
@@ -969,7 +954,7 @@ describe("managed policy", () => {
         resourceArns: ["*"],
         resource,
       });
-    }).toThrow(/Cannot use a ManagedPolicy 'MyStack\/Policy'/);
+    }).toThrow(/Cannot use a ManagedPolicy 'Default\/Policy'/);
   });
 
   test("Policies cannot be granted resource permissions", () => {
@@ -999,7 +984,7 @@ describe("managed policy", () => {
         resourceArns: ["*"],
         resource,
       });
-    }).toThrow(/Cannot use a ManagedPolicy 'MyStack\/Policy'/);
+    }).toThrow(/Cannot use a ManagedPolicy 'Default\/Policy'/);
   });
 
   // test("prevent creation when customizeRoles is configured", () => {
@@ -1057,14 +1042,7 @@ describe("managed policy", () => {
 
 test("ARN for two instances of the same AWS Managed Policy is the same", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-    //   account: "1234",
-    //   region: "us-east-1",
-  });
+  const stack = new AwsStack(app);
   const mp1 = ManagedPolicy.fromAwsManagedPolicyName(stack, "Bar", "foo/bar");
   const mp2 = ManagedPolicy.fromAwsManagedPolicyName(stack, "Foo", "foo/bar");
 

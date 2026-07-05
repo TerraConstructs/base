@@ -47,7 +47,7 @@ const app = new App({
 });
 
 const stack = new LogGroupIntegStack(app, stackName, {
-  gridUUID: "12345678-1234",
+  gridUUID: "g12345678-1234",
   environmentName,
   providerConfig: {
     region,

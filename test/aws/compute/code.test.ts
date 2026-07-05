@@ -19,13 +19,6 @@ import { Template } from "../../assertions";
 
 jest.mock("child_process");
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 const TEST_APPDIR = path.join(__dirname, "fixtures", "app");
 const CDKTFJSON_PATH = path.join(TEST_APPDIR, "cdktf.json");
 
@@ -53,12 +46,7 @@ describe("code", () => {
             },
           }),
         );
-        stack = new AwsStack(app, "MyStack", {
-          environmentName,
-          gridUUID,
-          providerConfig,
-          gridBackendConfig,
-        });
+        stack = new AwsStack(app);
       });
 
       test("Python runtime", () => {
@@ -110,12 +98,7 @@ describe("code", () => {
           },
         }),
       );
-      stack = new AwsStack(app, "MyStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      stack = new AwsStack(app);
       spawnSyncMock = (child_process.spawnSync as jest.Mock).mockReturnValue({
         status: 0,
         stderr: Buffer.from("stderr"),
@@ -131,7 +114,7 @@ describe("code", () => {
 
     test("fails if command is empty", () => {
       // GIVEN
-      const command = [];
+      const command: string[] = [];
 
       // THEN
       expect(() => compute.Code.fromCustomCommand("", command)).toThrow(
@@ -221,12 +204,7 @@ describe("code", () => {
           },
         }),
       );
-      stack = new AwsStack(app, "MyStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      stack = new AwsStack(app, "MyStack");
     });
 
     test("fails if path is empty", () => {
@@ -346,12 +324,7 @@ describe("code", () => {
         handler: "foom",
       });
 
-      const stack2 = new AwsStack(app, "Stack2", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      const stack2 = new AwsStack(app, "Stack2");
       expect(
         () =>
           new compute.LambdaFunction(stack2, "Func", {
@@ -370,12 +343,7 @@ describe("code", () => {
 
     beforeEach(() => {
       app = Testing.app();
-      stack = new AwsStack(app, "MyStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      stack = new AwsStack(app, "MyStack");
       bucket = storage.Bucket.fromBucketName(stack, "Bucket", "test-bucket");
     });
     test("automatically creates the Bucket and Key parameters when it's used in a Function", () => {
@@ -474,12 +442,7 @@ describe("code", () => {
 
     beforeEach(() => {
       app = Testing.app();
-      stack = new AwsStack(app, "MyStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      stack = new AwsStack(app, "MyStack");
     });
 
     test("repository uri is correctly identified", () => {
@@ -634,12 +597,7 @@ describe("code", () => {
           },
         }),
       );
-      stack = new AwsStack(app, "MyStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      stack = new AwsStack(app, "MyStack");
     });
 
     test("props are correctly resolved", () => {
@@ -801,12 +759,7 @@ describe("code", () => {
         runtime: compute.Runtime.FROM_IMAGE,
       });
 
-      const stack2 = new AwsStack(app, "Stack2", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      const stack2 = new AwsStack(app, "Stack2");
 
       // then
       expect(
@@ -848,12 +801,7 @@ describe("code", () => {
           },
         }),
       );
-      stack = new AwsStack(app, "MyStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-      });
+      stack = new AwsStack(app, "MyStack");
     });
 
     afterEach(() => {
@@ -942,12 +890,7 @@ function defineFunction(
       },
     }),
   );
-  const stack = new AwsStack(app, "MyStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const stack = new AwsStack(app, "MyStack");
   return new compute.LambdaFunction(stack, "Func", {
     handler: "foom",
     code,

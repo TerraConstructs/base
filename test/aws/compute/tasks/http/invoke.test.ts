@@ -33,14 +33,7 @@ const expectTaskWithParameters = (task: tasks.HttpInvoke, parameters: any) => {
 describe("AWS::StepFunctions::Tasks::HttpInvoke", () => {
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "TestSpec", {
-      environmentName: "Test",
-      gridUUID: "123e4567-e89b-12d3",
-      providerConfig: { region: "us-east-1" },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(app);
     connection = new notify.Connection(stack, "Connection", {
       authorization: notify.Authorization.basic("username", "password"), // TODO: should be sensitive
       connectionName: "testConnection",

@@ -13,12 +13,9 @@ import * as notify from "../../../src/aws/notify";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
 const gridBackendConfig = {
   address: "http://localhost:3000",
 };
-const providerConfig = { region: "us-east-1" };
 describe("Queue", () => {
   test("Should synth and match SnapShot", () => {
     // GIVEN
@@ -105,7 +102,7 @@ test("default properties", () => {
     resource: {
       [sqsQueue.SqsQueue.tfResourceType]: {
         Queue_4A7E3555: {
-          name_prefix: "123e4567-e89b-12d3-TestStackQueue",
+          name_prefix: "gTestStack553BDD39-TestStackQueue",
         },
       },
     },
@@ -122,7 +119,7 @@ test("with a dead letter queue", () => {
     resource: {
       [sqsQueue.SqsQueue.tfResourceType]: {
         DLQ_581697C4: {
-          name_prefix: "123e4567-e89b-12d3-TestStackDLQ",
+          name_prefix: "gTestStack553BDD39-TestStackDLQ",
         },
         Queue_4A7E3555: {
           redrive_policy: JSON.stringify({
@@ -463,10 +460,7 @@ describe("export and import", () => {
 
   test("importing works correctly for cross region queue", () => {
     // GIVEN
-    const stack = new AwsStack(Testing.app(), "Stack", {
-      environmentName,
-      gridUUID,
-      gridBackendConfig,
+    const stack = getAwsStack(Testing.app(), "Stack", {
       providerConfig: {
         region: "us-east-1",
       },
@@ -553,7 +547,7 @@ describe("grants", () => {
   });
 
   test("grants also work on imported queues", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     const queue = notify.Queue.fromQueueArn(
       stack,
       "Import",
@@ -585,7 +579,7 @@ describe("grants", () => {
 
 describe("queue encryption", () => {
   test("encryptionMasterKey can be set to a custom KMS key", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
 
     const key = new encryption.Key(stack, "CustomKey");
     const queue = new notify.Queue(stack, "Queue", {
@@ -600,14 +594,14 @@ describe("queue encryption", () => {
   });
 
   test("a kms key will be allocated if encryption = kms but a master key is not specified", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
 
     const queue = new notify.Queue(stack, "Queue", {
       encryption: notify.QueueEncryption.KMS,
     });
 
     Template.synth(stack).toHaveResourceWithProperties(kmsKey.KmsKey, {
-      description: "Created by Stack/Queue",
+      description: "Created by TestStack/Queue",
     });
     Template.synth(stack).toHaveResourceWithProperties(sqsQueue.SqsQueue, {
       kms_master_key_id: stack.resolve(queue.encryptionMasterKey?.keyArn),
@@ -616,7 +610,7 @@ describe("queue encryption", () => {
   });
 
   test("it is possible to use a managed kms key", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
 
     const queue = new notify.Queue(stack, "Queue", {
       encryption: notify.QueueEncryption.KMS_MANAGED,
@@ -636,7 +630,7 @@ describe("queue encryption", () => {
 
   test("grant also affects key on encrypted queue", () => {
     // GIVEN
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     const queue = new notify.Queue(stack, "Queue", {
       encryption: notify.QueueEncryption.KMS,
     });
@@ -659,7 +653,7 @@ describe("queue encryption", () => {
               "sqs:GetQueueUrl",
             ],
             effect: "Allow",
-            resources: [stack.resolve(queue.queueArn)],
+            resources: ["${aws_sqs_queue.Queue_4A7E3555.arn}"],
           },
           {
             actions: [
@@ -669,7 +663,7 @@ describe("queue encryption", () => {
               "kms:GenerateDataKey*",
             ],
             effect: "Allow",
-            resources: ["*"],
+            resources: ["${aws_kms_key.Queue_Key_39FCBAE6.arn}"],
           },
         ],
       },
@@ -677,7 +671,7 @@ describe("queue encryption", () => {
   });
 
   test("it is possible to use sqs managed server side encryption", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
 
     const queue = new notify.Queue(stack, "Queue", {
       encryption: notify.QueueEncryption.SQS_MANAGED,
@@ -696,7 +690,7 @@ describe("queue encryption", () => {
   });
 
   test("it is possible to disable encryption (unencrypted)", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
 
     const queue = new notify.Queue(stack, "Queue", {
       encryption: notify.QueueEncryption.UNENCRYPTED,
@@ -715,7 +709,7 @@ describe("queue encryption", () => {
 
   test("encryptionMasterKey is not supported if encryption type SQS_MANAGED is used", () => {
     // GIVEN
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     const key = new encryption.Key(stack, "CustomKey");
 
     // THEN
@@ -732,7 +726,7 @@ describe("queue encryption", () => {
 
   test("encryptionType is always KMS, when an encryptionMasterKey is provided", () => {
     // GIVEN
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     const key = new encryption.Key(stack, "CustomKey");
     const queue = new notify.Queue(stack, "Queue", {
       encryption: notify.QueueEncryption.KMS_MANAGED,
@@ -779,7 +773,7 @@ describe("encryption in transit", () => {
       resource: {
         [sqsQueue.SqsQueue.tfResourceType]: {
           Queue_4A7E3555: {
-            name_prefix: "123e4567-e89b-12d3-TestStackQueue",
+            name_prefix: "gTestStack553BDD39-TestStackQueue",
           },
         },
         [sqsQueuePolicy.SqsQueuePolicy.tfResourceType]: {
@@ -796,7 +790,7 @@ describe("encryption in transit", () => {
 
 describe("fifo", () => {
   test('test ".fifo" suffixed queues register as fifo', () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     const queue = new notify.Queue(stack, "Queue", {
       queueName: "MyQueue.fifo",
     });
@@ -805,12 +799,12 @@ describe("fifo", () => {
 
     Template.synth(stack).toHaveResourceWithProperties(sqsQueue.SqsQueue, {
       fifo_queue: true,
-      name_prefix: "MyQueueStackQueue",
+      name_prefix: "MyQueueTestStackQueue",
     });
   });
 
   test('test a fifo queue is observed when the "fifo" property is specified', () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     const queue = new notify.Queue(stack, "Queue", {
       fifo: true,
     });
@@ -823,7 +817,7 @@ describe("fifo", () => {
   });
 
   test("test a fifo queue is observed when high throughput properties are specified", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     const queue = new notify.Queue(stack, "Queue", {
       fifo: true,
       fifoThroughputLimit: notify.FifoThroughputLimit.PER_MESSAGE_GROUP_ID,
@@ -839,7 +833,7 @@ describe("fifo", () => {
   });
 
   test("test a queue throws when fifoThroughputLimit specified on non fifo queue", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     expect(() => {
       new notify.Queue(stack, "Queue", {
         fifo: false,
@@ -849,7 +843,7 @@ describe("fifo", () => {
   });
 
   test("test a queue throws when deduplicationScope specified on non fifo queue", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     expect(() => {
       new notify.Queue(stack, "Queue", {
         fifo: false,
@@ -860,7 +854,7 @@ describe("fifo", () => {
 
   test("fifo: false is dropped from properties", () => {
     // GIVEN
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
 
     // WHEN
     new notify.Queue(stack, "Queue", {
@@ -876,7 +870,7 @@ describe("fifo", () => {
 
 test("test metrics", () => {
   // GIVEN
-  const stack = new AwsStack(undefined, "Stack", {});
+  const stack = getAwsStack(undefined, "Stack", {});
   const queue = new notify.Queue(stack, "Queue");
 
   // THEN
@@ -900,12 +894,7 @@ test("test metrics", () => {
 test("fails if queue policy has no actions", () => {
   // GIVEN
   const app = Testing.app();
-  const stack = new AwsStack(app, "my-stack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const stack = new AwsStack(app);
   const queue = new notify.Queue(stack, "Queue");
 
   // WHEN
@@ -925,12 +914,7 @@ test("fails if queue policy has no actions", () => {
 test("fails if queue policy has no IAM principals", () => {
   // GIVEN
   const app = Testing.app();
-  const stack = new AwsStack(app, "my-stack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const stack = new AwsStack(app);
   const queue = new notify.Queue(stack, "Queue");
 
   // WHEN
@@ -949,7 +933,7 @@ test("fails if queue policy has no IAM principals", () => {
 
 describe("redriveAllowPolicy", () => {
   test("Default settings for the dead letter source queue permission", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     new notify.Queue(stack, "Queue", {
       redriveAllowPolicy: {},
     });
@@ -963,7 +947,7 @@ describe("redriveAllowPolicy", () => {
     [notify.RedrivePermission.ALLOW_ALL, "allowAll"],
     [notify.RedrivePermission.DENY_ALL, "denyAll"],
   ])("redrive permission can be set to %s", (permission, expected) => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     new notify.Queue(stack, "Queue", {
       redriveAllowPolicy: {
         redrivePermission: permission,
@@ -976,12 +960,7 @@ describe("redriveAllowPolicy", () => {
   });
 
   test("explicit specification of dead letter source queues", () => {
-    const stack = new AwsStack(Testing.app(), "Stack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = getAwsStack();
     const sourceQueue1 = new notify.Queue(stack, "SourceQueue1");
     const sourceQueue2 = new notify.Queue(stack, "SourceQueue2");
     new notify.Queue(stack, "Queue", {
@@ -992,10 +971,10 @@ describe("redriveAllowPolicy", () => {
       resource: {
         [sqsQueue.SqsQueue.tfResourceType]: {
           SourceQueue1_F4BBA4BB: {
-            name_prefix: "123e4567-e89b-12d3-StackSourceQueue1",
+            name_prefix: "gTestStack553BDD39-TestStackSourceQueue1",
           },
           SourceQueue2_2481CB5A: {
-            name_prefix: "123e4567-e89b-12d3-StackSourceQueue2",
+            name_prefix: "gTestStack553BDD39-TestStackSourceQueue2",
           },
           Queue_4A7E3555: {
             redrive_allow_policy: JSON.stringify({
@@ -1012,7 +991,7 @@ describe("redriveAllowPolicy", () => {
   });
 
   test("throw if sourceQueues is not specified when redrivePermission is byQueue", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     expect(() => {
       new notify.Queue(stack, "Queue", {
         redriveAllowPolicy: {
@@ -1025,7 +1004,7 @@ describe("redriveAllowPolicy", () => {
   });
 
   test("throw if dead letter source queues are specified with allowAll permission", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     const sourceQueue1 = new notify.Queue(stack, "SourceQueue1");
     expect(() => {
       new notify.Queue(stack, "Queue", {
@@ -1040,7 +1019,7 @@ describe("redriveAllowPolicy", () => {
   });
 
   test("throw if souceQueues length is greater than 10", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     const sourceQueues: notify.IQueue[] = [];
     for (let i = 0; i < 11; i++) {
       sourceQueues.push(new notify.Queue(stack, `SourceQueue${i}`));
@@ -1058,7 +1037,7 @@ describe("redriveAllowPolicy", () => {
   });
 
   test("throw if sourceQueues is blank array when redrivePermission is byQueue", () => {
-    const stack = new AwsStack(undefined, "Stack", {});
+    const stack = getAwsStack(undefined, "Stack", {});
     expect(() => {
       new notify.Queue(stack, "Queue", {
         redriveAllowPolicy: {
@@ -1075,9 +1054,6 @@ describe("redriveAllowPolicy", () => {
 function getAwsStack(): AwsStack {
   const app = Testing.app();
   return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
     gridBackendConfig,
   });
 }

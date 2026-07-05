@@ -1,13 +1,13 @@
 // https://github.com/aws/aws-cdk/blob/41cd57290e03e9256cc77466fd39e7f3e7a295b4/packages/aws-cdk-lib/aws-ec2/lib/machine-image/machine-image.ts
 
 import { dataAwsAmi } from "@cdktn/provider-aws";
-// import {
-//   // TODO: Use Grid as contextProvider
-//   // ContextProvider,
-//   // CfnMapping,
-//   // Aws,
-//   Token,
-// } from "cdktn";
+import {
+  // TODO: Use Grid as contextProvider
+  // ContextProvider,
+  Fn,
+  TerraformLocal,
+  Token,
+} from "cdktn";
 import { Construct } from "constructs";
 import {
   AmazonLinux2022ImageSsmParameter,
@@ -718,19 +718,18 @@ export class GenericLinuxImage implements IMachineImage {
     const userData = this.props.userData ?? UserData.forLinux();
     const osType = OperatingSystemType.LINUX;
     const region = AwsStack.ofAwsConstruct(scope).region;
-    // // Grid stacks are single region, region is always known
-    // if (Token.isUnresolved(region)) {
-    //   const mapping: { [k1: string]: { [k2: string]: any } } = {};
-    //   for (const [rgn, ami] of Object.entries(this.amiMap)) {
-    //     mapping[rgn] = { ami };
-    //   }
-    //   const amiMap = new TerraformLocal(scope, "AmiMap", { mapping });
-    //   return {
-    //     imageId: Fn.lookupNested(amiMap, Aws.REGION, "ami"),
-    //     userData,
-    //     osType,
-    //   };
-    // }
+    if (Token.isUnresolved(region)) {
+      const mapping: { [k1: string]: { [k2: string]: any } } = {};
+      for (const [rgn, ami] of Object.entries(this.amiMap)) {
+        mapping[rgn] = { ami };
+      }
+      const amiMap = new TerraformLocal(scope, "AmiMap", mapping);
+      return {
+        imageId: Fn.lookupNested(amiMap, [region, "ami"]),
+        userData,
+        osType,
+      };
+    }
     const imageId =
       region !== "test-region" ? this.amiMap[region] : "ami-12345";
     if (!imageId) {
@@ -760,20 +759,20 @@ export class GenericWindowsImage implements IMachineImage {
   public getImage(scope: Construct): MachineImageConfig {
     const userData = this.props.userData ?? UserData.forWindows();
     const osType = OperatingSystemType.WINDOWS;
-    const region = AwsStack.ofAwsConstruct(scope).region;
-    // // Grid stacks are single region, region is always known
-    // if (Token.isUnresolved(region)) {
-    //   const mapping: { [k1: string]: { [k2: string]: any } } = {};
-    //   for (const [rgn, ami] of Object.entries(this.amiMap)) {
-    //     mapping[rgn] = { ami };
-    //   }
-    //   const amiMap = new TerraformLocal(scope, "AmiMap", { mapping });
-    //   return {
-    //     imageId: Fn.lookupNested(amiMap, Aws.REGION, "ami"),
-    //     userData,
-    //     osType,
-    //   };
-    // }
+    const stack = AwsStack.ofAwsConstruct(scope);
+    const region = stack.region;
+    if (Token.isUnresolved(region)) {
+      const mapping: { [k1: string]: { [k2: string]: any } } = {};
+      for (const [rgn, ami] of Object.entries(this.amiMap)) {
+        mapping[rgn] = { ami };
+      }
+      const amiMap = new TerraformLocal(scope, "AmiMap", mapping);
+      return {
+        imageId: Fn.lookupNested(amiMap, [region, "ami"]),
+        userData,
+        osType,
+      };
+    }
     const imageId =
       region !== "test-region" ? this.amiMap[region] : "ami-12345";
     if (!imageId) {

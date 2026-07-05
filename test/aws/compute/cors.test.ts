@@ -14,25 +14,13 @@ import { Cors, LambdaRestApi, RestApi } from "../../../src/aws/compute";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("cors", () => {
   let stack: AwsStack;
   let api: RestApi;
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     api = new RestApi(stack, "api");
   });
 
@@ -822,12 +810,7 @@ describe("cors", () => {
 
   test("defaultCorsPreflightOptions can be specified at the API level to apply to all resources", () => {
     // GIVEN
-    const newStack = new AwsStack(Testing.app(), "NewStack", {
-      environmentName,
-      gridUUID: "new-uuid",
-      providerConfig,
-      gridBackendConfig,
-    });
+    const newStack = new AwsStack(Testing.app(), "NewStack");
 
     // WHEN
     const newApi = new RestApi(newStack, "api", {
@@ -958,12 +941,7 @@ describe("cors", () => {
 
   test("defaultCorsPreflightOptions can be used to specify CORS for all resource tree [LambdaRestApi]", () => {
     // GIVEN
-    const newStack = new AwsStack(Testing.app(), "NewStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const newStack = new AwsStack(Testing.app(), "NewStack");
     const handler = new lambda.LambdaFunction(newStack, "handler", {
       code: lambda.Code.fromInline("boom"),
       handler: "index.handler",

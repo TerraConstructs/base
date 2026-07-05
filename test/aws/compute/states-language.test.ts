@@ -5,22 +5,12 @@ import { render } from "./private/render-util";
 import { iam, compute, AwsStack } from "../../../src/aws";
 import { Duration } from "../../../src/duration";
 
-const gridUUID = "123e4567-e89b-12d3";
 describe("States Language", () => {
   let stack: AwsStack;
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    stack = new AwsStack(app, `TestStack`, {
-      environmentName: "Test",
-      gridUUID,
-      providerConfig: {
-        region: "us-east-1",
-      },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(app);
   });
 
   test("A single task is a State Machine", () => {

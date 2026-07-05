@@ -12,12 +12,16 @@ exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -29,19 +33,19 @@ exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`
         "key_value_store_associations": [
           "\${aws_cloudfront_key_value_store.Store_1D2A845B.arn}"
         ],
-        "name": "123e4567-e89b-12d3-hello-world",
+        "name": "g-hello-world",
         "publish": true,
         "runtime": "cloudfront-js-2.0",
         "tags": {
-          "Name": "Test-Function",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Function",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },
     "aws_cloudfront_key_value_store": {
       "Store_1D2A845B": {
-        "name": "123e4567-e89b-12d3-hello-world"
+        "name": "g-hello-world"
       }
     },
     "aws_cloudfrontkeyvaluestore_key": {
@@ -58,11 +62,6 @@ exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`
     }
   },
   "terraform": {
-    "backend": {
-      "http": {
-        "address": "http://localhost:3000"
-      }
-    },
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
@@ -85,19 +84,23 @@ exports[`KeyValueStore Should synth and match SnapShot 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
   "resource": {
     "aws_cloudfront_key_value_store": {
       "Store_1D2A845B": {
-        "name": "123e4567-e89b-12d3-hello-world"
+        "name": "g-hello-world"
       }
     },
     "aws_cloudfrontkeyvaluestore_key": {
@@ -119,11 +122,6 @@ exports[`KeyValueStore Should synth and match SnapShot 1`] = `
     }
   },
   "terraform": {
-    "backend": {
-      "http": {
-        "address": "http://localhost:3000"
-      }
-    },
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",

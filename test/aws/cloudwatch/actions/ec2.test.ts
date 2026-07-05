@@ -11,22 +11,10 @@ import {
 } from "../../../../src/aws/cloudwatch/actions";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 test("can use instance reboot as alarm action", () => {
   // GIVEN
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const stack = new AwsStack(app);
   const alarm = new Alarm(stack, "Alarm", {
     metric: new Metric({
       namespace: "AWS/EC2",
@@ -47,7 +35,7 @@ test("can use instance reboot as alarm action", () => {
     cloudwatchMetricAlarm.CloudwatchMetricAlarm,
     {
       alarm_actions: [
-        "arn:${data.aws_partition.Partitition.partition}:automate:us-east-1:ec2:reboot",
+        "arn:${data.aws_partition.Partitition.partition}:automate:${data.aws_region.Region.name}:ec2:reboot",
       ],
     },
   );

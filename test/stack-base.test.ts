@@ -166,8 +166,55 @@ describe("StackBase", () => {
     const app = new App();
     // THEN
     expect(
-      () => new MyStack(app, "boom", { gridUUID: "invalid:stack:name" }),
-    ).toThrow(/GridUUID must match the regular expression/);
+      () => new MyStack(app, "boom", { gridUUID: "invalid:grid:uuid" }),
+    ).toThrow(
+      /GridUUID must start with a letter and contain only alphanumeric characters or hyphens/,
+    );
+  });
+
+  describe("gridUUID validation accept/reject matrix", () => {
+    // gridUUID is used as a portable physical-name prefix for AWS resources.
+
+    const validCases = [
+      ["simple lowercase", "myapp"],
+      ["uppercase start", "Myapp"],
+      ["with hyphens", "my-app-uuid"],
+      ["single letter", "g"],
+      ["letter then digits", "a123e4567"],
+      ["mixed case with hyphens and digits", "Abc-123-def"],
+      ["max length (36 chars)", "a".repeat(36)],
+      ["auto-generated prefix style", "gMyStack"],
+    ];
+
+    const invalidCases: [string, string][] = [
+      ["digit-leading UUID", "123e4567-e89b-12d3"],
+      ["digit-only", "12345"],
+      ["contains colon", "invalid:grid:uuid"],
+      ["contains underscore", "my_app"],
+      ["contains dot", "my.app"],
+      ["contains space", "my app"],
+      ["empty string", ""],
+      ["starts with hyphen", "-my-app"],
+    ];
+
+    test.each(validCases)("accepts: %s (%s)", (_description, gridUUID) => {
+      const app = new App();
+      expect(() => new MyStack(app, "Stack", { gridUUID })).not.toThrow();
+    });
+
+    test.each(invalidCases)("rejects: %s (%s)", (_description, gridUUID) => {
+      const app = new App();
+      expect(() => new MyStack(app, "Stack", { gridUUID })).toThrow(
+        /GridUUID must start with a letter/,
+      );
+    });
+
+    test("rejects values exceeding 36 characters", () => {
+      const app = new App();
+      expect(
+        () => new MyStack(app, "Stack", { gridUUID: "a".repeat(37) }),
+      ).toThrow(/GridUUID must be <= 36 characters/);
+    });
   });
   test("Stack.of(stack) returns the correct stack", () => {
     const stack = new MyStack();

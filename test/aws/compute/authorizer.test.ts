@@ -5,13 +5,6 @@ import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import { Authorizer, IRestApi } from "../../../src/aws/compute";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("authorizer", () => {
   test("isAuthorizer correctly detects an instance of type Authorizer", () => {
     class MyAuthorizer extends Authorizer {
@@ -26,12 +19,7 @@ describe("authorizer", () => {
       }
     }
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(app);
     const authorizer = new MyAuthorizer(stack, "authorizer");
 
     expect(Authorizer.isAuthorizer(authorizer)).toEqual(true);

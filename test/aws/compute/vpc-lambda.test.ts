@@ -26,13 +26,6 @@ import {
 } from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const TEST_APPDIR = path.join(__dirname, "fixtures", "app");
 const CDKTFJSON_PATH = path.join(TEST_APPDIR, "cdktf.json");
 
@@ -53,7 +46,7 @@ describe("lambda in vpc", () => {
   let vpc: Vpc;
   let fn: LambdaFunction;
   beforeEach(() => {
-    stack = getAwsStack("MyStack");
+    stack = new AwsStack(app, "stack");
     vpc = new Vpc(stack, "VPC");
     fn = new LambdaFunction(stack, "Lambda", {
       code: new InlineCode("foo"),
@@ -161,7 +154,7 @@ describe("lambda in vpc", () => {
 
   test("can still make Connections after export/import", () => {
     // GIVEN
-    const stack2 = getAwsStack("stack2");
+    const stack2 = new AwsStack(app, "stack2");
     const securityGroup = new SecurityGroup(stack2, "SomeSecurityGroup", {
       vpc,
     });
@@ -186,7 +179,7 @@ describe("lambda in vpc", () => {
         referenced_security_group_id:
           "${aws_security_group.SomeSecurityGroup_EF219AD6.id}",
         security_group_id:
-          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupLambda_SecurityGroup_E74659A1id}",
+          "${data.terraform_remote_state.cross-stack-reference-input-stack.outputs.cross-stack-output-aws_security_groupLambda_SecurityGroup_E74659A1id}",
         to_port: 65535,
       },
     );
@@ -199,7 +192,7 @@ describe("lambda in vpc", () => {
         from_port: 0,
         ip_protocol: "tcp",
         referenced_security_group_id:
-          "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_security_groupLambda_SecurityGroup_E74659A1id}",
+          "${data.terraform_remote_state.cross-stack-reference-input-stack.outputs.cross-stack-output-aws_security_groupLambda_SecurityGroup_E74659A1id}",
         security_group_id:
           "${aws_security_group.SomeSecurityGroup_EF219AD6.id}",
         to_port: 65535,
@@ -210,7 +203,7 @@ describe("lambda in vpc", () => {
 
 test("lambda without VPC throws Error upon accessing connections", () => {
   // GIVEN
-  const stack = getAwsStack("stack");
+  const stack = new AwsStack(app, "stack");
   const lambdaFn = new LambdaFunction(stack, "Lambda", {
     code: new InlineCode("foo"),
     handler: "index.handler",
@@ -228,7 +221,7 @@ test("lambda without VPC throws Error upon accessing connections", () => {
 
 test("can pick public subnet for Lambda", () => {
   // GIVEN
-  const stack = getAwsStack("stack");
+  const stack = new AwsStack(app, "stack");
   const vpc = new Vpc(stack, "VPC");
 
   // WHEN
@@ -261,7 +254,7 @@ test("can pick public subnet for Lambda", () => {
 
 test("can pick private subnet for Lambda", () => {
   // GIVEN
-  const stack = getAwsStack("stack");
+  const stack = new AwsStack(app, "stack");
   const vpc = new Vpc(stack, "VPC");
 
   // WHEN
@@ -293,7 +286,7 @@ test("can pick private subnet for Lambda", () => {
 
 test("can pick isolated subnet for Lambda", () => {
   // GIVEN
-  const stack = getAwsStack("stack");
+  const stack = new AwsStack(app, "stack");
   const vpc = new Vpc(stack, "VPC", {
     subnetConfiguration: [
       {
@@ -332,7 +325,7 @@ test("can pick isolated subnet for Lambda", () => {
 
 test("picking public subnet type is not allowed if not overriding allowPublicSubnet", () => {
   // GIVEN
-  const stack = getAwsStack("stack");
+  const stack = new AwsStack(app, "stack");
   const vpc = new Vpc(stack, "VPC", {
     subnetConfiguration: [
       {
@@ -364,7 +357,7 @@ test("picking public subnet type is not allowed if not overriding allowPublicSub
 
 test("specifying vpcSubnets without a vpc throws an Error", () => {
   // GIVEN
-  const stack = getAwsStack("stack");
+  const stack = new AwsStack(app, "stack");
 
   // WHEN
   expect(() => {
@@ -427,13 +420,4 @@ test("can have looked up vpc, subnets and security group in config", () => {
 
 class SomethingConnectable implements IConnectable {
   constructor(public readonly connections: Connections) {}
-}
-
-function getAwsStack(id: string): AwsStack {
-  return new AwsStack(app, id, {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
 }

@@ -7,16 +7,10 @@ import { OpenIdConnectProvider } from "../../../src/aws/iam/oidc-provider";
 const arnOfProvider =
   "arn:aws:iam::1234567:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/someid";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
 describe("OpenIdConnectProvider resource", () => {
   test("minimal configuration (no thumbprint)", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     // WHEN
     new OpenIdConnectProvider(stack, "MyProvider", {
       url: "https://openid-endpoint",
@@ -40,7 +34,7 @@ describe("OpenIdConnectProvider resource", () => {
 
   test('"openIdConnectProviderArn" resolves to the ref', () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     // WHEN
     const provider = new OpenIdConnectProvider(stack, "MyProvider", {
@@ -56,7 +50,7 @@ describe("OpenIdConnectProvider resource", () => {
 
   test("static fromOpenIdConnectProviderArn can be used to import a provider", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     // WHEN
     const provider = OpenIdConnectProvider.fromOpenIdConnectProviderArn(
@@ -73,7 +67,7 @@ describe("OpenIdConnectProvider resource", () => {
 
   test("thumbprint list and client ids can be specified", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
 
     // WHEN
     new OpenIdConnectProvider(stack, "MyProvider", {
@@ -96,13 +90,3 @@ describe("OpenIdConnectProvider resource", () => {
     );
   });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}

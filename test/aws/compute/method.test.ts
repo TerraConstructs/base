@@ -32,11 +32,6 @@ const DUMMY_AUTHORIZER: compute.IAuthorizer = {
   authorizationType: compute.AuthorizationType.CUSTOM,
 };
 
-const environmentName = "TestEnv";
-const gridUUID = "test-grid-uuid";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = { address: "http://localhost:4000" };
-
 describe("method", () => {
   let app: App;
   let stack: AwsStack;
@@ -44,12 +39,7 @@ describe("method", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     api = new compute.RestApi(stack, "test-api");
   });
 

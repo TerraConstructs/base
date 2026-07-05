@@ -21,13 +21,6 @@ import {
 import { Duration } from "../../../src/duration";
 import { Template, Annotations } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const testMetric = new Metric({
   namespace: "CDK/Test",
   metricName: "Metric",
@@ -39,12 +32,7 @@ describe("Alarm", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("alarm does not accept a math expression with more than 10 metrics", () => {
@@ -557,7 +545,7 @@ describe("Alarm", () => {
     // THEN
     const template = Annotations.fromStack(stack);
     template.hasWarnings({
-      constructPath: "MyStack/MyAlarm",
+      constructPath: "Default/MyAlarm",
       message:
         /Unrecognized statistic.*Preferably use the `aws_cloudwatch.Stats` helper class to specify a statistic/,
     });
@@ -577,7 +565,7 @@ describe("Alarm", () => {
     const template = Annotations.fromStack(stack);
 
     template.hasWarnings({
-      constructPath: "MyStack/MyAlarm",
+      constructPath: "Default/MyAlarm",
       message: /Math expression 'oops' references unknown identifiers/,
     });
   });

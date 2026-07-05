@@ -17,12 +17,16 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -65,9 +69,9 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
           }
         },
         "tags": {
-          "Name": "Test-HelloWorldDistribution",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-HelloWorldDistribution",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "viewer_certificate": {
           "cloudfront_default_certificate": true,
@@ -123,7 +127,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
         "records": [
           "123.123.123.0"
         ],
-        "set_identifier": "REGION_us-east-1_ID_TestStackLatencyAAED3339B",
+        "set_identifier": "REGION_us-east-1_ID_LatencyA",
         "ttl": 1800,
         "type": "A",
         "zone_id": "\${aws_route53_zone.Zone_A5DE4B68.id}"
@@ -136,7 +140,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
         "records": [
           "123.123.123.0"
         ],
-        "set_identifier": "REGION_ap-southeast-1_ID_TestStackLatencyBD09D9F11",
+        "set_identifier": "REGION_ap-southeast-1_ID_LatencyB",
         "ttl": 1800,
         "type": "A",
         "zone_id": "\${aws_route53_zone.Zone_A5DE4B68.id}"
@@ -146,7 +150,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
         "records": [
           "123.123.123.0"
         ],
-        "set_identifier": "WEIGHT_80_ID_TestStackWeightedA44FE547B",
+        "set_identifier": "WEIGHT_80_ID_WeightedA",
         "ttl": 1800,
         "type": "A",
         "weighted_routing_policy": {
@@ -159,7 +163,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
         "records": [
           "123.123.123.0"
         ],
-        "set_identifier": "WEIGHT_20_ID_TestStackWeightedB53B441C3",
+        "set_identifier": "WEIGHT_20_ID_WeightedB",
         "ttl": 1800,
         "type": "A",
         "weighted_routing_policy": {
@@ -172,19 +176,19 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
       "Zone_A5DE4B68": {
         "name": "example.com.",
         "tags": {
-          "Name": "Test-Zone",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Zone",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "hello-world-teststackhelloworld",
+        "bucket_prefix": "hello-world-helloworld",
         "tags": {
-          "Name": "Test-HelloWorld",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-HelloWorld",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },
@@ -198,11 +202,6 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
     }
   },
   "terraform": {
-    "backend": {
-      "http": {
-        "address": "http://localhost:3000"
-      }
-    },
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
@@ -226,6 +225,11 @@ exports[`DnsZone Import should synth and match SnapShot 1`] = `
         "provider": "aws"
       }
     },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
     "aws_route53_zone": {
       "Zone_A5DE4B68": {
         "zone_id": "Z1234567890"
@@ -235,7 +239,6 @@ exports[`DnsZone Import should synth and match SnapShot 1`] = `
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -262,11 +265,6 @@ exports[`DnsZone Import should synth and match SnapShot 1`] = `
     }
   },
   "terraform": {
-    "backend": {
-      "http": {
-        "address": "http://localhost:3000"
-      }
-    },
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",

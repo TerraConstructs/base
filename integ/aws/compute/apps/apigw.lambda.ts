@@ -57,7 +57,7 @@ const app = new App({
 // Against the LambdaRestApi endpoint from the stack output, run
 // `curl <url>` should return 200 with JSON body { "message": "Hello" }
 const stack = new SampleStack(app, stackName, {
-  gridUUID: "12345678-444",
+  gridUUID: "g12345678-444",
   environmentName,
   providerConfig: {
     region,

@@ -17,23 +17,13 @@ import {
 } from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const environmentName = "TestEnv";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = { address: "http://localhost:4566" };
-
 describe("usage plan", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("default setup", () => {
@@ -388,8 +378,8 @@ describe("usage plan", () => {
         apiGatewayUsagePlanKey.ApiGatewayUsagePlanKey,
       );
       expect(Object.keys(usatePlanKeys)).toEqual([
-        "my-usage-plan_UsagePlanKeyResourceMyStackmy-api-key-28B2EFD5C_05FE9F79",
         "my-usage-plan_UsagePlanKeyResource_CE792E0E",
+        "my-usage-plan_UsagePlanKeyResourcemy-api-key-2_9C425012",
       ]);
     });
   });

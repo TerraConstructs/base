@@ -6,16 +6,9 @@ import { Testing } from "cdktn";
 import { edge, AwsStack, compute } from "../../../src/aws";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 test("edge.ApiGatewayTarget can be used to the default domain of an APIGW", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const cert = new edge.PublicCertificate(stack, "cert", {
     domainName: "example.com",
   });
@@ -51,7 +44,7 @@ test("edge.ApiGatewayTarget can be used to the default domain of an APIGW", () =
 
 test("edge.ApiGatewayDomain can be used to directly reference a domain", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const cert = new edge.PublicCertificate(stack, "cert", {
     domainName: "example.com",
   });
@@ -84,7 +77,7 @@ test("edge.ApiGatewayDomain can be used to directly reference a domain", () => {
 
 test("fails if an ApiGateway is used with an API that does not define a domain name", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const api = new compute.RestApi(stack, "api");
   const zone = new edge.DnsZone(stack, "zone", {
     zoneName: "example.com",
@@ -102,7 +95,7 @@ test("fails if an ApiGateway is used with an API that does not define a domain n
 
 test("edge.ApiGatewayTarget accepts a SpecRestApi", () => {
   // GIVEN
-  const stack = getAwsStack();
+  const stack = new AwsStack();
   const cert = new edge.PublicCertificate(stack, "cert", {
     domainName: "example.com",
   });
@@ -138,13 +131,3 @@ test("edge.ApiGatewayTarget accepts a SpecRestApi", () => {
     },
   );
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}

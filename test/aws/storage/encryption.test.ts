@@ -7,24 +7,6 @@ import { IKey, Key } from "../../../src/aws/encryption";
 import { TableEncryptionV2 } from "../../../src/aws/storage/encryption";
 import { TableEncryption } from "../../../src/aws/storage/shared";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const defaultRegion = "us-west-2";
-const providerConfig = { region: defaultRegion };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
-function createStack(region: string = defaultRegion): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "Stack", {
-    environmentName,
-    gridUUID,
-    providerConfig: { ...providerConfig, region },
-    gridBackendConfig,
-  });
-}
-
 describe("dynamo owned key", () => {
   // GIVEN
   let encryption: TableEncryptionV2;
@@ -105,7 +87,10 @@ describe("customer managed keys", () => {
   let replicaKeyArns: { [region: string]: string };
 
   beforeEach(() => {
-    stack = createStack("us-west-2");
+    const app = Testing.app();
+    stack = new AwsStack(app, undefined, {
+      providerConfig: { region: "us-west-2" },
+    });
     tableKey = new Key(stack, "key");
     replicaKeyArns = {
       "us-east-1":

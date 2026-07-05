@@ -19,25 +19,13 @@ import * as edge from "../../../../src/aws/edge";
 import * as storage from "../../../../src/aws/storage";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("tests", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("Trivial construction: internet facing", () => {
@@ -138,6 +126,9 @@ describe("tests", () => {
 
   test("Access logging", () => {
     // GIVEN
+    stack = new AwsStack(app, "Stack", {
+      providerConfig: { region: "us-east-1" },
+    });
     const vpc = new compute.Vpc(stack, "Stack");
     const bucket = new storage.Bucket(stack, "AccessLoggingBucket");
     const lb = new compute.NetworkLoadBalancer(stack, "LB", { vpc });
@@ -226,6 +217,9 @@ describe("tests", () => {
 
   test("access logging with prefix", () => {
     // GIVEN
+    stack = new AwsStack(app, "Stack", {
+      providerConfig: { region: "us-east-1" },
+    });
     const vpc = new compute.Vpc(stack, "Stack");
     const bucket = new storage.Bucket(stack, "AccessLoggingBucket");
     const lb = new compute.NetworkLoadBalancer(stack, "LB", { vpc });
@@ -307,6 +301,9 @@ describe("tests", () => {
 
   test("Access logging on imported bucket", () => {
     // GIVEN
+    stack = new AwsStack(app, "Stack", {
+      providerConfig: { region: "us-east-1" },
+    });
     const vpc = new compute.Vpc(stack, "Stack");
     const bucket = storage.Bucket.fromBucketName(
       stack,

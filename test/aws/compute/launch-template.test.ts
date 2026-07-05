@@ -35,28 +35,22 @@ import { Key } from "../../../src/aws/encryption";
 import { Role, ServicePrincipal, InstanceProfile } from "../../../src/aws/iam";
 import { Annotations, Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("LaunchTemplate", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("Empty props", () => {
+    // GIVEN
+    stack = new AwsStack(undefined, undefined, {
+      environmentName: "Test",
+      gridUUID: "a123e456-e89b-12d3",
+    });
+
     // WHEN
     const template = new LaunchTemplate(stack, "Template");
 
@@ -70,21 +64,21 @@ describe("LaunchTemplate", () => {
           {
             resource_type: "instance",
             tags: {
-              Name: "MyStack/Template",
+              Name: "Default/Template",
             },
           },
           {
             resource_type: "volume",
             tags: {
-              Name: "MyStack/Template",
+              Name: "Default/Template",
             },
           },
         ],
         // These are GRID backend specific tags
         tags: {
-          Name: "MyStack/Template",
-          "grid:EnvironmentName": environmentName,
-          "grid:UUID": gridUUID,
+          Name: "Default/Template",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "a123e456-e89b-12d3",
         },
       },
     ]);
@@ -323,18 +317,18 @@ describe("LaunchTemplate", () => {
         {
           resource_type: "instance",
           tags: {
-            Name: "MyStack/Template",
+            Name: "Default/Template",
           },
         },
         {
           resource_type: "volume",
           tags: {
-            Name: "MyStack/Template",
+            Name: "Default/Template",
           },
         },
       ],
       tags: expect.objectContaining({
-        Name: "MyStack/Template",
+        Name: "Default/Template",
       }),
     });
     expect(template.role).toBeDefined();
@@ -851,20 +845,20 @@ describe("LaunchTemplate", () => {
           {
             resource_type: "instance",
             tags: {
-              Name: "MyStack/Template",
+              Name: "Default/Template",
               TestKey: "TestValue",
             },
           },
           {
             resource_type: "volume",
             tags: {
-              Name: "MyStack/Template",
+              Name: "Default/Template",
               TestKey: "TestValue",
             },
           },
         ],
         tags: expect.objectContaining({
-          Name: "MyStack/Template",
+          Name: "Default/Template",
           TestKey: "TestValue",
         }),
       },
@@ -951,12 +945,7 @@ describe("LaunchTemplate marketOptions", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("given spotOptions", () => {
@@ -994,13 +983,13 @@ describe("LaunchTemplate marketOptions", () => {
       // THEN
       if (expectErrors) {
         Annotations.fromStack(stack).hasErrors({
-          constructPath: "MyStack/Template",
+          constructPath: "Default/Template",
         });
       } else {
         // Check for no errors expected?
         expect(() => {
           Annotations.fromStack(stack).hasErrors({
-            constructPath: "MyStack/Template",
+            constructPath: "Default/Template",
           });
         }).toThrow();
       }
@@ -1149,12 +1138,7 @@ describe("LaunchTemplate metadataOptions", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test.each([
@@ -1269,7 +1253,7 @@ describe("LaunchTemplate metadataOptions", () => {
     // THEN
     if (expectError) {
       Annotations.fromStack(stack).hasErrors({
-        constructPath: "MyStack/Template",
+        constructPath: "Default/Template",
       });
     }
     // TODO: check for no errors expected

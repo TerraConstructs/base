@@ -12,23 +12,27 @@ exports[`notification can specify prefix and suffix filter rules 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
   "resource": {
     "aws_s3_bucket": {
       "MyBucket_F68F3FF0": {
-        "bucket_prefix": "123e4567-e89b-12d3-mystackmybucket",
+        "bucket_prefix": "g-mybucket",
         "tags": {
-          "Name": "Test-MyBucket",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-MyBucket",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },
@@ -77,23 +81,27 @@ exports[`notification when notification is added a custom s3 bucket notification
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
   "resource": {
     "aws_s3_bucket": {
       "MyBucket_F68F3FF0": {
-        "bucket_prefix": "123e4567-e89b-12d3-mystackmybucket",
+        "bucket_prefix": "g-mybucket",
         "tags": {
-          "Name": "Test-MyBucket",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-MyBucket",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },

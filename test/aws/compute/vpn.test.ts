@@ -15,25 +15,13 @@ import { PublicSubnet, Vpc, VpnConnection } from "../../../src/aws/compute";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("vpn", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("can add a vpn connection to a vpc with a vpn gateway", () => {
@@ -351,7 +339,6 @@ describe("vpn", () => {
       dimensions: { VpnId: "${aws_vpn_connection.VpcNetwork_Vpn_A476C58D.id}" },
       metricName: "TunnelState",
       period: Duration.minutes(5),
-      region: "us-east-1",
       statistic: "Average",
     });
   });
@@ -375,7 +362,6 @@ describe("vpn", () => {
       namespace: "AWS/VPN",
       metricName: "TunnelState",
       period: Duration.minutes(5),
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -384,7 +370,6 @@ describe("vpn", () => {
       namespace: "AWS/VPN",
       metricName: "TunnelDataIn",
       period: Duration.minutes(5),
-      region: "us-east-1",
       statistic: "Sum",
     });
 
@@ -393,7 +378,6 @@ describe("vpn", () => {
       namespace: "AWS/VPN",
       metricName: "TunnelDataOut",
       period: Duration.minutes(5),
-      region: "us-east-1",
       statistic: "Sum",
     });
   });

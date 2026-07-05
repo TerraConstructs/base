@@ -11,13 +11,6 @@ import * as compute from "../../../../src/aws/compute";
 import * as targets from "../../../../src/aws/compute/lb-targets";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("lambda targets", () => {
   let app: App;
   let stack: AwsStack;
@@ -26,12 +19,7 @@ describe("lambda targets", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "IPAMTestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     const vpc = new compute.Vpc(stack, "Stack");
     const lb = new compute.ApplicationLoadBalancer(stack, "LB", { vpc });
     listener = lb.addListener("Listener", { port: 80 });

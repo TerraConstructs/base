@@ -19,24 +19,12 @@ import { EventBus } from "../../../src/aws/notify/event-bus";
 import { Template } from "../../assertions";
 import { TestResource } from "../../test-resource";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("event bus", () => {
   let stack: AwsStack;
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("default event bus", () => {
@@ -50,7 +38,7 @@ describe("event bus", () => {
       cloudwatchEventBus.CloudwatchEventBus,
       {
         // name: "Bus", // TODO: BUG - This should be the name of the event bus
-        name: "TestStackBus54CCAD7F",
+        name: "Bus",
       },
     );
   });
@@ -66,7 +54,7 @@ describe("event bus", () => {
       cloudwatchEventBus.CloudwatchEventBus,
       {
         // name: "Bus", // TODO: BUG - This should be the name of the event bus
-        name: "TestStackBus54CCAD7F",
+        name: "Bus",
       },
     );
   });
@@ -445,7 +433,7 @@ describe("event bus", () => {
       },
     );
     t.expect.toHaveResourceWithProperties(iamRolePolicy.IamRolePolicy, {
-      name: "TestStackRoleDefaultPolicyC86B8D55",
+      name: "RoleDefaultPolicyEC8630DA",
       policy:
         "${data.aws_iam_policy_document.Role_DefaultPolicy_2E5E5E0B.json}",
       role: stack.resolve(role.roleName),
@@ -470,7 +458,7 @@ describe("event bus", () => {
       cloudwatchEventBus.CloudwatchEventBus,
       {
         // name: "Bus", // TODO: BUG - This should be the name of the event bus
-        name: "TestStackBus54CCAD7F",
+        name: "Bus",
       },
     );
 
@@ -515,7 +503,7 @@ describe("event bus", () => {
       cloudwatchEventBus.CloudwatchEventBus,
       {
         // name: "Bus", // TODO: BUG - This should be the name of the event bus
-        name: "TestStackBus54CCAD7F",
+        name: "Bus",
       },
     );
 
@@ -540,22 +528,12 @@ describe("event bus", () => {
     //   account: "11111111111",
     //   region: "us-east-1",
     // },
-    const stack1 = new AwsStack(Testing.app(), "Stack1", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack1 = new AwsStack(Testing.app(), "Stack1");
     // env: {
     //   account: "22222222222",
     //   region: "us-east-1",
     // },
-    const stack2 = new AwsStack(Testing.app(), "Stack2", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(Testing.app(), "Stack2");
 
     // WHEN
     const bus1 = new EventBus(stack1, "Bus", {
@@ -740,14 +718,14 @@ describe("event bus", () => {
               {
                 test: "StringEquals",
                 values: [
-                  "arn:${data.aws_partition.Partitition.partition}:events:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:event-bus/TestStackBus54CCAD7F",
+                  "arn:${data.aws_partition.Partitition.partition}:events:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:event-bus/Bus",
                 ],
                 variable: "aws:SourceArn",
               },
               {
                 test: "StringEquals",
                 values: [
-                  "arn:${data.aws_partition.Partitition.partition}:events:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:event-bus/TestStackBus54CCAD7F",
+                  "arn:${data.aws_partition.Partitition.partition}:events:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:event-bus/Bus",
                 ],
                 variable: "kms:EncryptionContext:aws:events:event-bus:arn",
               },

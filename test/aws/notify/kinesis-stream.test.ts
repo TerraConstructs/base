@@ -21,16 +21,8 @@ import { Template } from "../../assertions";
 
 const streamTfResource = kinesisStream.KinesisStream.tfResourceType;
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridUUID2 = "123e4567-e89b-12d4";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 // Conditional to check if the region is in the list of unsupported regions
-const AwsCdkKinesisEncryptedStreamsUnsupportedRegions = `\${contains(["cn-north-1", "cn-northwest-1"], "${providerConfig.region}")}`;
+const AwsCdkKinesisEncryptedStreamsUnsupportedRegions = `\${contains(["cn-north-1", "cn-northwest-1"], data.aws_region.Region.name)}`;
 
 describe("Kinesis data streams", () => {
   let app: App;
@@ -38,12 +30,7 @@ describe("Kinesis data streams", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("default stream", () => {
@@ -233,7 +220,7 @@ describe("Kinesis data streams", () => {
 
       const t = new Template(stack);
       t.expect.toHaveResourceWithProperties(kmsKey.KmsKey, {
-        description: "Created by MyStack/MyStream",
+        description: "Created by Default/MyStream",
       });
 
       t.expect.toHaveResourceWithProperties(kinesisStream.KinesisStream, {
@@ -415,12 +402,12 @@ describe("Kinesis data streams", () => {
           Role_1ABCC5F0: {
             assume_role_policy:
               "${data.aws_iam_policy_document.Role_AssumeRolePolicy_B27E8126.json}",
-            name_prefix: "123e4567-e89b-12d3-MyStackRole",
+            name_prefix: "g-Role",
           },
         },
         aws_iam_role_policy: {
           Role_DefaultPolicy_ResourceRoles0_50D8AFFD: {
-            name: "MyStackRoleDefaultPolicy86F304AD",
+            name: "RoleDefaultPolicyEC8630DA",
             policy:
               "${data.aws_iam_policy_document.Role_DefaultPolicy_2E5E5E0B.json}",
             role: "${aws_iam_role.Role_1ABCC5F0.name}",
@@ -469,12 +456,12 @@ describe("Kinesis data streams", () => {
             Role_1ABCC5F0: {
               assume_role_policy:
                 "${data.aws_iam_policy_document.Role_AssumeRolePolicy_B27E8126.json}",
-              name_prefix: "123e4567-e89b-12d3-MyStackRole",
+              name_prefix: "g-Role",
             },
           },
           aws_iam_role_policy: {
             Role_DefaultPolicy_ResourceRoles0_50D8AFFD: {
-              name: "MyStackRoleDefaultPolicy86F304AD",
+              name: "RoleDefaultPolicyEC8630DA",
               policy:
                 "${data.aws_iam_policy_document.Role_DefaultPolicy_2E5E5E0B.json}",
               role: "${aws_iam_role.Role_1ABCC5F0.name}",
@@ -530,12 +517,12 @@ describe("Kinesis data streams", () => {
             Role_1ABCC5F0: {
               assume_role_policy:
                 "${data.aws_iam_policy_document.Role_AssumeRolePolicy_B27E8126.json}",
-              name_prefix: "123e4567-e89b-12d3-MyStackRole",
+              name_prefix: "g-Role",
             },
           },
           aws_iam_role_policy: {
             Role_DefaultPolicy_ResourceRoles0_50D8AFFD: {
-              name: "MyStackRoleDefaultPolicy86F304AD",
+              name: "RoleDefaultPolicyEC8630DA",
               policy:
                 "${data.aws_iam_policy_document.Role_DefaultPolicy_2E5E5E0B.json}",
               role: "${aws_iam_role.Role_1ABCC5F0.name}",
@@ -580,12 +567,12 @@ describe("Kinesis data streams", () => {
             Role_1ABCC5F0: {
               assume_role_policy:
                 "${data.aws_iam_policy_document.Role_AssumeRolePolicy_B27E8126.json}",
-              name_prefix: "123e4567-e89b-12d3-MyStackRole",
+              name_prefix: "g-Role",
             },
           },
           aws_iam_role_policy: {
             Role_DefaultPolicy_ResourceRoles0_50D8AFFD: {
-              name: "MyStackRoleDefaultPolicy86F304AD",
+              name: "RoleDefaultPolicyEC8630DA",
               policy:
                 "${data.aws_iam_policy_document.Role_DefaultPolicy_2E5E5E0B.json}",
               role: "${aws_iam_role.Role_1ABCC5F0.name}",
@@ -603,12 +590,7 @@ describe("Kinesis data streams", () => {
     test("cross-stack permissions - no encryption", () => {
       const streamFromStackA = new Stream(stack, "MyStream");
 
-      const stackB = new AwsStack(app, "stackB", {
-        environmentName,
-        gridUUID: gridUUID2,
-        providerConfig,
-        gridBackendConfig,
-      });
+      const stackB = new AwsStack(app, "stackB");
       const role = new iam.Role(stackB, "Role", {
         assumedBy: new iam.AccountPrincipal("000000000000"),
       });
@@ -633,7 +615,7 @@ describe("Kinesis data streams", () => {
                   ],
                   effect: "Allow",
                   resources: [
-                    "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_kinesis_streamMyStream_5C050E93arn}",
+                    "${data.terraform_remote_state.cross-stack-reference-input-Default.outputs.cross-stack-output-aws_kinesis_streamMyStream_5C050E93arn}",
                   ],
                 },
               ],
@@ -647,12 +629,7 @@ describe("Kinesis data streams", () => {
         encryption: StreamEncryption.KMS,
       });
 
-      const stackB = new AwsStack(app, "stackB", {
-        environmentName,
-        gridUUID: gridUUID2,
-        providerConfig,
-        gridBackendConfig,
-      });
+      const stackB = new AwsStack(app, "stackB");
       const role = new iam.Role(stackB, "Role", {
         assumedBy: new iam.AccountPrincipal("000000000000"),
       });
@@ -677,7 +654,7 @@ describe("Kinesis data streams", () => {
                   ],
                   effect: "Allow",
                   resources: [
-                    "${data.terraform_remote_state.cross-stack-reference-input-MyStack.outputs.cross-stack-output-aws_kinesis_streamMyStream_5C050E93arn}",
+                    "${data.terraform_remote_state.cross-stack-reference-input-Default.outputs.cross-stack-output-aws_kinesis_streamMyStream_5C050E93arn}",
                   ],
                 },
                 {
@@ -748,7 +725,7 @@ describe("Kinesis data streams", () => {
               '${local.AwsCdkKinesisEncryptedStreamsUnsupportedRegions ? null : "KMS"}',
             kms_key_id:
               '${local.AwsCdkKinesisEncryptedStreamsUnsupportedRegions ? null : "alias/aws/kinesis"}',
-            name: "123e4567-e89b-12d3MyStackMyStream974B6778",
+            name: "gMyStream",
             retention_period: "${var.my-retention-period}",
             shard_count: 1,
           },
@@ -780,7 +757,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "GetRecords.Bytes",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -793,7 +769,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "GetRecords.IteratorAgeMilliseconds",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Maximum",
     });
 
@@ -804,7 +779,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "GetRecords.Latency",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -815,7 +789,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "GetRecords.Records",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -826,7 +799,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "GetRecords.Success",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -837,7 +809,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "IncomingBytes",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -848,7 +819,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "IncomingRecords",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -859,7 +829,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "PutRecords.Bytes",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -870,7 +839,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "PutRecords.Latency",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -881,7 +849,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "PutRecords.Success",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -892,7 +859,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "PutRecords.TotalRecords",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -903,7 +869,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "PutRecords.SuccessfulRecords",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -914,7 +879,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "PutRecords.FailedRecords",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -925,7 +889,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "PutRecords.ThrottledRecords",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -938,7 +901,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "ReadProvisionedThroughputExceeded",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -951,7 +913,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "WriteProvisionedThroughputExceeded",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
   });
@@ -978,7 +939,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "GetRecords.Bytes",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -996,7 +956,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "GetRecords.Bytes",
       period: { ...fiveMinutes, amount: 1 },
-      region: "us-east-1",
       statistic: "Maximum",
     });
 
@@ -1007,7 +966,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "IncomingBytes",
       period: fiveMinutes,
-      region: "us-east-1",
       statistic: "Average",
     });
 
@@ -1025,7 +983,6 @@ describe("Kinesis data streams", () => {
       namespace: "AWS/Kinesis",
       metricName: "IncomingBytes",
       period: { ...fiveMinutes, amount: 1 },
-      region: "us-east-1",
       statistic: "Sum",
     });
   });

@@ -26,20 +26,13 @@ import {
 } from "../../../src/aws/compute";
 import { Template } from "../../assertions";
 
-const commonProps = {
-  environmentName: "TestEnv",
-  gridUUID: "test-uuid-123",
-  providerConfig: { region: "us-east-1" },
-  gridBackendConfig: { address: "http://localhost:3000" },
-};
-
 describe("stage", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", commonProps);
+    stack = new AwsStack(app);
   });
 
   test("minimal setup", () => {
@@ -59,7 +52,7 @@ describe("stage", () => {
       resource: {
         aws_api_gateway_rest_api: {
           "test-api_D6451F70": {
-            name: "MyStacktestapi69F35EDE",
+            name: "testapi",
             // ignoring the tags...
           },
         },
@@ -83,7 +76,7 @@ describe("stage", () => {
             },
             rest_api_id: "${aws_api_gateway_rest_api.test-api_D6451F70.id}",
             triggers: {
-              redeployment: "9692d40060fad99f5889cdc2e4c6ee12",
+              redeployment: "1537e3aca581b072c9fbfa39dd9fc2b2",
             },
           },
         },

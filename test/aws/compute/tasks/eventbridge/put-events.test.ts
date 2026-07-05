@@ -12,14 +12,7 @@ describe("Put Events", () => {
   beforeEach(() => {
     // GIVEN
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", {
-      environmentName: "Test",
-      gridUUID: "123e4567-e89b-12d3",
-      providerConfig: { region: "us-east-1" },
-      gridBackendConfig: {
-        address: "http://localhost:3000",
-      },
-    });
+    stack = new AwsStack(app);
   });
 
   test("provided all parameters", () => {
@@ -323,7 +316,7 @@ describe("Put Events", () => {
             effect: "Allow",
             resources: [
               "${aws_cloudwatch_event_bus.EventBus_7B8748AA.arn}",
-              "arn:${data.aws_partition.Partitition.partition}:events:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:event-bus/default",
+              "arn:${data.aws_partition.Partitition.partition}:events:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:event-bus/default",
             ],
           },
         ],

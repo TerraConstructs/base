@@ -9,13 +9,6 @@ import * as iam from "../../../src/aws/iam";
 import { Duration } from "../../../src/duration";
 import { Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const ADMIN_ACTIONS: string[] = [
   "kms:Create*",
   "kms:Describe*",
@@ -39,15 +32,7 @@ describe("key", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-      // TODO: Should support passing account via Spec props?
-      // account: "1234",
-      // region: "us-east-1",
-    });
+    stack = new AwsStack(app);
   });
 
   test("default", () => {
@@ -168,15 +153,7 @@ describe("key", () => {
         "arn:aws:kms:eu-north-1:000000000000:key/e3ab59e5-3dc3-4bc4-9c3f-c790231d2287",
       );
 
-      const roleSpec = new AwsStack(app, "RoleStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-        // TODO: Should support passing account via Spec props?
-        // account: "1234",
-        // env: { account: "000000000000", region: "eu-north-1" },
-      });
+      const roleSpec = new AwsStack(app, "RoleStack");
       const role = new iam.Role(roleSpec, "Role", {
         assumedBy: new iam.AccountPrincipal("000000000000"),
       });
@@ -342,7 +319,6 @@ describe("key", () => {
         data: {
           aws_iam_policy_document: {
             // Key policy should be unmodified by the grant.
-
             Key_Policy_48E51E45: {
               statement: [
                 {
@@ -373,45 +349,6 @@ describe("key", () => {
           },
         },
       });
-      // Template.fromStack(stack).hasResourceProperties("AWS::KMS::Key", {
-      //   KeyPolicy: {
-      //     Statement: [
-      //       {
-      //         Action: "kms:*",
-      //         Effect: "Allow",
-      //         Principal: {
-      //           AWS: {
-      //             "Fn::Join": [
-      //               "",
-      //               [
-      //                 "arn:",
-      //                 { Ref: "AWS::Partition" },
-      //                 ":iam::",
-      //                 { Ref: "AWS::AccountId" },
-      //                 ":root",
-      //               ],
-      //             ],
-      //           },
-      //         },
-      //         Resource: "*",
-      //       },
-      //     ],
-      //     Version: "2012-10-17",
-      //   },
-      // });
-
-      // Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
-      //   PolicyDocument: {
-      //     Statement: [
-      //       {
-      //         Action: "kms:Decrypt",
-      //         Effect: "Allow",
-      //         Resource: { "Fn::GetAtt": ["Key961B73FD", "Arn"] },
-      //       },
-      //     ],
-      //     Version: "2012-10-17",
-      //   },
-      // });
     });
 
     test("encrypt", () => {
@@ -507,15 +444,7 @@ describe("key", () => {
 
     // TODO: Fix cyclic dependency resolving cross stack references
     test("grant for a principal in a dependent stack works correctly", () => {
-      const principalSpec = new AwsStack(app, "PrincipalStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-        // TODO: Should support passing account via Spec props?
-        // account: "1234",
-        // region: "us-east-1",
-      });
+      const principalSpec = new AwsStack(app, "PrincipalStack");
       const principal = new iam.Role(principalSpec, "Role", {
         assumedBy: new iam.AnyPrincipal(),
       });
@@ -597,16 +526,7 @@ describe("key", () => {
     });
 
     test("grant for a principal in a different region", () => {
-      const principalSpec = new AwsStack(app, "PrincipalStack", {
-        environmentName,
-        gridUUID,
-        gridBackendConfig,
-        // TODO: Should support passing account via Spec props?
-        // env: { region: "testregion1" },
-        providerConfig: {
-          region: "testregion1",
-        },
-      });
+      const principalSpec = new AwsStack(app, "PrincipalStack");
       const principal = new iam.Role(principalSpec, "Role", {
         assumedBy: new iam.AnyPrincipal(),
         roleName: "MyRolePhysicalName",
@@ -709,14 +629,7 @@ describe("key", () => {
 
     // TODO: cross account only works if the account can be provided through Spec props
     test("grant for a principal in a different account", () => {
-      const principalStack = new AwsStack(app, "PrincipalStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-        // TODO: Should support passing account via Spec props?
-        // env: { account: "0123456789012" },
-      });
+      const principalStack = new AwsStack(app, "PrincipalStack");
       const principal = new iam.Role(principalStack, "Role", {
         assumedBy: new iam.AnyPrincipal(),
         roleName: "MyRolePhysicalName",
@@ -816,14 +729,7 @@ describe("key", () => {
     });
 
     test("grant for an immutable role", () => {
-      const principalStack = new AwsStack(app, "PrincipalStack", {
-        environmentName,
-        gridUUID,
-        providerConfig,
-        gridBackendConfig,
-        // TODO: Should support passing account via Spec props?
-        // env: { account: "0123456789012" },
-      });
+      const principalStack = new AwsStack(app, "PrincipalStack");
       const principal = new iam.Role(principalStack, "Role", {
         assumedBy: new iam.AnyPrincipal(),
         roleName: "MyRolePhysicalName",
@@ -1114,10 +1020,10 @@ describe("key", () => {
         tag1: "value1",
         tag2: "value2",
         tag3: "",
-        Name: "Test-MyKey",
+        Name: "Default-MyKey",
         // Grid keys
-        "grid:EnvironmentName": environmentName,
-        "grid:UUID": gridUUID,
+        "grid:EnvironmentName": "Default",
+        "grid:UUID": "g",
       },
     });
 

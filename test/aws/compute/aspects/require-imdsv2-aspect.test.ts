@@ -19,13 +19,6 @@ import {
 } from "../../../../src/aws/compute";
 import { Annotations, Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
-
 describe("RequireImdsv2Aspect", () => {
   let app: App;
   let stack: AwsStack;
@@ -33,12 +26,7 @@ describe("RequireImdsv2Aspect", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
     vpc = new Vpc(stack, "Vpc");
   });
 
@@ -122,7 +110,7 @@ describe("RequireImdsv2Aspect", () => {
         0,
       );
       Annotations.fromStack(stack).hasWarnings({
-        constructPath: "MyStack/Instance",
+        constructPath: "Default/Instance",
         message:
           /.*Cannot toggle IMDSv1 because this Instance is associated with an existing Launch Template./,
       });
@@ -161,12 +149,7 @@ describe("RequireImdsv2Aspect", () => {
         instanceType: new InstanceType("t2.micro"),
         machineImage: MachineImage.latestAmazonLinux(),
       });
-      const stack2 = new AwsStack(app, "RequireImdsv2Stack", {
-        environmentName, // Should be different
-        gridUUID, // Should be different
-        providerConfig,
-        gridBackendConfig,
-      });
+      const stack2 = new AwsStack(app, "RequireImdsv2Stack");
       const vpc2 = new Vpc(stack2, "Vpc");
       const instance2 = new Instance(stack2, "Instance", {
         vpc: vpc2,

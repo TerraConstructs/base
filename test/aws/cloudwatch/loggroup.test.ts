@@ -27,27 +27,13 @@ import * as iam from "../../../src/aws/iam";
 import { Bucket } from "../../../src/aws/storage";
 import { Annotations, Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("log group", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-      // TODO: Should support passing account via Stack props to match AWS CDK cross account support
-      // account: "1234",
-    });
+    stack = new AwsStack(app);
   });
 
   test("set kms key when provided", () => {
@@ -220,9 +206,6 @@ describe("log group", () => {
   test("with log group class in a non-supported region", () => {
     // GIVEN
     const stack2 = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      gridBackendConfig,
       providerConfig: {
         region: "us-isob-east-1",
       },
@@ -267,12 +250,7 @@ describe("log group", () => {
 
   test("import from ARN, same region", () => {
     // GIVEN
-    const stack2 = new AwsStack(app, "MyStack2", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack2 = new AwsStack(app, "MyStack2");
 
     // WHEN
     const imported = LogGroup.fromLogGroupArn(
@@ -357,6 +335,9 @@ describe("log group", () => {
       ],
       (suffix: string) => {
         // GIVEN
+        stack = new AwsStack(app, "MyStack", {
+          providerConfig: { region: "us-east-1" },
+        });
         const role = new iam.Role(stack, "Role", {
           assumedBy: new iam.ServicePrincipal("sns"),
         });
@@ -427,6 +408,9 @@ describe("log group", () => {
       ],
       (suffix: string) => {
         // GIVEN
+        stack = new AwsStack(app, "MyStack", {
+          providerConfig: { region: "us-east-1" },
+        });
         const role = new iam.Role(stack, "Role", {
           assumedBy: new iam.ServicePrincipal("sns"),
         });
@@ -1423,12 +1407,7 @@ describe("subscription filter", () => {
   test("add subscription filter with custom name", () => {
     // GIVEN
     const app = Testing.app();
-    const stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const stack = new AwsStack(app, "MyStack");
 
     // WHEN
     const logGroup = new LogGroup(stack, "LogGroup");

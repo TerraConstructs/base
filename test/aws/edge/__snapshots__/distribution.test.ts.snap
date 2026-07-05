@@ -17,12 +17,16 @@ exports[`Distribution Should support multiple origins and cache behaviors 1`] = 
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -94,9 +98,9 @@ exports[`Distribution Should support multiple origins and cache behaviors 1`] = 
           }
         },
         "tags": {
-          "Name": "Test-HelloWorldDistribution",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-HelloWorldDistribution",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "viewer_certificate": {
           "cloudfront_default_certificate": true,
@@ -107,19 +111,19 @@ exports[`Distribution Should support multiple origins and cache behaviors 1`] = 
     },
     "aws_s3_bucket": {
       "Bucket0_C98EAF71": {
-        "bucket_prefix": "bucket-0-mystackbucket0",
+        "bucket_prefix": "bucket-0-bucket0",
         "tags": {
-          "Name": "Test-Bucket0",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Bucket0",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       },
       "Bucket1_2520700A": {
-        "bucket_prefix": "bucket-1-mystackbucket1",
+        "bucket_prefix": "bucket-1-bucket1",
         "tags": {
-          "Name": "Test-Bucket1",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-Bucket1",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },
@@ -194,12 +198,16 @@ exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -237,9 +245,9 @@ exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
           }
         },
         "tags": {
-          "Name": "Test-HelloWorldDistribution",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-HelloWorldDistribution",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "viewer_certificate": {
           "cloudfront_default_certificate": true,
@@ -255,11 +263,11 @@ exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
     },
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "hello-world-mystackhelloworld",
+        "bucket_prefix": "hello-world-helloworld",
         "tags": {
-          "Name": "Test-HelloWorld",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-HelloWorld",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },
@@ -303,12 +311,16 @@ exports[`Distribution Should synth with websiteConfig and match SnapShot 1`] = `
       "Partitition": {
         "provider": "aws"
       }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
     }
   },
   "provider": {
     "aws": [
       {
-        "region": "us-east-1"
       }
     ]
   },
@@ -351,9 +363,9 @@ exports[`Distribution Should synth with websiteConfig and match SnapShot 1`] = `
           }
         },
         "tags": {
-          "Name": "Test-HelloWorldDistribution",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-HelloWorldDistribution",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         },
         "viewer_certificate": {
           "cloudfront_default_certificate": true,
@@ -364,11 +376,11 @@ exports[`Distribution Should synth with websiteConfig and match SnapShot 1`] = `
     },
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "hello-world-mystackhelloworld",
+        "bucket_prefix": "hello-world-helloworld",
         "tags": {
-          "Name": "Test-HelloWorld",
-          "grid:EnvironmentName": "Test",
-          "grid:UUID": "123e4567-e89b-12d3"
+          "Name": "Default-HelloWorld",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
         }
       }
     },

@@ -27,25 +27,13 @@ import { Duration } from "../../../src/duration";
 // import { RemovalPolicy } from "../../../src/removal-policy";
 import { Annotations, Template } from "../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 describe("repository", () => {
   let app: App;
   let stack: AwsStack;
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("construct repository", () => {
@@ -65,18 +53,8 @@ describe("repository", () => {
 
   test("repository creation with imageScanOnPush", () => {
     // GIVEN
-    const noScanStack = new AwsStack(app, "NoScanStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
-    const scanStack = new AwsStack(app, "ScanStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    const noScanStack = new AwsStack(app, "NoScanStack");
+    const scanStack = new AwsStack(app, "ScanStack");
 
     // WHEN
     new Repository(noScanStack, "NoScanRepo", { imageScanOnPush: false });
@@ -606,7 +584,7 @@ describe("repository", () => {
     const template = new Template(stack);
     expect(template.outputByName("RepoArn")).toMatchObject({
       value:
-        "arn:${data.aws_partition.Partitition.partition}:ecr:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:repository/my-repo",
+        "arn:${data.aws_partition.Partitition.partition}:ecr:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:repository/my-repo",
     });
     expect(template.outputByName("RepoName")).toMatchObject({
       value: "my-repo",
@@ -636,7 +614,7 @@ describe("repository", () => {
     });
     expect(template.outputByName("RepoArn")).toMatchObject({
       value:
-        "arn:${data.aws_partition.Partitition.partition}:ecr:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:repository/${Boom.Name}",
+        "arn:${data.aws_partition.Partitition.partition}:ecr:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:repository/${Boom.Name}",
     });
   });
 

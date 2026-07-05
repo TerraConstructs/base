@@ -14,13 +14,6 @@ import { AwsStack } from "../../../../src/aws/aws-stack";
 import { DockerImageAsset } from "../../../../src/aws/storage/assets/image-asset";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const TEST_OUTDIR = path.join(__dirname, "cdk.out");
 const TEST_APPDIR = path.join(__dirname, "fixtures", "app");
 const CDKTFJSON_PATH = path.join(TEST_APPDIR, "cdktf.json");
@@ -43,12 +36,7 @@ describe("image asset", () => {
         },
       }),
     );
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
   test("fails if the directory does not exist", () => {
     // THEN
@@ -404,10 +392,6 @@ describe("with existing repository", () => {
       }),
     );
     stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
       assetOptions: {
         repositoryName: "existing-repo",
         dockerTagPrefix: "existing-",
@@ -509,12 +493,7 @@ function testDockerDirectoryIsStagedWithoutFilesSpecifiedInExcludeOption(
   app: App,
   ignoreMode?: IgnoreMode,
 ) {
-  const stack = new AwsStack(app, "TestStack2", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
+  const stack = new AwsStack(app, "TestStack2");
   const image = new DockerImageAsset(stack, "MyAsset", {
     directory: path.join(__dirname, "dockerignore-image"),
     exclude: ["subdirectory"],

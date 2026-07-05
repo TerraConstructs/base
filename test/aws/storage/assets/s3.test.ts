@@ -16,13 +16,6 @@ import * as iam from "../../../../src/aws/iam";
 import { Asset } from "../../../../src/aws/storage/assets/s3";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const SAMPLE_ASSET_DIR = path.join(__dirname, "sample-asset-directory");
 // const SAMPLE_ASSET_HASH =
 //   "6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2";
@@ -40,12 +33,7 @@ describe("s3-assets", () => {
         },
       }),
     );
-    stack = new AwsStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
   test("simple use case", () => {
     // context: {

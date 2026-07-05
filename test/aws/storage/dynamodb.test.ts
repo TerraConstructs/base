@@ -49,12 +49,6 @@ import {
 import { Duration } from "../../../src/duration";
 import { Annotations, Template } from "../../assertions";
 
-const defaultAwsStackProps = {
-  environmentName: "test",
-  gridUUID: "test-uuid",
-  providerConfig: { region: "us-east-1" },
-};
-
 const CONSTRUCT_NAME = "MyTable";
 const TABLE_NAME = "MyTable";
 const TABLE_PARTITION_KEY: Attribute = {
@@ -122,7 +116,7 @@ describe("default properties", () => {
   let stack: AwsStack;
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    stack = new AwsStack(app);
   });
 
   test("hash key only", () => {
@@ -357,7 +351,7 @@ describe("default properties", () => {
 
 test("when specifying every property (billingMode PROVISIONED)", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const stream = new Stream(stack, "MyStream");
   const table = new Table(stack, CONSTRUCT_NAME, {
     tableName: TABLE_NAME,
@@ -415,7 +409,7 @@ test("when specifying every property (billingMode PROVISIONED)", () => {
 
 test("when specifying sse with customer managed CMK", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     tableName: TABLE_NAME,
     encryption: TableEncryption.CUSTOMER_MANAGED,
@@ -436,7 +430,7 @@ test("when specifying sse with customer managed CMK", () => {
 
 test("when specifying only encryptionKey", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const encryptionKey = new Key(stack, "Key", {
     enableKeyRotation: true,
   });
@@ -458,7 +452,7 @@ test("when specifying only encryptionKey", () => {
 
 test("when specifying sse with customer managed CMK with encryptionKey provided by user", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const encryptionKey = new Key(stack, "Key", {
     enableKeyRotation: true,
   });
@@ -481,7 +475,7 @@ test("when specifying sse with customer managed CMK with encryptionKey provided 
 
 test("fails if encryption key is used with AWS managed CMK", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const encryptionKey = new Key(stack, "Key", {
     enableKeyRotation: true,
   });
@@ -500,7 +494,7 @@ test("fails if encryption key is used with AWS managed CMK", () => {
 
 test("fails if encryption key is used with default encryption", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const encryptionKey = new Key(stack, "Key", {
     enableKeyRotation: true,
   });
@@ -519,7 +513,7 @@ test("fails if encryption key is used with default encryption", () => {
 
 test("fails if encryption key is used with serverSideEncryption", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const encryptionKey = new Key(stack, "Key", {
     enableKeyRotation: true,
   });
@@ -538,7 +532,7 @@ test("fails if encryption key is used with serverSideEncryption", () => {
 
 test("fails if both replication regions used with customer managed CMK", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   expect(
     () =>
       new Table(stack, "Table A", {
@@ -554,7 +548,7 @@ test("fails if both replication regions used with customer managed CMK", () => {
 
 test("fails if replica specs with customer managed CMK lack encryption keys", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   expect(
     () =>
       new Table(stack, "Table A", {
@@ -574,7 +568,7 @@ test("fails if replica specs with customer managed CMK lack encryption keys", ()
 
 test("Replication regions can be used with customer managed CMK per region", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const region1Key = Key.fromKeyArn(
     stack,
     "Region1Key",
@@ -617,7 +611,7 @@ test("Replication regions can be used with customer managed CMK per region", () 
 
 test("fails if replica customer managed CMK have incorrect region", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const encryptionKey = Key.fromKeyArn(
     stack,
     "Region1Key",
@@ -643,7 +637,7 @@ test("fails if replica customer managed CMK have incorrect region", () => {
 
 test("if an encryption key is included, encrypt/decrypt permissions are added to the principal", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, "Table A", {
     tableName: TABLE_NAME,
     partitionKey: TABLE_PARTITION_KEY,
@@ -677,7 +671,7 @@ test("if an encryption key is included, encrypt/decrypt permissions are added to
 
 test("if an encryption key is included, encrypt/decrypt permissions are added to the principal for grantWriteData", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "MyStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, "Table A", {
     tableName: TABLE_NAME,
     partitionKey: TABLE_PARTITION_KEY,
@@ -711,7 +705,7 @@ test("if an encryption key is included, encrypt/decrypt permissions are added to
 
 test("when specifying STANDARD_INFREQUENT_ACCESS table class", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     tableClass: TableClass.STANDARD_INFREQUENT_ACCESS,
@@ -724,7 +718,7 @@ test("when specifying STANDARD_INFREQUENT_ACCESS table class", () => {
 
 test("when specifying STANDARD table class", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     tableClass: TableClass.STANDARD,
@@ -737,7 +731,7 @@ test("when specifying STANDARD table class", () => {
 
 test("when specifying no table class", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
   });
@@ -749,7 +743,7 @@ test("when specifying no table class", () => {
 
 test("when specifying PAY_PER_REQUEST billing mode", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   new Table(stack, CONSTRUCT_NAME, {
     tableName: TABLE_NAME,
     billingMode: BillingMode.PAY_PER_REQUEST,
@@ -769,7 +763,7 @@ describe("when billing mode is PAY_PER_REQUEST", () => {
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    stack = new AwsStack(app);
   });
 
   test("creating the Table fails when readCapacity is specified", () => {
@@ -871,7 +865,7 @@ describe("schema details", () => {
 
   beforeEach(() => {
     const app = Testing.app();
-    stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    stack = new AwsStack(app);
     table = new Table(stack, "Table A", {
       tableName: TABLE_NAME,
       partitionKey: TABLE_PARTITION_KEY,
@@ -967,7 +961,7 @@ describe("schema details", () => {
 
 test("when adding a global secondary index with hash key only", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1000,7 +994,7 @@ test("when adding a global secondary index with hash key only", () => {
 
 test("when adding a global secondary index with hash + range key", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1040,7 +1034,7 @@ test("when adding a global secondary index with hash + range key", () => {
 
 test("when adding a global secondary index with projection type KEYS_ONLY", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1078,7 +1072,7 @@ test("when adding a global secondary index with projection type KEYS_ONLY", () =
 
 test("when adding a global secondary index with projection type INCLUDE", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1125,7 +1119,7 @@ test("when adding a global secondary index with projection type INCLUDE", () => 
 
 test("when adding a global secondary index on a table with PAY_PER_REQUEST billing mode", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   new Table(stack, CONSTRUCT_NAME, {
     billingMode: BillingMode.PAY_PER_REQUEST,
     partitionKey: TABLE_PARTITION_KEY,
@@ -1156,7 +1150,7 @@ test("when adding a global secondary index on a table with PAY_PER_REQUEST billi
 
 test("error when adding a global secondary index with projection type INCLUDE, but without specifying non-key attributes", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1175,7 +1169,7 @@ test("error when adding a global secondary index with projection type INCLUDE, b
 
 test("error when adding a global secondary index with projection type ALL, but with non-key attributes", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1195,7 +1189,7 @@ test("error when adding a global secondary index with projection type ALL, but w
 
 test("error when adding a global secondary index with projection type KEYS_ONLY, but with non-key attributes", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1216,7 +1210,7 @@ test("error when adding a global secondary index with projection type KEYS_ONLY,
 
 test("error when adding a global secondary index with projection type INCLUDE, but with more than 100 non-key attributes", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1242,7 +1236,7 @@ test("error when adding a global secondary index with projection type INCLUDE, b
 
 test("error when adding a global secondary index with read or write capacity on a PAY_PER_REQUEST table", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     billingMode: BillingMode.PAY_PER_REQUEST,
@@ -1277,7 +1271,7 @@ test("error when adding a global secondary index with read or write capacity on 
 
 test("when adding multiple global secondary indexes", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1343,7 +1337,7 @@ test("when adding multiple global secondary indexes", () => {
 
 test("when adding a global secondary index without specifying read and write capacity", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1380,7 +1374,7 @@ test.each([true, false])(
   "when adding a global secondary index with contributorInsights enabled %s",
   (enabled: boolean) => {
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, CONSTRUCT_NAME, {
       tableName: TABLE_NAME,
       partitionKey: TABLE_PARTITION_KEY,
@@ -1430,7 +1424,7 @@ test.each([true, false])(
 
 test("when adding a local secondary index with hash + range key", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1463,7 +1457,7 @@ test("when adding a local secondary index with hash + range key", () => {
 
 test("when adding a local secondary index with projection type KEYS_ONLY", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1496,7 +1490,7 @@ test("when adding a local secondary index with projection type KEYS_ONLY", () =>
 
 test("when adding a local secondary index with projection type INCLUDE", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1535,7 +1529,7 @@ test("when adding a local secondary index with projection type INCLUDE", () => {
 
 test("error when adding more than 5 local secondary indexes", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1552,7 +1546,7 @@ test("error when adding more than 5 local secondary indexes", () => {
 
 test("error when adding a local secondary index with the name of a global secondary index", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
     sortKey: TABLE_SORT_KEY,
@@ -1572,7 +1566,7 @@ test("error when adding a local secondary index with the name of a global second
 
 test("error when validating construct if a local secondary index exists without a sort key of the table", () => {
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     partitionKey: TABLE_PARTITION_KEY,
   });
@@ -1594,7 +1588,7 @@ test("can enable Read AutoScaling", () => {
   // GIVEN
 
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     readCapacity: 42,
     writeCapacity: 1337,
@@ -1628,7 +1622,7 @@ test("can enable Write AutoScaling", () => {
   // GIVEN
 
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     readCapacity: 42,
     writeCapacity: 1337,
@@ -1662,7 +1656,7 @@ test("cannot enable AutoScaling twice on the same property", () => {
   // GIVEN
 
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     readCapacity: 42,
     writeCapacity: 1337,
@@ -1682,7 +1676,7 @@ test("error when enabling AutoScaling on the PAY_PER_REQUEST table", () => {
   // GIVEN
 
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     billingMode: BillingMode.PAY_PER_REQUEST,
     partitionKey: TABLE_PARTITION_KEY,
@@ -1711,7 +1705,7 @@ test("error when specifying Read Auto Scaling with invalid scalingTargetValue < 
   // GIVEN
 
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     readCapacity: 42,
     writeCapacity: 1337,
@@ -1732,7 +1726,7 @@ test("error when specifying Read Auto Scaling with invalid minimumCapacity", () 
   // GIVEN
 
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     readCapacity: 42,
     writeCapacity: 1337,
@@ -1749,7 +1743,7 @@ test("can autoscale on a schedule", () => {
   // GIVEN
 
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     readCapacity: 42,
     writeCapacity: 1337,
@@ -1780,7 +1774,7 @@ test("scheduled scaling shows warning when minute is not defined in cron", () =>
   // GIVEN
 
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     readCapacity: 42,
     writeCapacity: 1337,
@@ -1799,7 +1793,7 @@ test("scheduled scaling shows warning when minute is not defined in cron", () =>
 
   // THEN
   Annotations.fromStack(stack).hasWarnings({
-    constructPath: "TestStack/MyTable/ReadScaling/Target",
+    constructPath: "Default/MyTable/ReadScaling/Target",
     message:
       "cron: If you don't pass 'minute', by default the event runs every minute. Pass 'minute: '*'' if that's what you intend, or 'minute: 0' to run once per hour instead.",
   });
@@ -1809,7 +1803,7 @@ test("scheduled scaling shows no warning when minute is * in cron", () => {
   // GIVEN
 
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, CONSTRUCT_NAME, {
     readCapacity: 42,
     writeCapacity: 1337,
@@ -1835,7 +1829,7 @@ describe("metrics", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "id", type: AttributeType.STRING },
     });
@@ -1847,7 +1841,6 @@ describe("metrics", () => {
       namespace: "AWS/DynamoDB",
       metricName: "ConsumedReadCapacityUnits",
       statistic: "Sum",
-      region: "us-east-1",
     });
   });
 
@@ -1855,7 +1848,7 @@ describe("metrics", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "id", type: AttributeType.STRING },
     });
@@ -1867,13 +1860,12 @@ describe("metrics", () => {
       namespace: "AWS/DynamoDB",
       metricName: "ConsumedWriteCapacityUnits",
       statistic: "Sum",
-      region: "us-east-1",
     });
   });
 
   test("Using metricSystemErrorsForOperations with no operations will default to all", () => {
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "id", type: AttributeType.STRING },
     });
@@ -1905,7 +1897,7 @@ describe("metrics", () => {
   //   "Can use metricSystemErrors without the TableName dimension",
   //   () => {
   //     const app = Testing.app();
-  //     const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  //     const stack = new AwsStack(app);
   //     const table = new Table(stack, "Table", {
   //       partitionKey: { name: "id", type: AttributeType.STRING },
   //     });
@@ -1924,7 +1916,7 @@ describe("metrics", () => {
   //   "Using metricSystemErrors without the Operation dimension will fail",
   //   () => {
   //     const app = Testing.app();
-  //     const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  //     const stack = new AwsStack(app);
   //     const table = new Table(stack, "Table", {
   //       partitionKey: { name: "id", type: AttributeType.STRING },
   //     });
@@ -1943,7 +1935,7 @@ describe("metrics", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "id", type: AttributeType.STRING },
     });
@@ -1968,7 +1960,6 @@ describe("metrics", () => {
           metricName: "SystemErrors",
           namespace: "AWS/DynamoDB",
           period: Duration.minutes(5),
-          region: "us-east-1",
           statistic: "Sum",
         },
         putitem: {
@@ -1979,7 +1970,6 @@ describe("metrics", () => {
           metricName: "SystemErrors",
           namespace: "AWS/DynamoDB",
           period: Duration.minutes(5),
-          region: "us-east-1",
           statistic: "Sum",
         },
       },
@@ -1990,7 +1980,7 @@ describe("metrics", () => {
   //   // GIVEN
 
   //   const app = Testing.app();
-  //   const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  //   const stack = new AwsStack(app);
   //   const table = new Table(stack, "Table", {
   //     partitionKey: { name: "id", type: AttributeType.STRING },
   //   });
@@ -2015,7 +2005,7 @@ describe("metrics", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "id", type: AttributeType.STRING },
     });
@@ -2029,7 +2019,7 @@ describe("metrics", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "id", type: AttributeType.STRING },
     });
@@ -2041,7 +2031,6 @@ describe("metrics", () => {
       namespace: "AWS/DynamoDB",
       metricName: "UserErrors",
       statistic: "Sum",
-      region: "us-east-1",
     });
   });
 
@@ -2049,7 +2038,7 @@ describe("metrics", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "id", type: AttributeType.STRING },
     });
@@ -2062,14 +2051,13 @@ describe("metrics", () => {
         namespace: "AWS/DynamoDB",
         metricName: "ConditionalCheckFailedRequests",
         statistic: "Sum",
-        region: "us-east-1",
       },
     );
   });
 
   test("Can use metricSuccessfulRequestLatency without the TableName dimension", () => {
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "id", type: AttributeType.STRING },
     });
@@ -2086,7 +2074,7 @@ describe("metrics", () => {
 
   test("Using metricSuccessfulRequestLatency without the Operation dimension will fail", () => {
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "id", type: AttributeType.STRING },
     });
@@ -2104,7 +2092,7 @@ describe("metrics", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "id", type: AttributeType.STRING },
     });
@@ -2128,7 +2116,6 @@ describe("metrics", () => {
       namespace: "AWS/DynamoDB",
       metricName: "SuccessfulRequestLatency",
       statistic: "Average",
-      region: "us-east-1",
     });
   });
 });
@@ -2138,7 +2125,7 @@ describe("grants", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "my-table", {
       partitionKey: {
         name: "id",
@@ -2236,7 +2223,7 @@ describe("grants", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const user = new User(stack, "user");
 
     // WHEN
@@ -2264,7 +2251,7 @@ describe("grants", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "my-table", {
       partitionKey: {
         name: "id",
@@ -2283,7 +2270,7 @@ describe("grants", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "my-table", {
       partitionKey: {
         name: "id",
@@ -2318,7 +2305,7 @@ describe("grants", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "my-table", {
       partitionKey: {
         name: "id",
@@ -2337,7 +2324,7 @@ describe("grants", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "my-table", {
       partitionKey: {
         name: "id",
@@ -2381,7 +2368,7 @@ describe("grants", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     const table = new Table(stack, "my-table", {
       partitionKey: { name: "ID", type: AttributeType.STRING },
@@ -2435,7 +2422,7 @@ describe("grants", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = Table.fromTableName(stack, "MyTable", "my-table");
     const user = new User(stack, "user");
 
@@ -2450,7 +2437,7 @@ describe("grants", () => {
           actions: ["dynamodb:*"],
           effect: "Allow",
           resources: [
-            "arn:${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/my-table",
+            "arn:${data.aws_partition.Partitition.partition}:dynamodb:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:table/my-table",
           ],
         },
       ],
@@ -2469,7 +2456,7 @@ describe("secondary indexes", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: { name: "pkey", type: AttributeType.NUMBER },
     });
@@ -2498,7 +2485,7 @@ describe("secondary indexes", () => {
 describe("import", () => {
   test("report error when importing an external/existing table from invalid arn missing resource name", () => {
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     const tableArn = "arn:aws:dynamodb:us-east-1::table/";
     // WHEN
@@ -2509,7 +2496,7 @@ describe("import", () => {
 
   test("static fromTableArn(arn) allows importing an external/existing table from arn", () => {
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     const tableArn = "arn:aws:dynamodb:us-east-1:11111111:table/MyTable";
     const table = Table.fromTableArn(stack, "ImportedTable", tableArn);
@@ -2556,7 +2543,7 @@ describe("import", () => {
 
   test("static fromTableName(name) allows importing an external/existing table from table name", () => {
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     const tableName = "MyTable";
     const table = Table.fromTableName(stack, "ImportedTable", tableName);
@@ -2588,14 +2575,14 @@ describe("import", () => {
                 ],
                 effect: "Allow",
                 resources: expect.arrayContaining([
-                  "arn:${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTable",
+                  "arn:${data.aws_partition.Partitition.partition}:dynamodb:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTable",
                 ]),
               },
               {
                 actions: ["dynamodb:GetRecords", "dynamodb:GetShardIterator"],
                 effect: "Allow",
                 resources: expect.arrayContaining([
-                  "arn:${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTable",
+                  "arn:${data.aws_partition.Partitition.partition}:dynamodb:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTable",
                 ]),
               },
             ]),
@@ -2610,7 +2597,7 @@ describe("import", () => {
     });
 
     expect(stack.resolve(table.tableArn)).toBe(
-      `arn:\${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:\${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTable`,
+      "arn:${data.aws_partition.Partitition.partition}:dynamodb:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTable",
     );
     expect(stack.resolve(table.tableName)).toBe(tableName);
   });
@@ -2618,7 +2605,7 @@ describe("import", () => {
   describe("stream permissions on imported tables", () => {
     test("throw if no tableStreamArn is specified", () => {
       const app = Testing.app();
-      const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+      const stack = new AwsStack(app);
 
       const tableName = "MyTable";
       const table = Table.fromTableAttributes(stack, "ImportedTable", {
@@ -2639,7 +2626,7 @@ describe("import", () => {
 
     test("creates the correct list streams grant", () => {
       const app = Testing.app();
-      const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+      const stack = new AwsStack(app);
 
       const tableName = "MyTable";
       const tableStreamArn = "arn:foo:bar:baz:TrustMeThisIsATableStream";
@@ -2674,7 +2661,7 @@ describe("import", () => {
 
     test("creates the correct stream read grant", () => {
       const app = Testing.app();
-      const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+      const stack = new AwsStack(app);
 
       const tableName = "MyTable";
       const tableStreamArn = "arn:foo:bar:baz:TrustMeThisIsATableStream";
@@ -2718,7 +2705,7 @@ describe("import", () => {
 
     test("if an encryption key is included, encrypt/decrypt permissions are added to the principal for grantStreamRead", () => {
       const app = Testing.app();
-      const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+      const stack = new AwsStack(app);
 
       const tableName = "MyTable";
       const tableStreamArn = "arn:foo:bar:baz:TrustMeThisIsATableStream";
@@ -2772,7 +2759,7 @@ describe("import", () => {
 
     test("creates the correct index grant if indexes have been provided when importing", () => {
       const app = Testing.app();
-      const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+      const stack = new AwsStack(app);
 
       const table = Table.fromTableAttributes(stack, "ImportedTable", {
         tableName: "MyTableName",
@@ -2804,8 +2791,8 @@ describe("import", () => {
                   ],
                   effect: "Allow",
                   resources: [
-                    "arn:${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTableName",
-                    "arn:${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTableName/index/*",
+                    "arn:${data.aws_partition.Partitition.partition}:dynamodb:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTableName",
+                    "arn:${data.aws_partition.Partitition.partition}:dynamodb:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTableName/index/*",
                   ],
                 },
               ]),
@@ -2822,7 +2809,7 @@ describe("import", () => {
 
     test("creates the index permissions if grantIndexPermissions is provided", () => {
       const app = Testing.app();
-      const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+      const stack = new AwsStack(app);
 
       const table = Table.fromTableAttributes(stack, "ImportedTable", {
         tableName: "MyTableName",
@@ -2853,8 +2840,8 @@ describe("import", () => {
                   ],
                   effect: "Allow",
                   resources: [
-                    "arn:${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTableName",
-                    "arn:${data.aws_partition.Partitition.partition}:dynamodb:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTableName/index/*",
+                    "arn:${data.aws_partition.Partitition.partition}:dynamodb:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTableName",
+                    "arn:${data.aws_partition.Partitition.partition}:dynamodb:${data.aws_region.Region.name}:${data.aws_caller_identity.CallerIdentity.account_id}:table/MyTableName/index/*",
                   ],
                 },
               ]),
@@ -2876,7 +2863,7 @@ describe("global", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     // WHEN
     new Table(stack, "Table", {
@@ -2906,7 +2893,7 @@ describe("global", () => {
   //   // GIVEN
 
   //   const app = Testing.app();
-  //   const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  //   const stack = new AwsStack(app);
 
   //   // WHEN
   //   new Table(stack, "Table", {
@@ -2937,7 +2924,7 @@ describe("global", () => {
 
   test("grantReadData", () => {
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
     const table = new Table(stack, "Table", {
       partitionKey: {
         name: "id",
@@ -3002,7 +2989,6 @@ describe("global", () => {
     // GIVEN
     const app = new App();
     const stack1 = new AwsStack(app, "Stack1", {
-      ...defaultAwsStackProps,
       providerConfig: { region: "us-east-1" },
     });
     const table = new Table(stack1, "Table", {
@@ -3021,7 +3007,6 @@ describe("global", () => {
       },
     });
     const stack2 = new AwsStack(app, "Stack2", {
-      ...defaultAwsStackProps,
       providerConfig: { region: "eu-west-2" },
     });
     const user = new User(stack2, "User");
@@ -3076,7 +3061,6 @@ describe("global", () => {
     // GIVEN
     const app = new App();
     const stack1 = new AwsStack(app, "Stack1", {
-      ...defaultAwsStackProps,
       providerConfig: { region: "us-east-1" },
     });
     const table = new Table(stack1, "Table", {
@@ -3088,7 +3072,6 @@ describe("global", () => {
       replicationRegions: ["eu-west-2", "eu-central-1"],
     });
     const stack2 = new AwsStack(app, "Stack2", {
-      ...defaultAwsStackProps,
       providerConfig: { region: "eu-west-2" },
     });
     const user = new User(stack2, "User");
@@ -3115,7 +3098,7 @@ describe("global", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     // WHEN
     new Table(stack, "Table", {
@@ -3139,7 +3122,7 @@ describe("global", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     // WHEN
     const table = new Table(stack, "Table", {
@@ -3167,7 +3150,7 @@ describe("global", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     // WHEN
     const table = new Table(stack, "Table", {
@@ -3199,7 +3182,7 @@ describe("global", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     // THEN
     expect(
@@ -3219,7 +3202,6 @@ describe("global", () => {
     // GIVEN
     const app = new App();
     const stack = new AwsStack(app, "Stack", {
-      ...defaultAwsStackProps,
       providerConfig: { region: "us-east-1" },
     });
 
@@ -3243,7 +3225,6 @@ describe("global", () => {
   //   // GIVEN
   //   const app = new App();
   //   const stack = new AwsStack(app, "Stack", {
-  //     ...defaultAwsStackProps,
   //     providerConfig: { region: "eu-west-1" },
   //   });
 
@@ -3266,7 +3247,7 @@ describe("global", () => {
   //   // GIVEN
 
   //   const app = Testing.app();
-  //   const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  //   const stack = new AwsStack(app);
 
   //   // WHEN
   //   new Table(stack, "Table", {
@@ -3294,7 +3275,7 @@ describe("global", () => {
 //   // Check that the "stateful L1 validation generation" works. Do it here
 //   // because we know DDB tables are stateful.
 //   const app = new App();
-//   const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
+//   const stack = new AwsStack(app, "Stack");
 
 //   class FakeTableL2 extends AwsConstructBase {
 //     public get outputs(): { [key: string]: string } {
@@ -3321,7 +3302,7 @@ describe("global", () => {
 test("System errors metrics", () => {
   // GIVEN
   const app = new App();
-  const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
 
   // WHEN
   const table = new Table(stack, "Table", {
@@ -3373,7 +3354,7 @@ test("System errors metrics", () => {
 test("Throttled requests metrics", () => {
   // GIVEN
   const app = new App();
-  const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
 
   // WHEN
   const table = new Table(stack, "Table", {
@@ -3423,7 +3404,7 @@ function testGrant(
   // GIVEN
 
   const app = Testing.app();
-  const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
   const table = new Table(stack, "my-table", {
     partitionKey: { name: "ID", type: AttributeType.STRING },
   });
@@ -3443,7 +3424,7 @@ function testGrant(
     statement,
   });
   template.toHaveResourceWithProperties(IamUserPolicy, {
-    name: "TestStackuserDefaultPolicy428F7825",
+    name: "userDefaultPolicy7C8F875C",
     user: "${aws_iam_user.user_2C2B57AE.name}",
     policy: "${data.aws_iam_policy_document.user_DefaultPolicy_17137D9B.json}",
   });
@@ -3454,7 +3435,7 @@ describe("deletionProtectionEnabled", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     // WHEN
     new Table(stack, "Table", {
@@ -3475,7 +3456,7 @@ describe("deletionProtectionEnabled", () => {
     // GIVEN
 
     const app = Testing.app();
-    const stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    const stack = new AwsStack(app);
 
     // WHEN
     new Table(stack, "Table", {
@@ -3502,7 +3483,7 @@ describe("import source", () => {
 
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "TestStack", defaultAwsStackProps);
+    stack = new AwsStack(app);
     bucket = new Bucket(stack, "Bucket");
   });
 
@@ -3645,7 +3626,7 @@ describe("import source", () => {
 test("Resource policy test", () => {
   // GIVEN
   const app = new App();
-  const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
 
   const doc = new PolicyDocument(stack, "Doc", {
     statement: [
@@ -3696,7 +3677,7 @@ test("Resource policy test", () => {
 test("Warm Throughput test on-demand", () => {
   // GIVEN
   const app = new App();
-  const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
 
   // WHEN
   const table = new Table(stack, "Table", {
@@ -3757,7 +3738,7 @@ test("Warm Throughput test on-demand", () => {
 test("Warm Throughput test provisioned", () => {
   // GIVEN
   const app = new App();
-  const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
 
   // WHEN
   const table = new Table(stack, "Table", {
@@ -3830,7 +3811,7 @@ test("Warm Throughput test provisioned", () => {
 test("Kinesis Stream - precision timestamp", () => {
   // GIVEN
   const app = new App();
-  const stack = new AwsStack(app, "Stack", defaultAwsStackProps);
+  const stack = new AwsStack(app);
 
   const stream = new Stream(stack, "Stream");
 

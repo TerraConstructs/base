@@ -2,21 +2,13 @@
 
 import "cdktn/lib/testing/adapters/jest";
 import { route53Record } from "@cdktn/provider-aws";
-import { Testing } from "cdktn";
 import { edge, AwsStack, compute } from "../../../src/aws";
 import { Template } from "../../assertions";
-
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-const providerConfig = { region: "us-east-1" };
 
 describe("Load-Balancers", () => {
   test("use ALB as record target", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "VPC", { maxAzs: 2 });
     const lb = new compute.ApplicationLoadBalancer(stack, "LB", { vpc });
     const zone = new edge.DnsZone(stack, "HostedZone", {
@@ -52,7 +44,7 @@ describe("Load-Balancers", () => {
 
   test("use ALB as record target with health check", () => {
     // GIVEN
-    const stack = getAwsStack();
+    const stack = new AwsStack();
     const vpc = new compute.Vpc(stack, "VPC", { maxAzs: 2 });
     const lb = new compute.ApplicationLoadBalancer(stack, "LB", {
       vpc,
@@ -88,13 +80,3 @@ describe("Load-Balancers", () => {
   //   },
   // });
 });
-
-function getAwsStack(): AwsStack {
-  const app = Testing.app();
-  return new AwsStack(app, "TestStack", {
-    environmentName,
-    gridUUID,
-    providerConfig,
-    gridBackendConfig,
-  });
-}

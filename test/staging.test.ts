@@ -21,12 +21,6 @@ import {
 
 class MyStack extends StackBase {}
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const STUB_INPUT_FILE = "/tmp/docker-stub.input";
 const STUB_INPUT_CONCAT_FILE = "/tmp/docker-stub.input.concat";
 
@@ -90,11 +84,7 @@ describe("staging", () => {
         },
       }),
     );
-    stack = new MyStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      gridBackendConfig,
-    });
+    stack = new MyStack(app, "TestStack");
   });
 
   afterEach(() => {
@@ -248,11 +238,7 @@ describe("staging", () => {
         },
       }),
     );
-    const stack2 = new MyStack(app2, "stack", {
-      environmentName,
-      gridUUID,
-      gridBackendConfig,
-    });
+    const stack2 = new MyStack(app2, "stack");
 
     // WHEN
     const staging1 = new AssetStaging(stack, "Asset", { sourcePath });
@@ -371,11 +357,7 @@ describe("staging", () => {
         },
       }),
     );
-    const saltedStack = new MyStack(saltedApp, "stack", {
-      environmentName,
-      gridUUID,
-      gridBackendConfig,
-    });
+    const saltedStack = new MyStack(saltedApp, "stack");
 
     // WHEN
     const asset = new AssetStaging(stack, "X", { sourcePath: directory });
@@ -1513,11 +1495,7 @@ describe("staging", () => {
         },
       }),
     );
-    const stack2 = new MyStack(app2, "stack", {
-      environmentName,
-      gridUUID,
-      gridBackendConfig,
-    });
+    const stack2 = new MyStack(app2, "stack");
 
     // WHEN
     const staging1 = new AssetStaging(stack, "Asset", {
@@ -1731,11 +1709,7 @@ describe("staging with docker cp", () => {
         },
       }),
     );
-    stack = new MyStack(app, "TestStack", {
-      environmentName,
-      gridUUID,
-      gridBackendConfig,
-    });
+    stack = new MyStack(app, "TestStack");
   });
 
   afterEach(() => {

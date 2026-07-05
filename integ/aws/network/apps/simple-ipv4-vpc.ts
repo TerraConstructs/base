@@ -19,7 +19,7 @@ const app = new App({
   outdir,
 });
 const stack = new aws.AwsStack(app, stackName, {
-  gridUUID: "12345678-1234",
+  gridUUID: "g12345678-1234",
   environmentName,
   // gridBackendConfig: {
   //   address: "localhost:3234",

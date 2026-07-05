@@ -8,13 +8,6 @@ import * as cloudwatch from "../../../../src/aws/cloudwatch";
 import * as actions from "../../../../src/aws/cloudwatch/actions";
 import { Template } from "../../../assertions";
 
-const environmentName = "Test";
-const gridUUID = "123e4567-e89b-12d3";
-const providerConfig = { region: "us-east-1" };
-const gridBackendConfig = {
-  address: "http://localhost:3000",
-};
-
 const arnPrefix = (service: string = "ssm", region: string = "") =>
   `arn:\${data.aws_partition.Partitition.partition}:${service}:${region}:\${data.aws_caller_identity.CallerIdentity.account_id}`;
 
@@ -23,12 +16,7 @@ describe("SSM Actions", () => {
   let stack: AwsStack;
   beforeEach(() => {
     app = Testing.app();
-    stack = new AwsStack(app, "MyStack", {
-      environmentName,
-      gridUUID,
-      providerConfig,
-      gridBackendConfig,
-    });
+    stack = new AwsStack(app);
   });
 
   test("can use ssm with critical severity and performance category as alarm action", () => {
@@ -55,7 +43,7 @@ describe("SSM Actions", () => {
       cloudwatchMetricAlarm.CloudwatchMetricAlarm,
       {
         alarm_actions: [
-          `${arnPrefix("ssm", "us-east-1")}:opsitem:1#CATEGORY=Performance`,
+          `${arnPrefix("ssm", "${data.aws_region.Region.name}")}:opsitem:1#CATEGORY=Performance`,
         ],
       },
     );
@@ -79,7 +67,9 @@ describe("SSM Actions", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       cloudwatchMetricAlarm.CloudwatchMetricAlarm,
       {
-        alarm_actions: [`${arnPrefix("ssm", "us-east-1")}:opsitem:3`],
+        alarm_actions: [
+          `${arnPrefix("ssm", "${data.aws_region.Region.name}")}:opsitem:3`,
+        ],
       },
     );
   });
