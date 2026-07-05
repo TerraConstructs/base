@@ -53,7 +53,7 @@ const app = new App({
   outdir,
 });
 const stack = new SnsToSqsStack(app, stackName, {
-  gridUUID: "12345678-1234",
+  gridUUID: "g12345678-1234",
   environmentName,
   providerConfig: {
     region,

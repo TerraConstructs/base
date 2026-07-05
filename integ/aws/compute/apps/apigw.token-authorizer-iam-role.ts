@@ -79,7 +79,7 @@ const app = new App({
  * * `curl -s -o /dev/null -w "%{http_code}" -H 'Authorization: allow' <url>` should return 200
  */
 const stack = new SampleStack(app, stackName, {
-  gridUUID: "12345678-333",
+  gridUUID: "g12345678-333",
   environmentName,
   providerConfig: {
     region,

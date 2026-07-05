@@ -103,7 +103,7 @@ const app = new App({
 // `curl -s -o /dev/null -w "%{http_code}" -H 'Authorization: deny' <url>?allow=yes` should return 403
 // `curl -s -o /dev/null -w "%{http_code}" -H 'Authorization: allow' <url>?allow=yes` should return 200
 const stack = new SampleStack(app, stackName, {
-  gridUUID: "12345678-111",
+  gridUUID: "g12345678-111",
   environmentName,
   providerConfig: {
     region,
