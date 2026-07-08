@@ -15,6 +15,38 @@ import { withResolved } from "../../token";
 import { IKey } from "../encryption";
 import * as iam from "../iam";
 
+export interface ProvisionedPollerConfig {
+  /**
+   * The minimum number of pollers that should be provisioned.
+   *
+   * Valid Range:
+   * * For Amazon SQS: Minimum value of 2. Maximum value of 200. Default: 2.
+   * * For Amazon MSK, self-managed Apache Kafka, and Amazon MQ: Minimum value of 1. Maximum value of 200. Default: 1.
+   *
+   * @default - 2 for SQS, 1 for MSK/Kafka/MQ
+   */
+  readonly minimumPollers?: number;
+
+  /**
+   * The maximum number of pollers that can be provisioned.
+   *
+   * Valid Range:
+   * * For Amazon SQS: Minimum value of 2. Maximum value of 2000. Default: 200.
+   * * For Amazon MSK, self-managed Apache Kafka, and Amazon MQ: Minimum value of 1. Maximum value of 2000. Default: 200.
+   *
+   * @default 200
+   */
+  readonly maximumPollers?: number;
+
+  /**
+   * An optional identifier that groups multiple event source mappings to share
+   * poller capacity and reduce costs.
+   *
+   * @default - not set, dedicated compute resource per event source.
+   */
+  readonly pollerGroupName?: string;
+}
+
 export interface EventSourceMappingOptions extends AwsConstructProps {
   /**
    * The Amazon Resource Name (ARN) of the event source. Any record added to
@@ -101,6 +133,15 @@ export interface EventSourceMappingOptions extends AwsConstructProps {
    * @default - No specific limit.
    */
   readonly maxConcurrency?: number;
+
+  /**
+   * Configuration for provisioned pollers that read from the event source.
+   * When specified, allows control over the minimum and maximum number of
+   * pollers that can be provisioned to process events from the source.
+   *
+   * @default - no provisioned pollers
+   */
+  readonly provisionedPollerConfig?: ProvisionedPollerConfig;
 
   /**
    * The maximum age of a record that Lambda sends to a function for processing.
@@ -360,6 +401,32 @@ export class EventSourceMapping
       );
     }
 
+    if (props.provisionedPollerConfig) {
+      const { minimumPollers, maximumPollers } = props.provisionedPollerConfig;
+      const hasMin =
+        minimumPollers !== undefined &&
+        !cdktn.Token.isUnresolved(minimumPollers);
+      const hasMax =
+        maximumPollers !== undefined &&
+        !cdktn.Token.isUnresolved(maximumPollers);
+
+      if (hasMin && (minimumPollers < 1 || minimumPollers > 200)) {
+        throw new Error(
+          "Minimum provisioned pollers must be between 1 and 200 inclusive",
+        );
+      }
+      if (hasMax && (maximumPollers < 1 || maximumPollers > 2000)) {
+        throw new Error(
+          "Maximum provisioned pollers must be between 1 and 2000 inclusive",
+        );
+      }
+      if (hasMin && hasMax && minimumPollers > maximumPollers) {
+        throw new Error(
+          "Minimum provisioned pollers must be less than or equal to maximum provisioned pollers",
+        );
+      }
+    }
+
     if (
       props.maxRecordAge &&
       (props.maxRecordAge.toSeconds() < 60 ||
@@ -488,6 +555,7 @@ export class EventSourceMapping
         scalingConfig: props.maxConcurrency
           ? { maximumConcurrency: props.maxConcurrency }
           : undefined,
+        provisionedPollerConfig: props.provisionedPollerConfig,
         sourceAccessConfiguration: props.sourceAccessConfigurations,
         selfManagedEventSource,
         filterCriteria: props.filters ? { filter: props.filters } : undefined,

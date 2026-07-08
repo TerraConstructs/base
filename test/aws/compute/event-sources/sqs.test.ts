@@ -620,6 +620,111 @@ describe("SQSEventSource", () => {
     );
   });
 
+  test("adding provisionedPollerConfig", () => {
+    // GIVEN
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
+
+    // WHEN
+    fn.addEventSource(
+      new compute.sources.SqsEventSource(q, {
+        provisionedPollerConfig: {
+          minimumPollers: 2,
+          maximumPollers: 10,
+        },
+      }),
+    );
+
+    // THEN
+    Template.synth(stack).toHaveResourceWithProperties(
+      lambdaEventSourceMapping.LambdaEventSourceMapping,
+      {
+        provisioned_poller_config: {
+          minimum_pollers: 2,
+          maximum_pollers: 10,
+        },
+      },
+    );
+  });
+
+  test.each([1, 201])(
+    "fails if minimumPollers for SQS is out of range (%i)",
+    (minimumPollers) => {
+      // GIVEN
+      const fn = new TestFunction(stack, "Fn");
+      const q = new notify.Queue(stack, "Q");
+
+      // WHEN/THEN
+      expect(() =>
+        fn.addEventSource(
+          new compute.sources.SqsEventSource(q, {
+            provisionedPollerConfig: { minimumPollers },
+          }),
+        ),
+      ).toThrow(
+        `Minimum provisioned pollers for SQS must be between 2 and 200 inclusive, got: ${minimumPollers}`,
+      );
+    },
+  );
+
+  test.each([1, 2001])(
+    "fails if maximumPollers for SQS is out of range (%i)",
+    (maximumPollers) => {
+      // GIVEN
+      const fn = new TestFunction(stack, "Fn");
+      const q = new notify.Queue(stack, "Q");
+
+      // WHEN/THEN
+      expect(() =>
+        fn.addEventSource(
+          new compute.sources.SqsEventSource(q, {
+            provisionedPollerConfig: { maximumPollers },
+          }),
+        ),
+      ).toThrow(
+        `Maximum provisioned pollers for SQS must be between 2 and 2000 inclusive, got: ${maximumPollers}`,
+      );
+    },
+  );
+
+  test("fails if minimumPollers exceeds maximumPollers for SQS", () => {
+    // GIVEN
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
+
+    // WHEN/THEN
+    expect(() =>
+      fn.addEventSource(
+        new compute.sources.SqsEventSource(q, {
+          provisionedPollerConfig: {
+            minimumPollers: 10,
+            maximumPollers: 2,
+          },
+        }),
+      ),
+    ).toThrow(
+      "Minimum provisioned pollers must be less than or equal to maximum provisioned pollers, got: min=10, max=2",
+    );
+  });
+
+  test("fails if provisionedPollerConfig and maxConcurrency are specified together", () => {
+    // GIVEN
+    const fn = new TestFunction(stack, "Fn");
+    const q = new notify.Queue(stack, "Q");
+
+    // WHEN/THEN
+    expect(() =>
+      fn.addEventSource(
+        new compute.sources.SqsEventSource(q, {
+          maxConcurrency: 5,
+          provisionedPollerConfig: { minimumPollers: 2, maximumPollers: 10 },
+        }),
+      ),
+    ).toThrow(
+      "provisionedPollerConfig and maxConcurrency are mutually exclusive — specify only one",
+    );
+  });
+
   test("fails if maxConcurrency < 2", () => {
     // GIVEN
     const fn = new TestFunction(stack, "Fn");
