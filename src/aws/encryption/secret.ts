@@ -119,6 +119,13 @@ export interface ISecret extends IAwsConstruct {
    * must supply their own implementation of `ISecretAttachmentTarget`
    * until those modules exist. See `ISecretAttachmentTarget` for details.
    *
+   * NOTE: merging the target's `connectionFields` into the secret's JSON
+   * value is only supported when this secret is an owned `Secret` construct
+   * whose value is a JSON object (`secretObjectValue`, or
+   * `generateSecretString` with a `secretStringTemplate`). Calling `attach()`
+   * with `connectionFields` on an imported secret, or on a `Secret` whose
+   * value is a scalar, throws a `ValidationError` at synthesis time.
+   *
    * @param target The target to attach.
    * @returns An attached secret
    */
@@ -620,7 +627,11 @@ export class Secret extends SecretBase {
     return new (class extends SecretBase {
       public readonly encryptionKey = attrs.encryptionKey;
       public readonly secretArn = secretArn;
-      public readonly secretName = parseSecretName(scope, secretArn);
+      public readonly secretName = parseSecretName(
+        scope,
+        secretArn,
+        secretArnIsPartial,
+      );
       protected readonly autoCreatePolicy = false;
       public get secretFullArn() {
         return secretArnIsPartial ? undefined : secretArn;
@@ -652,6 +663,17 @@ export class Secret extends SecretBase {
    * `secretsmanagerSecretVersion` during `toTerraform()`.
    */
   private readonly baseSecretString?: string;
+  /**
+   * Whether `baseSecretString` renders a JSON object (as opposed to a scalar
+   * string). Only `secretObjectValue`, or `generateSecretString` combined with
+   * a `secretStringTemplate`, produce a JSON object; a bare
+   * `generateSecretString` (scalar generated password), `secretStringValue`,
+   * or the default (SecretsManager-generated random password) are all
+   * scalars. `attach()`'s `connectionFields` can only be merged (via
+   * `jsonencode(merge(jsondecode(base), fields))`) when the base is a JSON
+   * object -- `jsondecode()` of a scalar string fails at plan/apply time.
+   */
+  private readonly baseValueIsObject: boolean;
   /**
    * Connection details contributed by `attach()` to be merged into the secret
    * value. Registered (after construction) via `_attachConnectionFields()`.
@@ -704,6 +726,10 @@ export class Secret extends SecretBase {
     let secretString = props.secretObjectValue
       ? this.resolveSecretObjectValue(props.secretObjectValue)
       : props.secretStringValue?.toString();
+    // `secretObjectValue` is the only construction path (so far) that
+    // produces a JSON object; refined below once `generateSecretString` is
+    // resolved (a `secretStringTemplate` also produces a JSON object).
+    let baseValueIsObject = !!props.secretObjectValue;
 
     // Mirrors upstream aws-cdk: when neither a secret string nor
     // generateSecretString options are provided, default to generating a
@@ -740,6 +766,7 @@ export class Secret extends SecretBase {
         secretStringTemplate[generateSecretString.generateStringKey!] =
           this.randomPassword.randomPassword;
         secretString = Fn.jsonencode(secretStringTemplate);
+        baseValueIsObject = true;
       } else {
         secretString = this.randomPassword.randomPassword;
       }
@@ -784,6 +811,7 @@ export class Secret extends SecretBase {
     // version for the same secret.
     // TODO: Use Ephemeral Resources as soon as Hashicorp decides to update CDKTF T_T
     this.baseSecretString = secretString;
+    this.baseValueIsObject = baseValueIsObject;
 
     // TODO: Should there be a secretVersionArn property?
     this.secretArn = this.resource.arn;
@@ -910,8 +938,14 @@ export class Secret extends SecretBase {
    * @internal
    */
   public _attachConnectionFields(fields?: { [key: string]: string }): void {
-    if (!fields) {
+    if (!fields || Object.keys(fields).length === 0) {
       return;
+    }
+    if (!this.baseValueIsObject) {
+      throw new ValidationError(
+        "Cannot merge attachment connectionFields into this Secret because its value is not a JSON object. Use secretObjectValue, or generateSecretString with a secretStringTemplate.",
+        this,
+      );
     }
     this.attachmentConnectionFields = {
       ...(this.attachmentConnectionFields ?? {}),
@@ -1124,6 +1158,14 @@ export class SecretTargetAttachment
       (this.attachedSecret as Secret)._attachConnectionFields(
         targetProps.connectionFields,
       );
+    } else if (
+      targetProps.connectionFields &&
+      Object.keys(targetProps.connectionFields).length > 0
+    ) {
+      throw new ValidationError(
+        "Cannot merge attachment connectionFields into an imported secret; attach() with connectionFields is only supported for owned Secret constructs.",
+        this,
+      );
     }
 
     this.encryptionKey = this.attachedSecret.encryptionKey;
@@ -1225,8 +1267,20 @@ export interface SecretStringGenerator {
   readonly generateStringKey?: string;
 }
 
-/** Parses the secret name from the ARN. */
-function parseSecretName(construct: IConstruct, secretArn: string) {
+/**
+ * Parses the secret name from the ARN.
+ *
+ * @param isPartialArn Whether `secretArn` is a partial ARN (i.e. one without
+ * the Secrets Manager-supplied 6-character suffix, per definition). A partial
+ * ARN's resource name is never followed by that suffix, so it must be
+ * returned in full -- a trailing `-XXXXXX` segment on a partial ARN is part
+ * of the actual secret name, not a suffix to strip.
+ */
+function parseSecretName(
+  construct: IConstruct,
+  secretArn: string,
+  isPartialArn = false,
+) {
   const resourceName = AwsStack.ofAwsConstruct(construct).splitArn(
     secretArn,
     ArnFormat.COLON_RESOURCE_NAME,
@@ -1234,6 +1288,13 @@ function parseSecretName(construct: IConstruct, secretArn: string) {
   if (resourceName) {
     // Can't operate on the token to remove the SecretsManager suffix, so just return the full secret name
     if (Token.isUnresolved(resourceName)) {
+      return resourceName;
+    }
+
+    if (isPartialArn) {
+      // A partial ARN by definition carries no AWS-supplied suffix, so the
+      // full resource name IS the secret name -- even if its trailing
+      // hyphen-separated segment happens to be 6 characters long.
       return resourceName;
     }
 

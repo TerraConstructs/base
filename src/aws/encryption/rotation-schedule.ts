@@ -39,7 +39,10 @@ export interface RotationScheduleOptions {
    * The minimum value is 4 hours.
    * The maximum value is 1000 days.
    *
-   * A value of zero (`Duration.days(0)`) will not create RotationRules.
+   * A value of zero (e.g. `Duration.days(0)`) is rejected: the
+   * `aws_secretsmanager_secret_rotation` Terraform resource requires a
+   * `rotation_rules` block with `automatically_after_days` or
+   * `schedule_expression` set, so a zero duration cannot be represented.
    *
    * @default Duration.days(30)
    */
@@ -155,42 +158,47 @@ export class RotationSchedule extends AwsConstructBase {
     if (props.automaticallyAfter) {
       const automaticallyAfterMillis =
         props.automaticallyAfter.toMilliseconds();
-      if (automaticallyAfterMillis > 0) {
-        if (automaticallyAfterMillis < Duration.hours(4).toMilliseconds()) {
-          throw new ValidationError(
-            `automaticallyAfter must not be smaller than 4 hours, got ${props.automaticallyAfter.toHours()} hours`,
-            this,
-          );
-        }
-        if (automaticallyAfterMillis > Duration.days(1000).toMilliseconds()) {
-          throw new ValidationError(
-            `automaticallyAfter must not be greater than 1000 days, got ${props.automaticallyAfter.toDays()} days`,
-            this,
-          );
-        }
-        // Terraform's `automatically_after_days` only accepts whole days. For
-        // durations that are not an exact number of days (e.g. hours), fall
-        // back to `schedule_expression`, mirroring the `rate(...)` expression
-        // upstream aws-cdk always uses via `Schedule.rate()`.
-        if (
-          automaticallyAfterMillis % Duration.days(1).toMilliseconds() ===
-          0
-        ) {
-          automaticallyAfterDays = props.automaticallyAfter.toDays();
-        } else {
-          scheduleExpression = compute.Schedule.rate(
-            props.automaticallyAfter,
-          ).expressionString;
-        }
+      if (automaticallyAfterMillis === 0) {
+        // `rotation_rules` is a required block for the underlying Terraform
+        // resource (unlike CloudFormation's optional `RotationRules`), and the
+        // AWS provider rejects `rotation_rules {}` unless one of
+        // `automatically_after_days`/`schedule_expression` is set. A zero
+        // duration therefore cannot be represented and must be rejected here.
+        throw new ValidationError(
+          "automaticallyAfter must be a non-zero duration: aws_secretsmanager_secret_rotation requires a rotation_rules block with automatically_after_days or schedule_expression, so a zero duration cannot be represented.",
+          this,
+        );
+      }
+      if (automaticallyAfterMillis < Duration.hours(4).toMilliseconds()) {
+        throw new ValidationError(
+          `automaticallyAfter must not be smaller than 4 hours, got ${props.automaticallyAfter.toHours()} hours`,
+          this,
+        );
+      }
+      if (automaticallyAfterMillis > Duration.days(1000).toMilliseconds()) {
+        throw new ValidationError(
+          `automaticallyAfter must not be greater than 1000 days, got ${props.automaticallyAfter.toDays()} days`,
+          this,
+        );
+      }
+      // Terraform's `automatically_after_days` only accepts whole days. For
+      // durations that are not an exact number of days (e.g. hours), fall
+      // back to `schedule_expression`, mirroring the `rate(...)` expression
+      // upstream aws-cdk always uses via `Schedule.rate()`.
+      if (automaticallyAfterMillis % Duration.days(1).toMilliseconds() === 0) {
+        automaticallyAfterDays = props.automaticallyAfter.toDays();
+      } else {
+        scheduleExpression = compute.Schedule.rate(
+          props.automaticallyAfter,
+        ).expressionString;
       }
     } else {
       automaticallyAfterDays = 30;
     }
 
-    // `rotation_rules` is a required block for the underlying Terraform
-    // resource (unlike CloudFormation's optional `RotationRules`), so a
-    // value of zero (no automatic rotation configured) still needs an
-    // (empty) `rotationRules` object to satisfy the provider schema.
+    // At this point exactly one of `automaticallyAfterDays`/`scheduleExpression`
+    // is set (a zero duration is rejected above), so `rotationRules` always
+    // satisfies the provider's requirement of at least one field being set.
     let rotationRules: secretsmanagerSecretRotation.SecretsmanagerSecretRotationRotationRules =
       {};
     if (automaticallyAfterDays) {

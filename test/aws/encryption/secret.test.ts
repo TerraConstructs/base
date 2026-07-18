@@ -840,6 +840,44 @@ test("fromSecretPartialArn", () => {
   );
 });
 
+test("fromSecretPartialArn preserves a secret name whose trailing hyphen-separated segment is 6 characters", () => {
+  // GIVEN: a partial ARN by definition carries no Secrets Manager-supplied
+  // suffix, so a trailing "-abcdef" here is part of the real secret name,
+  // not a suffix to strip.
+  const secretArn =
+    "arn:aws:secretsmanager:us-east-1:111122223333:secret:orders-abcdef";
+
+  // WHEN
+  const secret = encryption.Secret.fromSecretPartialArn(
+    stack,
+    "Secret",
+    secretArn,
+  );
+
+  // THEN
+  expect(secret.secretName).toBe("orders-abcdef");
+  expect(secret.secretArn).toBe(secretArn);
+  expect(secret.secretFullArn).toBeUndefined();
+});
+
+test("fromSecretCompleteArn still strips the Secrets Manager 6-character suffix", () => {
+  // GIVEN: a complete ARN DOES carry the AWS-supplied suffix, so it must
+  // still be stripped from `secretName`.
+  const secretArn =
+    "arn:aws:secretsmanager:us-east-1:111122223333:secret:orders-abcdef";
+
+  // WHEN
+  const secret = encryption.Secret.fromSecretCompleteArn(
+    stack,
+    "Secret",
+    secretArn,
+  );
+
+  // THEN
+  expect(secret.secretName).toBe("orders");
+  expect(secret.secretFullArn).toBe(secretArn);
+});
+
 test("fromSecretPartialArn - grants", () => {
   // GIVEN
   const secretArn =
@@ -1082,6 +1120,92 @@ describe("attachment", () => {
     expect(secretString).toContain("jsondecode(");
     expect(secretString).toContain("db.example.com");
     expect(secretString).toContain("appdb");
+  });
+
+  function mockTargetWithConnectionFields(connectionFields: {
+    [key: string]: string;
+  }): encryption.ISecretAttachmentTarget {
+    return {
+      asSecretAttachmentTarget: () => ({
+        targetId: "target-id",
+        targetType: encryption.AttachmentTargetType.RDS_DB_INSTANCE,
+        connectionFields,
+      }),
+    };
+  }
+
+  test("attach() with connectionFields throws when the secret's base value is not a JSON object (default)", () => {
+    // GIVEN: default Secret -- SecretsManager generates a scalar random password.
+    const secret = new encryption.Secret(stack, "Secret");
+
+    // WHEN/THEN
+    expect(() =>
+      secret.attach(mockTargetWithConnectionFields({ engine: "postgres" })),
+    ).toThrow(
+      /Cannot merge attachment connectionFields into this Secret because its value is not a JSON object\. Use secretObjectValue, or generateSecretString with a secretStringTemplate\./,
+    );
+  });
+
+  test("attach() with connectionFields throws when secretStringValue is a scalar", () => {
+    // GIVEN
+    const secret = new encryption.Secret(stack, "Secret", {
+      secretStringValue: "plain-string",
+    });
+
+    // WHEN/THEN
+    expect(() =>
+      secret.attach(mockTargetWithConnectionFields({ engine: "postgres" })),
+    ).toThrow(
+      /Cannot merge attachment connectionFields into this Secret because its value is not a JSON object\./,
+    );
+  });
+
+  test("attach() with connectionFields succeeds when secretObjectValue is a JSON object", () => {
+    // GIVEN
+    const secret = new encryption.Secret(stack, "Secret", {
+      secretObjectValue: {
+        username: "admin",
+        password: "hunter2",
+      },
+    });
+
+    // WHEN
+    const attached = secret.attach(
+      mockTargetWithConnectionFields({
+        engine: "postgres",
+        host: "db.example.com",
+      }),
+    );
+
+    // THEN: exactly one version is synthesized, merging the connection fields
+    // over the base JSON object.
+    expect(attached.secretArn).toBe(secret.secretArn);
+    const versions = Template.resourceObjects(
+      stack,
+      secretsmanagerSecretVersion.SecretsmanagerSecretVersion,
+    );
+    expect(Object.keys(versions)).toHaveLength(1);
+    const secretString = (Object.values(versions)[0] as any)
+      .secret_string as string;
+    expect(secretString).toContain("merge(");
+    expect(secretString).toContain("jsondecode(");
+    expect(secretString).toContain("db.example.com");
+  });
+
+  test("attach() with connectionFields throws for an imported secret", () => {
+    // GIVEN
+    const imported = encryption.Secret.fromSecretCompleteArn(
+      stack,
+      "Imported",
+      "arn:aws:secretsmanager:us-east-1:123456789012:secret:my-imported-secret-Ab12Cd",
+    );
+
+    // WHEN/THEN
+    expect(() =>
+      imported.attach(mockTargetWithConnectionFields({ engine: "postgres" })),
+    ).toThrow(
+      /Cannot merge attachment connectionFields into an imported secret; attach\(\) with connectionFields is only supported for owned Secret constructs\./,
+    );
   });
 
   test("attach() adds no second version and the single version is idempotent across synth passes", () => {

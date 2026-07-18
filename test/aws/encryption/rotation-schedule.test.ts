@@ -150,13 +150,70 @@ describe("default tests", () => {
   describe("hosted rotation", () => {
     // NOTE: Hosted rotation is a CloudFormation-specific feature (`AWS::SecretsManager-2020-07-23` transform)
     // and is not directly supported by the `aws_secretsmanager_secret_rotation` Terraform resource.
-    // These tests cannot be converted.
-    test.skip("all hosted rotation tests are skipped", () => {});
+    // These aws-cdk tests cannot be converted 1:1, but the TerraConstructs-specific
+    // behavior they'd otherwise leave untested is covered below.
+
+    test("throws when neither rotationLambda nor hostedRotation is specified", () => {
+      // GIVEN
+      const secret = new encryption.Secret(stack, "Secret");
+
+      // WHEN/THEN
+      expect(
+        () =>
+          new encryption.RotationSchedule(stack, "RotationSchedule", {
+            secret,
+          }),
+      ).toThrow(
+        /One of `rotationLambda` or `hostedRotation` must be specified\./,
+      );
+    });
+
+    test("throws when both rotationLambda and hostedRotation are specified", () => {
+      // GIVEN
+      const secret = new encryption.Secret(stack, "Secret");
+      const rotationLambda = new compute.LambdaFunction(stack, "Lambda", {
+        runtime: compute.Runtime.NODEJS_LATEST,
+        code: compute.Code.fromInline("export.handler = event => event;"),
+        handler: "index.handler",
+      });
+
+      // WHEN/THEN
+      expect(
+        () =>
+          new encryption.RotationSchedule(stack, "RotationSchedule", {
+            secret,
+            rotationLambda,
+            hostedRotation: encryption.HostedRotation.mysqlSingleUser(),
+          }),
+      ).toThrow(
+        /One of `rotationLambda` or `hostedRotation` must be specified\./,
+      );
+    });
+
+    test("throws when hostedRotation is specified (unsupported in Terraform provider AWS)", () => {
+      // GIVEN
+      const secret = new encryption.Secret(stack, "Secret");
+
+      // WHEN/THEN
+      expect(
+        () =>
+          new encryption.RotationSchedule(stack, "RotationSchedule", {
+            secret,
+            hostedRotation: encryption.HostedRotation.mysqlSingleUser(),
+          }),
+      ).toThrow(/HostedRotation in Terraform provider AWS/);
+    });
+
+    test("HostedRotation.mysqlMultiUser without masterSecret throws", () => {
+      expect(() => encryption.HostedRotation.mysqlMultiUser({} as any)).toThrow(
+        /The `masterSecret` must be specified/,
+      );
+    });
   });
 
   describe("manual rotations", () => {
-    test("automaticallyAfter with any duration of zero leaves RotationRules unset", () => {
-      const checkRotationNotSet = (
+    test("automaticallyAfter with any duration of zero throws", () => {
+      const checkRotationRejected = (
         automaticallyAfter: Duration,
         id: string,
       ) => {
@@ -178,31 +235,29 @@ describe("default tests", () => {
           },
         );
 
-        // WHEN
-        new encryption.RotationSchedule(localStack, "RotationSchedule", {
-          secret,
-          rotationLambda,
-          automaticallyAfter,
-        });
-
-        // THEN
-        const resources = Template.resourceObjects(
-          localStack,
-          secretsmanagerSecretRotation.SecretsmanagerSecretRotation,
-        );
-        const rotationResource = Object.values(resources)[0] as any;
+        // WHEN/THEN
         // NOTE: unlike CloudFormation's optional `RotationRules`, the
         // `aws_secretsmanager_secret_rotation` Terraform resource requires a
-        // `rotation_rules` block to be present. A duration of zero therefore
-        // synthesizes an empty `rotation_rules` object rather than omitting
-        // the property entirely.
-        expect(rotationResource).toHaveProperty("rotation_rules", {});
+        // `rotation_rules` block with `automatically_after_days` or
+        // `schedule_expression` set. A zero duration cannot be represented,
+        // so it must be rejected at synth time rather than producing an
+        // invalid `rotation_rules {}`.
+        expect(
+          () =>
+            new encryption.RotationSchedule(localStack, "RotationSchedule", {
+              secret,
+              rotationLambda,
+              automaticallyAfter,
+            }),
+        ).toThrow(
+          /automaticallyAfter must be a non-zero duration: aws_secretsmanager_secret_rotation requires a rotation_rules block with automatically_after_days or schedule_expression, so a zero duration cannot be represented\./,
+        );
       };
 
-      checkRotationNotSet(Duration.days(0), "Days");
-      checkRotationNotSet(Duration.hours(0), "Hours");
-      checkRotationNotSet(Duration.minutes(0), "Minutes");
-      checkRotationNotSet(Duration.seconds(0), "Seconds");
+      checkRotationRejected(Duration.days(0), "Days");
+      checkRotationRejected(Duration.hours(0), "Hours");
+      checkRotationRejected(Duration.minutes(0), "Minutes");
+      checkRotationRejected(Duration.seconds(0), "Seconds");
     });
   });
 
