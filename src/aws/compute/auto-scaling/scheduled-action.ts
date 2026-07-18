@@ -163,9 +163,13 @@ export class ScheduledAction extends AwsConstructBase {
         scheduledActionName,
         startTime: formatISO(props.startTime),
         endTime: formatISO(props.endTime),
-        minSize: props.minCapacity,
-        maxSize: props.maxCapacity,
-        desiredCapacity: props.desiredCapacity,
+        // Unlike CloudFormation (where an unset field means "don't change"),
+        // aws_autoscaling_schedule defaults unset min/max/desired to 0 and
+        // reserves -1 as the "don't modify" sentinel — an unset field MUST be
+        // sent as -1 or AWS rejects e.g. min_size=5 with desired_capacity=0.
+        minSize: props.minCapacity ?? -1,
+        maxSize: props.maxCapacity ?? -1,
+        desiredCapacity: props.desiredCapacity ?? -1,
         recurrence: props.schedule.expressionString,
         timeZone: props.timeZone,
       },
