@@ -113,6 +113,12 @@ export interface ISecret extends IAwsConstruct {
   /**
    * Attach a target to this secret.
    *
+   * NOTE: TerraConstructs does not yet ship any concrete
+   * `ISecretAttachmentTarget` implementations (the aws-rds/docdb/redshift
+   * modules that provide them upstream have not been ported). Consumers
+   * must supply their own implementation of `ISecretAttachmentTarget`
+   * until those modules exist. See `ISecretAttachmentTarget` for details.
+   *
    * @param target The target to attach.
    * @returns An attached secret
    */
@@ -639,7 +645,25 @@ export class Secret extends SecretBase {
   private replicaRegions: secretsmanagerSecret.SecretsmanagerSecretReplica[] =
     [];
   private readonly resource: secretsmanagerSecret.SecretsmanagerSecret;
-  private readonly secretVersion: secretsmanagerSecretVersion.SecretsmanagerSecretVersion;
+  /**
+   * The base secret value configured at construction (from
+   * `generateSecretString`/`secretStringValue`/`secretObjectValue`), before
+   * any attachment connection details are merged in. Rendered into the sole
+   * `secretsmanagerSecretVersion` during `toTerraform()`.
+   */
+  private readonly baseSecretString?: string;
+  /**
+   * Connection details contributed by `attach()` to be merged into the secret
+   * value. Registered (after construction) via `_attachConnectionFields()`.
+   */
+  private attachmentConnectionFields?: { [key: string]: string };
+  /**
+   * The sole secret version resource. Created lazily during `toTerraform()`
+   * (the first `prepareStack()` pass) so connection details registered by a
+   * later `attach()` are merged into the same version rather than creating a
+   * conflicting second `AWSCURRENT` version for the same secret.
+   */
+  private secretVersion?: secretsmanagerSecretVersion.SecretsmanagerSecretVersion;
 
   protected readonly autoCreatePolicy = true;
   // TODO: Use Ephemeral Resources as soon as Hashicorp decides to update CDKTF T_T
@@ -753,20 +777,19 @@ export class Secret extends SecretBase {
       },
     );
 
+    // Store the base value; the SOLE `secretsmanagerSecretVersion` resource is
+    // created lazily in `toTerraform()` (the first prepareStack pass) so that
+    // connection details registered by a later `attach()` can be merged into
+    // the same version, instead of creating a conflicting second AWSCURRENT
+    // version for the same secret.
     // TODO: Use Ephemeral Resources as soon as Hashicorp decides to update CDKTF T_T
-    this.secretVersion =
-      new secretsmanagerSecretVersion.SecretsmanagerSecretVersion(
-        this,
-        "SecretVersion",
-        {
-          secretId: this.resource.arn,
-          secretString,
-        },
-      );
+    this.baseSecretString = secretString;
 
     // TODO: Should there be a secretVersionArn property?
     this.secretArn = this.resource.arn;
-    this.secretVersionArn = this.secretVersion.arn;
+    this.secretVersionArn = Lazy.stringValue({
+      produce: () => this.getOrCreateSecretVersion().arn,
+    });
     this.secretName = this.resource.name;
     this.encryptionKey = props.encryptionKey;
 
@@ -822,16 +845,92 @@ export class Secret extends SecretBase {
   }
 
   public secretValueFromJson(jsonField: string): string {
-    if (jsonField === "") {
-      return this.secretVersion.secretString;
+    // The version resource is created lazily in `toTerraform()`, so defer
+    // reading its `secretString` attribute until synthesis (post-prepare).
+    return Lazy.stringValue({
+      produce: () => {
+        const secretString = this.getOrCreateSecretVersion().secretString;
+        if (jsonField === "") {
+          return secretString;
+        }
+        // SecretValue.secretsManager(this.secretArn, { jsonField });
+        return Fn.lookup(Fn.jsondecode(secretString), jsonField);
+      },
+    });
+  }
+
+  /**
+   * Renders the secret string for the sole version resource, merging any
+   * connection details contributed by `attach()` over the base value. Terraform
+   * has no server-side merge (unlike CloudFormation's SecretTargetAttachment),
+   * so the merge is expressed as `jsonencode(merge(jsondecode(base), fields))`.
+   */
+  private renderSecretString(): string | undefined {
+    if (!this.attachmentConnectionFields) {
+      return this.baseSecretString;
     }
-    // SecretValue.secretsManager(this.secretArn, { jsonField });
-    return Fn.lookup(Fn.jsondecode(this.secretVersion.secretString), jsonField);
+    return Fn.jsonencode(
+      Fn.merge([
+        Fn.jsondecode(this.baseSecretString ?? "{}"),
+        this.attachmentConnectionFields,
+      ]),
+    );
+  }
+
+  private getOrCreateSecretVersion(): secretsmanagerSecretVersion.SecretsmanagerSecretVersion {
+    const id = "SecretVersion";
+    const existing = this.node.tryFindChild(id) as
+      | secretsmanagerSecretVersion.SecretsmanagerSecretVersion
+      | undefined;
+    if (existing) {
+      return existing;
+    }
+    // TODO: Use Ephemeral Resources as soon as Hashicorp decides to update CDKTF T_T
+    this.secretVersion =
+      new secretsmanagerSecretVersion.SecretsmanagerSecretVersion(this, id, {
+        secretId: this.resource.arn,
+        secretString: this.renderSecretString(),
+      });
+    return this.secretVersion;
+  }
+
+  /**
+   * Creates the sole secret version during the first `prepareStack()` pass,
+   * after any `attach()` calls have registered their connection details.
+   * Mirrors the idempotent `toTerraform()` pattern used by `iam/policy.ts`.
+   */
+  public toTerraform(): any {
+    this.getOrCreateSecretVersion();
+    return {};
+  }
+
+  /**
+   * Registers connection details contributed by an attached target so they are
+   * merged into this secret's sole version. Called by `SecretTargetAttachment`.
+   * @internal
+   */
+  public _attachConnectionFields(fields?: { [key: string]: string }): void {
+    if (!fields) {
+      return;
+    }
+    this.attachmentConnectionFields = {
+      ...(this.attachmentConnectionFields ?? {}),
+      ...fields,
+    };
   }
 }
 
 /**
  * A secret attachment target.
+ *
+ * NOTE: TerraConstructs does not yet ship any concrete implementations of
+ * this interface. In upstream aws-cdk, `ISecretAttachmentTarget` is
+ * implemented by `DatabaseInstance`, `DatabaseCluster`, and `DatabaseProxy`
+ * (aws-rds), and by the DocDB/Redshift equivalents -- none of which have
+ * been ported to TerraConstructs yet. Until they are, consumers who want to
+ * attach a secret to a database (or other supported target) must implement
+ * this interface themselves. See `integ/aws/encryption/apps/*.ts` for a
+ * worked (test-only) example.
  */
 export interface ISecretAttachmentTarget {
   /**
@@ -888,6 +987,24 @@ export interface SecretAttachmentTargetProps {
    * The type of the target to attach the secret to.
    */
   readonly targetType: AttachmentTargetType;
+
+  /**
+   * Connection details to merge into the attached secret's JSON value.
+   *
+   * CloudFormation's `AWS::SecretsManager::SecretTargetAttachment` resolves
+   * these from `targetId`/`targetType` **server-side**; the Terraform AWS
+   * provider has no such server-side merge, so a target must supply the
+   * connection attributes it wants folded into the secret (typically
+   * `engine`, `host`, `port`, `dbname`). They are merged over the secret's
+   * existing JSON value at synthesis via
+   * `jsonencode(merge(jsondecode(existing), connectionFields))`.
+   *
+   * This field is a TerraConstructs-specific superset of the upstream aws-cdk
+   * `SecretAttachmentTargetProps` (which carries only `targetId`/`targetType`).
+   *
+   * @default - no additional fields are merged (API-parity-only attachment)
+   */
+  readonly connectionFields?: { [key: string]: string };
 }
 
 /**
@@ -922,20 +1039,37 @@ export interface ISecretTargetAttachment extends ISecret {
 /**
  * An attached secret.
  *
- * NOTE: Unlike CloudFormation's `AWS::SecretsManager::SecretTargetAttachment`,
- * this construct does not synthesize a Terraform resource. The AWS provider
- * has no equivalent resource and never will: there is no SecretsManager API
- * behind the CloudFormation function for it to call, so there is nothing a
- * Terraform resource could manage the lifecycle of. See HashiCorp's design
- * decision (also referenced from `HostedRotation` in rotation-schedule.ts):
+ * CloudFormation's `AWS::SecretsManager::SecretTargetAttachment` is an opaque
+ * AWS orchestration call that merges a target's connection details (host,
+ * port, engine, dbname, ...) into the secret's JSON value **server-side**. The
+ * Terraform AWS provider has no equivalent -- there is no SecretsManager API
+ * behind it -- so the maintainers recommend building that merged value
+ * yourself with a single `aws_secretsmanager_secret_version`. See HashiCorp's
+ * design decision (also referenced from `HostedRotation` in
+ * rotation-schedule.ts):
  * https://github.com/hashicorp/terraform-provider-aws/blob/main/docs/design-decisions/secretsmanager-secret-target-attachment.md
  *
- * `attach()` is still provided for API parity with aws-cdk: it lets callers
- * pass an `ISecret` that (a) forwards `addToResourcePolicy` calls to the
- * original secret so only one resource policy is ever created, and (b) can be
- * handed to `addRotationSchedule()` the same way an "attached" secret is used
- * upstream. `secretArn`/`secretName` simply mirror the original secret since
- * there is no separate attachment ARN in Terraform.
+ * TerraConstructs mirrors that recommended shape: `attach()` does NOT create a
+ * second version resource (two versions managing the same secret's
+ * `AWSCURRENT` would conflict). Instead it registers the target's
+ * `connectionFields` (from `asSecretAttachmentTarget()`) onto the owned
+ * `Secret`, which merges them into its SOLE version -- created lazily in
+ * `Secret.toTerraform()` -- via `jsonencode(merge(jsondecode(base), fields))`.
+ * The result is exactly one `aws_secretsmanager_secret_version` containing the
+ * base credentials plus the target's connection details.
+ *
+ * Concrete `ISecretAttachmentTarget` implementers (`DatabaseInstance`,
+ * `DatabaseCluster`, ... in aws-rds/docdb/redshift) are not yet ported to
+ * TerraConstructs; until they are, consumers implement the interface
+ * themselves. See `integ/aws/encryption/apps/*.ts` for a worked (test-only)
+ * example of a target that supplies real connection details.
+ *
+ * `addToResourcePolicy` calls are forwarded to the original secret so that
+ * only a single resource policy is ever created for the secret (AWS allows
+ * only one `aws_secretsmanager_secret_policy` per secret ARN).
+ *
+ * `secretArn`/`secretName` mirror the attached secret since there is no
+ * separate attachment ARN in Terraform.
  */
 export class SecretTargetAttachment
   extends SecretBase
@@ -982,17 +1116,21 @@ export class SecretTargetAttachment
     super(scope, id);
     this.attachedSecret = props.secret;
 
-    // `target` is accepted (and rendered) for API parity with aws-cdk, but
-    // has no effect on synthesis: there is no Terraform resource to pass it
-    // to (see class doc comment above).
-    props.target.asSecretAttachmentTarget();
+    // Terraform has no server-side merge, so fold the target's connection
+    // details into the attached secret's SOLE version (created lazily in
+    // `Secret.toTerraform()`). No separate/duplicate version is created here.
+    const targetProps = props.target.asSecretAttachmentTarget();
+    if (Secret.isSecret(this.attachedSecret)) {
+      (this.attachedSecret as Secret)._attachConnectionFields(
+        targetProps.connectionFields,
+      );
+    }
 
     this.encryptionKey = this.attachedSecret.encryptionKey;
     this.secretName = this.attachedSecret.secretName;
 
-    // No separate attachment resource is created, so the attached secret's
-    // own ARN is the correct reference (there is no attachment-specific ARN
-    // in Terraform).
+    // No separate attachment ARN exists in Terraform, so the attached
+    // secret's own ARN is the correct reference.
     this.secretArn = this.attachedSecret.secretArn;
     this.secretTargetAttachmentSecretArn = this.attachedSecret.secretArn;
   }

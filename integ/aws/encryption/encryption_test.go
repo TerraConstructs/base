@@ -2,6 +2,7 @@ package test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -72,6 +73,43 @@ func TestKeyAlias(t *testing.T) {
 
 			keyArn := aws.GetCmkArn(t, awsRegion, aliasName)
 			require.Equal(t, targetKeyArn, keyArn)
+		})
+}
+
+// Run the apps/secret-attach.ts integration test
+//
+// Validates that Secret.attach() produced a deployable, "complete" secret:
+// the merged connection secret's value must contain the real RDS connection
+// details (host/port) of the attached DbInstance -- see the module doc
+// comment on apps/secret-attach.ts for how the merge is achieved without a
+// CloudFormation-style server-side merge.
+func TestSecretAttach(t *testing.T) {
+	runEncryptionIntegrationTest(t, "secret-attach", "us-east-1",
+		func(t *testing.T, tfWorkingDir string, awsRegion string) {
+			terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+
+			secretArn := util.LoadOutputAttribute(t, terraformOptions, "secret", "secretArn")
+			attachmentSecretArn := terraform.Output(t, terraformOptions, "attachment_secret_arn")
+			require.Equal(t, secretArn, attachmentSecretArn, "attached secret has no separate ARN in Terraform")
+
+			dbInstanceID := terraform.Output(t, terraformOptions, "db_instance_identifier")
+			dbInstanceDetails, err := aws.GetRdsInstanceDetailsE(t, dbInstanceID, awsRegion)
+			require.NoError(t, err)
+			require.NotNil(t, dbInstanceDetails.Endpoint)
+
+			expectedHost := *dbInstanceDetails.Endpoint.Address
+			expectedPort := fmt.Sprintf("%d", *dbInstanceDetails.Endpoint.Port)
+
+			secretValue := aws.GetSecretValue(t, awsRegion, secretArn)
+			var connection map[string]string
+			err = json.Unmarshal([]byte(secretValue), &connection)
+			require.NoError(t, err)
+
+			require.Equal(t, expectedHost, connection["host"])
+			require.Equal(t, expectedPort, connection["port"])
+			require.Equal(t, "postgres", connection["engine"])
+			require.NotEmpty(t, connection["username"])
+			require.NotEmpty(t, connection["password"])
 		})
 }
 

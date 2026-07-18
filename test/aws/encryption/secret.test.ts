@@ -1023,12 +1023,38 @@ test("import by secret name v2 with grants", () => {
 });
 
 describe("attachment", () => {
-  test("can attach a secret with attach()", () => {
+  // Small in-test mock target implementing ISecretAttachmentTarget. Real
+  // implementers (DatabaseInstance/DatabaseCluster/DatabaseProxy from
+  // aws-rds, and the DocDB/Redshift equivalents) are not yet ported to
+  // TerraConstructs -- see the JSDoc on `ISecretAttachmentTarget`.
+  function mockTarget(
+    targetId = "target-id",
+  ): encryption.ISecretAttachmentTarget {
+    return {
+      asSecretAttachmentTarget: () => ({
+        targetId,
+        targetType: encryption.AttachmentTargetType.DOCDB_DB_INSTANCE,
+      }),
+    };
+  }
+
+  test("attach() merges the target's connection details into the secret's single version", () => {
     // GIVEN
-    const secret = new encryption.Secret(stack, "Secret");
+    const secret = new encryption.Secret(stack, "Secret", {
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({ username: "admin" }),
+        generateStringKey: "password",
+      },
+    });
     const asSecretAttachmentTarget = jest.fn().mockReturnValue({
       targetId: "target-id",
-      targetType: encryption.AttachmentTargetType.DOCDB_DB_INSTANCE,
+      targetType: encryption.AttachmentTargetType.RDS_DB_INSTANCE,
+      connectionFields: {
+        engine: "postgres",
+        host: "db.example.com",
+        port: "5432",
+        dbname: "appdb",
+      },
     });
 
     // WHEN
@@ -1036,23 +1062,61 @@ describe("attachment", () => {
 
     // THEN
     expect(asSecretAttachmentTarget).toHaveBeenCalled();
-    // No separate Terraform resource is synthesized for the attachment: the
-    // Terraform AWS provider has no equivalent to
-    // AWS::SecretsManager::SecretTargetAttachment, so the "attached" secret
-    // simply mirrors the original secret's ARN/name.
+    // No separate CloudFormation-style SecretTargetAttachment resource exists
+    // in Terraform, so the "attached" secret mirrors the original secret's
+    // ARN/name.
     expect(attached.secretArn).toBe(secret.secretArn);
     expect(attached.secretName).toBe(secret.secretName);
+
+    // Exactly ONE secret version is synthesized for the secret (no conflicting
+    // second AWSCURRENT version), and its value merges the target's connection
+    // details over the base credentials via merge(jsondecode(base), fields).
+    const versions = Template.resourceObjects(
+      stack,
+      secretsmanagerSecretVersion.SecretsmanagerSecretVersion,
+    );
+    expect(Object.keys(versions)).toHaveLength(1);
+    const secretString = (Object.values(versions)[0] as any)
+      .secret_string as string;
+    expect(secretString).toContain("merge(");
+    expect(secretString).toContain("jsondecode(");
+    expect(secretString).toContain("db.example.com");
+    expect(secretString).toContain("appdb");
+  });
+
+  test("attach() adds no second version and the single version is idempotent across synth passes", () => {
+    // GIVEN
+    const secret = new encryption.Secret(stack, "Secret");
+
+    // WHEN
+    secret.attach(mockTarget());
+
+    // THEN
+    // The sole version is created in Secret.toTerraform() (invoked by
+    // prepareStack on every synth pass) and guarded by `tryFindChild`, so
+    // attach() adds NO second version and re-synth must not raise the count.
+    expect(
+      Object.keys(
+        Template.resourceObjects(
+          stack,
+          secretsmanagerSecretVersion.SecretsmanagerSecretVersion,
+        ),
+      ),
+    ).toHaveLength(1);
+    expect(
+      Object.keys(
+        Template.resourceObjects(
+          stack,
+          secretsmanagerSecretVersion.SecretsmanagerSecretVersion,
+        ),
+      ),
+    ).toHaveLength(1);
   });
 
   test("throws when trying to attach a target multiple times to a secret", () => {
     // GIVEN
     const secret = new encryption.Secret(stack, "Secret");
-    const target = {
-      asSecretAttachmentTarget: () => ({
-        targetId: "target-id",
-        targetType: encryption.AttachmentTargetType.DOCDB_DB_INSTANCE,
-      }),
-    };
+    const target = mockTarget();
     secret.attach(target);
 
     // THEN
@@ -1064,12 +1128,7 @@ describe("attachment", () => {
   test("add a rotation schedule to an attached secret", () => {
     // GIVEN
     const secret = new encryption.Secret(stack, "Secret");
-    const attachedSecret = secret.attach({
-      asSecretAttachmentTarget: () => ({
-        targetId: "target-id",
-        targetType: encryption.AttachmentTargetType.DOCDB_DB_INSTANCE,
-      }),
-    });
+    const attachedSecret = secret.attach(mockTarget());
     const rotationLambda = new compute.LambdaFunction(stack, "Lambda", {
       runtime: compute.Runtime.NODEJS_LATEST,
       code: compute.Code.fromInline("exports.handler = event => event;"),
@@ -1083,13 +1142,46 @@ describe("attachment", () => {
 
     // THEN
     // The rotation schedule is created against the original secret's ARN,
-    // since the "attached" secret returned by attach() is not backed by a
-    // separate Terraform resource (see attach() test above).
+    // since the "attached" secret returned by attach() mirrors it (see
+    // attach() test above).
     Template.synth(stack).toHaveResourceWithProperties(
       secretsmanagerSecretRotation.SecretsmanagerSecretRotation,
       {
         secret_id: stack.resolve(secret.secretArn),
       },
+    );
+  });
+
+  test("addToResourcePolicy on the attachment forwards to the original secret (single policy)", () => {
+    // GIVEN
+    const secret = new encryption.Secret(stack, "Secret");
+    const attachedSecret = secret.attach(mockTarget());
+
+    // WHEN
+    secret.addToResourcePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+        principals: [
+          new iam.ArnPrincipal("arn:aws:iam::123456789012:user/cool-user"),
+        ],
+      }),
+    );
+    attachedSecret.addToResourcePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:DescribeSecret"],
+        resources: ["*"],
+        principals: [
+          new iam.ArnPrincipal("arn:aws:iam::123456789012:user/other-user"),
+        ],
+      }),
+    );
+
+    // THEN
+    const template = new Template(stack);
+    template.resourceCountIs(
+      secretsmanagerSecretPolicy.SecretsmanagerSecretPolicy,
+      1,
     );
   });
 });

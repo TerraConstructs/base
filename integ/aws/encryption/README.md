@@ -13,6 +13,7 @@ Test Targets:
   all                        Test all Stepfunctions
   key                        Test AWS KMS Customer Master Key creation
   key-alias                  Test AWS KMS CMK + alias creation
+  secret-attach              Test SecretsManager Secret.attach() against an RDS DbInstance
 
 Other Targets:
   help                       Print out every target with a description

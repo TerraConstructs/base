@@ -11,3 +11,7 @@ key: ## Test AWS KMS Customer Master Key creation
 key-alias: ## Test AWS KMS CMK + alias creation
 	go test -v -count 1 -timeout 15m ./... -run ^TestKeyAlias$
 .PHONY: key-alias
+
+secret-attach: ## Test SecretsManager Secret.attach() against an RDS DbInstance
+	go test -v -count 1 -timeout 30m ./... -run ^TestSecretAttach$
+.PHONY: secret-attach
