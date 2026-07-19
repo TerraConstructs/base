@@ -1,0 +1,83 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ResourcePolicy Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "Policy_C96C8195": {
+        "statement": [
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_secretsmanager_random_password": {
+      "Secret_RandomPassword_01FCD53F": {
+        "exclude_lowercase": false,
+        "exclude_numbers": false,
+        "exclude_punctuation": false,
+        "exclude_uppercase": false,
+        "include_space": false,
+        "password_length": 32,
+        "require_each_included_type": true
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_secretsmanager_secret": {
+      "Secret_A720EF05": {
+        "name": "Secret",
+        "tags": {
+          "Name": "Default-Secret",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    },
+    "aws_secretsmanager_secret_policy": {
+      "Policy_23B91518": {
+        "policy": "\${data.aws_iam_policy_document.Policy_C96C8195.json}",
+        "secret_arn": "\${aws_secretsmanager_secret.Secret_A720EF05.arn}"
+      }
+    },
+    "aws_secretsmanager_secret_version": {
+      "Secret_SecretVersion_1CCEE6BD": {
+        "secret_id": "\${aws_secretsmanager_secret.Secret_A720EF05.arn}",
+        "secret_string": "\${data.aws_secretsmanager_random_password.Secret_RandomPassword_01FCD53F.random_password}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "local": {
+        "path": "/Users/vincentsmet/tcons/base-secretsmanager-combined/terraform.Default.tfstate"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
