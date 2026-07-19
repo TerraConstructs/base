@@ -164,9 +164,6 @@ exports[`AutoScalingGroupRequireImdsv2Aspect synth applies to AutoScalingGroup a
         "metadata_options": {
           "http_tokens": "required"
         },
-        "monitoring": {
-          "enabled": false
-        },
         "tag_specifications": [
           {
             "resource_type": "instance",

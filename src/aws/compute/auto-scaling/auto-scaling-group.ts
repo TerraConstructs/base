@@ -1225,9 +1225,13 @@ export class AutoScalingGroup
       launchTemplateFromConfig = new LaunchTemplate(this, "LaunchTemplate", {
         machineImage: props.machineImage,
         instanceType: props.instanceType,
+        // Keep the tri-state: an unset instanceMonitoring stays undefined so the
+        // launch template leaves the attribute unmanaged (AWS default) instead of
+        // pinning an explicit false.
         detailedMonitoring:
-          props.instanceMonitoring !== undefined &&
-          props.instanceMonitoring === Monitoring.DETAILED,
+          props.instanceMonitoring !== undefined
+            ? props.instanceMonitoring === Monitoring.DETAILED
+            : undefined,
         securityGroup: this.securityGroup,
         userData: props.userData,
         associatePublicIpAddress: props.associatePublicIpAddress,

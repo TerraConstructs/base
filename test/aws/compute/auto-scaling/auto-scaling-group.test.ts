@@ -1118,13 +1118,13 @@ describe("auto scaling group", () => {
     });
 
     // THEN
-    // Terraform deviation: see note above - not specifying `instanceMonitoring`
-    // still resolves to the explicit `false` case (DETAILED not requested),
-    // so `monitoring { enabled = false }` is present rather than absent.
+    // An unset `instanceMonitoring` stays unset: the launch template leaves the
+    // monitoring attribute unmanaged (AWS default) rather than pinning
+    // `monitoring { enabled = false }`.
     const [lt] = Object.values(
       Template.resourceObjects(stack, tfLaunchTemplate.LaunchTemplate),
     ) as any[];
-    expect(lt.monitoring).toEqual({ enabled: false });
+    expect(lt.monitoring).toBeUndefined();
   });
 
   test("throws if ephemeral volumeIndex < 0", () => {

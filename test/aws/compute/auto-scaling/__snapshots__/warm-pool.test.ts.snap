@@ -169,9 +169,6 @@ exports[`WarmPool Should synth and match SnapShot with all optional properties 1
         },
         "image_id": "\${data.aws_ssm_parameter.SsmParameterValue--aws--service--ami-amazon-linux-latest--amzn-ami-hvm-x86_64-gp2C96584B6-F00A-464E-AD19-53AFF4B05118Parameter.insecure_value}",
         "instance_type": "m4.micro",
-        "monitoring": {
-          "enabled": false
-        },
         "tag_specifications": [
           {
             "resource_type": "instance",
@@ -655,9 +652,6 @@ exports[`WarmPool Should synth and match SnapShot with no optional properties 1`
         },
         "image_id": "\${data.aws_ssm_parameter.SsmParameterValue--aws--service--ami-amazon-linux-latest--amzn-ami-hvm-x86_64-gp2C96584B6-F00A-464E-AD19-53AFF4B05118Parameter.insecure_value}",
         "instance_type": "m4.micro",
-        "monitoring": {
-          "enabled": false
-        },
         "tag_specifications": [
           {
             "resource_type": "instance",

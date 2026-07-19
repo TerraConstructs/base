@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-autoscaling/lib/aspects/require-imdsv2-aspect.ts
 
 import { launchTemplate as tfLaunchTemplate } from "@cdktn/provider-aws";
-import { IAspect, Annotations } from "cdktn";
+import { IAspect } from "cdktn";
 import { IConstruct } from "constructs";
 import { AutoScalingGroup } from "../auto-scaling-group";
 import { LaunchTemplate } from "../../launch-template";
@@ -42,15 +42,4 @@ export class AutoScalingGroupRequireImdsv2Aspect implements IAspect {
     });
   }
 
-  /**
-   * Adds a warning annotation to a node.
-   *
-   * @param node The scope to add the warning to.
-   * @param message The warning message.
-   */
-  protected warn(node: IConstruct, message: string) {
-    Annotations.of(node).addWarning(
-      `${AutoScalingGroupRequireImdsv2Aspect.name} failed on node ${node.node.id}: ${message}`,
-    );
-  }
 }

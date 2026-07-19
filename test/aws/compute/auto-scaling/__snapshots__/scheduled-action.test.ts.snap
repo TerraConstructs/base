@@ -171,9 +171,6 @@ exports[`ScheduledAction Should synth and match SnapShot with minCapacity only 1
         },
         "image_id": "\${data.aws_ssm_parameter.SsmParameterValue--aws--service--ami-amazon-linux-latest--amzn-ami-hvm-x86_64-gp2C96584B6-F00A-464E-AD19-53AFF4B05118Parameter.insecure_value}",
         "instance_type": "t2.micro",
-        "monitoring": {
-          "enabled": false
-        },
         "tag_specifications": [
           {
             "resource_type": "instance",
@@ -668,9 +665,6 @@ exports[`ScheduledAction Should synth and match SnapShot with startTime, endTime
         },
         "image_id": "\${data.aws_ssm_parameter.SsmParameterValue--aws--service--ami-amazon-linux-latest--amzn-ami-hvm-x86_64-gp2C96584B6-F00A-464E-AD19-53AFF4B05118Parameter.insecure_value}",
         "instance_type": "t2.micro",
-        "monitoring": {
-          "enabled": false
-        },
         "tag_specifications": [
           {
             "resource_type": "instance",
