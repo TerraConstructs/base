@@ -4,7 +4,8 @@
   "scripts": {
     "kvs-jwt-verify": "bun run ./kvs-jwt-verify.ts",
     "url-rewrite-spa": "bun run ./url-rewrite-spa.ts",
-    "distribution-policies": "bun run ./distribution-policies.ts"
+    "distribution-policies": "bun run ./distribution-policies.ts",
+    "service-with-http-namespace": "bun run ./service-with-http-namespace.ts"
   },
   "dependencies": {
     "cdktn": "^0.23.0",

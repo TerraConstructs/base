@@ -20,3 +20,7 @@ multi-zone-acm-pub-cert: ## Test Multi Zone ACM Public Certificate
 distribution-policies: ## Test Distribution Policies
 	go test -v -timeout 45m ./... -run ^TestDistributionPolicies$
 .PHONY: distribution-policies
+
+service-with-http-namespace: ## Test CloudMap Service with HTTP Namespace
+	go test -v -timeout 30m ./... -run ^TestServiceWithHttpNamespace$
+.PHONY: service-with-http-namespace
