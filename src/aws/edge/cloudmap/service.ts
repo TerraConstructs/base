@@ -9,11 +9,11 @@ import { IpInstance, IpInstanceBaseProps } from "./ip-instance";
 import { INamespace, NamespaceType } from "./namespace";
 import { NonIpInstance, NonIpInstanceBaseProps } from "./non-ip-instance";
 import { defaultDiscoveryType } from "./private/utils";
-import * as elbv2 from "../../compute";
-import { AwsConstructBase, AwsConstructProps } from "../../aws-construct";
 import { IAwsConstruct } from "../../";
 import { Duration } from "../../../duration";
 import { ValidationError } from "../../../errors";
+import { AwsConstructBase, AwsConstructProps } from "../../aws-construct";
+import * as elbv2 from "../../compute";
 
 export interface IService extends IAwsConstruct {
   /** Strongly typed outputs */
@@ -323,7 +323,10 @@ export class Service extends ServiceBase {
     // The same validation happens later on during the actual attachment
     // of LBs, but we need the property for the correct configuration of
     // routingPolicy anyway, so might as well do the validation as well.
-    if (props.routingPolicy === RoutingPolicy.MULTIVALUE && props.loadBalancer) {
+    if (
+      props.routingPolicy === RoutingPolicy.MULTIVALUE &&
+      props.loadBalancer
+    ) {
       throw new ValidationError(
         "Cannot register loadbalancers when routing policy is `Multivalue`.",
         this,

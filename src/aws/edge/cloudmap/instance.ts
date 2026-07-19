@@ -1,9 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-servicediscovery/lib/instance.ts
 
+import type { IService } from "./service";
+import { IAwsConstruct } from "../../";
 import { AwsConstructBase } from "../../aws-construct";
 import { AwsStack } from "../../aws-stack";
-import { IAwsConstruct } from "../../";
-import type { IService } from "./service";
 
 export interface IInstance extends IAwsConstruct {
   /**
@@ -38,7 +38,10 @@ export interface BaseInstanceProps {
   readonly customAttributes?: { [key: string]: string };
 }
 
-export abstract class InstanceBase extends AwsConstructBase implements IInstance {
+export abstract class InstanceBase
+  extends AwsConstructBase
+  implements IInstance
+{
   /**
    * The Id of the instance
    */

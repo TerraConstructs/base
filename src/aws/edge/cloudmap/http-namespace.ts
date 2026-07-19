@@ -6,7 +6,9 @@ import { BaseNamespaceProps, INamespace, NamespaceType } from "./namespace";
 import { BaseServiceProps, Service } from "./service";
 import { AwsConstructBase, AwsConstructProps } from "../../aws-construct";
 
-export interface HttpNamespaceProps extends BaseNamespaceProps, AwsConstructProps {}
+export interface HttpNamespaceProps
+  extends BaseNamespaceProps,
+    AwsConstructProps {}
 
 export interface HttpNamespaceAttributes {
   /**
@@ -104,18 +106,19 @@ export class HttpNamespace extends AwsConstructBase implements IHttpNamespace {
   constructor(scope: Construct, id: string, props: HttpNamespaceProps) {
     super(scope, id, props);
 
-    this.resource = new serviceDiscoveryHttpNamespace.ServiceDiscoveryHttpNamespace(
-      this,
-      "Resource",
-      {
-        // TERRACONSTRUCTS DEVIATION: unlike most resources, a CloudMap namespace `name`
-        // is a semantic, user-owned DNS/service identifier (not an arbitrary generated
-        // resource name), so it is honored verbatim here instead of being stack-scoped
-        // or prefixed per the naming convention's default fallback branch.
-        name: props.name,
-        description: props.description,
-      },
-    );
+    this.resource =
+      new serviceDiscoveryHttpNamespace.ServiceDiscoveryHttpNamespace(
+        this,
+        "Resource",
+        {
+          // TERRACONSTRUCTS DEVIATION: unlike most resources, a CloudMap namespace `name`
+          // is a semantic, user-owned DNS/service identifier (not an arbitrary generated
+          // resource name), so it is honored verbatim here instead of being stack-scoped
+          // or prefixed per the naming convention's default fallback branch.
+          name: props.name,
+          description: props.description,
+        },
+      );
 
     this.namespaceName = props.name;
     this.namespaceId = this.resource.id;

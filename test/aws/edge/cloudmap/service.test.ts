@@ -657,19 +657,15 @@ describe("service import", () => {
     });
 
     // WHEN
-    const imported = cloudmap.Service.fromServiceAttributes(
-      stack,
-      "Imported",
-      {
-        namespace,
-        serviceName: "service",
-        serviceId: "service-id",
-        serviceArn:
-          "arn:aws:servicediscovery:us-east-1:123456789012:service/service-id",
-        dnsRecordType: cloudmap.DnsRecordType.A,
-        routingPolicy: cloudmap.RoutingPolicy.MULTIVALUE,
-      },
-    );
+    const imported = cloudmap.Service.fromServiceAttributes(stack, "Imported", {
+      namespace,
+      serviceName: "service",
+      serviceId: "service-id",
+      serviceArn:
+        "arn:aws:servicediscovery:us-east-1:123456789012:service/service-id",
+      dnsRecordType: cloudmap.DnsRecordType.A,
+      routingPolicy: cloudmap.RoutingPolicy.MULTIVALUE,
+    });
 
     // THEN
     expect(imported.serviceName).toEqual("service");

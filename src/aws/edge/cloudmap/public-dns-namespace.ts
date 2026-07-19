@@ -6,7 +6,9 @@ import { BaseNamespaceProps, INamespace, NamespaceType } from "./namespace";
 import { DnsServiceProps, Service } from "./service";
 import { AwsConstructBase, AwsConstructProps } from "../../aws-construct";
 
-export interface PublicDnsNamespaceProps extends BaseNamespaceProps, AwsConstructProps {}
+export interface PublicDnsNamespaceProps
+  extends BaseNamespaceProps,
+    AwsConstructProps {}
 
 export interface PublicDnsNamespaceAttributes {
   /**

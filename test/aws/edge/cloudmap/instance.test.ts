@@ -208,7 +208,9 @@ describe("instance", () => {
       service.registerIpInstance("IpInstance", {
         instanceId: "id",
       });
-    }).toThrow(/A `port` must be specified for a service using a `SRV` record./);
+    }).toThrow(
+      /A `port` must be specified for a service using a `SRV` record./,
+    );
   });
 
   test("Registering IpInstance throws when omitting ipv4 and ipv6 for a service using SRV", () => {
@@ -285,7 +287,9 @@ describe("instance", () => {
       service.registerIpInstance("IpInstance", {
         port: 3306,
       });
-    }).toThrow(/An `ipv6` must be specified for a service using a `AAAA` record./);
+    }).toThrow(
+      /An `ipv6` must be specified for a service using a `AAAA` record./,
+    );
   });
 
   test("Registering IpInstance throws with wrong DNS record type", () => {
