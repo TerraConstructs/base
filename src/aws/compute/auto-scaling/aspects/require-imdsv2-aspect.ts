@@ -3,8 +3,8 @@
 import { launchTemplate as tfLaunchTemplate } from "@cdktn/provider-aws";
 import { IAspect } from "cdktn";
 import { IConstruct } from "constructs";
-import { AutoScalingGroup } from "../auto-scaling-group";
 import { LaunchTemplate } from "../../launch-template";
+import { AutoScalingGroup } from "../auto-scaling-group";
 
 /**
  * Aspect that makes IMDSv2 required on instances deployed by AutoScalingGroups.
@@ -41,5 +41,4 @@ export class AutoScalingGroupRequireImdsv2Aspect implements IAspect {
       httpTokens: "required",
     });
   }
-
 }

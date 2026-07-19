@@ -4,8 +4,8 @@ import { autoscalingGroup } from "@cdktn/provider-aws";
 import { Construct } from "constructs";
 import type { IAutoScalingGroup } from "./auto-scaling-group";
 import { ValidationError } from "../../../errors";
-import { filterUndefined } from "../../util";
 import { AwsConstructBase, AwsConstructProps } from "../../aws-construct";
+import { filterUndefined } from "../../util";
 
 /**
  * Options for a warm pool
@@ -86,10 +86,7 @@ export class WarmPool extends AwsConstructBase {
   constructor(scope: Construct, id: string, props: WarmPoolProps) {
     super(scope, id, props);
 
-    if (
-      props.maxGroupPreparedCapacity &&
-      props.maxGroupPreparedCapacity < -1
-    ) {
+    if (props.maxGroupPreparedCapacity && props.maxGroupPreparedCapacity < -1) {
       throw new ValidationError(
         "'maxGroupPreparedCapacity' parameter should be greater than or equal to -1",
         this,

@@ -918,14 +918,11 @@ describe("auto scaling group", () => {
         },
         {
           deviceName: "ebs-snapshot",
-          volume: autoscaling.BlockDeviceVolume.ebsFromSnapshot(
-            "snapshot-id",
-            {
-              volumeSize: 500,
-              deleteOnTermination: false,
-              volumeType: EbsDeviceVolumeType.SC1,
-            },
-          ),
+          volume: autoscaling.BlockDeviceVolume.ebsFromSnapshot("snapshot-id", {
+            volumeSize: 500,
+            deleteOnTermination: false,
+            volumeType: EbsDeviceVolumeType.SC1,
+          }),
         },
         {
           deviceName: "ephemeral",
@@ -1060,7 +1057,9 @@ describe("auto scaling group", () => {
         vpc,
         maxInstanceLifetime: Duration.hours(23),
       });
-    }).toThrow(/maxInstanceLifetime must be between 1 and 365 days \(inclusive\)/);
+    }).toThrow(
+      /maxInstanceLifetime must be between 1 and 365 days \(inclusive\)/,
+    );
   });
 
   test("throws if maxInstanceLifetime > 365 days", () => {
@@ -1076,7 +1075,9 @@ describe("auto scaling group", () => {
         vpc,
         maxInstanceLifetime: Duration.days(366),
       });
-    }).toThrow(/maxInstanceLifetime must be between 1 and 365 days \(inclusive\)/);
+    }).toThrow(
+      /maxInstanceLifetime must be between 1 and 365 days \(inclusive\)/,
+    );
   });
 
   test("can configure instance monitoring", () => {
@@ -1220,7 +1221,10 @@ describe("auto scaling group", () => {
     // A MathExpression-backed alarm renders a metric_query array (rather
     // than a single flat metric/period), so no top-level `period` is set.
     const alarms = Object.values(
-      Template.resourceObjects(stack, cloudwatchMetricAlarm.CloudwatchMetricAlarm),
+      Template.resourceObjects(
+        stack,
+        cloudwatchMetricAlarm.CloudwatchMetricAlarm,
+      ),
     ) as any[];
     expect(alarms.length).toBeGreaterThan(0);
     for (const alarm of alarms) {
@@ -1824,8 +1828,7 @@ describe("auto scaling group", () => {
           onDemandBaseCapacity: 1,
           onDemandPercentageAboveBaseCapacity: 2,
           spotAllocationStrategy:
-            autoscaling.SpotAllocationStrategy
-              .CAPACITY_OPTIMIZED_PRIORITIZED,
+            autoscaling.SpotAllocationStrategy.CAPACITY_OPTIMIZED_PRIORITIZED,
           spotInstancePools: 3,
           spotMaxPrice: "4",
         },
@@ -2048,7 +2051,9 @@ describe("auto scaling group", () => {
         },
         vpc: mockVpc(stack),
       });
-    }).toThrow("You must specify either 'instanceRequirements' or 'instanceType'.");
+    }).toThrow(
+      "You must specify either 'instanceRequirements' or 'instanceType'.",
+    );
   });
 
   test("Cannot specify both Launch Template and Launch Config", () => {
@@ -2109,7 +2114,9 @@ describe("auto scaling group", () => {
         launchTemplate: lt,
         vpc: mockVpc(stack),
       });
-    }).toThrow("Setting 'launchTemplate' requires its 'instanceType' to be set");
+    }).toThrow(
+      "Setting 'launchTemplate' requires its 'instanceType' to be set",
+    );
   });
 
   test("Cannot specify Launch Template without machine image", () => {
@@ -2127,7 +2134,9 @@ describe("auto scaling group", () => {
         launchTemplate: lt,
         vpc: mockVpc(stack),
       });
-    }).toThrow("Setting 'launchTemplate' requires its 'machineImage' to be set");
+    }).toThrow(
+      "Setting 'launchTemplate' requires its 'machineImage' to be set",
+    );
   });
 
   test("Cannot specify mixed instance policy without machine image", () => {
@@ -2431,7 +2440,9 @@ describe("auto scaling group", () => {
         keyName: "MyKeyPair",
         keyPair: keyPair,
       });
-    }).toThrow("Cannot specify both of 'keyName' and 'keyPair'; prefer 'keyPair'");
+    }).toThrow(
+      "Cannot specify both of 'keyName' and 'keyPair'; prefer 'keyPair'",
+    );
   });
 
   test("keyPair and launchTemplate cannot be defined together", () => {
@@ -2493,8 +2504,7 @@ describe("auto scaling group", () => {
             onDemandBaseCapacity: 1,
             onDemandPercentageAboveBaseCapacity: 2,
             spotAllocationStrategy:
-              autoscaling.SpotAllocationStrategy
-                .CAPACITY_OPTIMIZED_PRIORITIZED,
+              autoscaling.SpotAllocationStrategy.CAPACITY_OPTIMIZED_PRIORITIZED,
             spotInstancePools: 3,
             spotMaxPrice: "4",
           },
@@ -3066,10 +3076,14 @@ describe("InstanceMaintenancePolicy", () => {
     // GIVEN
     const stack = new AwsStack(Testing.app());
     const vpc = mockVpc(stack);
-    const lt = LaunchTemplate.fromLaunchTemplateAttributes(stack, "imported-lt", {
-      launchTemplateId: "test-lt-id",
-      versionNumber: "0",
-    });
+    const lt = LaunchTemplate.fromLaunchTemplateAttributes(
+      stack,
+      "imported-lt",
+      {
+        launchTemplateId: "test-lt-id",
+        versionNumber: "0",
+      },
+    );
 
     // THEN
     expect(() => {

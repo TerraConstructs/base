@@ -1,9 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-autoscaling/test/scaling.test.ts
 
-import {
-  autoscalingPolicy,
-  cloudwatchMetricAlarm,
-} from "@cdktn/provider-aws";
+import { autoscalingPolicy, cloudwatchMetricAlarm } from "@cdktn/provider-aws";
 import { Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { Construct } from "constructs";

@@ -4,10 +4,6 @@ import { Token } from "cdktn";
 import { Construct } from "constructs";
 import type { IAutoScalingGroup } from "./auto-scaling-group";
 import {
-  findAlarmThresholds,
-  normalizeIntervals,
-} from "../autoscaling-common/interval-utils";
-import {
   AdjustmentType,
   MetricAggregationType,
   StepScalingAction,
@@ -15,6 +11,10 @@ import {
 import { Duration } from "../../../duration";
 import { ValidationError } from "../../../errors";
 import * as cloudwatch from "../../cloudwatch";
+import {
+  findAlarmThresholds,
+  normalizeIntervals,
+} from "../autoscaling-common/interval-utils";
 
 export interface BasicStepScalingPolicyProps {
   /**

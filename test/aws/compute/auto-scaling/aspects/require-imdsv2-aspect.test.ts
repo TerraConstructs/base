@@ -4,7 +4,11 @@ import { launchTemplate as tfLaunchTemplate } from "@cdktn/provider-aws";
 import { App, Aspects, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../../src/aws/aws-stack";
-import { InstanceType, MachineImage, Vpc } from "../../../../../src/aws/compute";
+import {
+  InstanceType,
+  MachineImage,
+  Vpc,
+} from "../../../../../src/aws/compute";
 import * as autoscaling from "../../../../../src/aws/compute/auto-scaling";
 import { Annotations, Template } from "../../../../assertions";
 
@@ -219,7 +223,9 @@ describe("AutoScalingGroupRequireImdsv2Aspect synth", () => {
     });
 
     // WHEN
-    Aspects.of(stack).add(new autoscaling.AutoScalingGroupRequireImdsv2Aspect());
+    Aspects.of(stack).add(
+      new autoscaling.AutoScalingGroupRequireImdsv2Aspect(),
+    );
 
     // THEN
     stack.prepareStack(); // may generate additional resources

@@ -140,7 +140,8 @@ export class TargetTrackingScalingPolicy extends AwsConstructBase {
     }
 
     if (
-      props.predefinedMetric === PredefinedMetric.ALB_REQUEST_COUNT_PER_TARGET &&
+      props.predefinedMetric ===
+        PredefinedMetric.ALB_REQUEST_COUNT_PER_TARGET &&
       !props.resourceLabel
     ) {
       throw new ValidationError(

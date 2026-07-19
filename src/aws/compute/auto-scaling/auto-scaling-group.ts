@@ -6,7 +6,10 @@ import { Construct } from "constructs";
 import { AutoScalingGroupRequireImdsv2Aspect } from "./aspects";
 import { BasicLifecycleHookProps, LifecycleHook } from "./lifecycle-hook";
 import { BasicScheduledActionProps, ScheduledAction } from "./scheduled-action";
-import { BasicStepScalingPolicyProps, StepScalingPolicy } from "./step-scaling-policy";
+import {
+  BasicStepScalingPolicyProps,
+  StepScalingPolicy,
+} from "./step-scaling-policy";
 import {
   BaseTargetTrackingProps,
   PredefinedMetric,
@@ -1002,7 +1005,10 @@ abstract class AutoScalingGroupBase
     id: string,
     props: BasicStepScalingPolicyProps,
   ): StepScalingPolicy {
-    return new StepScalingPolicy(this, id, { ...props, autoScalingGroup: this });
+    return new StepScalingPolicy(this, id, {
+      ...props,
+      autoScalingGroup: this,
+    });
   }
 
   public addUserData(..._commands: string[]): void {
@@ -1119,7 +1125,8 @@ export class AutoScalingGroup
   constructor(scope: Construct, id: string, props: AutoScalingGroupProps) {
     super(scope, id, props);
 
-    this.newInstancesProtectedFromScaleIn = props.newInstancesProtectedFromScaleIn;
+    this.newInstancesProtectedFromScaleIn =
+      props.newInstancesProtectedFromScaleIn;
 
     if (props.groupMetrics) {
       this.groupMetrics.push(...props.groupMetrics);
@@ -1265,7 +1272,9 @@ export class AutoScalingGroup
     const maxCapacity =
       props.maxCapacity ??
       desiredCapacity ??
-      (Token.isUnresolved(minCapacity) ? minCapacity : Math.max(minCapacity, 1));
+      (Token.isUnresolved(minCapacity)
+        ? minCapacity
+        : Math.max(minCapacity, 1));
 
     withResolved(minCapacity, maxCapacity, (min, max) => {
       if (min > max) {
@@ -1361,7 +1370,9 @@ export class AutoScalingGroup
             );
           }
 
-          terminationPolicies.push(props.terminationPolicyCustomLambdaFunctionArn);
+          terminationPolicies.push(
+            props.terminationPolicyCustomLambdaFunctionArn,
+          );
         } else {
           terminationPolicies.push(terminationPolicy);
         }
@@ -1719,7 +1730,8 @@ export class AutoScalingGroup
     | Pick<autoscalingGroup.AutoscalingGroupConfig, "mixedInstancesPolicy"> {
     if (launchTemplate) {
       return {
-        launchTemplate: this.convertILaunchTemplateToSpecification(launchTemplate),
+        launchTemplate:
+          this.convertILaunchTemplateToSpecification(launchTemplate),
       };
     }
 
@@ -1730,7 +1742,8 @@ export class AutoScalingGroup
       if (mixedInstancesPolicy.instancesDistribution) {
         const dist = mixedInstancesPolicy.instancesDistribution;
         instancesDistribution = {
-          onDemandAllocationStrategy: dist.onDemandAllocationStrategy?.toString(),
+          onDemandAllocationStrategy:
+            dist.onDemandAllocationStrategy?.toString(),
           onDemandBaseCapacity: dist.onDemandBaseCapacity,
           onDemandPercentageAboveBaseCapacity:
             dist.onDemandPercentageAboveBaseCapacity,
@@ -1858,9 +1871,15 @@ export class AutoScalingGroup
     minHealthyPercentage?: number,
     maxHealthyPercentage?: number,
   ): autoscalingGroup.AutoscalingGroupInstanceMaintenancePolicy | undefined {
-    if (minHealthyPercentage === undefined && maxHealthyPercentage === undefined)
+    if (
+      minHealthyPercentage === undefined &&
+      maxHealthyPercentage === undefined
+    )
       return undefined;
-    if (minHealthyPercentage === undefined || maxHealthyPercentage === undefined) {
+    if (
+      minHealthyPercentage === undefined ||
+      maxHealthyPercentage === undefined
+    ) {
       throw new ValidationError(
         `Both or neither of minHealthyPercentage and maxHealthyPercentage must be specified, got minHealthyPercentage: ${minHealthyPercentage} and maxHealthyPercentage: ${maxHealthyPercentage}`,
         this,
@@ -2227,7 +2246,10 @@ export interface IAutoScalingGroup extends IAwsConstruct, iam.IGrantable {
   /**
    * Scale out or in based on time
    */
-  scaleOnSchedule(id: string, props: BasicScheduledActionProps): ScheduledAction;
+  scaleOnSchedule(
+    id: string,
+    props: BasicScheduledActionProps,
+  ): ScheduledAction;
 
   /**
    * Scale out or in to achieve a target CPU utilization
@@ -2264,7 +2286,10 @@ export interface IAutoScalingGroup extends IAwsConstruct, iam.IGrantable {
   /**
    * Scale out or in, in response to a metric
    */
-  scaleOnMetric(id: string, props: BasicStepScalingPolicyProps): StepScalingPolicy;
+  scaleOnMetric(
+    id: string,
+    props: BasicStepScalingPolicyProps,
+  ): StepScalingPolicy;
 }
 
 /**
@@ -2280,7 +2305,8 @@ export interface CpuUtilizationScalingProps extends BaseTargetTrackingProps {
 /**
  * Properties for enabling scaling based on network utilization
  */
-export interface NetworkUtilizationScalingProps extends BaseTargetTrackingProps {
+export interface NetworkUtilizationScalingProps
+  extends BaseTargetTrackingProps {
   /**
    * Target average bytes/seconds on each instance
    */
