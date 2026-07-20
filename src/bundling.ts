@@ -3,6 +3,7 @@
 import { spawnSync } from "child_process";
 import * as crypto from "crypto";
 import { isAbsolute, join } from "path";
+import { BundlingOutput, type ILocalBundling } from "cdktn";
 import { DockerCacheOption } from "./assets";
 import { ExecutionError } from "./errors";
 import { FileSystem } from "./fs";
@@ -149,55 +150,8 @@ export interface BundlingOptions {
   readonly platform?: string;
 }
 
-/**
- * The type of output that a bundling operation is producing.
- *
- */
-export enum BundlingOutput {
-  /**
-   * The bundling output directory includes a single .zip or .jar file which
-   * will be used as the final bundle. If the output directory does not
-   * include exactly a single archive, bundling will fail.
-   */
-  ARCHIVED = "archived",
-
-  /**
-   * The bundling output directory contains one or more files which will be
-   * archived and uploaded as a .zip file to S3.
-   */
-  NOT_ARCHIVED = "not-archived",
-
-  /**
-   * If the bundling output directory contains a single archive file (zip or jar)
-   * it will be used as the bundle output as-is. Otherwise, all the files in the bundling output directory will be zipped.
-   */
-  AUTO_DISCOVER = "auto-discover",
-
-  /**
-   * The bundling output directory includes a single file which
-   * will be used as the final bundle. If the output directory does not
-   * include exactly a single file, bundling will fail.
-   *
-   * Similar to ARCHIVED but for non-archive files
-   */
-  SINGLE_FILE = "single-file",
-}
-
-/**
- * Local bundling
- *
- */
-export interface ILocalBundling {
-  /**
-   * This method is called before attempting docker bundling to allow the
-   * bundler to be executed locally. If the local bundler exists, and bundling
-   * was performed locally, return `true`. Otherwise, return `false`.
-   *
-   * @param outputDir the directory where the bundled asset should be output
-   * @param options bundling options for this asset
-   */
-  tryBundle(outputDir: string, options: BundlingOptions): boolean;
-}
+// Import BundlingOutput and ILocalBundling from cdktn
+export { BundlingOutput, ILocalBundling };
 
 /**
  * The access mechanism used to make source files available to the bundling container and to return the bundling output back to the host

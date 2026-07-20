@@ -88,7 +88,6 @@ describe("staging", () => {
   });
 
   afterEach(() => {
-    AssetStaging.clearAssetHashCache();
     if (fs.existsSync(STUB_INPUT_FILE)) {
       fs.unlinkSync(STUB_INPUT_FILE);
     }
@@ -242,11 +241,6 @@ describe("staging", () => {
 
     // WHEN
     const staging1 = new AssetStaging(stack, "Asset", { sourcePath });
-
-    // Now clear asset hash cache to show that during the second staging
-    // even though the asset is already available on disk it will correctly
-    // be considered as a FileAssetPackaging.FILE.
-    AssetStaging.clearAssetHashCache();
 
     const staging2 = new AssetStaging(stack2, "Asset", { sourcePath });
 
@@ -759,10 +753,6 @@ describe("staging", () => {
   //     },
   //   });
 
-  //   // Clear asset hash cache to show that during the second synth bundling
-  //   // will consider the existing bundling dir (file system cache).
-  //   AssetStaging.clearAssetHashCache();
-
   //   // GIVEN
   //   const app2 = Testing.stubVersion(
   //     new App({
@@ -857,10 +847,6 @@ describe("staging", () => {
   //       },
   //     },
   //   });
-
-  //   // Clear asset hash cache to show that during the second synth bundling
-  //   // will consider the existing bundling dir (file system cache).
-  //   AssetStaging.clearAssetHashCache();
 
   //   // GIVEN
   //   const app2 = Testing.stubVersion(
@@ -1507,11 +1493,6 @@ describe("staging", () => {
       },
     });
 
-    // Now clear asset hash cache to show that during the second staging
-    // even though bundling is skipped it will correctly be considered
-    // as a FileAssetPackaging.FILE.
-    AssetStaging.clearAssetHashCache();
-
     const staging2 = new AssetStaging(stack2, "Asset", {
       sourcePath: directory,
       bundling: {
@@ -1713,7 +1694,6 @@ describe("staging with docker cp", () => {
   });
 
   afterEach(() => {
-    AssetStaging.clearAssetHashCache();
     if (fs.existsSync(STUB_INPUT_CP_FILE)) {
       fs.unlinkSync(STUB_INPUT_CP_FILE);
     }

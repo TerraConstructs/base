@@ -3,10 +3,12 @@
 import { spawnSync, SpawnSyncOptions } from "child_process";
 import * as crypto from "crypto";
 import * as os from "os";
-// import { AssetStaging } from "../asset-staging";
-import { AssetStaging } from "../asset-staging";
 import { BundlingOptions } from "../bundling";
 import { ExecutionError } from "../errors";
+
+// Bundling directory constants (not exported by cdktn's AssetStaging)
+const BUNDLING_INPUT_DIR = "/asset-input";
+const BUNDLING_OUTPUT_DIR = "/asset-output";
 
 /**
  * Options for Docker based bundling of assets
@@ -59,18 +61,17 @@ export class AssetBundlingBindMount extends AssetBundlingBase {
       user: this.determineUser(),
       environment: this.options.environment,
       entrypoint: this.options.entrypoint,
-      workingDirectory:
-        this.options.workingDirectory ?? AssetStaging.BUNDLING_INPUT_DIR,
+      workingDirectory: this.options.workingDirectory ?? BUNDLING_INPUT_DIR,
       securityOpt: this.options.securityOpt ?? "",
       volumesFrom: this.options.volumesFrom,
       volumes: [
         {
           hostPath: this.options.sourcePath,
-          containerPath: AssetStaging.BUNDLING_INPUT_DIR,
+          containerPath: BUNDLING_INPUT_DIR,
         },
         {
           hostPath: this.options.bundleDir,
-          containerPath: AssetStaging.BUNDLING_OUTPUT_DIR,
+          containerPath: BUNDLING_OUTPUT_DIR,
         },
         ...(this.options.volumes ?? []),
       ],
@@ -130,13 +131,13 @@ export class AssetBundlingVolumeCopy extends AssetBundlingBase {
       "--name",
       this.copyContainerName,
       "-v",
-      `${this.inputVolumeName}:${AssetStaging.BUNDLING_INPUT_DIR}`,
+      `${this.inputVolumeName}:${BUNDLING_INPUT_DIR}`,
       "-v",
-      `${this.outputVolumeName}:${AssetStaging.BUNDLING_OUTPUT_DIR}`,
+      `${this.outputVolumeName}:${BUNDLING_OUTPUT_DIR}`,
       "public.ecr.aws/docker/library/alpine",
       "sh",
       "-c",
-      `mkdir -p ${AssetStaging.BUNDLING_INPUT_DIR} && chown -R ${user} ${AssetStaging.BUNDLING_OUTPUT_DIR} && chown -R ${user} ${AssetStaging.BUNDLING_INPUT_DIR}`,
+      `mkdir -p ${BUNDLING_INPUT_DIR} && chown -R ${user} ${BUNDLING_OUTPUT_DIR} && chown -R ${user} ${BUNDLING_INPUT_DIR}`,
     ]);
   }
 
@@ -155,7 +156,7 @@ export class AssetBundlingVolumeCopy extends AssetBundlingBase {
     dockerExec([
       "cp",
       `${sourcePath}/.`,
-      `${this.copyContainerName}:${AssetStaging.BUNDLING_INPUT_DIR}`,
+      `${this.copyContainerName}:${BUNDLING_INPUT_DIR}`,
     ]);
   }
 
@@ -166,7 +167,7 @@ export class AssetBundlingVolumeCopy extends AssetBundlingBase {
   private copyOutputTo(outputPath: string) {
     dockerExec([
       "cp",
-      `${this.copyContainerName}:${AssetStaging.BUNDLING_OUTPUT_DIR}/.`,
+      `${this.copyContainerName}:${BUNDLING_OUTPUT_DIR}/.`,
       outputPath,
     ]);
   }
@@ -185,8 +186,7 @@ export class AssetBundlingVolumeCopy extends AssetBundlingBase {
       user: user,
       environment: this.options.environment,
       entrypoint: this.options.entrypoint,
-      workingDirectory:
-        this.options.workingDirectory ?? AssetStaging.BUNDLING_INPUT_DIR,
+      workingDirectory: this.options.workingDirectory ?? BUNDLING_INPUT_DIR,
       securityOpt: this.options.securityOpt ?? "",
       volumes: this.options.volumes,
       volumesFrom: [

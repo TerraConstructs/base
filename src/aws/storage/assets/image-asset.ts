@@ -8,7 +8,6 @@ import * as ecr from "..";
 import {
   AssetStaging,
   FileFingerprintOptions,
-  IgnoreMode,
   ValidationError,
   UnscopedValidationError,
   IAsset,
@@ -458,7 +457,8 @@ export class DockerImageAsset extends Construct implements IAsset {
       throw new ValidationError(`Cannot find file at ${file}`, this);
     }
 
-    let ignoreMode = props.ignoreMode ?? IgnoreMode.DOCKER;
+    // Note: ignoreMode is not used in cdktn's AssetStaging
+    // let ignoreMode = props.ignoreMode ?? IgnoreMode.DOCKER;
 
     let exclude: string[] = props.exclude || [];
 
@@ -534,9 +534,7 @@ export class DockerImageAsset extends Construct implements IAsset {
 
     const staging = new AssetStaging(this, "Staging", {
       ...props,
-      follow: props.followSymlinks,
       exclude,
-      ignoreMode,
       sourcePath: dir,
       extraHash:
         Object.keys(extraHash).length === 0
@@ -548,7 +546,7 @@ export class DockerImageAsset extends Construct implements IAsset {
     this.sourceHash = this.assetHash;
 
     const stack = AwsStack.ofAwsConstruct(this);
-    this.assetPath = staging.relativeStagedPath(stack);
+    this.assetPath = staging.absoluteStagedPath;
     this.assetName = props.assetName;
     this.dockerBuildArgs = props.buildArgs;
     this.dockerBuildSecrets = props.buildSecrets;
