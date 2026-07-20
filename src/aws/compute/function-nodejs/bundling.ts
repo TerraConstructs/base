@@ -15,8 +15,7 @@ import {
   getTsconfigCompilerOptions,
   isSdkV2Runtime,
 } from "./util";
-import { AssetStaging } from "../../../asset-staging";
-import { AssetHashType } from "../../../assets";
+import { AssetHashType } from "cdktn";
 import {
   BundlingFileAccess,
   BundlingOptions as CoreBundlingOptions,
@@ -27,6 +26,10 @@ import {
 
 const ESBUILD_MAJOR_VERSION = "0";
 const ESBUILD_DEFAULT_VERSION = "0.21";
+
+// Bundling directory constants
+const BUNDLING_INPUT_DIR = "/asset-input";
+const BUNDLING_OUTPUT_DIR = "/asset-output";
 
 /**
  * Bundling properties
@@ -83,7 +86,7 @@ export class Bundling implements CoreBundlingOptions {
         ? AssetHashType.CUSTOM
         : AssetHashType.OUTPUT,
       bundling: new Bundling(scope, options),
-    });
+    } as any); // s3 AssetOptions extends with bundling
   }
 
   public static clearEsbuildInstallationCache(): void {
@@ -242,15 +245,15 @@ export class Bundling implements CoreBundlingOptions {
       : DockerImage.fromRegistry("dummy"); // Do not build if we don't need to
 
     const bundlingCommand = this.createBundlingCommand({
-      inputDir: AssetStaging.BUNDLING_INPUT_DIR,
-      outputDir: AssetStaging.BUNDLING_OUTPUT_DIR,
+      inputDir: BUNDLING_INPUT_DIR,
+      outputDir: BUNDLING_OUTPUT_DIR,
       esbuildRunner: "esbuild", // esbuild is installed globally in the docker image
       tscRunner: "tsc", // tsc is installed globally in the docker image
       osPlatform: "linux", // linux docker image
     });
     this.command = props.command ?? ["bash", "-c", bundlingCommand];
     this.environment = props.environment;
-    // Bundling sets the working directory to AssetStaging.BUNDLING_INPUT_DIR
+    // Bundling sets the working directory to BUNDLING_INPUT_DIR
     // and we want to force npx to use the globally installed esbuild.
     this.workingDirectory = props.workingDirectory ?? "/";
     this.entrypoint = props.entrypoint;

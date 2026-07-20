@@ -9,10 +9,12 @@ export * from "./errors";
 
 // AWS CDK Bundling
 export * from "./assets";
-export * from "./asset-staging";
 export * from "./asset-manager";
 export * from "./bundling";
 export * from "./fs";
+
+// Re-export AssetStaging from cdktn
+export { AssetStaging } from "cdktn";
 
 // cloud specific exports
 export * as aws from "./aws";
