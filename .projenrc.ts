@@ -85,8 +85,6 @@ const project = new cdk.JsiiProject({
     "eslint-plugin-prettier@5.2.1", // Match version from before upgrade
   ],
   bundledDeps: [
-    // TODO: remove esbuild-wasm
-    "esbuild-wasm@^0.23.1",
     "mime-types",
     "change-case@^4.1.1",
     "@balena/dockerignore@^1.0.2",
