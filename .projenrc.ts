@@ -89,7 +89,7 @@ const project = new cdk.JsiiProject({
     "change-case@^4.1.1",
     "@balena/dockerignore@^1.0.2",
     "ignore@^5.3.2",
-    "minimatch@^5.1.0",
+    "minimatch@^10.2.5",
   ],
   // deps: ["@balena/dockerignore@^1.0.2", "ignore@^5.3.2"],
 
@@ -190,16 +190,7 @@ const project = new cdk.JsiiProject({
 });
 
 new TextFile(project, "pnpm-workspace.yaml", {
-  lines: [
-    "overrides:",
-    // Fix moderate CVE for brace-expansion <=1.1.12
-    // brace-expansion Regular Expression Denial of Service vulnerability - https://github.com/advisories/GHSA-v6h2-p8h4-qcjw
-    // brace-expansion: Zero-step sequence causes process hang and memory exhaustion - https://github.com/advisories/GHSA-f886-m6hf-6m8v
-    '  brace-expansion: ">=2.0.1"',
-    "allowBuilds:",
-    "  unrs-resolver: true",
-    "nodeLinker: hoisted",
-  ],
+  lines: ["allowBuilds:", "  unrs-resolver: true", "nodeLinker: hoisted"],
 });
 
 // Pin actions/upload-artifact to a full commit SHA to satisfy the workflow

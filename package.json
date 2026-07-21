@@ -85,15 +85,13 @@
   "dependencies": {
     "@balena/dockerignore": "^1.0.2",
     "change-case": "^4.1.1",
-    "esbuild-wasm": "^0.23.1",
     "ignore": "^5.3.2",
     "mime-types": "^2.1.35",
-    "minimatch": "^5.1.0"
+    "minimatch": "^10.2.5"
   },
   "bundledDependencies": [
     "@balena/dockerignore",
     "change-case",
-    "esbuild-wasm",
     "ignore",
     "mime-types",
     "minimatch"
