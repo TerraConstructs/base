@@ -4,19 +4,22 @@ import * as child_process from "child_process";
 import { PackageInstallation } from "../../../../src/aws/compute/function-nodejs/package-installation";
 import * as util from "../../../../src/aws/compute/function-nodejs/util";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports, import/no-extraneous-dependencies
-const version = require("esbuild-wasm/package.json").version;
-
 jest.mock("child_process", () => ({
   ...jest.requireActual("child_process"),
   spawnSync: jest.fn(),
 }));
 
 test("detects local version", () => {
-  expect(PackageInstallation.detect("esbuild-wasm")).toEqual({
+  const getModuleVersionMock = jest
+    .spyOn(util, "tryGetModuleVersionFromRequire")
+    .mockReturnValue("1.2.3");
+
+  expect(PackageInstallation.detect("some-module")).toEqual({
     isLocal: true,
-    version,
+    version: "1.2.3",
   });
+
+  getModuleVersionMock.mockRestore();
 });
 
 test("checks global version if local detection fails", () => {
@@ -32,7 +35,7 @@ test("checks global version if local detection fails", () => {
     signal: null,
   });
 
-  expect(PackageInstallation.detect("esbuild-wasm")).toEqual({
+  expect(PackageInstallation.detect("some-module")).toEqual({
     isLocal: false,
     version: "global-version",
   });
@@ -55,7 +58,7 @@ test("returns undefined on error", () => {
     signal: null,
   });
 
-  expect(PackageInstallation.detect("esbuild-wasm")).toBeUndefined();
+  expect(PackageInstallation.detect("some-module")).toBeUndefined();
 
   (child_process.spawnSync as jest.Mock).mockReset();
   getModuleVersionMock.mockRestore();

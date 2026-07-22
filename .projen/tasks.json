@@ -282,7 +282,7 @@
           "exec": "pnpm i --no-frozen-lockfile"
         },
         {
-          "exec": "pnpm update @aws-cdk/cloud-assembly-schema @aws-cdk/region-info @cdktn/provider-archive @cdktn/provider-aws @cdktn/provider-cloudinit @cdktn/provider-docker @cdktn/provider-time @cdktn/provider-tls @jsii/spec @mrgrain/jsii-struct-builder @types/jest @types/mime-types @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser cdktn commit-and-tag-version constructs delay eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint fast-check jest jest-junit jsii-diff jsii-pacmak jsii-rosetta jsii projen ts-jest ts-node typescript @balena/dockerignore change-case esbuild-wasm ignore mime-types minimatch"
+          "exec": "pnpm update @aws-cdk/cloud-assembly-schema @aws-cdk/region-info @cdktn/provider-archive @cdktn/provider-aws @cdktn/provider-cloudinit @cdktn/provider-docker @cdktn/provider-time @cdktn/provider-tls @jsii/spec @mrgrain/jsii-struct-builder @types/jest @types/mime-types @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser cdktn commit-and-tag-version constructs delay eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint fast-check jest jest-junit jsii-diff jsii-pacmak jsii-rosetta jsii projen ts-jest ts-node typescript @balena/dockerignore change-case ignore mime-types minimatch"
         },
         {
           "exec": "pnpm exec projen"
