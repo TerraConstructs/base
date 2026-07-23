@@ -43,6 +43,38 @@ describe("tests", () => {
     });
   });
 
+  // Repo-specific: the auto-generated (gridUUID-prefixed) physical name must
+  // respect the 32-character ELBv2 limit enforced by validateLoadBalancer -
+  // deep construct paths previously produced >32-char names that failed the
+  // construct's own synth-time validation (caught by the ecs.lb-awsvpc-nw
+  // integ app). Same uniqueResourceName idiom as base-target-group.ts.
+  test("auto-generated load balancer name respects the 32 character limit", () => {
+    // GIVEN
+    const stack = new AwsStack();
+    const vpc = new compute.Vpc(stack, "Stack");
+    const deeplyNested = new Construct(
+      new Construct(stack, "SomeVeryLongScopeName"),
+      "AnotherLongIntermediateScope",
+    );
+
+    // WHEN
+    new compute.ApplicationLoadBalancer(deeplyNested, "LB", {
+      vpc,
+      internetFacing: true,
+    });
+
+    // THEN - synth runs validateLoadBalancer(); an over-long name would throw
+    Template.synth(stack).toHaveResource(tfLb.Lb);
+    const [lbResource] = Object.values(
+      Template.resourceObjects(stack, tfLb.Lb) as Record<
+        string,
+        { name: string }
+      >,
+    );
+    expect(lbResource.name.length).toBeLessThanOrEqual(32);
+    expect(lbResource.name).toMatch(/^g/); // still gridUUID-prefixed
+  });
+
   test("internet facing load balancer has dependency on IGW", () => {
     // GIVEN
     const stack = new AwsStack();
