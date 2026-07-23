@@ -40,6 +40,10 @@ launch-template: ## Test Launch Template
 	go test -v -count 1 -timeout 15m ./... -run ^TestLaunchTemplate$
 .PHONY: launch-template
 
+autoscaling.custom-scaling: ## Test AutoScalingGroup custom scaling (Schedule.cron + scaleOnCpuUtilization)
+	go test -v -count 1 -timeout 30m ./... -run ^TestAutoscalingCustomScaling$
+.PHONY: autoscaling.custom-scaling
+
 instance-public: ## Test Compute Instance with public IP
 	go test -v -count 1 -timeout 15m ./... -run ^TestInstancePublic$
 .PHONY: instance-public

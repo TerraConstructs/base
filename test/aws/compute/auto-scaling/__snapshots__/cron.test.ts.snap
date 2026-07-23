@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Schedule.cron synth cron expressionString synths as aws_autoscaling_schedule recurrence and matches snapshot 1`] = `
+"{
+  "resource": {
+    "aws_autoscaling_schedule": {
+      "Schedule": {
+        "autoscaling_group_name": "my-asg",
+        "max_size": 5,
+        "min_size": 1,
+        "recurrence": "24 18 * * *",
+        "scheduled_action_name": "my-scheduled-action"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    }
+  }
+}"
+`;
