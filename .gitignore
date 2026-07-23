@@ -52,6 +52,7 @@ junit.xml
 .jsii
 !/pnpm-workspace.yaml
 .env
+tcons-staging/
 !/.nvmrc
 !/.npmrc
 !/.projenrc.ts

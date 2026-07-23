@@ -211,6 +211,8 @@ project.eslint?.addRules({
 });
 
 project.gitignore.exclude(".env");
+// asset-staging synth by-product (src/asset-staging.ts TERRACONSTRUCTS_STAGING_DIRECTORY)
+project.gitignore.exclude("tcons-staging/");
 
 // exclude the integration tests from the npm package
 project.addPackageIgnore("/integ/");
