@@ -533,8 +533,8 @@ exports[`LifecycleHook Should synth and match SnapShot with a notificationTarget
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-autoscaling/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {
@@ -1082,8 +1082,8 @@ exports[`LifecycleHook Should synth and match SnapShot with a role and a notific
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-autoscaling/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {

@@ -468,8 +468,8 @@ exports[`AutoScalingGroup (cfn-init.test.ts base fixture) Should synth and match
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-autoscaling/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {

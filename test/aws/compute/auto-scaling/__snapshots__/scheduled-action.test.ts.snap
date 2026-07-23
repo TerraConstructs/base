@@ -477,8 +477,8 @@ exports[`ScheduledAction Should synth and match SnapShot with minCapacity only 1
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-autoscaling/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {
@@ -971,8 +971,8 @@ exports[`ScheduledAction Should synth and match SnapShot with startTime, endTime
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-autoscaling/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {

@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-autoscaling/test/warm-pool.test.ts
 
 import { autoscalingGroup } from "@cdktn/provider-aws";
-import { Testing } from "cdktn";
+import { HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import {
@@ -13,6 +13,12 @@ import {
 } from "../../../../src/aws/compute";
 import * as autoscaling from "../../../../src/aws/compute/auto-scaling";
 import { Template } from "../../../assertions";
+
+// snapshot tests must not use the default local backend - its state file path
+// is machine-dependent and would leak into the snapshot
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
 
 describe("warm pool", () => {
   test("we can add a warm pool without properties", () => {
@@ -130,6 +136,7 @@ describe("WarmPool", () => {
     // GIVEN
     const app = Testing.app();
     const stack = new AwsStack(app);
+    new HttpBackend(stack, gridBackendConfig);
     const asg = newASG(stack);
 
     // WHEN
@@ -144,6 +151,7 @@ describe("WarmPool", () => {
     // GIVEN
     const app = Testing.app();
     const stack = new AwsStack(app);
+    new HttpBackend(stack, gridBackendConfig);
     const asg = newASG(stack);
 
     // WHEN

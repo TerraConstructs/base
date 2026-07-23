@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-autoscaling/test/aspects/require-imdsv2-aspect.test.ts
 
 import { launchTemplate as tfLaunchTemplate } from "@cdktn/provider-aws";
-import { App, Aspects, Testing } from "cdktn";
+import { App, Aspects, HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../../src/aws/aws-stack";
 import {
@@ -11,6 +11,12 @@ import {
 } from "../../../../../src/aws/compute";
 import * as autoscaling from "../../../../../src/aws/compute/auto-scaling";
 import { Annotations, Template } from "../../../../assertions";
+
+// snapshot tests must not use the default local backend - its state file path
+// is machine-dependent and would leak into the snapshot
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
 
 describe("AutoScalingGroupRequireImdsv2Aspect", () => {
   let app: App;
@@ -215,6 +221,7 @@ describe("AutoScalingGroupRequireImdsv2Aspect synth", () => {
     // GIVEN
     const app = Testing.app();
     const stack = new AwsStack(app);
+    new HttpBackend(stack, gridBackendConfig);
     const vpc = new Vpc(stack, "Vpc");
     new autoscaling.AutoScalingGroup(stack, "AutoScalingGroup", {
       vpc,

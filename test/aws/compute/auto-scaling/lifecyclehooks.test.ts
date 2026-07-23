@@ -6,7 +6,7 @@ import {
   iamRole,
   iamRolePolicy,
 } from "@cdktn/provider-aws";
-import { Testing } from "cdktn";
+import { HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import * as constructs from "constructs";
 import { AwsStack } from "../../../../src/aws";
@@ -21,6 +21,12 @@ import * as autoscaling from "../../../../src/aws/compute/auto-scaling";
 import * as iam from "../../../../src/aws/iam";
 import { Duration } from "../../../../src/duration";
 import { Template } from "../../../assertions";
+
+// snapshot tests must not use the default local backend - its state file path
+// is machine-dependent and would leak into the snapshot
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
 
 describe("lifecycle hooks", () => {
   test("we can add a lifecycle hook with no role and with a notifcationTarget to an ASG", () => {
@@ -355,6 +361,7 @@ describe("LifecycleHook", () => {
   test("Should synth and match SnapShot with a notificationTarget and no role", () => {
     // GIVEN
     const stack = newStack();
+    new HttpBackend(stack, gridBackendConfig);
     const asg = newASG(stack);
 
     // WHEN
@@ -372,6 +379,7 @@ describe("LifecycleHook", () => {
   test("Should synth and match SnapShot with a role and a notificationTarget", () => {
     // GIVEN
     const stack = newStack();
+    new HttpBackend(stack, gridBackendConfig);
     const asg = newASG(stack);
     const myrole = new iam.Role(stack, "MyRole", {
       assumedBy: new iam.ServicePrincipal("custom.role.domain.com"),

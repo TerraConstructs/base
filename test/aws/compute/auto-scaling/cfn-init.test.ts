@@ -1,11 +1,17 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-autoscaling/test/cfn-init.test.ts
 
 import { autoscalingGroup } from "@cdktn/provider-aws";
-import { App, Testing } from "cdktn";
+import { App, HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
 import { Template } from "../../../assertions";
+
+// snapshot tests must not use the default local backend - its state file path
+// is machine-dependent and would leak into the snapshot
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
 
 // NOTE (whole-file, terraform-provider-unsupported): every test in this upstream suite exercises
 // CloudFormation's `CreationPolicy`/`UpdatePolicy` attribute pair (surfaced upstream via the
@@ -316,6 +322,7 @@ describe("AutoScalingGroup (cfn-init.test.ts base fixture)", () => {
   beforeEach(() => {
     app = Testing.app();
     regressionStack = new AwsStack(app);
+    new HttpBackend(regressionStack, gridBackendConfig);
   });
 
   test("Should synth and match SnapShot", () => {

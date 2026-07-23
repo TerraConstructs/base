@@ -475,8 +475,8 @@ exports[`WarmPool Should synth and match SnapShot with all optional properties 1
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-autoscaling/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {
@@ -958,8 +958,8 @@ exports[`WarmPool Should synth and match SnapShot with no optional properties 1`
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-autoscaling/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {

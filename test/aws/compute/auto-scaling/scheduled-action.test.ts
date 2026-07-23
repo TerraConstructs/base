@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-autoscaling/test/scheduled-action.test.ts
 
 import { autoscalingSchedule } from "@cdktn/provider-aws";
-import { App, Testing } from "cdktn";
+import { App, HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { Construct } from "constructs";
 import { AwsStack } from "../../../../src/aws";
@@ -12,6 +12,12 @@ import {
 } from "../../../../src/aws/compute";
 import * as autoscaling from "../../../../src/aws/compute/auto-scaling";
 import { Annotations, Template } from "../../../assertions";
+
+// snapshot tests must not use the default local backend - its state file path
+// is machine-dependent and would leak into the snapshot
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
 
 // upstream wraps this suite in `describeDeprecated('scheduled action', ...)` because
 // `makeAutoScalingGroup` used the deprecated `updateType`/`UpdateType.ROLLING_UPDATE`
@@ -302,6 +308,7 @@ describe("ScheduledAction", () => {
   test("Should synth and match SnapShot with minCapacity only", () => {
     // GIVEN
     const stack = newStack();
+    new HttpBackend(stack, gridBackendConfig);
     const asg = makeAutoScalingGroup(stack);
 
     // WHEN
@@ -318,6 +325,7 @@ describe("ScheduledAction", () => {
   test("Should synth and match SnapShot with startTime, endTime and timeZone", () => {
     // GIVEN
     const stack = newStack();
+    new HttpBackend(stack, gridBackendConfig);
     const asg = makeAutoScalingGroup(stack);
 
     // WHEN

@@ -470,8 +470,8 @@ exports[`AutoScalingGroupRequireImdsv2Aspect synth applies to AutoScalingGroup a
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-autoscaling/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {
