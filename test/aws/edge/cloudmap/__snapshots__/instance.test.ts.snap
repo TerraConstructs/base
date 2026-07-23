@@ -61,8 +61,8 @@ exports[`Instance Should synth and match SnapShot 1`] = `
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-servicediscovery-run5/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {

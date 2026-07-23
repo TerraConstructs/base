@@ -1,10 +1,16 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-servicediscovery/test/instance.test.ts
 
 import { serviceDiscoveryInstance } from "@cdktn/provider-aws";
-import { Testing } from "cdktn";
+import { HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack, compute, edge } from "../../../../src/aws";
 import { Template } from "../../../assertions";
+
+// snapshot tests must not use the default local backend - its state file path
+// is machine-dependent and would leak into the snapshot
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
 
 // Repo-specific: snapshot coverage on top of the upstream suite below (guards
 // against emitted-Terraform drift; see test/aws/notify/queue.test.ts).
@@ -12,6 +18,7 @@ describe("Instance", () => {
   test("Should synth and match SnapShot", () => {
     // GIVEN
     const stack = new AwsStack();
+    new HttpBackend(stack, gridBackendConfig);
     const namespace = new edge.cloudmap.HttpNamespace(stack, "MyNamespace", {
       name: "http",
     });

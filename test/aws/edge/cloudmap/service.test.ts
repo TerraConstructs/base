@@ -6,12 +6,18 @@ import {
   serviceDiscoveryPublicDnsNamespace,
   serviceDiscoveryService,
 } from "@cdktn/provider-aws";
-import { Testing } from "cdktn";
+import { HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
 import * as cloudmap from "../../../../src/aws/edge/cloudmap";
 import { Template } from "../../../assertions";
+
+// snapshot tests must not use the default local backend - its state file path
+// is machine-dependent and would leak into the snapshot
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
 
 describe("service", () => {
   test("Service for HTTP namespace with custom health check", () => {
@@ -686,6 +692,7 @@ describe("service snapshots", () => {
   test("Service for HTTP namespace should synth and match SnapShot", () => {
     // GIVEN
     const stack = new AwsStack();
+    new HttpBackend(stack, gridBackendConfig);
     const namespace = new cloudmap.HttpNamespace(stack, "MyNamespace", {
       name: "http",
     });
@@ -705,6 +712,7 @@ describe("service snapshots", () => {
   test("Service for Public DNS namespace should synth and match SnapShot", () => {
     // GIVEN
     const stack = new AwsStack();
+    new HttpBackend(stack, gridBackendConfig);
     const namespace = new cloudmap.PublicDnsNamespace(stack, "MyNamespace", {
       name: "dns",
     });
@@ -720,6 +728,7 @@ describe("service snapshots", () => {
   test("Service for Private DNS namespace should synth and match SnapShot", () => {
     // GIVEN
     const stack = new AwsStack();
+    new HttpBackend(stack, gridBackendConfig);
     const vpc = new compute.Vpc(stack, "MyVpc");
     const namespace = new cloudmap.PrivateDnsNamespace(stack, "MyNamespace", {
       name: "private",

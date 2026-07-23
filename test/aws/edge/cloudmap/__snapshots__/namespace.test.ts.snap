@@ -39,8 +39,8 @@ exports[`namespace snapshots HTTP namespace should synth and match SnapShot 1`] 
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-servicediscovery-run5/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {
@@ -390,8 +390,8 @@ exports[`namespace snapshots Private DNS namespace should synth and match SnapSh
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-servicediscovery-run5/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {
@@ -443,8 +443,8 @@ exports[`namespace snapshots Public DNS namespace should synth and match SnapSho
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-servicediscovery-run5/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {
