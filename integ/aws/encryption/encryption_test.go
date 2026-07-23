@@ -2,9 +2,11 @@ package test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/gruntwork-io/terratest/modules/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
@@ -73,6 +75,67 @@ func TestKeyAlias(t *testing.T) {
 			keyArn := aws.GetCmkArn(t, awsRegion, aliasName)
 			require.Equal(t, targetKeyArn, keyArn)
 		})
+}
+
+// Run the apps/secret-attach.ts integration test
+//
+// Validates that Secret.attach() produced a deployable, "complete" secret:
+// the merged connection secret's value must contain the real RDS connection
+// details (host/port) of the attached DbInstance -- see the module doc
+// comment on apps/secret-attach.ts for how the merge is achieved without a
+// CloudFormation-style server-side merge.
+func TestSecretAttach(t *testing.T) {
+	runEncryptionIntegrationTest(t, "secret-attach", "us-east-1",
+		func(t *testing.T, tfWorkingDir string, awsRegion string) {
+			terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+
+			secretArn := util.LoadOutputAttribute(t, terraformOptions, "secret", "secretArn")
+			attachmentSecretArn := terraform.Output(t, terraformOptions, "attachment_secret_arn")
+			require.Equal(t, secretArn, attachmentSecretArn, "attached secret has no separate ARN in Terraform")
+
+			dbInstanceID := terraform.Output(t, terraformOptions, "db_instance_identifier")
+			dbInstanceDetails, err := aws.GetRdsInstanceDetailsE(t, dbInstanceID, awsRegion)
+			require.NoError(t, err)
+			require.NotNil(t, dbInstanceDetails.Endpoint)
+
+			expectedHost := *dbInstanceDetails.Endpoint.Address
+			expectedPort := fmt.Sprintf("%d", *dbInstanceDetails.Endpoint.Port)
+
+			secretValue := aws.GetSecretValue(t, awsRegion, secretArn)
+			var connection map[string]string
+			err = json.Unmarshal([]byte(secretValue), &connection)
+			require.NoError(t, err)
+
+			require.Equal(t, expectedHost, connection["host"])
+			require.Equal(t, expectedPort, connection["port"])
+			require.Equal(t, "postgres", connection["engine"])
+			require.NotEmpty(t, connection["username"])
+			require.NotEmpty(t, connection["password"])
+		})
+}
+
+// Run the apps/secret.replica.ts integration test
+func TestSecretReplica(t *testing.T) {
+	runEncryptionIntegrationTest(t, "secret.replica", "us-east-1", validateSecretReplica)
+}
+
+// validateSecretReplica validates the apps/secret.replica.ts integration test: a default Secret
+// with a single replica region (the app's literal "eu-central-1") reaches "InSync" replication
+// status, per the upstream integ's intent of exercising `secret.addReplicaRegion('eu-central-1')`.
+func validateSecretReplica(t *testing.T, tfWorkingDir string, awsRegion string) {
+	// mirrors apps/secret.replica.ts: secret.addReplicaRegion("eu-central-1")
+	const replicaRegion = "eu-central-1"
+
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+	secretArn := util.LoadOutputAttribute(t, terraformOptions, "secret", "secretArn")
+
+	// Replication is asynchronous - wait for AWS to report the replica as InSync.
+	util.WaitForSecretReplicationInSync(t, awsRegion, secretArn, replicaRegion, 20, 15*time.Second)
+
+	description := util.DescribeSecret(t, awsRegion, secretArn)
+	require.Len(t, description.ReplicationStatus, 1, "expected exactly one replica region")
+	require.Equal(t, replicaRegion, *description.ReplicationStatus[0].Region)
 }
 
 // run encryption integration test

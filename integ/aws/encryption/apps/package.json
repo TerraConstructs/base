@@ -3,7 +3,9 @@
   "type": "module",
   "scripts": {
     "key-alias": "bun run ./key-alias.ts",
-    "key": "bun run ./key.ts"
+    "key": "bun run ./key.ts",
+    "secret-attach": "bun run ./secret-attach.ts",
+    "secret.replica": "bun run ./secret.replica.ts"
   },
   "dependencies": {
     "cdktn": "^0.23.0",

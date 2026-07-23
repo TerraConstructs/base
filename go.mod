@@ -27,6 +27,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/kms v1.49.4
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.87.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.93.2
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.6
 	github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.42.0
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.40.5
 	github.com/aws/aws-sdk-go-v2/service/sns v1.39.10
@@ -66,7 +67,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/rds v1.91.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.46.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.56.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.7 // indirect

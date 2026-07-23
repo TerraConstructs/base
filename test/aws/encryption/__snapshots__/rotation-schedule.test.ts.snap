@@ -1,0 +1,263 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RotationSchedule Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "archive_file": {
+      "Lambda_Lambda977ac4c4b02ffbf33727a2b3dfd94f40A3E2D98D_FA6D0A46": {
+        "output_path": "\${path.root}/.archive_files/Lambda977ac4c4b02ffbf33727a2b3dfd94f40A3E2D98D.zip",
+        "provider": "archive",
+        "source_content": "export.handler = event => event;",
+        "source_content_filename": "index.js",
+        "type": "zip"
+      }
+    },
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "Lambda_ServiceRole_AssumeRolePolicy_FE762235": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_lambda.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "Lambda_ServiceRole_DefaultPolicy_E1FFF11A": {
+        "statement": [
+          {
+            "actions": [
+              "xray:PutTraceSegments",
+              "xray:PutTelemetryRecords"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          },
+          {
+            "actions": [
+              "secretsmanager:DescribeSecret",
+              "secretsmanager:GetSecretValue",
+              "secretsmanager:PutSecretValue",
+              "secretsmanager:UpdateSecretVersionStage"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "\${aws_secretsmanager_secret.Secret_A720EF05.arn}"
+            ]
+          },
+          {
+            "actions": [
+              "secretsmanager:GetRandomPassword"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      },
+      "Secret_Policy_13544DA0": {
+        "statement": [
+          {
+            "actions": [
+              "secretsmanager:DeleteSecret"
+            ],
+            "effect": "Deny",
+            "principals": [
+              {
+                "identifiers": [
+                  "arn:\${data.aws_partition.Partitition.partition}:iam::\${data.aws_caller_identity.CallerIdentity.account_id}:root"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_secretsmanager_random_password": {
+      "Secret_RandomPassword_01FCD53F": {
+        "exclude_lowercase": false,
+        "exclude_numbers": false,
+        "exclude_punctuation": false,
+        "exclude_uppercase": false,
+        "include_space": false,
+        "password_length": 32,
+        "require_each_included_type": true
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_lambda": {
+        "service_name": "lambda"
+      }
+    }
+  },
+  "provider": {
+    "archive": [
+      {
+      }
+    ],
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudwatch_log_group": {
+      "Lambda_LogGroup_966346B4": {
+        "name": "/aws/lambda/g-Lambda",
+        "retention_in_days": 7,
+        "tags": {
+          "Name": "Default-Lambda",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    },
+    "aws_iam_role": {
+      "Lambda_ServiceRole_A8ED4D3B": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.Lambda_ServiceRole_AssumeRolePolicy_FE762235.json}",
+        "name_prefix": "g-LambdaServiceRole",
+        "tags": {
+          "Name": "Default-Lambda",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "Lambda_ServiceRole_DefaultPolicy_ResourceRoles0_DE66D1AF": {
+        "name": "LambdaServiceRoleDefaultPolicy375CD4A7",
+        "policy": "\${data.aws_iam_policy_document.Lambda_ServiceRole_DefaultPolicy_E1FFF11A.json}",
+        "role": "\${aws_iam_role.Lambda_ServiceRole_A8ED4D3B.name}"
+      }
+    },
+    "aws_iam_role_policy_attachment": {
+      "Lambda_AWSLambdaBasicExecutionRole_Roles0_F1493B3C": {
+        "policy_arn": "arn:\${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+        "role": "\${aws_iam_role.Lambda_ServiceRole_A8ED4D3B.name}"
+      }
+    },
+    "aws_lambda_function": {
+      "Lambda_D247545B": {
+        "architectures": [
+          "x86_64"
+        ],
+        "depends_on": [
+          "aws_cloudwatch_log_group.Lambda_LogGroup_966346B4",
+          "data.aws_iam_policy_document.Lambda_ServiceRole_AssumeRolePolicy_FE762235",
+          "aws_iam_role.Lambda_ServiceRole_A8ED4D3B",
+          "data.aws_iam_policy_document.Lambda_ServiceRole_DefaultPolicy_E1FFF11A",
+          "aws_iam_role_policy.Lambda_ServiceRole_DefaultPolicy_ResourceRoles0_DE66D1AF"
+        ],
+        "environment": {
+          "variables": {
+          }
+        },
+        "filename": "\${data.archive_file.Lambda_Lambda977ac4c4b02ffbf33727a2b3dfd94f40A3E2D98D_FA6D0A46.output_path}",
+        "function_name": "g-Lambda",
+        "handler": "index.handler",
+        "memory_size": 128,
+        "role": "\${aws_iam_role.Lambda_ServiceRole_A8ED4D3B.arn}",
+        "runtime": "nodejs22.x",
+        "source_code_hash": "\${data.archive_file.Lambda_Lambda977ac4c4b02ffbf33727a2b3dfd94f40A3E2D98D_FA6D0A46.output_base64sha256}",
+        "tags": {
+          "Name": "Default-Lambda",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        },
+        "timeout": 3,
+        "tracing_config": {
+          "mode": "Active"
+        }
+      }
+    },
+    "aws_lambda_permission": {
+      "Lambda_InvokeWD9X6a9NLlLnGrEs8Z0khbjD6QCSv7PAjlePIac6E_CED4E3B4": {
+        "action": "lambda:InvokeFunction",
+        "function_name": "\${aws_lambda_function.Lambda_D247545B.arn}",
+        "principal": "secretsmanager.amazonaws.com"
+      }
+    },
+    "aws_secretsmanager_secret": {
+      "Secret_A720EF05": {
+        "name": "Secret",
+        "tags": {
+          "Name": "Default-Secret",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    },
+    "aws_secretsmanager_secret_policy": {
+      "Secret_Policy_06C9821C": {
+        "policy": "\${data.aws_iam_policy_document.Secret_Policy_13544DA0.json}",
+        "secret_arn": "\${aws_secretsmanager_secret.Secret_A720EF05.arn}"
+      }
+    },
+    "aws_secretsmanager_secret_rotation": {
+      "RotationSchedule_2A725270": {
+        "depends_on": [
+          "aws_lambda_permission.Lambda_InvokeWD9X6a9NLlLnGrEs8Z0khbjD6QCSv7PAjlePIac6E_CED4E3B4"
+        ],
+        "rotation_lambda_arn": "\${aws_lambda_function.Lambda_D247545B.arn}",
+        "rotation_rules": {
+          "schedule_expression": "rate(14 days)"
+        },
+        "secret_id": "\${aws_secretsmanager_secret.Secret_A720EF05.arn}"
+      }
+    },
+    "aws_secretsmanager_secret_version": {
+      "Secret_SecretVersion_1CCEE6BD": {
+        "secret_id": "\${aws_secretsmanager_secret.Secret_A720EF05.arn}",
+        "secret_string": "\${data.aws_secretsmanager_random_password.Secret_RandomPassword_01FCD53F.random_password}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "archive": {
+        "source": "hashicorp/archive",
+        "version": "2.8.0"
+      },
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
