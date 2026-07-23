@@ -8,3 +8,5 @@ export * from "./function";
 export * from "./key-value-store";
 export * from "./origin";
 export * from "./response-headers-policy";
+
+export * as cloudmap from "./cloudmap";

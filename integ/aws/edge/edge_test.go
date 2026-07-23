@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/servicediscovery/types"
 	"github.com/stretchr/testify/require"
 	"github.com/terraconstructs/base/integ"
 	util "github.com/terraconstructs/base/integ/aws"
@@ -56,11 +58,90 @@ func TestDistributionPolicies(t *testing.T) {
 		})
 }
 
+// Test the apps/service-with-http-namespace.ts app
+// ref: https://github.com/aws/aws-cdk/blob/v2.233.0/packages/@aws-cdk-testing/framework-integ/test/aws-servicediscovery/test/integ.service-with-http-namespace.lit.ts
+func TestServiceWithHttpNamespace(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	runEdgeIntegrationTest(t, "service-with-http-namespace", "us-east-1", envVars, validateServiceWithHttpNamespace)
+}
+
 func validateMultiZoneAcmPubCert(t *testing.T, workingDir string, awsRegion string) {
 	// Load the Terraform Options saved by the earlier deploy_terraform stage
 	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
 	certificateArn := util.LoadOutputAttribute(t, terraformOptions, "certificate", "arn")
 	util.WaitForCertificateIssued(t, certificateArn, awsRegion, 10, 10*time.Second)
+}
+
+// validateServiceWithHttpNamespace hand-mirrors every literal from
+// apps/service-with-http-namespace.ts: the HttpNamespace name, the two
+// Service.createService() calls (description + HTTP health check), and the
+// registerNonIpInstance/registerIpInstance custom attributes. It also exercises
+// Cloud Map's core client-facing DiscoverInstances API to prove the
+// Namespace->Service->Instance discovery flow actually works end-to-end.
+func validateServiceWithHttpNamespace(t *testing.T, workingDir string, awsRegion string) {
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+
+	namespaceId := util.LoadOutputAttribute(t, terraformOptions, "namespace", "httpNamespaceId")
+	namespaceName := util.LoadOutputAttribute(t, terraformOptions, "namespace", "httpNamespaceName")
+	require.Equal(t, "MyHTTPNamespace", namespaceName)
+
+	namespace := util.GetCloudMapNamespace(t, awsRegion, namespaceId)
+	require.Equal(t, "MyHTTPNamespace", aws.ToString(namespace.Name))
+	require.Equal(t, types.NamespaceTypeHttp, namespace.Type)
+
+	// --- NonIpService / NonIpInstance ---
+
+	nonIpServiceId := util.LoadOutputAttribute(t, terraformOptions, "non_ip_service", "serviceId")
+	nonIpServiceName := util.LoadOutputAttribute(t, terraformOptions, "non_ip_service", "serviceName")
+
+	nonIpService := util.GetCloudMapService(t, awsRegion, nonIpServiceId)
+	require.Equal(t, nonIpServiceName, aws.ToString(nonIpService.Name))
+	require.Equal(t, "service registering non-ip instances", aws.ToString(nonIpService.Description))
+	// HTTP namespaces only support API-based discovery.
+	require.Equal(t, types.ServiceTypeHttp, nonIpService.Type)
+	require.Nil(t, nonIpService.HealthCheckConfig)
+
+	nonIpInstanceId := util.LoadOutputAttribute(t, terraformOptions, "non_ip_instance", "instanceId")
+	nonIpInstance := util.GetCloudMapInstance(t, awsRegion, nonIpServiceId, nonIpInstanceId)
+	require.Equal(t, "arn:aws:s3:::amzn-s3-demo-bucket", nonIpInstance.Attributes["arn"])
+
+	// --- IpService / IpInstance ---
+
+	ipServiceId := util.LoadOutputAttribute(t, terraformOptions, "ip_service", "serviceId")
+	ipServiceName := util.LoadOutputAttribute(t, terraformOptions, "ip_service", "serviceName")
+
+	ipService := util.GetCloudMapService(t, awsRegion, ipServiceId)
+	require.Equal(t, ipServiceName, aws.ToString(ipService.Name))
+	require.Equal(t, "service registering ip instances", aws.ToString(ipService.Description))
+	require.Equal(t, types.ServiceTypeHttp, ipService.Type)
+	require.NotNil(t, ipService.HealthCheckConfig)
+	require.Equal(t, types.HealthCheckTypeHttp, ipService.HealthCheckConfig.Type)
+	require.Equal(t, "/check", aws.ToString(ipService.HealthCheckConfig.ResourcePath))
+	require.EqualValues(t, 1, aws.ToInt32(ipService.HealthCheckConfig.FailureThreshold))
+
+	ipInstanceId := util.LoadOutputAttribute(t, terraformOptions, "ip_instance", "instanceId")
+	ipInstanceIpv4 := util.LoadOutputAttribute(t, terraformOptions, "ip_instance", "ipv4")
+	ipInstancePort := util.LoadOutputAttribute(t, terraformOptions, "ip_instance", "port")
+	require.Equal(t, "54.239.25.192", ipInstanceIpv4)
+	require.Equal(t, "80", ipInstancePort)
+
+	ipInstance := util.GetCloudMapInstance(t, awsRegion, ipServiceId, ipInstanceId)
+	require.Equal(t, "54.239.25.192", ipInstance.Attributes["AWS_INSTANCE_IPV4"])
+	require.Equal(t, "80", ipInstance.Attributes["AWS_INSTANCE_PORT"])
+
+	// --- Exercise the actual discovery flow via the Cloud Map client API ---
+	// Health checks against a non-existent IP will never turn healthy, so query
+	// with HealthStatus=ALL to confirm both instances are discoverable regardless.
+
+	nonIpDiscoveredAttrs := util.WaitForCloudMapInstanceDiscoverable(
+		t, awsRegion, namespaceName, nonIpServiceName, nonIpInstanceId, 10, 10*time.Second)
+	require.Equal(t, "arn:aws:s3:::amzn-s3-demo-bucket", nonIpDiscoveredAttrs["arn"])
+
+	ipDiscoveredAttrs := util.WaitForCloudMapInstanceDiscoverable(
+		t, awsRegion, namespaceName, ipServiceName, ipInstanceId, 10, 10*time.Second)
+	require.Equal(t, "54.239.25.192", ipDiscoveredAttrs["AWS_INSTANCE_IPV4"])
+	require.Equal(t, "80", ipDiscoveredAttrs["AWS_INSTANCE_PORT"])
 }
 
 // validateURLRewriteFunction with testevents

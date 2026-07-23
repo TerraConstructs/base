@@ -1,0 +1,76 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Instance Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_service_discovery_http_namespace": {
+      "MyNamespace_D0BB8558": {
+        "name": "http",
+        "tags": {
+          "Name": "Default-MyNamespace",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    },
+    "aws_service_discovery_instance": {
+      "MyNamespace_MyService_IpInstance_6CB81A17": {
+        "attributes": {
+          "AWS_INSTANCE_IPV4": "10.0.0.0",
+          "AWS_INSTANCE_IPV6": "0:0:0:0:0:ffff:a00:0",
+          "AWS_INSTANCE_PORT": "443"
+        },
+        "instance_id": "MyNamespaceMyServiceIpInstanceBACEB9D2",
+        "service_id": "\${aws_service_discovery_service.MyNamespace_MyService_365E2470.id}"
+      }
+    },
+    "aws_service_discovery_service": {
+      "MyNamespace_MyService_365E2470": {
+        "name": "service",
+        "namespace_id": "\${aws_service_discovery_http_namespace.MyNamespace_D0BB8558.id}",
+        "tags": {
+          "Name": "Default-MyNamespace",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
