@@ -21,8 +21,7 @@ exports[`notification can specify prefix and suffix filter rules 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -90,8 +89,7 @@ exports[`notification when notification is added a custom s3 bucket notification
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {

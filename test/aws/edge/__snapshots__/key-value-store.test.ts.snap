@@ -21,8 +21,7 @@ exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -93,8 +92,7 @@ exports[`KeyValueStore Should synth and match SnapShot 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {

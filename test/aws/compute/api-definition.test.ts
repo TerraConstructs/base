@@ -105,7 +105,7 @@ describe("api definition", () => {
       template.expect.toHaveResourceWithProperties(
         apiGatewayRestApi.ApiGatewayRestApi,
         {
-          body: '${file("assets/APIDefinition/696823B294E9370C32D2718139EAD358/sample-restapi-definition.yaml")}',
+          body: '${file("assets/APIDefinition/8F4B0D399A2C7BD6DC11C26A19C5BE28/sample-restapi-definition.yaml")}',
         },
       );
       // Verify that inlineDefinition references the CDKTF Asset

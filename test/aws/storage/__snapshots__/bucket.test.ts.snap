@@ -34,8 +34,7 @@ exports[`Bucket Should support multiple sources 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -73,8 +72,8 @@ exports[`Bucket Should support multiple sources 1`] = `
           "time_sleep.HelloWorld_VersioningSleep_FC16C7EC"
         ],
         "key": "/images/officespace-great.jpg",
-        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/images/officespace-great.jpg",
-        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/images/officespace-great.jpg\\")}",
+        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/8B4CCF788363CCDB02792BDB4DABA467/images/officespace-great.jpg",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/8B4CCF788363CCDB02792BDB4DABA467/images/officespace-great.jpg\\")}",
         "tags": {
           "Name": "Default-HelloWorld",
           "grid:EnvironmentName": "Default",
@@ -88,8 +87,8 @@ exports[`Bucket Should support multiple sources 1`] = `
           "time_sleep.HelloWorld_VersioningSleep_FC16C7EC"
         ],
         "key": "/index.html",
-        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/index.html",
-        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/index.html\\")}",
+        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/8B4CCF788363CCDB02792BDB4DABA467/index.html",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/8B4CCF788363CCDB02792BDB4DABA467/index.html\\")}",
         "tags": {
           "Name": "Default-HelloWorld",
           "grid:EnvironmentName": "Default",
@@ -103,8 +102,8 @@ exports[`Bucket Should support multiple sources 1`] = `
           "time_sleep.HelloWorld_VersioningSleep_FC16C7EC"
         ],
         "key": "/sample.html",
-        "source": "assets/HelloWorld_source-1_PathAsset_F1F0E41E/5E8FF9BF55BA3508199D22E984129BE6/sample.html",
-        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-1_PathAsset_F1F0E41E/5E8FF9BF55BA3508199D22E984129BE6/sample.html\\")}",
+        "source": "assets/HelloWorld_source-1_PathAsset_F1F0E41E/DE70539DC27B7BC23E6B5BC3AC64A298/sample.html",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-1_PathAsset_F1F0E41E/DE70539DC27B7BC23E6B5BC3AC64A298/sample.html\\")}",
         "tags": {
           "Name": "Default-HelloWorld",
           "grid:EnvironmentName": "Default",
@@ -178,8 +177,7 @@ exports[`Bucket Should synth and match SnapShot 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -239,8 +237,8 @@ exports[`Bucket Should synth and match SnapShot 1`] = `
         "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
         "content_type": "image/jpeg",
         "key": "/images/officespace-great.jpg",
-        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/images/officespace-great.jpg",
-        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/images/officespace-great.jpg\\")}",
+        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/8B4CCF788363CCDB02792BDB4DABA467/images/officespace-great.jpg",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/8B4CCF788363CCDB02792BDB4DABA467/images/officespace-great.jpg\\")}",
         "tags": {
           "Name": "Default-HelloWorld",
           "grid:EnvironmentName": "Default",
@@ -251,8 +249,8 @@ exports[`Bucket Should synth and match SnapShot 1`] = `
         "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
         "content_type": "text/html; charset=utf-8",
         "key": "/index.html",
-        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/index.html",
-        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/index.html\\")}",
+        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/8B4CCF788363CCDB02792BDB4DABA467/index.html",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/8B4CCF788363CCDB02792BDB4DABA467/index.html\\")}",
         "tags": {
           "Name": "Default-HelloWorld",
           "grid:EnvironmentName": "Default",

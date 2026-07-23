@@ -69,12 +69,10 @@ exports[`Function Should synth and match SnapShot 1`] = `
   },
   "provider": {
     "archive": [
-      {
-      }
+      {}
     ],
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -126,8 +124,7 @@ exports[`Function Should synth and match SnapShot 1`] = `
           "aws_iam_role_policy.HelloWorld_ServiceRole_DefaultPolicy_ResourceRoles0_F82A2883"
         ],
         "environment": {
-          "variables": {
-          }
+          "variables": {}
         },
         "filename": "\${data.archive_file.HelloWorld_TestStackHelloWorldacbd18db4cc2f85cedef654fccc4a4d8D135A4C7_9A2A35D2.output_path}",
         "function_name": "gTestStack553BDD39-TestStackHelloWorld",
@@ -237,12 +234,10 @@ exports[`latest Lambda node runtime with region agnostic stack 1`] = `
   },
   "provider": {
     "archive": [
-      {
-      }
+      {}
     ],
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -294,8 +289,7 @@ exports[`latest Lambda node runtime with region agnostic stack 1`] = `
           "aws_iam_role_policy.Lambda_ServiceRole_DefaultPolicy_ResourceRoles0_DE66D1AF"
         ],
         "environment": {
-          "variables": {
-          }
+          "variables": {}
         },
         "filename": "\${data.archive_file.Lambda_StackLambdaacbd18db4cc2f85cedef654fccc4a4d8996AFBA2_92C287E8.output_path}",
         "function_name": "gStack740B6247-StackLambda",

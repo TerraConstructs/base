@@ -102,22 +102,21 @@ describe("build cache", () => {
 
   test("manifest does not contain options when not specified", () => {
     // WHEN
-    new DockerImageAsset(stack, "DockerImage6", {
+    const asset = new DockerImageAsset(stack, "DockerImage6", {
       directory: demoImagePath,
     });
 
     // THEN
     const template = new Template(stack);
     // expect(Object.keys(manifest.dockerImages ?? {}).length).toBe(1);
+    // NOTE: Asset hash changed after migrating to CDKTN's AssetStaging with SHA256 hashing
     template.expect.toHaveResourceWithProperties(dockerImage.Image, {
       build: {
         builder: "default",
-        context:
-          "assets/DockerAsset/0a3355be12051c9984bf2b0b2bba4e6ea535968e5b6e7396449701732fe5ed14",
+        context: `assets/DockerAsset/${asset.assetHash}`,
       },
       triggers: {
-        dir_sha1:
-          "0a3355be12051c9984bf2b0b2bba4e6ea535968e5b6e7396449701732fe5ed14",
+        dir_sha1: asset.assetHash,
       },
     });
     // expect(

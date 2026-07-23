@@ -21,8 +21,7 @@ exports[`PublicCertificate Create multi-zone should synth and match SnapShot 1`]
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -137,8 +136,7 @@ exports[`PublicCertificate Create should synth and match SnapShot 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -233,8 +231,7 @@ exports[`PublicCertificate Imported DnsZone should synth and match SnapShot 1`] 
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
