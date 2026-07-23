@@ -88,8 +88,11 @@ describe("scalable target", () => {
       {
         name: "ScaleUp",
         service_namespace: "dynamodb",
-        resource_id: "test:this/test",
-        scalable_dimension: "test:TestCount",
+        // references to the aws_appautoscaling_target attributes (NOT the
+        // raw strings) so Terraform orders creation after the target
+        resource_id: "${aws_appautoscaling_target.Target_3191CF44.resource_id}",
+        scalable_dimension:
+          "${aws_appautoscaling_target.Target_3191CF44.scalable_dimension}",
         schedule: "rate(1 minute)",
         scalable_target_action: {
           max_capacity: "50",
@@ -238,8 +241,9 @@ describe("scalable target", () => {
       appautoscalingPolicy.AppautoscalingPolicy,
       {
         policy_type: "StepScaling",
-        resource_id: "test:this/test",
-        scalable_dimension: "test:TestCount",
+        resource_id: "${aws_appautoscaling_target.Target_3191CF44.resource_id}",
+        scalable_dimension:
+          "${aws_appautoscaling_target.Target_3191CF44.scalable_dimension}",
         service_namespace: "dynamodb",
         step_scaling_policy_configuration: {
           adjustment_type: "ChangeInCapacity",
@@ -284,8 +288,9 @@ describe("scalable target", () => {
       appautoscalingPolicy.AppautoscalingPolicy,
       {
         policy_type: "StepScaling",
-        resource_id: "test:this/test",
-        scalable_dimension: "test:TestCount",
+        resource_id: "${aws_appautoscaling_target.Target_3191CF44.resource_id}",
+        scalable_dimension:
+          "${aws_appautoscaling_target.Target_3191CF44.scalable_dimension}",
         service_namespace: "dynamodb",
         step_scaling_policy_configuration: {
           adjustment_type: "ChangeInCapacity",
