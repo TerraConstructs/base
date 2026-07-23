@@ -1,0 +1,158 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`fargate task definition synth FargateTaskDefinition with all properties set should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "ExecutionRole_AssumeRolePolicy_F63C34C5": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          },
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "TaskRole_AssumeRolePolicy_43E24397": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs": {
+        "service_name": "ecs"
+      },
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_ecs_task_definition": {
+      "FargateTaskDef_C6FB60B4": {
+        "container_definitions": "[]",
+        "cpu": "128",
+        "ephemeral_storage": {
+          "size_in_gib": 21
+        },
+        "execution_role_arn": "\${aws_iam_role.ExecutionRole_605A040B.arn}",
+        "family": "myApp",
+        "memory": "1024",
+        "network_mode": "awsvpc",
+        "pid_mode": "task",
+        "requires_compatibilities": [
+          "FARGATE"
+        ],
+        "runtime_platform": {
+          "cpu_architecture": "X86_64",
+          "operating_system_family": "LINUX"
+        },
+        "tags": {
+          "Name": "Default-FargateTaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        },
+        "task_role_arn": "\${aws_iam_role.TaskRole_30FC0FBB.arn}",
+        "volume": [
+          {
+            "host_path": "/tmp/cache",
+            "name": "scratch"
+          }
+        ]
+      }
+    },
+    "aws_iam_role": {
+      "ExecutionRole_605A040B": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.ExecutionRole_AssumeRolePolicy_F63C34C5.json}",
+        "name_prefix": "g-ExecutionRole",
+        "path": "/",
+        "tags": {
+          "Name": "Default-ExecutionRole",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      },
+      "TaskRole_30FC0FBB": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.TaskRole_AssumeRolePolicy_43E24397.json}",
+        "name_prefix": "g-TaskRole",
+        "tags": {
+          "Name": "Default-TaskRole",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;

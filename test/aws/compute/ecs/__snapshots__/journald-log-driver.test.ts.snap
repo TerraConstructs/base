@@ -1,0 +1,96 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`JournaldLogDriver Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "TaskDefinition_TaskRole_AssumeRolePolicy_7F67D03A": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_ecs_task_definition": {
+      "TaskDefinition_B36D86D9": {
+        "container_definitions": "[{\\"essential\\":true,\\"image\\":\\"test-image\\",\\"memory\\":128,\\"name\\":\\"Container\\",\\"logConfiguration\\":{\\"logDriver\\":\\"journald\\",\\"options\\":{\\"tag\\":\\"hello\\"}}}]",
+        "family": "TaskDefinition",
+        "network_mode": "bridge",
+        "requires_compatibilities": [
+          "EC2"
+        ],
+        "tags": {
+          "Name": "Default-TaskDefinition",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        },
+        "task_role_arn": "\${aws_iam_role.TaskDefinition_TaskRole_FD40A61D.arn}"
+      }
+    },
+    "aws_iam_role": {
+      "TaskDefinition_TaskRole_FD40A61D": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.TaskDefinition_TaskRole_AssumeRolePolicy_7F67D03A.json}",
+        "name_prefix": "g-TaskDefinitionTaskRole",
+        "tags": {
+          "Name": "Default-TaskDefinition",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;

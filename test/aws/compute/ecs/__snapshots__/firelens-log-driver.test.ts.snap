@@ -1,0 +1,390 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`firelens log driver snapshots Should synth and match SnapShot with default options 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "TaskDefinition_ExecutionRole_AssumeRolePolicy_3D368A4F": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "TaskDefinition_ExecutionRole_DefaultPolicy_158F3CB2": {
+        "statement": [
+          {
+            "actions": [
+              "ecr:GetAuthorizationToken",
+              "ecr:BatchCheckLayerAvailability",
+              "ecr:GetDownloadUrlForLayer",
+              "ecr:BatchGetImage"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          },
+          {
+            "actions": [
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "\${aws_cloudwatch_log_group.TaskDefinition_log-router_LogGroup_5058FCD2.arn}:*"
+            ]
+          }
+        ]
+      },
+      "TaskDefinition_TaskRole_AssumeRolePolicy_7F67D03A": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    },
+    "aws_ssm_parameter": {
+      "SsmParameterValue--aws--service--aws-for-fluent-bit--latestC96584B6-F00A-464E-AD19-53AFF4B05118Parameter": {
+        "name": "/aws/service/aws-for-fluent-bit/latest"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudwatch_log_group": {
+      "TaskDefinition_log-router_LogGroup_5058FCD2": {
+        "name": "gTestStack553BDD39TestStackTaskDefinitionlogrouterLogGroupE890333F",
+        "skip_destroy": true,
+        "tags": {
+          "Name": "Default-TaskDefinition",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_ecs_task_definition": {
+      "TaskDefinition_B36D86D9": {
+        "container_definitions": "[{\\"essential\\":true,\\"image\\":\\"test-image\\",\\"memory\\":128,\\"name\\":\\"Container\\",\\"logConfiguration\\":{\\"logDriver\\":\\"awsfirelens\\"}},{\\"essential\\":true,\\"image\\":\\"\${data.aws_ssm_parameter.SsmParameterValue--aws--service--aws-for-fluent-bit--latestC96584B6-F00A-464E-AD19-53AFF4B05118Parameter.insecure_value}\\",\\"memoryReservation\\":50,\\"name\\":\\"log-router\\",\\"logConfiguration\\":{\\"logDriver\\":\\"awslogs\\",\\"options\\":{\\"awslogs-group\\":\\"\${aws_cloudwatch_log_group.TaskDefinition_log-router_LogGroup_5058FCD2.name}\\",\\"awslogs-stream-prefix\\":\\"firelens\\",\\"awslogs-region\\":\\"\${data.aws_region.Region.name}\\"}},\\"firelensConfiguration\\":{\\"type\\":\\"fluentbit\\"}}]",
+        "execution_role_arn": "\${aws_iam_role.TaskDefinition_ExecutionRole_8D61C2FB.arn}",
+        "family": "TestStackTaskDefinition24388BDF",
+        "network_mode": "bridge",
+        "requires_compatibilities": [
+          "EC2"
+        ],
+        "tags": {
+          "Name": "Default-TaskDefinition",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "task_role_arn": "\${aws_iam_role.TaskDefinition_TaskRole_FD40A61D.arn}"
+      }
+    },
+    "aws_iam_role": {
+      "TaskDefinition_ExecutionRole_8D61C2FB": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.TaskDefinition_ExecutionRole_AssumeRolePolicy_3D368A4F.json}",
+        "name_prefix": "gTestStack553BDD39-nitionExecutionRole",
+        "tags": {
+          "Name": "Default-TaskDefinition",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      },
+      "TaskDefinition_TaskRole_FD40A61D": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.TaskDefinition_TaskRole_AssumeRolePolicy_7F67D03A.json}",
+        "name_prefix": "gTestStack553BDD39-kDefinitionTaskRole",
+        "tags": {
+          "Name": "Default-TaskDefinition",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`firelens log driver snapshots Should synth and match SnapShot with secret options 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "TaskDefinition_ExecutionRole_AssumeRolePolicy_3D368A4F": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "TaskDefinition_ExecutionRole_DefaultPolicy_158F3CB2": {
+        "statement": [
+          {
+            "actions": [
+              "secretsmanager:GetSecretValue",
+              "secretsmanager:DescribeSecret"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "\${aws_secretsmanager_secret.Secret_A720EF05.arn}"
+            ]
+          },
+          {
+            "actions": [
+              "ssm:DescribeParameters",
+              "ssm:GetParameters",
+              "ssm:GetParameter",
+              "ssm:GetParameterHistory"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "arn:\${data.aws_partition.Partitition.partition}:ssm:\${data.aws_region.Region.name}:\${data.aws_caller_identity.CallerIdentity.account_id}:parameter/host"
+            ]
+          },
+          {
+            "actions": [
+              "ecr:GetAuthorizationToken",
+              "ecr:BatchCheckLayerAvailability",
+              "ecr:GetDownloadUrlForLayer",
+              "ecr:BatchGetImage"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          },
+          {
+            "actions": [
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "\${aws_cloudwatch_log_group.TaskDefinition_log-router_LogGroup_5058FCD2.arn}:*"
+            ]
+          }
+        ]
+      },
+      "TaskDefinition_TaskRole_AssumeRolePolicy_7F67D03A": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_secretsmanager_random_password": {
+      "Secret_RandomPassword_01FCD53F": {
+        "exclude_lowercase": false,
+        "exclude_numbers": false,
+        "exclude_punctuation": false,
+        "exclude_uppercase": false,
+        "include_space": false,
+        "password_length": 32,
+        "require_each_included_type": true
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    },
+    "aws_ssm_parameter": {
+      "ParameterParameter": {
+        "name": "/host:1"
+      },
+      "SsmParameterValue--aws--service--aws-for-fluent-bit--latestC96584B6-F00A-464E-AD19-53AFF4B05118Parameter": {
+        "name": "/aws/service/aws-for-fluent-bit/latest"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudwatch_log_group": {
+      "TaskDefinition_log-router_LogGroup_5058FCD2": {
+        "name": "gTestStack553BDD39TestStackTaskDefinitionlogrouterLogGroupE890333F",
+        "skip_destroy": true,
+        "tags": {
+          "Name": "Default-TaskDefinition",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_ecs_task_definition": {
+      "TaskDefinition_B36D86D9": {
+        "container_definitions": "[{\\"essential\\":true,\\"image\\":\\"test-image\\",\\"memory\\":128,\\"name\\":\\"Container\\",\\"logConfiguration\\":{\\"logDriver\\":\\"awsfirelens\\",\\"options\\":{\\"Name\\":\\"datadog\\",\\"TLS\\":\\"on\\",\\"dd_service\\":\\"my-httpd-service\\",\\"dd_source\\":\\"httpd\\",\\"dd_tags\\":\\"project:example\\",\\"provider\\":\\"ecs\\"},\\"secretOptions\\":[{\\"name\\":\\"apikey\\",\\"valueFrom\\":\\"\${aws_secretsmanager_secret.Secret_A720EF05.arn}\\"},{\\"name\\":\\"Host\\",\\"valueFrom\\":\\"arn:\${data.aws_partition.Partitition.partition}:ssm:\${data.aws_region.Region.name}:\${data.aws_caller_identity.CallerIdentity.account_id}:parameter/host\\"}]}},{\\"essential\\":true,\\"image\\":\\"\${data.aws_ssm_parameter.SsmParameterValue--aws--service--aws-for-fluent-bit--latestC96584B6-F00A-464E-AD19-53AFF4B05118Parameter.insecure_value}\\",\\"memoryReservation\\":50,\\"name\\":\\"log-router\\",\\"logConfiguration\\":{\\"logDriver\\":\\"awslogs\\",\\"options\\":{\\"awslogs-group\\":\\"\${aws_cloudwatch_log_group.TaskDefinition_log-router_LogGroup_5058FCD2.name}\\",\\"awslogs-stream-prefix\\":\\"firelens\\",\\"awslogs-region\\":\\"\${data.aws_region.Region.name}\\"}},\\"firelensConfiguration\\":{\\"type\\":\\"fluentbit\\"}}]",
+        "execution_role_arn": "\${aws_iam_role.TaskDefinition_ExecutionRole_8D61C2FB.arn}",
+        "family": "TestStackTaskDefinition24388BDF",
+        "network_mode": "bridge",
+        "requires_compatibilities": [
+          "EC2"
+        ],
+        "tags": {
+          "Name": "Default-TaskDefinition",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "task_role_arn": "\${aws_iam_role.TaskDefinition_TaskRole_FD40A61D.arn}"
+      }
+    },
+    "aws_iam_role": {
+      "TaskDefinition_ExecutionRole_8D61C2FB": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.TaskDefinition_ExecutionRole_AssumeRolePolicy_3D368A4F.json}",
+        "name_prefix": "gTestStack553BDD39-nitionExecutionRole",
+        "tags": {
+          "Name": "Default-TaskDefinition",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      },
+      "TaskDefinition_TaskRole_FD40A61D": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.TaskDefinition_TaskRole_AssumeRolePolicy_7F67D03A.json}",
+        "name_prefix": "gTestStack553BDD39-kDefinitionTaskRole",
+        "tags": {
+          "Name": "Default-TaskDefinition",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "TaskDefinition_ExecutionRole_DefaultPolicy_ResourceRoles0_3BE00862": {
+        "name": "TestStackTaskDefinitionExecutionRoleDefaultPolicy59C96995",
+        "policy": "\${data.aws_iam_policy_document.TaskDefinition_ExecutionRole_DefaultPolicy_158F3CB2.json}",
+        "role": "\${aws_iam_role.TaskDefinition_ExecutionRole_8D61C2FB.name}"
+      }
+    },
+    "aws_secretsmanager_secret": {
+      "Secret_A720EF05": {
+        "name": "TestStackSecret51FC75B5",
+        "tags": {
+          "Name": "Default-Secret",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_secretsmanager_secret_version": {
+      "Secret_SecretVersion_1CCEE6BD": {
+        "secret_id": "\${aws_secretsmanager_secret.Secret_A720EF05.arn}",
+        "secret_string": "\${data.aws_secretsmanager_random_password.Secret_RandomPassword_01FCD53F.random_password}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;

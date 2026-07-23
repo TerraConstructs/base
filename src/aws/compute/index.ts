@@ -118,6 +118,9 @@ export * from "./target-tracking-scaling-policy";
 // aws-autoscaling (EC2 Auto Scaling)
 export * as autoscaling from "./auto-scaling";
 
+// aws-ecs
+export * as ecs from "./ecs";
+
 // temp export, required by base types
 export * from "./lb-shared/grid-lookup-types";
 export * from "./lb-shared/base-listener";

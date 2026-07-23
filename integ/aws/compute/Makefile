@@ -87,3 +87,7 @@ apigw-definition-asset: ## Test API Gateway with definition asset
 apigw-definition-inline: ## Test API Gateway with inline definition
 	go test -v -count 1 -timeout 15m ./... -run ^TestApiDefinitionInline$
 .PHONY: apigw-definition-inline
+
+ecs.awslogs-driver: ## Test Fargate service with the awslogs log driver
+	go test -v -count 1 -timeout 30m ./... -run ^TestEcsAwslogsDriver$
+.PHONY: ecs.awslogs-driver
