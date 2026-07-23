@@ -178,7 +178,7 @@ export class Asset extends Construct implements cdk.IAsset {
     });
     this.s3BucketName = location.bucketName;
     this.s3ObjectKey = location.objectKey;
-    this.s3ObjectUrl = location.s3ObjectUrl;
+    this.s3ObjectUrl = location.objectUrl!;
     this.httpUrl = location.httpUrl;
     this.s3Url = location.httpUrl; // for backwards compatibility
 

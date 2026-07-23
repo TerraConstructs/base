@@ -10,11 +10,9 @@ export * from "./errors";
 // AWS CDK Bundling
 export * from "./assets";
 export * from "./asset-manager";
+export * from "./asset-staging"; // TerraConstructs custom AssetStaging with SHA256
 export * from "./bundling";
 export * from "./fs";
-
-// Re-export AssetStaging from cdktn
-export { AssetStaging } from "cdktn";
 
 // cloud specific exports
 export * as aws from "./aws";

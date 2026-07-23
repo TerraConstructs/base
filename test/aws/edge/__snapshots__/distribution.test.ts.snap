@@ -26,8 +26,7 @@ exports[`Distribution Should support multiple origins and cache behaviors 1`] = 
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -207,8 +206,7 @@ exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -320,8 +318,7 @@ exports[`Distribution Should synth with websiteConfig and match SnapShot 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {

@@ -54,8 +54,7 @@ exports[`IAM policy statement from JSON parses a given Principal 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "terraform": {
@@ -123,8 +122,7 @@ exports[`IAM policy statement from JSON parses a given notPrincipal 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "terraform": {
@@ -184,8 +182,7 @@ exports[`IAM policy statement from JSON parses with no principal 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "terraform": {
@@ -235,8 +232,7 @@ exports[`IAM policy statement from JSON parses with notAction 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "terraform": {
@@ -287,8 +283,7 @@ exports[`IAM policy statement from JSON parses with notActions 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "terraform": {
@@ -339,8 +334,7 @@ exports[`IAM policy statement from JSON parses with notResource 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "terraform": {
@@ -392,8 +386,7 @@ exports[`IAM policy statement from JSON parses with notResources 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "terraform": {
@@ -451,8 +444,7 @@ exports[`IAM policy statement from JSON should not convert \`Principal: *\` to \
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "terraform": {
@@ -534,8 +526,7 @@ exports[`IAM policy statement from JSON the kitchen sink 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "terraform": {

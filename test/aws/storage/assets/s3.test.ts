@@ -222,7 +222,7 @@ describe("s3-assets", () => {
         new Asset(stack, "MyDirectory", {
           path: "/path/not/found/" + Math.random() * 999999,
         }),
-    ).toThrow(/Cannot find asset/);
+    ).toThrow(/ENOENT|Cannot find asset/);
   });
 
   test("multiple assets under the same parent", () => {

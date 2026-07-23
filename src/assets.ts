@@ -7,15 +7,36 @@ export { AssetHashType, FileAssetPackaging } from "cdktn";
 // Export type-only imports
 export type {
   IAsset,
-  AssetOptions,
   FileAssetSource,
   DockerImageAssetSource,
   DockerCacheOption,
   DockerImageAssetLocation,
 } from "cdktn";
 
-// Import for local use in FileAssetLocation extension
-import type { FileAssetLocation as CdktnFileAssetLocation } from "cdktn";
+// Import for local use
+import type {
+  BundlingOptions,
+  AssetOptions as CdktnAssetOptions,
+  FileAssetLocation as CdktnFileAssetLocation,
+} from "cdktn";
+
+/**
+ * Asset hash options
+ */
+export interface AssetOptions extends CdktnAssetOptions {
+  /**
+   * Bundle the asset by executing a command in a Docker container or a custom bundling provider.
+   *
+   * The asset path will be mounted at `/asset-input`. The Docker
+   * container is responsible for putting content at `/asset-output`.
+   * The content at `/asset-output` will be zipped and used as the
+   * final asset.
+   *
+   * @default - uploaded as-is to S3 if the asset is a regular file or a .zip file,
+   * archived into a .zip file and uploaded to S3 otherwise
+   */
+  readonly bundling?: BundlingOptions;
+}
 
 /**
  * AWS-specific extension of FileAssetLocation with S3-specific properties.
