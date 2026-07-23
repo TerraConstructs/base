@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.261.0/packages/aws-cdk-lib/aws-secretsmanager/test/policy.test.ts
 
 import { secretsmanagerSecretPolicy } from "@cdktn/provider-aws";
-import { Testing } from "cdktn";
+import { HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as encryption from "../../../src/aws/encryption";
@@ -79,6 +79,9 @@ describe("ResourcePolicy", () => {
     // GIVEN
     const app = Testing.app();
     const stack = new AwsStack(app);
+    // snapshot tests must not use the default local backend - its state file
+    // path is machine-dependent and would leak into the snapshot
+    new HttpBackend(stack, { address: "http://localhost:3000" });
     const secret = new encryption.Secret(stack, "Secret");
 
     // WHEN

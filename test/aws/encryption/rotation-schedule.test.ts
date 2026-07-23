@@ -5,7 +5,7 @@ import {
   lambdaPermission,
   dataAwsIamPolicyDocument,
 } from "@cdktn/provider-aws";
-import { App, Testing } from "cdktn";
+import { App, HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as compute from "../../../src/aws/compute";
@@ -1034,6 +1034,9 @@ describe("RotationSchedule", () => {
     // GIVEN
     const app = Testing.app();
     const stack = new AwsStack(app);
+    // snapshot tests must not use the default local backend - its state file
+    // path is machine-dependent and would leak into the snapshot
+    new HttpBackend(stack, { address: "http://localhost:3000" });
     const secret = new encryption.Secret(stack, "Secret");
     const rotationLambda = new compute.LambdaFunction(stack, "Lambda", {
       runtime: compute.Runtime.NODEJS_LATEST,

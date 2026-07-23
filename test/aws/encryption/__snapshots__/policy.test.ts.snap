@@ -68,8 +68,8 @@ exports[`ResourcePolicy Should synth and match SnapShot 1`] = `
   },
   "terraform": {
     "backend": {
-      "local": {
-        "path": "/Users/vincentsmet/tcons/base-secretsmanager-combined/terraform.Default.tfstate"
+      "http": {
+        "address": "http://localhost:3000"
       }
     },
     "required_providers": {
