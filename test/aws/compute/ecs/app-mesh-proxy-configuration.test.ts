@@ -234,6 +234,50 @@ describe("app mesh proxy configuration", () => {
     // });
   });
 
+  test("accepts ignoredUID value of 0", () => {
+    // GIVEN
+    const stack = getAwsStack();
+
+    // WHEN
+    const taskDefinition = new ecs.Ec2TaskDefinition(stack, "Ec2TaskDef", {
+      networkMode: ecs.NetworkMode.AWS_VPC,
+      proxyConfiguration: ecs.ProxyConfigurations.appMeshProxyConfiguration({
+        containerName: "envoy",
+        properties: {
+          ignoredUID: 0,
+          appPorts: [80, 81],
+          proxyIngressPort: 80,
+          proxyEgressPort: 81,
+        },
+      }),
+    });
+    taskDefinition.addContainer("web", {
+      memoryLimitMiB: 1024,
+      image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+    });
+    taskDefinition.addContainer("envoy", {
+      memoryLimitMiB: 1024,
+      image: ecs.ContainerImage.fromRegistry("envoyproxy/envoy"),
+    });
+
+    // THEN
+    Template.synth(stack).toHaveResourceWithProperties(
+      ecsTaskDefinition.EcsTaskDefinition,
+      {
+        proxy_configuration: {
+          container_name: "envoy",
+          properties: {
+            IgnoredUID: "0",
+            AppPorts: "80,81",
+            ProxyIngressPort: "80",
+            ProxyEgressPort: "81",
+          },
+          type: "APPMESH",
+        },
+      },
+    );
+  });
+
   test("throws when neither of IgnoredUID and IgnoredGID is set", () => {
     // GIVEN
     const stack = getAwsStack();
