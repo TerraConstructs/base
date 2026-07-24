@@ -252,6 +252,214 @@ describe("When import an ECS Service", () => {
       /awsPcaAuthorityArn must start with "arn:" and have at least 6 components; received invalid-arn/,
     );
   });
+
+  test("throws an error when tls is configured with no awsPcaAuthorityArn", () => {
+    // GIVEN
+    const vpc = new compute.Vpc(stack, "Vpc");
+    const cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+    const taskDefinition = new ecs.FargateTaskDefinition(stack, "TaskDef");
+    taskDefinition.addContainer("Web", {
+      image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+      portMappings: [
+        {
+          name: "api",
+          containerPort: 80,
+        },
+      ],
+    });
+
+    // WHEN
+    const createFargateService = () =>
+      new ecs.FargateService(stack, "Service", {
+        cluster,
+        taskDefinition,
+        serviceConnectConfiguration: {
+          services: [
+            {
+              tls: {},
+              portMappingName: "api",
+            },
+          ],
+          namespace: "test namespace",
+        },
+      });
+
+    // THEN
+    expect(() => createFargateService()).toThrow(
+      /'awsPcaAuthorityArn' is required when 'tls' is configured on a Service Connect service/,
+    );
+  });
+
+  test("throws an error when tls only sets role and omits awsPcaAuthorityArn", () => {
+    // GIVEN
+    const vpc = new compute.Vpc(stack, "Vpc");
+    const cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+    const taskDefinition = new ecs.FargateTaskDefinition(stack, "TaskDef");
+    taskDefinition.addContainer("Web", {
+      image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+      portMappings: [
+        {
+          name: "api",
+          containerPort: 80,
+        },
+      ],
+    });
+    const role = new iam.Role(stack, "Role", {
+      assumedBy: new iam.ServicePrincipal("ecs.amazonaws.com"),
+    });
+
+    // WHEN
+    const createFargateService = () =>
+      new ecs.FargateService(stack, "Service", {
+        cluster,
+        taskDefinition,
+        serviceConnectConfiguration: {
+          services: [
+            {
+              tls: { role },
+              portMappingName: "api",
+            },
+          ],
+          namespace: "test namespace",
+        },
+      });
+
+    // THEN
+    expect(() => createFargateService()).toThrow(
+      /'awsPcaAuthorityArn' is required when 'tls' is configured on a Service Connect service/,
+    );
+  });
+
+  test("throws an error when tls only sets kmsKey and omits awsPcaAuthorityArn", () => {
+    // GIVEN
+    const vpc = new compute.Vpc(stack, "Vpc");
+    const cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+    const taskDefinition = new ecs.FargateTaskDefinition(stack, "TaskDef");
+    taskDefinition.addContainer("Web", {
+      image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+      portMappings: [
+        {
+          name: "api",
+          containerPort: 80,
+        },
+      ],
+    });
+    const kmsKey = new encryption.Key(stack, "KmsKey");
+
+    // WHEN
+    const createFargateService = () =>
+      new ecs.FargateService(stack, "Service", {
+        cluster,
+        taskDefinition,
+        serviceConnectConfiguration: {
+          services: [
+            {
+              tls: { kmsKey },
+              portMappingName: "api",
+            },
+          ],
+          namespace: "test namespace",
+        },
+      });
+
+    // THEN
+    expect(() => createFargateService()).toThrow(
+      /'awsPcaAuthorityArn' is required when 'tls' is configured on a Service Connect service/,
+    );
+  });
+
+  test("throws an error when tls sets awsPcaAuthorityArn to an empty string", () => {
+    // GIVEN
+    const vpc = new compute.Vpc(stack, "Vpc");
+    const cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+    const taskDefinition = new ecs.FargateTaskDefinition(stack, "TaskDef");
+    taskDefinition.addContainer("Web", {
+      image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+      portMappings: [
+        {
+          name: "api",
+          containerPort: 80,
+        },
+      ],
+    });
+
+    // WHEN
+    const createFargateService = () =>
+      new ecs.FargateService(stack, "Service", {
+        cluster,
+        taskDefinition,
+        serviceConnectConfiguration: {
+          services: [
+            {
+              tls: { awsPcaAuthorityArn: "" },
+              portMappingName: "api",
+            },
+          ],
+          namespace: "test namespace",
+        },
+      });
+
+    // THEN
+    expect(() => createFargateService()).toThrow(
+      /'awsPcaAuthorityArn' is required when 'tls' is configured on a Service Connect service/,
+    );
+  });
+
+  test("does not throw and resolves an unresolved token awsPcaAuthorityArn", () => {
+    // GIVEN
+    const vpc = new compute.Vpc(stack, "Vpc");
+    const cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+    const taskDefinition = new ecs.FargateTaskDefinition(stack, "TaskDef");
+    taskDefinition.addContainer("Web", {
+      image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+      portMappings: [
+        {
+          name: "api",
+          containerPort: 80,
+        },
+      ],
+    });
+    const tokenizedArn = Lazy.stringValue({
+      produce: () =>
+        "arn:aws:acm-pca:us-east-1:123456789012:certificate-authority/123456789012",
+    });
+
+    // WHEN
+    const createFargateService = () =>
+      new ecs.FargateService(stack, "Service", {
+        cluster,
+        taskDefinition,
+        serviceConnectConfiguration: {
+          services: [
+            {
+              tls: {
+                awsPcaAuthorityArn: tokenizedArn,
+              },
+              portMappingName: "api",
+            },
+          ],
+          namespace: "test namespace",
+        },
+      });
+
+    // THEN
+    expect(createFargateService).not.toThrow();
+
+    const resource = soleResource(stack, ecsService.EcsService);
+    expect(resource.service_connect_configuration).toMatchObject({
+      namespace: "test namespace",
+      service: [
+        {
+          port_name: "api",
+          tls: {
+            issuer_cert_authority: {
+              aws_pca_authority_arn: stack.resolve(tokenizedArn),
+            },
+          },
+        },
+      ],
+    });
+  });
 });
 
 // TERRACONSTRUCTS DEVIATION: upstream's "For alarm-based rollbacks" describe block exercises the
