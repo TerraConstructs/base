@@ -2504,6 +2504,97 @@ describe("cluster", () => {
     );
   });
 
+  describe("addAsgCapacityProvider propagates the ASG security groups to cluster.connections", () => {
+    test("adds the ASG connections security groups onto cluster.connections", () => {
+      // GIVEN
+      const stack = getAwsStack("test");
+      const vpc = new Vpc(stack, "Vpc");
+      const cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+      const asg = new autoscaling.AutoScalingGroup(stack, "asg", {
+        vpc,
+        instanceType: new InstanceType("bogus"),
+        machineImage: ecs.EcsOptimizedImage.amazonLinux2(),
+      });
+      const capacityProvider = new ecs.AsgCapacityProvider(stack, "provider", {
+        autoScalingGroup: asg,
+      });
+
+      // pre-fix: cluster.connections.securityGroups stays [] after this call,
+      // because only the deprecated addAutoScalingGroup() path propagated SGs.
+      expect(cluster.connections.securityGroups).toEqual([]);
+
+      // WHEN
+      cluster.addAsgCapacityProvider(capacityProvider);
+
+      // THEN
+      expect(cluster.connections.securityGroups).toEqual(
+        capacityProvider.autoScalingGroup.connections.securityGroups,
+      );
+      expect(cluster.connections.securityGroups.length).toBeGreaterThan(0);
+    });
+
+    test("does not double-add security groups when the same capacity provider is added twice", () => {
+      // GIVEN
+      const stack = getAwsStack("test");
+      const vpc = new Vpc(stack, "Vpc");
+      const cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+      const asg = new autoscaling.AutoScalingGroup(stack, "asg", {
+        vpc,
+        instanceType: new InstanceType("bogus"),
+        machineImage: ecs.EcsOptimizedImage.amazonLinux2(),
+      });
+      const capacityProvider = new ecs.AsgCapacityProvider(stack, "provider", {
+        autoScalingGroup: asg,
+      });
+
+      // WHEN
+      cluster.addAsgCapacityProvider(capacityProvider);
+      cluster.addAsgCapacityProvider(capacityProvider);
+
+      // THEN
+      expect(cluster.connections.securityGroups).toEqual(
+        capacityProvider.autoScalingGroup.connections.securityGroups,
+      );
+    });
+
+    test("Ec2Service on a bridge-mode task definition inherits the ASG security group via cluster.connections", () => {
+      // GIVEN
+      const stack = getAwsStack("test");
+      const vpc = new Vpc(stack, "Vpc");
+      const cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+      const asg = new autoscaling.AutoScalingGroup(stack, "asg", {
+        vpc,
+        instanceType: new InstanceType("bogus"),
+        machineImage: ecs.EcsOptimizedImage.amazonLinux2(),
+      });
+      const capacityProvider = new ecs.AsgCapacityProvider(stack, "provider", {
+        autoScalingGroup: asg,
+      });
+      cluster.addAsgCapacityProvider(capacityProvider);
+
+      const taskDefinition = new ecs.Ec2TaskDefinition(stack, "Ec2TaskDef");
+      taskDefinition.addContainer("web", {
+        image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+        memoryLimitMiB: 512,
+      });
+
+      // WHEN
+      // default network mode is bridge, which copies cluster.connections.securityGroups
+      const service = new ecs.Ec2Service(stack, "Ec2Service", {
+        cluster,
+        taskDefinition,
+      });
+
+      // THEN
+      // pre-fix: service.connections.securityGroups would be empty because
+      // cluster.connections.securityGroups was never populated.
+      for (const sg of asg.connections.securityGroups) {
+        expect(service.connections.securityGroups).toContain(sg);
+      }
+      expect(service.connections.securityGroups.length).toBeGreaterThan(0);
+    });
+  });
+
   test("throws when calling Cluster.addAsgCapacityProvider with an AsgCapacityProvider created with an imported ASG", () => {
     // GIVEN
     const stack = getAwsStack("test");
