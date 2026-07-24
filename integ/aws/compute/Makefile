@@ -103,3 +103,7 @@ ecs.ebs-taskattach: ## Test Fargate service with a ServiceManagedVolume (EBS tas
 ecs.sd-awsvpc-nw: ## Test EC2 service with CloudMap service discovery (awsvpc) + cluster capacity
 	go test -v -count 1 -timeout 45m ./... -run ^TestEcsSdAwsvpcNw$
 .PHONY: ecs.sd-awsvpc-nw
+
+ecs.asg-capacity-provider: ## Test EC2 service on an AsgCapacityProvider (cluster capacity-provider strategy) + ALB
+	go test -v -count 1 -timeout 45m ./... -run ^TestEcsAsgCapacityProvider$
+.PHONY: ecs.asg-capacity-provider
