@@ -1919,6 +1919,40 @@ describe("ec2 service", () => {
       // });
     });
 
+    test("can add placement constraints in multiple calls without discarding earlier ones", () => {
+      // GIVEN
+      const stack = new AwsStack();
+      const vpc = new Vpc(stack, "MyVpc", {});
+      const cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+      addDefaultCapacityProvider(cluster, stack, vpc);
+      const taskDefinition = new ecs.Ec2TaskDefinition(stack, "Ec2TaskDef");
+
+      taskDefinition.addContainer("web", {
+        image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+        memoryLimitMiB: 512,
+      });
+
+      const service = new ecs.Ec2Service(stack, "Ec2Service", {
+        cluster,
+        taskDefinition,
+      });
+
+      // WHEN
+      service.addPlacementConstraints(
+        ecs.PlacementConstraint.memberOf("attribute:ecs.instance-type =~ t2.*"),
+      );
+      service.addPlacementConstraints(
+        ecs.PlacementConstraint.memberOf("attribute:ecs.ami-id == ami-123"),
+      );
+
+      // THEN
+      const resource = soleResource(stack, ecsService.EcsService);
+      expect(resource.placement_constraints).toEqual([
+        { expression: "attribute:ecs.instance-type =~ t2.*", type: "memberOf" },
+        { expression: "attribute:ecs.ami-id == ami-123", type: "memberOf" },
+      ]);
+    });
+
     test("throws with AvailabilityZoneBalancing.ENABLED and placement constraint uses memberOf attribute:ecs.availability-zone", () => {
       // GIVEN
       const stack = new AwsStack();
