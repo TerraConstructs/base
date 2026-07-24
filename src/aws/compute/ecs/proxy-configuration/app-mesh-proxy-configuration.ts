@@ -83,7 +83,12 @@ export class AppMeshProxyConfiguration extends ProxyConfiguration {
   constructor(private readonly props: AppMeshProxyConfigurationConfigProps) {
     super();
     if (props.properties) {
-      if (!props.properties.ignoredUID && !props.properties.ignoredGID) {
+      // TERRACONSTRUCTS DEVIATION: upstream v2.233.0 uses a truthiness check here, which treats the
+      // valid root UID/GID value 0 as absent. Use explicit undefined checks so 0 is accepted.
+      if (
+        props.properties.ignoredUID === undefined &&
+        props.properties.ignoredGID === undefined
+      ) {
         throw new UnscopedValidationError(
           "At least one of ignoredUID or ignoredGID should be specified.",
         );
