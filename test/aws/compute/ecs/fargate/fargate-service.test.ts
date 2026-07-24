@@ -2019,6 +2019,38 @@ describe("fargate service", () => {
       // });
     });
 
+    // Repo-specific destroy-ordering regression (caught live by the
+    // ecs.ebs-taskattach integ test): the service must depends_on the
+    // volume's auto-created EBS infrastructure role AND its policy
+    // attachment, or Terraform destroys the attachment in parallel with the
+    // service and ECS loses the permissions needed to detach the managed
+    // volume mid-deprovisioning (task wedges DEPROVISIONING, service hangs
+    // DRAINING past the provider's 20-minute delete timeout).
+    test("service depends on the auto-created EBS role and its policy attachment", () => {
+      // WHEN - no explicit role: ServiceManagedVolume creates role + attachment
+      const volume = new ServiceManagedVolume(stack, "EBSVol", {
+        name: "ebs1",
+        managedEBSVolume: {
+          size: Size.gibibytes(15),
+        },
+      });
+      taskDefinition.addVolume(volume);
+      service.addVolume(volume);
+
+      // THEN
+      const resource = soleResource(stack, ecsService.EcsService) as {
+        depends_on?: string[];
+      };
+      expect(resource.depends_on).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/^aws_iam_role\.EBSVol_EBSRole_/),
+          expect.stringMatching(
+            /^aws_iam_role_policy_attachment\.EBSVol_AmazonECSInfrastructureRolePolicyForVolumes_/,
+          ),
+        ]),
+      );
+    });
+
     test("success when mounting via ServiceManagedVolume", () => {
       // WHEN
       const volume = new ServiceManagedVolume(stack, "EBS Volume", {

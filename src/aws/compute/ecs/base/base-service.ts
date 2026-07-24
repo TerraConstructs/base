@@ -1134,6 +1134,19 @@ export abstract class BaseService
    */
   public addVolume(volume: ServiceManagedVolume) {
     this.volumes.push(volume);
+    // Destroy-ordering: the service only references the volume's EBS
+    // infrastructure ROLE (role_arn), so Terraform would destroy the role's
+    // aws_iam_role_policy_attachment immediately and in parallel with the
+    // service. ECS then loses the EC2 permissions it needs to detach/delete
+    // the managed volume mid-deprovisioning: the task wedges in
+    // DEPROVISIONING, the service hangs DRAINING past the provider's 20-min
+    // delete timeout, and teardown fails (observed live on the
+    // ecs.ebs-taskattach integ test). Depending on the whole volume
+    // construct makes TerraformDependencyAspect emit depends_on for the
+    // role AND its policy attachments, so both outlive the service.
+    // (CloudFormation gets this for free: upstream inlines managed policies
+    // into AWS::IAM::Role, which the service's role_arn reference protects.)
+    this.node.addDependency(volume);
   }
 
   private renderVolumeConfiguration():
