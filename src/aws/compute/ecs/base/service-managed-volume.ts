@@ -269,7 +269,19 @@ export class ServiceManagedVolume extends Construct {
   private validateEbsVolumeConfiguration(
     volumeConfig?: ServiceManagedEBSVolumeConfiguration,
   ) {
-    if (!volumeConfig) return;
+    // TERRACONSTRUCTS DEVIATION: upstream CDK allows managedEBSVolume to be
+    // entirely omitted (CFN AWS::ECS::Service ServiceManagedEBSVolumeConfiguration
+    // is only validated at deploy time). The generated aws_ecs_service
+    // managed_ebs_volume block requires either size_in_gb or snapshot_id though,
+    // so a role-only (or entirely absent) effective config cannot be synthesized
+    // into valid Terraform. Reject an omitted managedEBSVolume at construct time
+    // exactly like an empty one.
+    if (!volumeConfig) {
+      throw new ValidationError(
+        "'size' or 'snapShotId' must be specified",
+        this,
+      );
+    }
 
     const {
       volumeType = ec2.EbsDeviceVolumeType.GP2,
