@@ -1687,7 +1687,7 @@ describe("cluster", () => {
         ecsCapacityProvider.EcsCapacityProvider,
         {
           auto_scaling_group_provider: {
-            auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupName),
+            auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupArn),
             managed_scaling: {
               status: "ENABLED",
               target_capacity: 100,
@@ -1737,7 +1737,7 @@ describe("cluster", () => {
         ecsCapacityProvider.EcsCapacityProvider,
         {
           auto_scaling_group_provider: {
-            auto_scaling_group_arn: "my-asg",
+            auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupArn),
             managed_scaling: { status: "ENABLED", target_capacity: 100 },
             managed_termination_protection: "DISABLED",
           },
@@ -2282,7 +2282,7 @@ describe("cluster", () => {
       ecsCapacityProvider.EcsCapacityProvider,
       {
         auto_scaling_group_provider: {
-          auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupName),
+          auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupArn),
           managed_termination_protection: "DISABLED",
           managed_draining: "DISABLED",
         },
@@ -2311,7 +2311,7 @@ describe("cluster", () => {
       ecsCapacityProvider.EcsCapacityProvider,
       {
         auto_scaling_group_provider: {
-          auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupName),
+          auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupArn),
           managed_scaling: { status: "ENABLED", target_capacity: 100 },
           managed_termination_protection: "DISABLED",
         },
@@ -2340,7 +2340,7 @@ describe("cluster", () => {
       ecsCapacityProvider.EcsCapacityProvider,
       {
         auto_scaling_group_provider: {
-          auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupName),
+          auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupArn),
           managed_draining: "DISABLED",
           managed_scaling: { status: "ENABLED", target_capacity: 100 },
           managed_termination_protection: "ENABLED",
@@ -2370,7 +2370,7 @@ describe("cluster", () => {
       ecsCapacityProvider.EcsCapacityProvider,
       {
         auto_scaling_group_provider: {
-          auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupName),
+          auto_scaling_group_arn: stack.resolve(asg.autoScalingGroupArn),
           managed_draining: "ENABLED",
           managed_scaling: { status: "ENABLED", target_capacity: 100 },
           managed_termination_protection: "ENABLED",

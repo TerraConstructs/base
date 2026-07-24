@@ -159,7 +159,7 @@ exports[`ec2 service synth Ec2Service with all properties set should synth and m
     "aws_ecs_capacity_provider": {
       "AsgCapacityProvider_760D11D9": {
         "auto_scaling_group_provider": {
-          "auto_scaling_group_arn": "\${aws_autoscaling_group.DefaultAutoScalingGroup_231A62F5.name}",
+          "auto_scaling_group_arn": "\${aws_autoscaling_group.DefaultAutoScalingGroup_231A62F5.arn}",
           "managed_scaling": {
             "status": "ENABLED",
             "target_capacity": 100
@@ -892,7 +892,7 @@ exports[`ec2 service synth Ec2Service with only required properties set should s
     "aws_ecs_capacity_provider": {
       "AsgCapacityProvider_760D11D9": {
         "auto_scaling_group_provider": {
-          "auto_scaling_group_arn": "\${aws_autoscaling_group.DefaultAutoScalingGroup_231A62F5.name}",
+          "auto_scaling_group_arn": "\${aws_autoscaling_group.DefaultAutoScalingGroup_231A62F5.arn}",
           "managed_scaling": {
             "status": "ENABLED",
             "target_capacity": 100
