@@ -24,8 +24,9 @@ export function addDefaultCapacityProvider(
     ...props,
     autoScalingGroup,
   });
+  // addAsgCapacityProvider now propagates the ASG security groups to
+  // cluster.connections itself (upstream test/util.ts adds them manually
+  // because upstream's source does not) - a second manual add here would
+  // register duplicate SGs and emit duplicate rules in cross-stack tests.
   cluster.addAsgCapacityProvider(provider);
-  cluster.connections.addSecurityGroup(
-    ...autoScalingGroup.connections.securityGroups,
-  );
 }

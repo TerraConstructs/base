@@ -730,6 +730,14 @@ export class Cluster extends AwsConstructBase implements ICluster {
           ? Duration.seconds(0)
           : options.taskDrainTime,
     });
+    // TERRACONSTRUCTS DEVIATION: upstream v2.233.0 addAsgCapacityProvider does not propagate the ASG
+    // security groups (only the deprecated addAutoScalingGroup does). Ec2Service for bridge/host/none
+    // network modes copies cluster.connections.securityGroups, so without this the container-instance
+    // SG is missing from LB/service ingress rules. Mirror the deprecated path to fix that gap.
+    // (Placed after configureAutoScalingGroup so its imported-ASG validation still runs first.)
+    this.connections.connections.addSecurityGroup(
+      ...provider.autoScalingGroup.connections.securityGroups,
+    );
 
     this._capacityProviderNames.push(provider.capacityProviderName);
   }
