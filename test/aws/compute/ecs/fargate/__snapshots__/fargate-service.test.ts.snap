@@ -92,7 +92,10 @@ exports[`fargate service synth FargateService with a managed EBS volume should s
         "cluster": "\${aws_ecs_cluster.EcsCluster_97242B84.name}",
         "depends_on": [
           "data.aws_iam_policy_document.FargateTaskDef_TaskRole_AssumeRolePolicy_CBABA2D4",
-          "aws_iam_role.FargateTaskDef_TaskRole_0B257552"
+          "aws_iam_role.FargateTaskDef_TaskRole_0B257552",
+          "aws_iam_role_policy_attachment.EBSVolume_AmazonECSInfrastructureRolePolicyForVolumes_Roles0_5949B0BC",
+          "data.aws_iam_policy_document.EBSVolume_EBSRole_AssumeRolePolicy_AA76888B",
+          "aws_iam_role.EBSVolume_EBSRole_C27DD941"
         ],
         "deployment_maximum_percent": 200,
         "deployment_minimum_healthy_percent": 50,
@@ -373,7 +376,10 @@ exports[`fargate service synth FargateService with a managed EBS volume should s
       "FargateService_SecurityGroup_0A0E79CB": {
         "depends_on": [
           "data.aws_iam_policy_document.FargateTaskDef_TaskRole_AssumeRolePolicy_CBABA2D4",
-          "aws_iam_role.FargateTaskDef_TaskRole_0B257552"
+          "aws_iam_role.FargateTaskDef_TaskRole_0B257552",
+          "aws_iam_role_policy_attachment.EBSVolume_AmazonECSInfrastructureRolePolicyForVolumes_Roles0_5949B0BC",
+          "data.aws_iam_policy_document.EBSVolume_EBSRole_AssumeRolePolicy_AA76888B",
+          "aws_iam_role.EBSVolume_EBSRole_C27DD941"
         ],
         "description": "Default/FargateService/SecurityGroup",
         "egress": [
