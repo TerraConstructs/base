@@ -1480,6 +1480,20 @@ export abstract class BaseService
 
       // tls.awsPcaAuthorityArn should be an ARN
       const awsPcaAuthorityArn = serviceConnectService.tls?.awsPcaAuthorityArn;
+
+      // TERRACONSTRUCTS DEVIATION: the TF `issuer_cert_authority.aws_pca_authority_arn`
+      // field is required whenever `tls` is configured on a Service Connect service,
+      // unlike CFN's ServiceConnectTlsCertificateAuthority.AwsPcaAuthorityArn, which is
+      // optional there. Reject missing/empty values here so we never synthesize an
+      // invalid empty `issuer_cert_authority` block. An unresolved token resolves to a
+      // non-empty placeholder string, so it is truthy and correctly passes this check.
+      if (serviceConnectService.tls && !awsPcaAuthorityArn) {
+        throw new ValidationError(
+          "'awsPcaAuthorityArn' is required when 'tls' is configured on a Service Connect service",
+          this,
+        );
+      }
+
       if (
         awsPcaAuthorityArn &&
         !Token.isUnresolved(awsPcaAuthorityArn) &&
