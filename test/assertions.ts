@@ -106,6 +106,18 @@ export class Template {
   }
 
   /**
+   * Get stack data sources by type
+   */
+  static dataSourceObjects(
+    stack: TerraformStack,
+    type: TerraformConstructor,
+    options: SynthOptions = {},
+  ) {
+    const parsed = new Template(stack, options);
+    return parsed.dataSourcesByType(type);
+  }
+
+  /**
    * Create Jest Matchers for a specific stack output or
    * throw an error if the output is not found
    *
@@ -267,6 +279,9 @@ export class Annotations {
   public get errors(): StackAnnotation[] {
     return this.annotations.filter(isErrorAnnotation);
   }
+  public get infos(): StackAnnotation[] {
+    return this.annotations.filter(isInfoAnnotation);
+  }
 
   /**
    * check if the stack has a warning for certain context path and message
@@ -274,7 +289,7 @@ export class Annotations {
   public hasWarnings(
     ...expectedWarnings: Array<Partial<StackAnnotationMatcher>>
   ) {
-    expect(this.warnings).toEqual(this.warningMatcher(...expectedWarnings));
+    expect(this.warnings).toEqual(this.annotationMatcher(...expectedWarnings));
   }
 
   /**
@@ -283,16 +298,32 @@ export class Annotations {
   public hasNoWarnings(
     ...expectedWarnings: Array<Partial<StackAnnotationMatcher>>
   ) {
-    expect(this.warnings).not.toEqual(this.warningMatcher(...expectedWarnings));
+    expect(this.warnings).not.toEqual(
+      this.annotationMatcher(...expectedWarnings),
+    );
   }
 
-  private warningMatcher(
-    ...expectedWarnings: Array<Partial<StackAnnotationMatcher>>
+  /**
+   * check if the stack has an info annotation for certain context path and message
+   */
+  public hasInfo(...expectedInfos: Array<Partial<StackAnnotationMatcher>>) {
+    expect(this.infos).toEqual(this.annotationMatcher(...expectedInfos));
+  }
+
+  /**
+   * ensure the stack has no info annotation for certain context path and message
+   */
+  public hasNoInfo(...expectedInfos: Array<Partial<StackAnnotationMatcher>>) {
+    expect(this.infos).not.toEqual(this.annotationMatcher(...expectedInfos));
+  }
+
+  private annotationMatcher(
+    ...expectedAnnotations: Array<Partial<StackAnnotationMatcher>>
   ) {
-    const warningMatchers = expectedWarnings.map((warning) => {
+    const matchers = expectedAnnotations.map((annotation) => {
       const transformed: Partial<StackAnnotationMatcher> = {};
-      for (const key in warning) {
-        const value = warning[key as keyof StackAnnotationMatcher];
+      for (const key in annotation) {
+        const value = annotation[key as keyof StackAnnotationMatcher];
         if (value instanceof RegExp) {
           transformed[key as keyof StackAnnotationMatcher] =
             expect.stringMatching(value);
@@ -302,7 +333,7 @@ export class Annotations {
       }
       return expect.objectContaining(transformed);
     });
-    return expect.arrayContaining(warningMatchers);
+    return expect.arrayContaining(matchers);
   }
 
   /**
@@ -342,6 +373,10 @@ function isErrorAnnotation(annotation: StackAnnotation): boolean {
 
 function isWarningAnnotation(annotation: StackAnnotation): boolean {
   return annotation.level === AnnotationMetadataEntryType.WARN;
+}
+
+function isInfoAnnotation(annotation: StackAnnotation): boolean {
+  return annotation.level === AnnotationMetadataEntryType.INFO;
 }
 
 export interface StackAnnotationMatcher {

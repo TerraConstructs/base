@@ -1,0 +1,109 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AppMeshProxyConfiguration Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "Ec2TaskDef_TaskRole_AssumeRolePolicy_3D66738B": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_ecs_task_definition": {
+      "Ec2TaskDef_0226F28C": {
+        "container_definitions": "[{\\"essential\\":true,\\"image\\":\\"amazon/amazon-ecs-sample\\",\\"memory\\":1024,\\"name\\":\\"web\\",\\"environment\\":[{\\"name\\":\\"AWS_REGION\\",\\"value\\":\\"\${data.aws_region.Region.name}\\"}]},{\\"essential\\":true,\\"image\\":\\"envoyproxy/envoy\\",\\"memory\\":1024,\\"name\\":\\"envoy\\",\\"environment\\":[{\\"name\\":\\"AWS_REGION\\",\\"value\\":\\"\${data.aws_region.Region.name}\\"}]}]",
+        "family": "Ec2TaskDef",
+        "network_mode": "awsvpc",
+        "proxy_configuration": {
+          "container_name": "envoy",
+          "properties": {
+            "AppPorts": "80,81",
+            "EgressIgnoredIPs": "169.254.170.2,169.254.169.254",
+            "EgressIgnoredPorts": "8081",
+            "IgnoredGID": "1338",
+            "IgnoredUID": "1337",
+            "ProxyEgressPort": "81",
+            "ProxyIngressPort": "80"
+          },
+          "type": "APPMESH"
+        },
+        "requires_compatibilities": [
+          "EC2"
+        ],
+        "tags": {
+          "Name": "Default-Ec2TaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        },
+        "task_role_arn": "\${aws_iam_role.Ec2TaskDef_TaskRole_400FA349.arn}"
+      }
+    },
+    "aws_iam_role": {
+      "Ec2TaskDef_TaskRole_400FA349": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.Ec2TaskDef_TaskRole_AssumeRolePolicy_3D66738B.json}",
+        "name_prefix": "g-Ec2TaskDefTaskRole",
+        "tags": {
+          "Name": "Default-Ec2TaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;

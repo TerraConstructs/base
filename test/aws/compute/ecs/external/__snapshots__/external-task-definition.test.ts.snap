@@ -1,0 +1,251 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ExternalTaskDefinition synth Should synth and match SnapShot with a fully configured container 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "ExternalTaskDef_ExecutionRole_AssumeRolePolicy_8D8DB5D0": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "ExternalTaskDef_ExecutionRole_DefaultPolicy_70A9C6C8": {
+        "statement": [
+          {
+            "actions": [
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "\${aws_cloudwatch_log_group.ExternalTaskDef_web_LogGroup_827719D6.arn}:*"
+            ]
+          }
+        ]
+      },
+      "ExternalTaskDef_TaskRole_AssumeRolePolicy_126AFF1A": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudwatch_log_group": {
+      "ExternalTaskDef_web_LogGroup_827719D6": {
+        "name": "gExternalTaskDefwebLogGroup944930FF",
+        "skip_destroy": true,
+        "tags": {
+          "Name": "Default-ExternalTaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    },
+    "aws_ecs_task_definition": {
+      "ExternalTaskDef_6CCBDB87": {
+        "container_definitions": "[{\\"essential\\":true,\\"image\\":\\"amazon/amazon-ecs-sample\\",\\"memory\\":512,\\"name\\":\\"web\\",\\"logConfiguration\\":{\\"logDriver\\":\\"awslogs\\",\\"options\\":{\\"awslogs-group\\":\\"\${aws_cloudwatch_log_group.ExternalTaskDef_web_LogGroup_827719D6.name}\\",\\"awslogs-stream-prefix\\":\\"prefix\\",\\"awslogs-region\\":\\"\${data.aws_region.Region.name}\\"}}}]",
+        "execution_role_arn": "\${aws_iam_role.ExternalTaskDef_ExecutionRole_30AEEBDB.arn}",
+        "family": "ExternalTaskDef",
+        "network_mode": "bridge",
+        "requires_compatibilities": [
+          "EXTERNAL"
+        ],
+        "tags": {
+          "Name": "Default-ExternalTaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        },
+        "task_role_arn": "\${aws_iam_role.ExternalTaskDef_TaskRole_F61010C8.arn}"
+      }
+    },
+    "aws_iam_role": {
+      "ExternalTaskDef_ExecutionRole_30AEEBDB": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.ExternalTaskDef_ExecutionRole_AssumeRolePolicy_8D8DB5D0.json}",
+        "name_prefix": "g-ExternalTaskDefExecutionRole",
+        "tags": {
+          "Name": "Default-ExternalTaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      },
+      "ExternalTaskDef_TaskRole_F61010C8": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.ExternalTaskDef_TaskRole_AssumeRolePolicy_126AFF1A.json}",
+        "name_prefix": "g-ExternalTaskDefTaskRole",
+        "tags": {
+          "Name": "Default-ExternalTaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "ExternalTaskDef_ExecutionRole_DefaultPolicy_ResourceRoles0_5D37EE02": {
+        "name": "ExternalTaskDefExecutionRoleDefaultPolicy27FFE9E8",
+        "policy": "\${data.aws_iam_policy_document.ExternalTaskDef_ExecutionRole_DefaultPolicy_70A9C6C8.json}",
+        "role": "\${aws_iam_role.ExternalTaskDef_ExecutionRole_30AEEBDB.name}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`ExternalTaskDefinition synth Should synth and match SnapShot with defaults 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "ExternalTaskDef_TaskRole_AssumeRolePolicy_126AFF1A": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_ecs_task_definition": {
+      "ExternalTaskDef_6CCBDB87": {
+        "container_definitions": "[]",
+        "family": "ExternalTaskDef",
+        "network_mode": "bridge",
+        "requires_compatibilities": [
+          "EXTERNAL"
+        ],
+        "tags": {
+          "Name": "Default-ExternalTaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        },
+        "task_role_arn": "\${aws_iam_role.ExternalTaskDef_TaskRole_F61010C8.arn}"
+      }
+    },
+    "aws_iam_role": {
+      "ExternalTaskDef_TaskRole_F61010C8": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.ExternalTaskDef_TaskRole_AssumeRolePolicy_126AFF1A.json}",
+        "name_prefix": "g-ExternalTaskDefTaskRole",
+        "tags": {
+          "Name": "Default-ExternalTaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
