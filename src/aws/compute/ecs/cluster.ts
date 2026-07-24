@@ -2111,9 +2111,15 @@ export class AsgCapacityProvider extends Construct {
     this.resource = new ecsCapacityProvider.EcsCapacityProvider(this, id, {
       name: capacityProviderName,
       autoScalingGroupProvider: {
-        // TERRACONSTRUCTS DEVIATION preserved verbatim from upstream: despite the field name,
-        // upstream passes the ASG *name*, not its ARN, to `autoScalingGroupArn`.
-        autoScalingGroupArn: this.autoScalingGroup.autoScalingGroupName,
+        // TERRACONSTRUCTS DEVIATION: upstream CloudFormation's `AutoScalingGroupArn`
+        // property (despite its name) accepts the ASG *name*. The Terraform
+        // `aws_ecs_capacity_provider` resource's `auto_scaling_group_arn` requires a
+        // real ARN -- AWS returns the ARN on read, so passing the name here causes
+        // perpetual drift/replacement. `autoScalingGroupArn` is defined on the
+        // `AutoScalingGroup` base for both created ASGs (`aws_autoscaling_group.arn`)
+        // and `fromAutoScalingGroupName` imports (a formatted ARN token), so
+        // unresolved-token inputs resolve correctly without extra handling here.
+        autoScalingGroupArn: this.autoScalingGroup.autoScalingGroupArn,
         managedScaling:
           props.enableManagedScaling === false
             ? undefined

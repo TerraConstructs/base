@@ -164,7 +164,7 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 1
     "aws_ecs_capacity_provider": {
       "AsgCapacityProvider_760D11D9": {
         "auto_scaling_group_provider": {
-          "auto_scaling_group_arn": "\${aws_autoscaling_group.DefaultAutoScalingGroup_231A62F5.name}",
+          "auto_scaling_group_arn": "\${aws_autoscaling_group.DefaultAutoScalingGroup_231A62F5.arn}",
           "managed_scaling": {
             "status": "ENABLED",
             "target_capacity": 100
