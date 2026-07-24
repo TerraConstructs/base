@@ -682,6 +682,41 @@ describe("external service", () => {
     // Annotations.fromStack(stack).hasNoWarning('/Default/ExternalService', 'minHealthyPercent has not been configured so the default value of 0% for an external service is used. The number of running tasks will decrease below the desired count during deployments etc. See https://github.com/aws/aws-cdk/issues/31705 [ack: @aws-cdk/aws-ecs:minHealthyPercentExternal]');
     // Annotations.fromStack(stack).hasNoWarning('/Default/ExternalService', 'minHealthyPercent has not been configured so the default value of 50% is used. The number of running tasks will decrease below the desired count during deployments etc. See https://github.com/aws/aws-cdk/issues/31705 [ack: @aws-cdk/aws-ecs:minHealthyPercent]');
   });
+
+  describe("fromExternalServiceArn", () => {
+    test("current (cluster-name-including) format extracts trailing service-name segment", () => {
+      // GIVEN
+      const arn =
+        "arn:aws:ecs:us-east-1:123456789012:service/my-cluster/my-service";
+
+      // WHEN
+      const imported = ecs.ExternalService.fromExternalServiceArn(
+        stack,
+        "ImportedService",
+        arn,
+      );
+
+      // THEN
+      expect(imported.serviceArn).toEqual(arn);
+      expect(imported.serviceName).toEqual("my-service");
+    });
+
+    test("old format (no cluster name) extracts the service-name", () => {
+      // GIVEN
+      const arn = "arn:aws:ecs:us-east-1:123456789012:service/my-service";
+
+      // WHEN
+      const imported = ecs.ExternalService.fromExternalServiceArn(
+        stack,
+        "ImportedService",
+        arn,
+      );
+
+      // THEN
+      expect(imported.serviceArn).toEqual(arn);
+      expect(imported.serviceName).toEqual("my-service");
+    });
+  });
 });
 
 // Repo-specific: wrapping synth/snapshot coverage on top of the ported upstream suite (harness
