@@ -411,7 +411,12 @@ export class Ec2Service extends BaseService implements IEc2Service {
    * [Amazon ECS Task Placement Constraints](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement-constraints.html).
    */
   public addPlacementConstraints(...constraints: PlacementConstraint[]) {
-    this.constraints = [];
+    // TERRACONSTRUCTS DEVIATION: upstream v2.233.0 resets this.constraints=[] on every call, which
+    // discards constraints from earlier calls (asymmetric with addPlacementStrategies). Initialize
+    // once and append so repeated calls accumulate, matching the strategies method.
+    if (!this.constraints) {
+      this.constraints = [];
+    }
     for (const constraint of constraints) {
       const items = constraint.toJson();
       if (this.availabilityZoneRebalancingEnabled) {
