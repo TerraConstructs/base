@@ -2245,6 +2245,13 @@ describe("fargate service", () => {
       }).toThrow("'size' or 'snapShotId' must be specified");
     });
 
+    test("throw an error when managedEBSVolume is omitted entirely", () => {
+      // WHEN / THEN
+      expect(
+        () => new ServiceManagedVolume(stack, "EBS Volume", { name: "db" }),
+      ).toThrow("'size' or 'snapShotId' must be specified");
+    });
+
     test("throw an error snapshot does not match pattern", () => {
       // WHEN
       container.addMountPoints({
