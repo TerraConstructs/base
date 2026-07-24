@@ -4,7 +4,7 @@ import {
   dataAwsIamPolicyDocument,
   ecsTaskDefinition,
 } from "@cdktn/provider-aws";
-import { HttpBackend, Testing } from "cdktn";
+import { HttpBackend, Lazy, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import * as ecs from "../../../../src/aws/compute/ecs";
@@ -678,6 +678,73 @@ describe("firelens log driver", () => {
       //     }),
       //   ],
       // });
+    });
+
+    test("fluent-bit log router with tokenized S3 config ARN scopes GetBucketLocation to wildcard", () => {
+      // GIVEN
+      // TERRACONSTRUCTS DEVIATION regression test: use an opaque `Lazy.stringValue` token
+      // (mirrors the `tokenizedArn` idiom in base-service.test.ts) rather than
+      // `bucket.arnForObjects()`. `arnForObjects` builds its ARN via a JS template literal
+      // (`${bucketArn}/key`), so the literal "/" separating the token marker from the object
+      // key survives into the pre-resolution string and `.split("/")[0]` happens to strip it
+      // correctly -- that case would not reproduce the bug. A single opaque token (as produced
+      // by e.g. a Terraform data source lookup) exposes no "/" at construction time, so
+      // `.split("/")[0]` is a no-op and pre-fix code left `s3:GetBucketLocation` scoped to the
+      // exact same resolved object ARN as `s3:GetObject` -- the failure this test guards against.
+      const configFileValue = Lazy.stringValue({
+        produce: () => "arn:aws:s3:::mybucket/fluent.conf",
+      });
+
+      // WHEN
+      td.addFirelensLogRouter("log_router", {
+        image: ecs.obtainDefaultFluentBitECRImage(td, undefined, "2.1.0"),
+        firelensConfig: {
+          type: ecs.FirelensLogRouterType.FLUENTBIT,
+          options: {
+            enableECSLogMetadata: false,
+            configFileType: ecs.FirelensConfigFileType.S3,
+            configFileValue,
+          },
+        },
+        logging: new ecs.AwsLogDriver({ streamPrefix: "firelens" }),
+        memoryReservationMiB: 50,
+      });
+
+      // THEN
+      // regression test: pre-fix, the s3:GetBucketLocation resource was derived via
+      // `configFileValue.split('/')[0]`, which cannot strip the object key off an
+      // unresolved token and left the resolved *object* ARN as the resource -- an
+      // ineffective permission for a bucket-level action. Post-fix it must be '*'
+      // (matching the sibling idiom in base/base-service.ts).
+      const template = new Template(stack);
+      expect(policyDocumentsOf(template)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            statement: expect.arrayContaining([
+              expect.objectContaining({
+                actions: ["s3:GetBucketLocation"],
+                effect: "Allow",
+                resources: ["*"],
+              }),
+            ]),
+          }),
+        ]),
+      );
+
+      // the s3:GetObject statement remains scoped to the (resolved) object ARN
+      expect(policyDocumentsOf(template)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            statement: expect.arrayContaining([
+              expect.objectContaining({
+                actions: ["s3:GetObject"],
+                effect: "Allow",
+                resources: [stack.resolve(configFileValue)],
+              }),
+            ]),
+          }),
+        ]),
+      );
     });
 
     test("firelens config options are fully optional", () => {

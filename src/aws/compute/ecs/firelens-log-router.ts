@@ -346,7 +346,11 @@ export class FirelensLogRouter extends ContainerDefinition {
           props.taskDefinition.addToExecutionRolePolicy(
             new iam.PolicyStatement({
               actions: ["s3:GetBucketLocation"],
-              resources: [(options.configFileValue ?? "").split("/")[0]],
+              // TERRACONSTRUCTS DEVIATION: upstream v2.233.0 scopes this to configFileValue.split('/')[0],
+              // which cannot derive the bucket ARN from an unresolved token. GetBucketLocation is not
+              // usefully resource-scoped; use the '*' wildcard already used by base-service.ts for the
+              // same action so token-derived S3 config ARNs get an effective permission.
+              resources: ["*"],
             }),
           );
         }
