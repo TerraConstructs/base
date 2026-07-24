@@ -1669,6 +1669,65 @@ describe("cluster", () => {
   });
 
   describe("creates ASG capacity providers ", () => {
+    // Repo-specific drift regression (caught live by the
+    // ecs.asg-capacity-provider integ test): ECS stamps the AmazonECSManaged
+    // tag onto the ASG at runtime when managed scaling is enabled. Terraform
+    // owns the aws_autoscaling_group tag blocks, so the tag must be declared
+    // in config or every subsequent plan wants to remove it (perpetual drift).
+    test("declares the AmazonECSManaged tag on the ASG when managed scaling is enabled", () => {
+      // GIVEN
+      const stack = getAwsStack("test");
+      const vpc = new Vpc(stack, "Vpc");
+      const asg = new autoscaling.AutoScalingGroup(stack, "asg", {
+        vpc,
+        instanceType: new InstanceType("bogus"),
+        machineImage: ecs.EcsOptimizedImage.amazonLinux2(),
+      });
+
+      // WHEN - managed scaling defaults to enabled
+      new ecs.AsgCapacityProvider(stack, "provider", { autoScalingGroup: asg });
+
+      // THEN
+      Template.synth(stack).toHaveResourceWithProperties(
+        autoscalingGroup.AutoscalingGroup,
+        {
+          tag: [
+            {
+              key: "AmazonECSManaged",
+              value: "",
+              propagate_at_launch: true,
+            },
+          ],
+        },
+      );
+    });
+
+    test("does not declare the AmazonECSManaged tag when managed scaling is disabled", () => {
+      // GIVEN
+      const stack = getAwsStack("test");
+      const vpc = new Vpc(stack, "Vpc");
+      const asg = new autoscaling.AutoScalingGroup(stack, "asg", {
+        vpc,
+        instanceType: new InstanceType("bogus"),
+        machineImage: ecs.EcsOptimizedImage.amazonLinux2(),
+      });
+
+      // WHEN
+      new ecs.AsgCapacityProvider(stack, "provider", {
+        autoScalingGroup: asg,
+        enableManagedScaling: false,
+        enableManagedTerminationProtection: false,
+      });
+
+      // THEN
+      const [asgResource] = Object.values(
+        Template.resourceObjects(stack, autoscalingGroup.AutoscalingGroup) as {
+          [key: string]: { tag?: unknown[] };
+        },
+      );
+      expect(asgResource.tag).toBeUndefined();
+    });
+
     test("with expected defaults", () => {
       // GIVEN
       const stack = getAwsStack("test");

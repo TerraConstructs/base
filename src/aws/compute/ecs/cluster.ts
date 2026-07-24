@@ -2145,6 +2145,28 @@ export class AsgCapacityProvider extends Construct {
       },
     });
 
+    // TERRACONSTRUCTS DEVIATION: when managed scaling is enabled, ECS stamps
+    // the AmazonECSManaged tag (propagated at launch) onto the ASG at runtime.
+    // CloudFormation ignores runtime-added tags, but Terraform owns the
+    // aws_autoscaling_group tag blocks and would plan a removal of the
+    // AWS-applied tag on every refresh — perpetual drift, caught live by the
+    // ecs.asg-capacity-provider integ test. Declare the tag so the config
+    // matches reality. Only possible for owned ASGs (imports have no L1).
+    if (
+      props.enableManagedScaling !== false &&
+      this.autoScalingGroup instanceof autoscaling.AutoScalingGroup
+    ) {
+      const existingTags = Array.isArray(
+        this.autoScalingGroup.resource.tagInput,
+      )
+        ? this.autoScalingGroup.resource.tagInput
+        : [];
+      this.autoScalingGroup.resource.putTag([
+        ...existingTags,
+        { key: "AmazonECSManaged", value: "", propagateAtLaunch: true },
+      ]);
+    }
+
     this.capacityProviderName = this.resource.name;
   }
 }

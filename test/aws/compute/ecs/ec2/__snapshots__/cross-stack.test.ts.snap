@@ -154,6 +154,13 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 1
         "min_size": 1,
         "name_prefix": "gStack160A2C335-Stack1DefaultAutoScalingGroup",
         "protect_from_scale_in": true,
+        "tag": [
+          {
+            "key": "AmazonECSManaged",
+            "propagate_at_launch": true,
+            "value": ""
+          }
+        ],
         "vpc_zone_identifier": [
           "\${aws_subnet.Vpc_PrivateSubnet1_F6513F49.id}",
           "\${aws_subnet.Vpc_PrivateSubnet2_53755717.id}",
