@@ -149,6 +149,13 @@ exports[`external service synth ExternalService with only required properties sh
         "min_size": 1,
         "name_prefix": "g-DefaultAutoScalingGroup",
         "protect_from_scale_in": true,
+        "tag": [
+          {
+            "key": "AmazonECSManaged",
+            "propagate_at_launch": true,
+            "value": ""
+          }
+        ],
         "vpc_zone_identifier": [
           "\${aws_subnet.MyVpc_PrivateSubnet1_398EC334.id}",
           "\${aws_subnet.MyVpc_PrivateSubnet2_1142226B.id}",
