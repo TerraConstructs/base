@@ -3,9 +3,7 @@
 import { Annotations } from "cdktn";
 import { Construct } from "constructs";
 import { ValidationError } from "../../../../errors";
-import { ArnFormat } from "../../../arn";
 import { AwsConstructBase } from "../../../aws-construct";
-import { AwsStack } from "../../../aws-stack";
 import * as edge from "../../../edge";
 import { IApplicationTargetGroup } from "../../alb/application-target-group";
 import { EnableScalingProps } from "../../base-scalable-attribute";
@@ -25,7 +23,10 @@ import {
   LaunchType,
   PropagatedTagSource,
 } from "../base/base-service";
-import { fromServiceAttributes } from "../base/from-service-attributes";
+import {
+  extractServiceNameFromArn,
+  fromServiceAttributes,
+} from "../base/from-service-attributes";
 import { ScalableTaskCount } from "../base/scalable-task-count";
 import {
   Compatibility,
@@ -114,10 +115,14 @@ export class ExternalService extends BaseService implements IExternalService {
   ): IExternalService {
     class Import extends AwsConstructBase implements IExternalService {
       public readonly serviceArn = externalServiceArn;
-      public readonly serviceName = AwsStack.ofAwsConstruct(scope).splitArn(
+      // TERRACONSTRUCTS DEVIATION: use the repo's fargate/ec2 sibling helper
+      // (extractServiceNameFromArn) instead of upstream's raw splitArn, so
+      // this correctly extracts the trailing service-name segment from both
+      // current-format ARNs (cluster/service) and unresolved tokens.
+      public readonly serviceName = extractServiceNameFromArn(
+        this,
         externalServiceArn,
-        ArnFormat.SLASH_RESOURCE_NAME,
-      ).resourceName as string;
+      );
       public get outputs(): Record<string, any> {
         return {
           arn: this.serviceArn,
