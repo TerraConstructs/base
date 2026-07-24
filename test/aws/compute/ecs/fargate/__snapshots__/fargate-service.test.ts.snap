@@ -99,8 +99,14 @@ exports[`fargate service synth FargateService with a managed EBS volume should s
         ],
         "deployment_maximum_percent": 200,
         "deployment_minimum_healthy_percent": 50,
+        "desired_count": 1,
         "enable_ecs_managed_tags": false,
         "launch_type": "FARGATE",
+        "lifecycle": {
+          "ignore_changes": [
+            "desired_count"
+          ]
+        },
         "name": "FargateService",
         "network_configuration": {
           "assign_public_ip": false,
@@ -1111,9 +1117,15 @@ exports[`fargate service synth FargateService with an application load balancer 
         ],
         "deployment_maximum_percent": 200,
         "deployment_minimum_healthy_percent": 50,
+        "desired_count": 1,
         "enable_ecs_managed_tags": false,
         "health_check_grace_period_seconds": 60,
         "launch_type": "FARGATE",
+        "lifecycle": {
+          "ignore_changes": [
+            "desired_count"
+          ]
+        },
         "load_balancer": [
           {
             "container_name": "MainContainer",
@@ -1697,8 +1709,14 @@ exports[`fargate service synth FargateService with only required properties set 
         ],
         "deployment_maximum_percent": 200,
         "deployment_minimum_healthy_percent": 50,
+        "desired_count": 1,
         "enable_ecs_managed_tags": false,
         "launch_type": "FARGATE",
+        "lifecycle": {
+          "ignore_changes": [
+            "desired_count"
+          ]
+        },
         "name": "FargateService",
         "network_configuration": {
           "assign_public_ip": false,
@@ -2163,8 +2181,14 @@ exports[`fargate service synth FargateService with service connect should synth 
         ],
         "deployment_maximum_percent": 200,
         "deployment_minimum_healthy_percent": 50,
+        "desired_count": 1,
         "enable_ecs_managed_tags": false,
         "launch_type": "FARGATE",
+        "lifecycle": {
+          "ignore_changes": [
+            "desired_count"
+          ]
+        },
         "name": "FargateService",
         "network_configuration": {
           "assign_public_ip": false,

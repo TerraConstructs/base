@@ -2051,6 +2051,48 @@ describe("fargate service", () => {
       );
     });
 
+    // Repo-specific sentinel-default regression (caught live by the
+    // ecs.sd-awsvpc-nw integ deploy): CloudFormation omits DesiredCount and
+    // ECS creates a REPLICA service with 1 task; aws_ecs_service with an
+    // omitted desired_count (and explicit scheduling_strategy) creates the
+    // service with 0 tasks — so nothing ever starts or registers into
+    // CloudMap. The port must emit desired_count 1 by default, with
+    // ignore_changes so Terraform never resets manual/auto scaling, and must
+    // NOT ignore changes when the user pins an explicit count.
+    test("desiredCount defaults to 1 with ignore_changes; explicit count is enforced", () => {
+      // WHEN - default (no desiredCount)
+      const resource = soleResource(stack, ecsService.EcsService) as {
+        desired_count?: number;
+        lifecycle?: { ignore_changes?: string[] };
+      };
+
+      // THEN
+      expect(resource.desired_count).toEqual(1);
+      expect(resource.lifecycle?.ignore_changes).toEqual(["desired_count"]);
+
+      // WHEN - explicit desiredCount
+      const stack2 = new AwsStack();
+      const vpc2 = new compute.Vpc(stack2, "MyVpc", {});
+      const cluster2 = new ecs.Cluster(stack2, "EcsCluster", { vpc: vpc2 });
+      const taskDefinition2 = new ecs.FargateTaskDefinition(stack2, "TaskDef");
+      taskDefinition2.addContainer("web", {
+        image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+      });
+      new ecs.FargateService(stack2, "FargateService", {
+        cluster: cluster2,
+        taskDefinition: taskDefinition2,
+        desiredCount: 3,
+      });
+
+      // THEN - enforced, no ignore_changes
+      const resource2 = soleResource(stack2, ecsService.EcsService) as {
+        desired_count?: number;
+        lifecycle?: { ignore_changes?: string[] };
+      };
+      expect(resource2.desired_count).toEqual(3);
+      expect(resource2.lifecycle?.ignore_changes).toBeUndefined();
+    });
+
     test("success when mounting via ServiceManagedVolume", () => {
       // WHEN
       const volume = new ServiceManagedVolume(stack, "EBS Volume", {

@@ -75,8 +75,14 @@ exports[`base-service synth FargateService with default properties should synth 
         ],
         "deployment_maximum_percent": 200,
         "deployment_minimum_healthy_percent": 50,
+        "desired_count": 1,
         "enable_ecs_managed_tags": false,
         "launch_type": "FARGATE",
+        "lifecycle": {
+          "ignore_changes": [
+            "desired_count"
+          ]
+        },
         "name": "FargateService",
         "network_configuration": {
           "assign_public_ip": false,
@@ -583,8 +589,14 @@ exports[`base-service synth FargateService with service connect and TLS should s
         ],
         "deployment_maximum_percent": 200,
         "deployment_minimum_healthy_percent": 50,
+        "desired_count": 1,
         "enable_ecs_managed_tags": false,
         "launch_type": "FARGATE",
+        "lifecycle": {
+          "ignore_changes": [
+            "desired_count"
+          ]
+        },
         "name": "Service",
         "network_configuration": {
           "assign_public_ip": false,
