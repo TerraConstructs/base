@@ -666,9 +666,15 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 2
         ],
         "deployment_maximum_percent": 200,
         "deployment_minimum_healthy_percent": 50,
+        "desired_count": 1,
         "enable_ecs_managed_tags": false,
         "health_check_grace_period_seconds": 60,
         "launch_type": "EC2",
+        "lifecycle": {
+          "ignore_changes": [
+            "desired_count"
+          ]
+        },
         "load_balancer": [
           {
             "container_name": "Main",

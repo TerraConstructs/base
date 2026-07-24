@@ -869,7 +869,20 @@ export abstract class BaseService
     // are instead applied via those `putXxx()` setters from `toTerraform()` below, mirroring the
     // `lb-shared/base-target-group.ts` idiom.
     this.resource = new ecsService.EcsService(this, "Resource", {
-      desiredCount: props.desiredCount,
+      // Terraform deviation (sentinel-default class): CloudFormation omits
+      // DesiredCount and ECS defaults a new REPLICA service to 1, keeping the
+      // current value on updates. With aws_ecs_service an omitted
+      // desired_count creates the service with 0 tasks when
+      // scheduling_strategy is set explicitly (observed live on the
+      // ecs.sd-awsvpc-nw integ deploy: 0 tasks -> nothing ever registered
+      // into CloudMap). Mirror the CFN semantic: default to 1 at create and,
+      // when the user did NOT pin a count, ignore_changes so Terraform never
+      // fights manual scaling or Application Auto Scaling on later applies.
+      desiredCount: props.desiredCount ?? 1,
+      lifecycle:
+        props.desiredCount === undefined
+          ? { ignoreChanges: ["desired_count"] }
+          : undefined,
       name: serviceName,
       // NOTE: see the matching comment in `base/task-definition.ts` `renderVolumes()` --
       // `this.loadBalancers` holds camelCase config objects, and wrapping them in
