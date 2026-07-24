@@ -16,6 +16,44 @@ import (
 	util "github.com/terraconstructs/base/integ/aws"
 )
 
+// waitForEcsServiceStable polls DescribeServices until the service reaches
+// steady state (exactly one deployment and runningCount == desiredCount —
+// the same success condition as the SDK's ServicesStableWaiter).
+//
+// Deliberately NOT the SDK waiter: aws-sdk-go-v2/service/ecs v1.52.0's
+// servicesStableStateRetryable evaluates jmespath "failures[].reason" and
+// hard-fails with "waiter comparator expected list got <nil>" whenever the
+// API response omits the `failures` array — which is the NORMAL healthy
+// response shape. Observed live (twice) on the ecs.lb-awsvpc-nw deploys.
+// This poll is also immune to the eventual-consistency window right after
+// `apply` where the service is briefly reported MISSING.
+func waitForEcsServiceStable(
+	t *testing.T,
+	client *ecs.Client,
+	clusterName string,
+	serviceName string,
+	timeout time.Duration,
+) {
+	input := &ecs.DescribeServicesInput{
+		Cluster:  aws.String(clusterName),
+		Services: []string{serviceName},
+	}
+	deadline := time.Now().Add(timeout)
+	for {
+		out, err := client.DescribeServices(context.Background(), input)
+		if err == nil && len(out.Services) > 0 {
+			svc := out.Services[0]
+			if len(svc.Deployments) == 1 && svc.RunningCount == svc.DesiredCount {
+				return
+			}
+		}
+		require.False(t, time.Now().After(deadline),
+			"ECS service %s in cluster %s did not reach steady state within %s",
+			serviceName, clusterName, timeout)
+		time.Sleep(15 * time.Second)
+	}
+}
+
 // Test the ecs.awslogs-driver app
 //
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/@aws-cdk-testing/framework-integ/test/aws-ecs/test/fargate/integ.awslogs-driver.ts
@@ -69,12 +107,7 @@ func validateEcsAwslogsDriver(t *testing.T, tfWorkingDir, awsRegion string) {
 	// output - mirrors the ordering of the upstream IntegTest, whose awsApiCall assertion
 	// only runs after the stack's resources have stabilized.
 	client := terratestaws.NewEcsClient(t, awsRegion)
-	waiter := ecs.NewServicesStableWaiter(client)
-	err := waiter.Wait(context.Background(), &ecs.DescribeServicesInput{
-		Cluster:  aws.String(clusterName),
-		Services: []string{serviceName},
-	}, 10*time.Minute)
-	require.NoError(t, err, "expected the FargateService to reach steady state")
+	waitForEcsServiceStable(t, client, clusterName, serviceName, 10*time.Minute)
 
 	// Port of the upstream IntegTest assertion:
 	//   test.assertions.awsApiCall('CloudWatchLogs', 'filterLogEvents', {
