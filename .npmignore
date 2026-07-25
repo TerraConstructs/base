@@ -25,6 +25,17 @@ tsconfig.tsbuildinfo
 /projenrc/tsconfig.json
 !.jsii
 /integ/
+/tcons-staging/
+/go.mod
+/go.sum
+/.envrc
+/.mise.toml
+/.nvmrc
+/.terraform-version
+/.terraform.d/
+/CLAUDE.md
+/pnpm-workspace.yaml
+/setup.js
 /.gitattributes
 /.projenrc.ts
 /projenrc
