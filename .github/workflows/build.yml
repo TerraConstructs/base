@@ -8,45 +8,52 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     outputs:
       self_mutation_happened: ${{ steps.self_mutation.outputs.self_mutation_happened }}
       artifact_id: ${{ steps.upload_artifact.outputs.artifact-id }}
     env:
       CI: "true"
+      SKIP_JEST: "true"
+      LEAN_BOOTSTRAP: "true"
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
       - name: set up Docker
-        uses: docker/setup-buildx-action@v3
+        if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
       - name: Load docker images
         id: docker-cache
-        uses: actions/cache/restore@v4
+        if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ~/.docker-images.tar
           key: docker-cache-${{ runner.os }}
       - name: Restore docker images
-        if: ${{ steps.docker-cache.outputs.cache-hit }}
+        if: ${{ env.LEAN_BOOTSTRAP != 'true' && steps.docker-cache.outputs.cache-hit }}
         run: docker image load --input ~/.docker-images.tar
-      - uses: actions/setup-go@v5
+      - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
           go-version: ^1.23.0
-      - uses: oven-sh/setup-bun@v1
+      - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
           bun-version: 1.1.26
-      - uses: opentofu/setup-opentofu@v1
+      - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+        uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
         with:
           tofu_wrapper: false
           tofu_version: 1.8.2
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
         with:
           version: 11.5.0
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: 24.12.0
           package-manager-cache: false
@@ -59,7 +66,7 @@ jobs:
         run: docker image save --output ~/.docker-images.tar $(docker image list --format '{{ if ne .Repository "<none>" }}{{ .Repository }}{{ if ne .Tag "<none>" }}:{{ .Tag }}{{ end }}{{ else }}{{ .ID }}{{ end }}')
       - name: Cache Docker images
         if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ~/.docker-images.tar
           key: docker-cache-${{ runner.os }}
@@ -101,13 +108,13 @@ jobs:
     if: always() && needs.build.outputs.self_mutation_happened && !(github.event.pull_request.head.repo.full_name != github.repository)
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
       - name: Download patch
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: repo.patch
           path: ${{ runner.temp }}
@@ -131,12 +138,12 @@ jobs:
       contents: read
     if: ${{ !needs.build.outputs.self_mutation_happened }}
     steps:
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: 24.12.0
           package-manager-cache: false
       - name: Download build artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           artifact-ids: ${{ needs.build.outputs.artifact_id }}
           path: dist
@@ -144,32 +151,37 @@ jobs:
         run: cd dist && setfacl --restore=permissions-backup.acl
         continue-on-error: true
       - name: set up Docker
-        uses: docker/setup-buildx-action@v3
+        if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
       - name: Load docker images
         id: docker-cache
-        uses: actions/cache/restore@v4
+        if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ~/.docker-images.tar
           key: docker-cache-${{ runner.os }}
       - name: Restore docker images
-        if: ${{ steps.docker-cache.outputs.cache-hit }}
+        if: ${{ env.LEAN_BOOTSTRAP != 'true' && steps.docker-cache.outputs.cache-hit }}
         run: docker image load --input ~/.docker-images.tar
-      - uses: actions/setup-go@v5
+      - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
           go-version: ^1.23.0
-      - uses: oven-sh/setup-bun@v1
+      - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
           bun-version: 1.1.26
-      - uses: opentofu/setup-opentofu@v1
+      - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+        uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
         with:
           tofu_wrapper: false
           tofu_version: 1.8.2
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
         with:
           version: 11.5.0
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
@@ -184,3 +196,106 @@ jobs:
         run: cd .repo && pnpm exec projen package:js
       - name: Collect js artifact
         run: mv .repo/dist dist
+    env:
+      LEAN_BOOTSTRAP: "true"
+  test:
+    name: test (${{ matrix.shard }}/5)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CI: "true"
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
+        with:
+          version: 11.5.0
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.12.0
+          package-manager-cache: false
+      - name: Install dependencies
+        run: pnpm i --no-frozen-lockfile
+      - name: Cache jest transform
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ runner.temp }}/jest-cache
+          key: jest-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |-
+            jest-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            jest-${{ runner.os }}-
+      - name: test
+        run: pnpm exec jest --ci --coverage=false --cacheDirectory ${{ runner.temp }}/jest-cache --shard=${{ matrix.shard }}/5 --testPathIgnorePatterns "/node_modules/" "test/aws/compute/function-nodejs/docker.test.ts"
+  test-docker:
+    name: test (docker)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          persist-credentials: false
+      - name: set up Docker
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Load docker images
+        id: docker-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.docker-images.tar
+          key: docker-cache-${{ runner.os }}
+      - name: Restore docker images
+        if: ${{ steps.docker-cache.outputs.cache-hit }}
+        run: docker image load --input ~/.docker-images.tar
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
+        with:
+          version: 11.5.0
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.12.0
+          package-manager-cache: false
+      - name: Install dependencies
+        run: pnpm i --no-frozen-lockfile
+      - name: test
+        run: pnpm exec jest --ci --coverage=false --runTestsByPath test/aws/compute/function-nodejs/docker.test.ts
+  tests:
+    name: tests
+    needs:
+      - test
+      - test-docker
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check test results
+        run: |-
+          if [ "${{ needs.test.result }}" != "success" ] || [ "${{ needs.test-docker.result }}" != "success" ]; then
+            echo "::error::test shards: ${{ needs.test.result }}, docker tests: ${{ needs.test-docker.result }}"
+            exit 1
+          fi
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true

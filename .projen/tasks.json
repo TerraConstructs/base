@@ -234,7 +234,8 @@
       "steps": [
         {
           "exec": "jest --passWithNoTests --updateSnapshot --coverage=false",
-          "receiveArgs": true
+          "receiveArgs": true,
+          "condition": "node -e \"if (process.env.SKIP_JEST) process.exit(1)\""
         },
         {
           "spawn": "eslint"

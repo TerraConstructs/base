@@ -10,11 +10,24 @@ import {
   LbListenerConfigStructBuilder,
   LbTargetGroupAttachmentConfigStructBuilder,
 } from "./projenrc";
+import {
+  pinGitHubActions,
+  postBuildSteps,
+  tuneBuildWorkflow,
+  tuneUpgradeWorkflow,
+  workflowBootstrapSteps,
+} from "./projenrc/github-workflows";
 
 // set strict node version compatible with webcontainers.io
 const nodeVersion = ">=20.9.0";
 const pnpmVersion = "11.5.0";
 const workflowNodeVersion = "24.12.0";
+
+// Number of parallel shards the jest suite is split across in the PR build.
+const testShardCount = 5;
+
+// The only suite that needs a live docker daemon.
+const dockerTestPath = "test/aws/compute/function-nodejs/docker.test.ts";
 
 const project = new cdk.JsiiProject({
   name: "terraconstructs",
@@ -94,75 +107,8 @@ const project = new cdk.JsiiProject({
   // deps: ["@balena/dockerignore@^1.0.2", "ignore@^5.3.2"],
 
   workflowNodeVersion,
-  workflowBootstrapSteps: [
-    // Docker setup and caching
-    // This is based on the CDK's PR build workflow:
-    // https://github.com/aws/aws-cdk/blob/v2.204.0/.github/workflows/pr-build.yml#L38-L58
-    // TODO: Only run this on PR builds and pushes to main
-    {
-      name: "set up Docker",
-      uses: "docker/setup-buildx-action@v3",
-    },
-    {
-      name: "Load docker images",
-      id: "docker-cache",
-      uses: "actions/cache/restore@v4",
-      with: {
-        path: "~/.docker-images.tar",
-        key: "docker-cache-${{ runner.os }}",
-      },
-    },
-    {
-      name: "Restore docker images",
-      if: "${{ steps.docker-cache.outputs.cache-hit }}",
-      run: "docker image load --input ~/.docker-images.tar",
-    },
-    // // use individual setup actions for tool specific caching
-    // {
-    //   uses: "jdx/mise-action@v2",
-    //   with: {
-    //     version: "2024.9.9",
-    //     cache: true,
-    //     install_args: ["bun", "node", "go", "opentofu"].join(" "),
-    //   },
-    // },
-    {
-      uses: "actions/setup-go@v5",
-      with: {
-        "go-version": "^1.23.0",
-      },
-    },
-    {
-      uses: "oven-sh/setup-bun@v1",
-      with: {
-        "bun-version": "1.1.26",
-      },
-    },
-    {
-      uses: "opentofu/setup-opentofu@v1",
-      with: {
-        tofu_wrapper: false,
-        tofu_version: "1.8.2",
-      },
-    },
-  ],
-  postBuildSteps: [
-    // NOTE: Conditions required to ensure this only runs on pushes to main
-    {
-      name: "Export Docker images",
-      if: "${{ github.event_name == 'push' && github.ref_name == 'main' }}",
-      run: 'docker image save --output ~/.docker-images.tar $(docker image list --format \'{{ if ne .Repository "<none>" }}{{ .Repository }}{{ if ne .Tag "<none>" }}:{{ .Tag }}{{ end }}{{ else }}{{ .ID }}{{ end }}\')',
-    },
-    {
-      name: "Cache Docker images",
-      if: "${{ github.event_name == 'push' && github.ref_name == 'main' }}",
-      uses: "actions/cache/save@v4",
-      with: {
-        path: "~/.docker-images.tar",
-        key: "docker-cache-${{ runner.os }}",
-      },
-    },
-  ],
+  workflowBootstrapSteps,
+  postBuildSteps,
 
   jestOptions: {
     jestConfig: {
@@ -193,17 +139,20 @@ new TextFile(project, "pnpm-workspace.yaml", {
   lines: ["allowBuilds:", "  unrs-resolver: true", "nodeLinker: hoisted"],
 });
 
-// Pin actions/upload-artifact to a full commit SHA to satisfy the workflow
-// security policy (zizmor unpinned-uses). v7 -> 043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-project.github?.actions.set(
-  "actions/upload-artifact",
-  "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
-);
+pinGitHubActions(project);
 
-const releaseWorkflow = project.tryFindObjectFile(
-  ".github/workflows/release.yml",
-);
-releaseWorkflow?.addOverride("jobs.release.runs-on", "custom-linux-l");
+// NOTE: `base` is a public repo, so the standard `ubuntu-latest` runner is
+// already 4 vCPU / 16GB — identical hardware to the `custom-linux-l` larger
+// runner, which is billed even for public repos. The override bought nothing.
+// If release ever needs to be faster, `custom-linux-xl` (8 vCPU / 32GB) is the
+// size worth paying for.
+tuneBuildWorkflow(project, {
+  pnpmVersion,
+  workflowNodeVersion,
+  testShardCount,
+  dockerTestPath,
+});
+tuneUpgradeWorkflow(project);
 
 project.prettier?.addIgnorePattern("*.generated.ts");
 project.eslint?.addRules({
@@ -218,10 +167,41 @@ project.gitignore.exclude("tcons-staging/");
 project.addPackageIgnore("/integ/");
 project.tsconfigDev?.addInclude("integ/**/*.ts");
 
-// Temp disable coverage for faster test runs
+// Keep dev tooling and build by-products out of the published tarball.
+//
+// NOTE: gitignore.exclude() only writes .gitignore. Because package.json has no
+// `files` allowlist, npm ships everything that .npmignore does not deny — so a
+// gitignored path is hidden from git review while still being published. Every
+// entry here needs its own addPackageIgnore() call; `tcons-staging/` above is
+// exactly how this was missed (published in 0.2.12).
+[
+  // asset-staging synth by-product, regenerated by the test run that
+  // `projen build` performs immediately before `projen package`
+  "/tcons-staging/",
+  // Go module for the terratest integ suite; no jsii Go target is configured,
+  // and jsii-pacmak generates its own go.mod when one is
+  "/go.mod",
+  "/go.sum",
+  // local tooling / editor config
+  "/.envrc",
+  "/.mise.toml",
+  "/.nvmrc",
+  "/.terraform-version",
+  "/.terraform.d/",
+  "/CLAUDE.md",
+  "/pnpm-workspace.yaml",
+  // jest bootstrap (jestConfig.setupFilesAfterEach), dev-only
+  "/setup.js",
+].forEach((pattern) => project.addPackageIgnore(pattern));
+
+// Temp disable coverage for faster test runs.
+// SKIP_JEST lets the PR build job run `projen build` for compile/lint/package
+// only, while jest runs in parallel shards (see jobs.test in build.yml).
+// `projen test` locally, and the release workflow, still run the full suite.
 project.testTask.updateStep(0, {
   exec: "jest --passWithNoTests --updateSnapshot --coverage=false",
   receiveArgs: true,
+  condition: 'node -e "if (process.env.SKIP_JEST) process.exit(1)"',
 });
 
 project.package.addField("packageManager", `pnpm@${pnpmVersion}`); // silence COREPACK_ENABLE_AUTO_PIN warning

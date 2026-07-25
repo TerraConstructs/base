@@ -21,11 +21,11 @@ jobs:
 
       - name: Checkout
         if: steps.check.outputs.is_dependabot_go == 'true'
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Setup Go
         if: steps.check.outputs.is_dependabot_go == 'true'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: "go.mod"
           cache: true
