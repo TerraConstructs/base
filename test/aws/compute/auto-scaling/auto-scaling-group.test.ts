@@ -719,6 +719,33 @@ describe("auto scaling group", () => {
         notsuper: "caramel",
       }),
     });
+    // Deviation from AWS CDK v2.233.0: upstream renders every tag into the
+    // generated launch template's `TagSpecifications`, so `notsuper` would come
+    // back to launched instances despite `PropagateAtLaunch: false`. Here it is
+    // kept out of the instance/volume specifications while the launch template
+    // resource itself keeps the tag.
+    template.toHaveResourceWithProperties(tfLaunchTemplate.LaunchTemplate, {
+      tag_specifications: [
+        {
+          resource_type: "instance",
+          tags: {
+            Name: "TestStack/MyFleet/LaunchTemplate",
+            superfood: "acai",
+          },
+        },
+        {
+          resource_type: "volume",
+          tags: {
+            Name: "TestStack/MyFleet/LaunchTemplate",
+            superfood: "acai",
+          },
+        },
+      ],
+      tags: expect.objectContaining({
+        superfood: "acai",
+        notsuper: "caramel",
+      }),
+    });
   });
 
   test("allows setting spot price", () => {

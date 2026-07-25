@@ -69,6 +69,23 @@ func validateAutoscalingCustomScaling(t *testing.T, tfWorkingDir, awsRegion stri
 		assert.Equal(t, expected.propagateAtLaunch, *tag.PropagateAtLaunch, "unexpected propagate at launch for tag %q", key)
 	}
 
+	// The instance launched by the group must carry the propagating tags and NOT
+	// the one opted out. Deviation from AWS CDK v2.233.0: upstream also renders
+	// every tag into the generated launch template's TagSpecifications, which
+	// would put `notsuper` back on the instance despite PropagateAtLaunch=false.
+	require.NotEmpty(t, group.Instances, "expected the Auto Scaling group to have launched an instance")
+	require.NotNil(t, group.Instances[0].InstanceId)
+	instance := util.GetEc2InstanceDetails(t, awsRegion, *group.Instances[0].InstanceId)
+
+	instanceTags := make(map[string]string, len(instance.Tags))
+	for _, tag := range instance.Tags {
+		require.NotNil(t, tag.Key)
+		require.NotNil(t, tag.Value)
+		instanceTags[*tag.Key] = *tag.Value
+	}
+	assert.Equal(t, "acai", instanceTags["superfood"], "expected the propagating tag on the launched instance")
+	assert.NotContains(t, instanceTags, "notsuper", "expected applyToLaunchedInstances: false to keep the tag off the launched instance")
+
 	// Validate the 4 Schedule.cron() scheduled actions ported from the upstream app:
 	// ScaleUpInTheMorning, ScaleDownAtNight, ScaleUpInTheDay, ScaleUpInTheWeekDay.
 	actions := util.GetAsgScheduledActions(t, awsRegion, asgName)

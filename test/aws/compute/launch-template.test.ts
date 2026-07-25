@@ -865,6 +865,45 @@ describe("LaunchTemplate", () => {
     );
   });
 
+  test("Adding tags with applyToLaunchedInstances false", () => {
+    // GIVEN
+    const template = new LaunchTemplate(stack, "Template");
+
+    // WHEN
+    Tags.of(template).add("TestKey", "TestValue", {
+      applyToLaunchedInstances: false,
+    });
+
+    // THEN
+    // Deviation from AWS CDK v2.233.0: upstream renders every tag into the
+    // launch template's `TagSpecifications`, so a tag opted out of launched
+    // instances still lands on them. Here it is kept out of the `instance` and
+    // `volume` specifications, while the launch template itself is still tagged.
+    Template.synth(stack).toHaveResourceWithProperties(
+      tfLaunchTemplate.LaunchTemplate,
+      {
+        tag_specifications: [
+          {
+            resource_type: "instance",
+            tags: {
+              Name: "Default/Template",
+            },
+          },
+          {
+            resource_type: "volume",
+            tags: {
+              Name: "Default/Template",
+            },
+          },
+        ],
+        tags: expect.objectContaining({
+          Name: "Default/Template",
+          TestKey: "TestValue",
+        }),
+      },
+    );
+  });
+
   test("Requires IMDSv2", () => {
     // WHEN
     new LaunchTemplate(stack, "Template", {

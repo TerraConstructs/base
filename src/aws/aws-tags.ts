@@ -58,6 +58,21 @@ function isAutoScalingGroupTaggable(
 }
 
 /**
+ * A construct whose tags also reach the instances it launches.
+ *
+ * The launch template mirrors its tag map into `tag_specifications` for the
+ * `instance` and `volume` resource types, so those tags land on every instance
+ * an Auto Scaling group launches from it - independently of the group's own
+ * `propagate_at_launch`.
+ */
+function appliesTagsToLaunchedInstances(x: IConstruct): boolean {
+  return (
+    (x as unknown as { appliesTagsToLaunchedInstances?: boolean })
+      .appliesTagsToLaunchedInstances === true
+  );
+}
+
+/**
  * Properties for a tag
  */
 export interface TagProps {
@@ -81,11 +96,15 @@ export interface TagProps {
   readonly includeResourceTypes?: string[];
 
   /**
-   * Whether the tag should be applied to instances launched by an Auto Scaling group.
+   * Whether the tag should be applied to instances launched from this scope.
    *
-   * Only relevant for `aws_autoscaling_group`, which renders tags as repeated
-   * `tag { key, value, propagate_at_launch }` blocks. Resources using the flat
-   * `tags` map ignore this option.
+   * Setting this to `false` renders `propagate_at_launch: false` on the
+   * `aws_autoscaling_group` `tag` block, and keeps the tag out of any
+   * `LaunchTemplate`'s `instance` and `volume` tag specifications, which would
+   * otherwise put it back on every launched instance. The launch template
+   * resource itself is still tagged.
+   *
+   * Resources using the flat `tags` map are unaffected by this option.
    *
    * @default true
    */
@@ -119,6 +138,18 @@ export class AwsTag implements IAspect {
     this.value = value;
   }
   visit(node: IConstruct) {
+    // Deviation from AWS CDK v2.233.0: upstream's `applyToLaunchedInstances`
+    // only drives the Auto Scaling group's own `PropagateAtLaunch`, so a tag
+    // opted out there still reaches launched instances through the launch
+    // template's `TagSpecifications`. Skipping that sink here makes the option
+    // hold end to end. The launch template's L1 resource is a separate node, so
+    // it keeps the tag.
+    if (
+      this.props.applyToLaunchedInstances === false &&
+      appliesTagsToLaunchedInstances(node)
+    ) {
+      return;
+    }
     if (isAutoScalingGroupTaggable(node)) {
       if (
         this.applyTagAspectHere(
