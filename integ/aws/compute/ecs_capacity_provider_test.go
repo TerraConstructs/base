@@ -101,8 +101,13 @@ func validateEcsAsgCapacityProvider(t *testing.T, tfWorkingDir, awsRegion string
 	assert.Equal(t, terraform.DefaultSuccessExitCode, planExitCode,
 		"expected `tofu plan -detailed-exitcode` to report no drift after apply (got exit code %d)", planExitCode)
 
-	// --- Finding 3: addAsgCapacityProvider() merges into a single
-	// aws_ecs_cluster_capacity_providers resource per cluster. ---
+	// --- Finding 3 (runtime read-back only): the cluster's live capacity-provider
+	// list matches the fixture. NOTE: with a single provider added once, this
+	// cannot distinguish the intended prepare-time singleton merge from a
+	// resource-per-call implementation - that one-resource guarantee is owned by
+	// the synth-level count assertion in test/aws/compute/ecs/cluster.test.ts
+	// ("multiple capacity-provider operations merge into exactly one association
+	// resource"). Here we only confirm AWS reflects the applied association. ---
 	clusterOut, err := ecsClient.DescribeClusters(context.Background(), &ecs.DescribeClustersInput{
 		Clusters: []string{clusterName},
 		Include:  []types.ClusterField{types.ClusterFieldAttachments, types.ClusterFieldSettings},
@@ -113,7 +118,7 @@ func validateEcsAsgCapacityProvider(t *testing.T, tfWorkingDir, awsRegion string
 	assert.Contains(t, cluster.CapacityProviders, cpName,
 		"expected the cluster's capacity providers to include %s", cpName)
 	assert.Len(t, cluster.CapacityProviders, 1,
-		"expected exactly one capacity-provider association on the cluster (a single merged aws_ecs_cluster_capacity_providers resource)")
+		"expected the cluster's live capacity-provider list to match the fixture exactly")
 
 	// --- Wait for the service to reach steady state before checking SG propagation /
 	// task placement - mirrors the ordering used by validateEcsAwslogsDriver /

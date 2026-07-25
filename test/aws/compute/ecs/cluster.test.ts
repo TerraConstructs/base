@@ -2563,6 +2563,63 @@ describe("cluster", () => {
     );
   });
 
+  // Repo-specific singleton oracle (review-strengthened): toHaveResourceWithProperties
+  // matches "at least one" resource, so it cannot distinguish the intended
+  // prepare-time singleton merge from an incorrect resource-per-call
+  // implementation. Assert the exact resource COUNT across multiple distinct
+  // imperative operations. (The ecs.asg-capacity-provider integ test reads the
+  // merged association back from AWS at runtime; this test owns the
+  // one-resource guarantee at synth.)
+  test("multiple capacity-provider operations merge into exactly one association resource", () => {
+    // GIVEN
+    const stack = getAwsStack("test");
+    const vpc = new Vpc(stack, "Vpc");
+    const cluster = new ecs.Cluster(stack, "EcsCluster");
+    const asg1 = new autoscaling.AutoScalingGroup(stack, "asg1", {
+      vpc,
+      instanceType: new InstanceType("bogus"),
+      machineImage: ecs.EcsOptimizedImage.amazonLinux2(),
+    });
+    const asg2 = new autoscaling.AutoScalingGroup(stack, "asg2", {
+      vpc,
+      instanceType: new InstanceType("bogus"),
+      machineImage: ecs.EcsOptimizedImage.amazonLinux2(),
+    });
+
+    // WHEN - three distinct operations (plus one repeat) that all target the
+    // cluster's capacity-provider association
+    cluster.enableFargateCapacityProviders();
+    const cp1 = new ecs.AsgCapacityProvider(stack, "provider1", {
+      autoScalingGroup: asg1,
+      enableManagedTerminationProtection: false,
+    });
+    const cp2 = new ecs.AsgCapacityProvider(stack, "provider2", {
+      autoScalingGroup: asg2,
+      enableManagedTerminationProtection: false,
+    });
+    cluster.addAsgCapacityProvider(cp1);
+    cluster.addAsgCapacityProvider(cp2);
+    cluster.addAsgCapacityProvider(cp1); // repeat: must not add a resource either
+
+    // THEN - exactly ONE aws_ecs_cluster_capacity_providers resource...
+    Template.resources(
+      stack,
+      ecsClusterCapacityProviders.EcsClusterCapacityProviders,
+    ).toHaveLength(1);
+    // ...containing every provider from every operation
+    Template.synth(stack).toHaveResourceWithProperties(
+      ecsClusterCapacityProviders.EcsClusterCapacityProviders,
+      {
+        capacity_providers: [
+          "FARGATE",
+          "FARGATE_SPOT",
+          stack.resolve(cp1.capacityProviderName),
+          stack.resolve(cp2.capacityProviderName),
+        ],
+      },
+    );
+  });
+
   describe("addAsgCapacityProvider propagates the ASG security groups to cluster.connections", () => {
     test("adds the ASG connections security groups onto cluster.connections", () => {
       // GIVEN
