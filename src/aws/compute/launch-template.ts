@@ -662,15 +662,22 @@ export class LaunchTemplate
   // protected readonly tags: TagManager;
 
   /**
-   * Tags applied to this construct also reach the instances and volumes it
-   * launches, through the launch template's `tag_specifications`.
+   * Marks this construct as a sink for tags that reach launched instances:
+   * its tag map is mirrored into `tag_specifications` for the `instance` and
+   * `volume` resource types.
    *
    * Read by the AWS `Tags.of()` aspect so a tag added with
    * `applyToLaunchedInstances: false` is kept off launched instances. The L1
    * `aws_launch_template` resource is tagged by a separate visit, so the
    * launch template itself still receives every tag.
+   *
+   * This states a structural fact about the resource, not a user-facing
+   * switch - setting it to `false` would let opted-out tags flow back onto
+   * launched instances.
+   *
+   * @internal
    */
-  public readonly appliesTagsToLaunchedInstances = true;
+  public readonly _appliesTagsToLaunchedInstances = true;
 
   // isTaggableConstruct required properties
   private _tags: Record<string, string> | undefined = undefined;

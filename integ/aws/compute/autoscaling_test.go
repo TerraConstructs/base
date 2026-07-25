@@ -15,6 +15,15 @@ import (
 // Test the autoscaling.custom-scaling app
 //
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/@aws-cdk-testing/framework-integ/test/aws-autoscaling/test/integ.custom-scaling.ts
+//
+// KNOWN FLAKE - https://github.com/TerraConstructs/base/issues/127
+// The app creates four scheduled actions on one Auto Scaling group, none of
+// which set `startTime`. Terraform creates them concurrently and AWS rejects
+// concurrent PutScheduledUpdateGroupAction calls on the same group with
+// `AlreadyExists: Scheduled action with this scheduled start time already
+// exists`, failing a different action each run. A serialized apply
+// (`tofu apply -parallelism=1`) creates all four cleanly; the deploy stage
+// here does not set parallelism, so this test can fail for that reason alone.
 func TestAutoscalingCustomScaling(t *testing.T) {
 	options := integrationTestOptions{
 		Region: region,

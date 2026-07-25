@@ -65,6 +65,14 @@ aws.Tags.of(asg).add("notsuper", "caramel", {
   applyToLaunchedInstances: false,
 });
 
+// KNOWN FLAKE - https://github.com/TerraConstructs/base/issues/127
+// None of the four scheduled actions below set `startTime`, so Terraform
+// creates four `aws_autoscaling_schedule` resources concurrently and AWS
+// rejects concurrent PutScheduledUpdateGroupAction calls on one group with
+// `AlreadyExists: Scheduled action with this scheduled start time already
+// exists`. The action that loses varies per run. Until the construct
+// serializes them, deploy this fixture with `tofu apply -parallelism=1`,
+// which creates all four cleanly.
 asg.scaleOnSchedule("ScaleUpInTheMorning", {
   schedule: aws.compute.autoscaling.Schedule.cron({ hour: "8", minute: "0" }),
   minCapacity: 5,

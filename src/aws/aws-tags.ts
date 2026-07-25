@@ -58,17 +58,18 @@ function isAutoScalingGroupTaggable(
 }
 
 /**
- * A construct whose tags also reach the instances it launches.
+ * Whether the node is a sink for tags that reach the instances it launches.
  *
  * The launch template mirrors its tag map into `tag_specifications` for the
  * `instance` and `volume` resource types, so those tags land on every instance
  * an Auto Scaling group launches from it - independently of the group's own
- * `propagate_at_launch`.
+ * `propagate_at_launch`. The marker is internal: it states a structural fact
+ * about the resource rather than offering a switch.
  */
 function appliesTagsToLaunchedInstances(x: IConstruct): boolean {
   return (
-    (x as unknown as { appliesTagsToLaunchedInstances?: boolean })
-      .appliesTagsToLaunchedInstances === true
+    (x as unknown as { _appliesTagsToLaunchedInstances?: boolean })
+      ._appliesTagsToLaunchedInstances === true
   );
 }
 
