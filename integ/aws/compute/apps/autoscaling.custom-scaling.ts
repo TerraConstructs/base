@@ -70,9 +70,12 @@ aws.Tags.of(asg).add("notsuper", "caramel", {
 // creates four `aws_autoscaling_schedule` resources concurrently and AWS
 // rejects concurrent PutScheduledUpdateGroupAction calls on one group with
 // `AlreadyExists: Scheduled action with this scheduled start time already
-// exists`. The action that loses varies per run. Until the construct
-// serializes them, deploy this fixture with `tofu apply -parallelism=1`,
-// which creates all four cleanly.
+// exists`. The action that loses varies per run.
+//
+// `TestAutoscalingCustomScaling` (integ/aws/compute/autoscaling_test.go)
+// registers that error as retryable so terratest re-runs the apply, which
+// succeeds because only the missing action is left to create. Deploying this
+// fixture by hand needs `tofu apply -parallelism=1` instead.
 asg.scaleOnSchedule("ScaleUpInTheMorning", {
   schedule: aws.compute.autoscaling.Schedule.cron({ hour: "8", minute: "0" }),
   minCapacity: 5,

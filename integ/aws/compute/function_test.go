@@ -288,6 +288,26 @@ type integrationTestOptions struct {
 	//
 	// "handlers" is always included, so this is for additional files
 	AdditionalAssets []string
+	// AdditionalRetryableErrors are error message patterns that make terratest
+	// retry `terraform apply`, mapped to the reason shown when it does.
+	//
+	// These are merged into the retryable errors every compute test already
+	// uses. Use for AWS-side races an apply can recover from by simply being
+	// run again.
+	AdditionalRetryableErrors map[string]string
+}
+
+// retryableErrors returns the errors terratest should retry an apply on: the
+// defaults shared by every compute test, plus any the caller added.
+func (o integrationTestOptions) retryableErrors() map[string]string {
+	retryable := map[string]string{
+		// TODO: Fix Dependency tree to avoid this error :(
+		".*The EventInvokeConfig for function .* could not be updated due to a concurrent update operation.*": "Failed due to concurrent update operation.",
+	}
+	for k, v := range o.AdditionalRetryableErrors {
+		retryable[k] = v
+	}
+	return retryable
 }
 
 // run integration test
@@ -312,10 +332,7 @@ func runComputeIntegrationTest(t *testing.T, testApp string, options integration
 		util.SynthApp(t, testApp, tfWorkingDir, envVars, assets...)
 	})
 	test_structure.RunTestStage(t, "deploy_terraform", func() {
-		util.DeployUsingTerraform(t, tfWorkingDir, map[string]string{
-			// TODO: Fix Dependency tree to avoid this error :(
-			".*The EventInvokeConfig for function .* could not be updated due to a concurrent update operation.*": "Failed due to concurrent update operation.",
-		})
+		util.DeployUsingTerraform(t, tfWorkingDir, options.retryableErrors())
 	})
 	test_structure.RunTestStage(t, "validate", func() {
 		validate(t, tfWorkingDir, options.Region)
@@ -339,10 +356,7 @@ func runComputeIntegrationTestWithRename(t *testing.T, testApp string, options i
 		util.SynthApp(t, testApp, tfWorkingDir, envVars, "handlers")
 	})
 	test_structure.RunTestStage(t, "deploy_terraform", func() {
-		util.DeployUsingTerraform(t, tfWorkingDir, map[string]string{
-			// TODO: Fix Dependency tree to avoid this error :(
-			".*The EventInvokeConfig for function .* could not be updated due to a concurrent update operation.*": "Failed due to concurrent update operation.",
-		})
+		util.DeployUsingTerraform(t, tfWorkingDir, options.retryableErrors())
 	})
 	test_structure.RunTestStage(t, "validate", func() {
 		validate(t, tfWorkingDir, options.Region)

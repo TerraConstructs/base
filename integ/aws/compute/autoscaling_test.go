@@ -21,12 +21,20 @@ import (
 // which set `startTime`. Terraform creates them concurrently and AWS rejects
 // concurrent PutScheduledUpdateGroupAction calls on the same group with
 // `AlreadyExists: Scheduled action with this scheduled start time already
-// exists`, failing a different action each run. A serialized apply
-// (`tofu apply -parallelism=1`) creates all four cleanly; the deploy stage
-// here does not set parallelism, so this test can fail for that reason alone.
+// exists`, failing a different action each run.
+//
+// The retryable error below lets terratest re-run the apply: the actions that
+// did get created are already in state, so the retry creates the remaining one
+// on its own and no longer races. A serialized apply
+// (`tofu apply -parallelism=1`) also creates all four cleanly, which is the
+// manual workaround. Both are stopgaps until the construct serializes them.
 func TestAutoscalingCustomScaling(t *testing.T) {
 	options := integrationTestOptions{
 		Region: region,
+		AdditionalRetryableErrors: map[string]string{
+			// https://github.com/TerraConstructs/base/issues/127
+			".*Scheduled action with this scheduled start time already exists.*": "Concurrent PutScheduledUpdateGroupAction calls on one Auto Scaling group conflict.",
+		},
 	}
 	runComputeIntegrationTest(t, "autoscaling.custom-scaling", options, validateAutoscalingCustomScaling)
 }
