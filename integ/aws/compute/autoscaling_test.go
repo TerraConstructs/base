@@ -44,6 +44,31 @@ func validateAutoscalingCustomScaling(t *testing.T, tfWorkingDir, awsRegion stri
 	require.NotEmpty(t, ltVersion.LaunchTemplateData.InstanceType, "expected the launch template to specify an instance type")
 	assert.Equal(t, ec2types.InstanceTypeT2Micro, ltVersion.LaunchTemplateData.InstanceType)
 
+	// Validate that Tags.of() reached the `aws_autoscaling_group` `tag` blocks and
+	// that `applyToLaunchedInstances` controlled propagate-at-launch per tag.
+	asgTags := make(map[string]types.TagDescription, len(group.Tags))
+	for _, tag := range group.Tags {
+		require.NotNil(t, tag.Key)
+		asgTags[*tag.Key] = tag
+	}
+
+	for key, expected := range map[string]struct {
+		value             string
+		propagateAtLaunch bool
+	}{
+		// generated-launch-template path tags the group with its construct path
+		"Name":      {value: "autoscaling.custom-scaling/Fleet", propagateAtLaunch: true},
+		"superfood": {value: "acai", propagateAtLaunch: true},
+		"notsuper":  {value: "caramel", propagateAtLaunch: false},
+	} {
+		tag, ok := asgTags[key]
+		require.True(t, ok, "expected the Auto Scaling group to carry the %q tag", key)
+		require.NotNil(t, tag.Value)
+		assert.Equal(t, expected.value, *tag.Value, "unexpected value for tag %q", key)
+		require.NotNil(t, tag.PropagateAtLaunch)
+		assert.Equal(t, expected.propagateAtLaunch, *tag.PropagateAtLaunch, "unexpected propagate at launch for tag %q", key)
+	}
+
 	// Validate the 4 Schedule.cron() scheduled actions ported from the upstream app:
 	// ScaleUpInTheMorning, ScaleDownAtNight, ScaleUpInTheDay, ScaleUpInTheWeekDay.
 	actions := util.GetAsgScheduledActions(t, awsRegion, asgName)

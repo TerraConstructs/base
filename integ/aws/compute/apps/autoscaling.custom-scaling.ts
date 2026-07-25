@@ -57,6 +57,14 @@ const asg = new aws.compute.autoscaling.AutoScalingGroup(stack, "Fleet", {
   outputName: "fleet",
 });
 
+// Terraform deviation: `aws_autoscaling_group` renders tags as repeated
+// `tag { key, value, propagate_at_launch }` blocks, so `Tags.of()` has to
+// merge into that shape instead of a flat `tags` map.
+aws.Tags.of(asg).add("superfood", "acai");
+aws.Tags.of(asg).add("notsuper", "caramel", {
+  applyToLaunchedInstances: false,
+});
+
 asg.scaleOnSchedule("ScaleUpInTheMorning", {
   schedule: aws.compute.autoscaling.Schedule.cron({ hour: "8", minute: "0" }),
   minCapacity: 5,

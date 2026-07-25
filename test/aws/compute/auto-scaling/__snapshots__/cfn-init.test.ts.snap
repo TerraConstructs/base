@@ -82,6 +82,13 @@ exports[`AutoScalingGroup (cfn-init.test.ts base fixture) Should synth and match
         "max_size": 5,
         "min_size": 2,
         "name_prefix": "g-Asg",
+        "tag": [
+          {
+            "key": "Name",
+            "propagate_at_launch": true,
+            "value": "Default/Asg"
+          }
+        ],
         "vpc_zone_identifier": [
           "\${aws_subnet.Vpc_PrivateSubnet1_F6513F49.id}",
           "\${aws_subnet.Vpc_PrivateSubnet2_53755717.id}",

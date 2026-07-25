@@ -81,6 +81,13 @@ exports[`ScheduledAction Should synth and match SnapShot with minCapacity only 1
         "max_size": 1,
         "min_size": 1,
         "name_prefix": "g-ASG",
+        "tag": [
+          {
+            "key": "Name",
+            "propagate_at_launch": true,
+            "value": "Default/ASG"
+          }
+        ],
         "vpc_zone_identifier": [
           "\${aws_subnet.VPC_PrivateSubnet1_05F5A6DA.id}",
           "\${aws_subnet.VPC_PrivateSubnet2_8C0AEF3A.id}",
@@ -572,6 +579,13 @@ exports[`ScheduledAction Should synth and match SnapShot with startTime, endTime
         "max_size": 1,
         "min_size": 1,
         "name_prefix": "g-ASG",
+        "tag": [
+          {
+            "key": "Name",
+            "propagate_at_launch": true,
+            "value": "Default/ASG"
+          }
+        ],
         "vpc_zone_identifier": [
           "\${aws_subnet.VPC_PrivateSubnet1_05F5A6DA.id}",
           "\${aws_subnet.VPC_PrivateSubnet2_8C0AEF3A.id}",

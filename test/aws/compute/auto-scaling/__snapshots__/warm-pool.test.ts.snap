@@ -81,6 +81,13 @@ exports[`WarmPool Should synth and match SnapShot with all optional properties 1
         "max_size": 1,
         "min_size": 1,
         "name_prefix": "g-ASG",
+        "tag": [
+          {
+            "key": "Name",
+            "propagate_at_launch": true,
+            "value": "Default/ASG"
+          }
+        ],
         "vpc_zone_identifier": [
           "\${aws_subnet.VPC_PrivateSubnet1_05F5A6DA.id}",
           "\${aws_subnet.VPC_PrivateSubnet2_8C0AEF3A.id}",
@@ -570,6 +577,13 @@ exports[`WarmPool Should synth and match SnapShot with no optional properties 1`
         "max_size": 1,
         "min_size": 1,
         "name_prefix": "g-ASG",
+        "tag": [
+          {
+            "key": "Name",
+            "propagate_at_launch": true,
+            "value": "Default/ASG"
+          }
+        ],
         "vpc_zone_identifier": [
           "\${aws_subnet.VPC_PrivateSubnet1_05F5A6DA.id}",
           "\${aws_subnet.VPC_PrivateSubnet2_8C0AEF3A.id}",

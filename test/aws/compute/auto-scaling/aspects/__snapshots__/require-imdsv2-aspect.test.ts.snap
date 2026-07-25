@@ -81,6 +81,13 @@ exports[`AutoScalingGroupRequireImdsv2Aspect synth applies to AutoScalingGroup a
         "max_size": 1,
         "min_size": 1,
         "name_prefix": "g-AutoScalingGroup",
+        "tag": [
+          {
+            "key": "Name",
+            "propagate_at_launch": true,
+            "value": "Default/AutoScalingGroup"
+          }
+        ],
         "vpc_zone_identifier": [
           "\${aws_subnet.Vpc_PrivateSubnet1_F6513F49.id}",
           "\${aws_subnet.Vpc_PrivateSubnet2_53755717.id}",

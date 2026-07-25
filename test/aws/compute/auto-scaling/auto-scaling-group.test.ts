@@ -684,24 +684,41 @@ describe("auto scaling group", () => {
     });
 
     Tags.of(asg).add("superfood", "acai");
+    Tags.of(asg).add("notsuper", "caramel", {
+      applyToLaunchedInstances: false,
+    });
 
     // THEN
-    // Terraform deviation: `aws_autoscaling_group` renders tags via a
-    // dedicated `tag { key, value, propagate_at_launch }` block, not the
-    // generic flat `tags` map most provider resources expose - the repo's
-    // generic Tags aspect (src/aws/aws-tags.ts, isTaggableConstruct) only
-    // tags constructs whose L1 resource has a plain `tags`/`tagsInput`
-    // attribute, so `AutoScalingGroup` itself is skipped and the tag lands
-    // on its taggable descendants instead (here, the auto-created instance
-    // security group).
-    Template.synth(stack).toHaveResourceWithProperties(
-      tfSecurityGroup.SecurityGroup,
-      {
-        tags: expect.objectContaining({
-          superfood: "acai",
-        }),
-      },
-    );
+    // Terraform deviation: `aws_autoscaling_group` renders tags via repeated
+    // `tag { key, value, propagate_at_launch }` blocks, not the generic flat
+    // `tags` map most provider resources expose.
+    const template = Template.synth(stack);
+    template.toHaveResourceWithProperties(autoscalingGroup.AutoscalingGroup, {
+      tag: [
+        {
+          key: "Name",
+          value: "TestStack/MyFleet",
+          propagate_at_launch: true,
+        },
+        {
+          key: "superfood",
+          value: "acai",
+          propagate_at_launch: true,
+        },
+        {
+          key: "notsuper",
+          value: "caramel",
+          propagate_at_launch: false,
+        },
+      ],
+    });
+    // the aspect still reaches taggable descendants using the flat `tags` map
+    template.toHaveResourceWithProperties(tfSecurityGroup.SecurityGroup, {
+      tags: expect.objectContaining({
+        superfood: "acai",
+        notsuper: "caramel",
+      }),
+    });
   });
 
   test("allows setting spot price", () => {
