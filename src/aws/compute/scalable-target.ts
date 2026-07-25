@@ -293,8 +293,14 @@ export class ScalableTarget
     );
 
     this.scalableTargetId = this.targetResource.id;
-    this.resourceId = props.resourceId;
-    this.scalableDimension = props.scalableDimension;
+    // Expose the L1 ATTRIBUTE tokens, not the raw prop strings: scaling
+    // policies configured from these values must hold a reference to the
+    // aws_appautoscaling_target resource, or Terraform creates the policy
+    // concurrently with the target and PutScalingPolicy races
+    // RegisterScalableTarget (ObjectNotFoundException: "No scalable target
+    // registered" - caught live by the ecs.lb-awsvpc-nw integ test).
+    this.resourceId = this.targetResource.resourceId;
+    this.scalableDimension = this.targetResource.scalableDimension;
     this.serviceNamespace = props.serviceNamespace;
   }
 

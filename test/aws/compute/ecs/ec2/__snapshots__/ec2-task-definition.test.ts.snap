@@ -1,0 +1,102 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Ec2TaskDefinition synth Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "Ec2TaskDef_TaskRole_AssumeRolePolicy_3D66738B": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_ecs_task_definition": {
+      "Ec2TaskDef_0226F28C": {
+        "container_definitions": "[{\\"essential\\":true,\\"image\\":\\"amazon/amazon-ecs-sample\\",\\"memory\\":512,\\"name\\":\\"web\\",\\"portMappings\\":[{\\"containerPort\\":3000,\\"protocol\\":\\"tcp\\"}],\\"environment\\":[{\\"name\\":\\"AWS_REGION\\",\\"value\\":\\"\${data.aws_region.Region.name}\\"}]}]",
+        "family": "Ec2TaskDef",
+        "network_mode": "awsvpc",
+        "placement_constraints": [
+          {
+            "expression": "attribute:ecs.instance-type =~ t2.*",
+            "type": "memberOf"
+          }
+        ],
+        "requires_compatibilities": [
+          "EC2"
+        ],
+        "tags": {
+          "Name": "Default-Ec2TaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        },
+        "task_role_arn": "\${aws_iam_role.Ec2TaskDef_TaskRole_400FA349.arn}"
+      }
+    },
+    "aws_iam_role": {
+      "Ec2TaskDef_TaskRole_400FA349": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.Ec2TaskDef_TaskRole_AssumeRolePolicy_3D66738B.json}",
+        "name_prefix": "g-Ec2TaskDefTaskRole",
+        "tags": {
+          "Name": "Default-Ec2TaskDef",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;

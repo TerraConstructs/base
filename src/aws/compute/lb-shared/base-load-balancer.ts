@@ -302,8 +302,12 @@ export abstract class BaseLoadBalancer extends AwsConstructBase {
     super(scope, id, baseProps);
     this.physicalName =
       baseProps.loadBalancerName ||
+      // ELBv2 names are capped at 32 characters (enforced by
+      // validateLoadBalancer below) - same idiom as base-target-group.ts
       this.stack.uniqueResourceName(this, {
         prefix: this.gridUUID,
+        allowedSpecialCharacters: "-",
+        maxLength: 32,
       });
 
     const internetFacing = ifUndefined(baseProps.internetFacing, false);

@@ -87,3 +87,23 @@ apigw-definition-asset: ## Test API Gateway with definition asset
 apigw-definition-inline: ## Test API Gateway with inline definition
 	go test -v -count 1 -timeout 15m ./... -run ^TestApiDefinitionInline$
 .PHONY: apigw-definition-inline
+
+ecs.awslogs-driver: ## Test Fargate service with the awslogs log driver
+	go test -v -count 1 -timeout 30m ./... -run ^TestEcsAwslogsDriver$
+.PHONY: ecs.awslogs-driver
+
+ecs.lb-awsvpc-nw: ## Test Fargate service attached to an ALB target group + task-count autoscaling
+	go test -v -count 1 -timeout 30m ./... -run ^TestEcsLbAwsvpcNw$
+.PHONY: ecs.lb-awsvpc-nw
+
+ecs.ebs-taskattach: ## Test Fargate service with a ServiceManagedVolume (EBS task attach)
+	go test -v -count 1 -timeout 30m ./... -run ^TestEcsEbsTaskattach$
+.PHONY: ecs.ebs-taskattach
+
+ecs.sd-awsvpc-nw: ## Test EC2 service with CloudMap service discovery (awsvpc) + cluster capacity
+	go test -v -count 1 -timeout 45m ./... -run ^TestEcsSdAwsvpcNw$
+.PHONY: ecs.sd-awsvpc-nw
+
+ecs.asg-capacity-provider: ## Test EC2 service on an AsgCapacityProvider (cluster capacity-provider strategy) + ALB
+	go test -v -count 1 -timeout 45m ./... -run ^TestEcsAsgCapacityProvider$
+.PHONY: ecs.asg-capacity-provider

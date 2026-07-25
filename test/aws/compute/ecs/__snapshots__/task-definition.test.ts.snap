@@ -1,0 +1,99 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TaskDefinition Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "TD_TaskRole_AssumeRolePolicy_EC5ABC19": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_ecs_task_definition": {
+      "TD_49C78F36": {
+        "container_definitions": "[{\\"essential\\":true,\\"image\\":\\"amazon/amazon-ecs-sample\\",\\"memory\\":512,\\"name\\":\\"web\\"}]",
+        "cpu": "512",
+        "family": "TD",
+        "memory": "512",
+        "network_mode": "awsvpc",
+        "requires_compatibilities": [
+          "EC2",
+          "FARGATE"
+        ],
+        "tags": {
+          "Name": "Default-TD",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        },
+        "task_role_arn": "\${aws_iam_role.TD_TaskRole_C497AFFC.arn}"
+      }
+    },
+    "aws_iam_role": {
+      "TD_TaskRole_C497AFFC": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.TD_TaskRole_AssumeRolePolicy_EC5ABC19.json}",
+        "name_prefix": "g-TDTaskRole",
+        "tags": {
+          "Name": "Default-TD",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
