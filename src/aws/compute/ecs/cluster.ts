@@ -21,6 +21,7 @@ import {
   IAwsConstruct,
 } from "../../aws-construct";
 import { AwsStack } from "../../aws-stack";
+import { Tags } from "../../aws-tags";
 import * as cloudwatch from "../../cloudwatch";
 import * as edge from "../../edge";
 import * as kms from "../../encryption";
@@ -2150,21 +2151,17 @@ export class AsgCapacityProvider extends Construct {
     // CloudFormation ignores runtime-added tags, but Terraform owns the
     // aws_autoscaling_group tag blocks and would plan a removal of the
     // AWS-applied tag on every refresh — perpetual drift, caught live by the
-    // ecs.asg-capacity-provider integ test. Declare the tag so the config
-    // matches reality. Only possible for owned ASGs (imports have no L1).
-    if (
-      props.enableManagedScaling !== false &&
-      this.autoScalingGroup instanceof autoscaling.AutoScalingGroup
-    ) {
-      const existingTags = Array.isArray(
-        this.autoScalingGroup.resource.tagInput,
-      )
-        ? this.autoScalingGroup.resource.tagInput
-        : [];
-      this.autoScalingGroup.resource.putTag([
-        ...existingTags,
-        { key: "AmazonECSManaged", value: "", propagateAtLaunch: true },
-      ]);
+    // ecs.asg-capacity-provider integ test (the terraform-provider-aws
+    // ecs_capacity_provider docs recommend declaring the tag for the same
+    // reason). Declared via Tags.of() so it merges with the generic tag
+    // aspect's blocks; a no-op for imported ASGs (no taggable L1 in scope).
+    if (props.enableManagedScaling !== false) {
+      Tags.of(this.autoScalingGroup).add("AmazonECSManaged", "", {
+        applyToLaunchedInstances: true,
+        // ECS stamps only the ASG itself - don't tag the launch template /
+        // security group descendants in the ASG's scope
+        includeResourceTypes: ["aws_autoscaling_group"],
+      });
     }
 
     this.capacityProviderName = this.resource.name;

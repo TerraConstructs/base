@@ -156,6 +156,11 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 1
         "protect_from_scale_in": true,
         "tag": [
           {
+            "key": "Name",
+            "propagate_at_launch": true,
+            "value": "Stack1/DefaultAutoScalingGroup"
+          },
+          {
             "key": "AmazonECSManaged",
             "propagate_at_launch": true,
             "value": ""

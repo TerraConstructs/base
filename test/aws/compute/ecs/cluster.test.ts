@@ -1687,18 +1687,21 @@ describe("cluster", () => {
       // WHEN - managed scaling defaults to enabled
       new ecs.AsgCapacityProvider(stack, "provider", { autoScalingGroup: asg });
 
-      // THEN
-      Template.synth(stack).toHaveResourceWithProperties(
-        autoscalingGroup.AutoscalingGroup,
-        {
-          tag: [
-            {
-              key: "AmazonECSManaged",
-              value: "",
-              propagate_at_launch: true,
-            },
-          ],
+      // THEN - the tag is rendered via the generic Tags.of() aspect, so it
+      // coexists with the aspect's other tag blocks (Name, grid tags, ...)
+      const [asgResource] = Object.values(
+        Template.resourceObjects(stack, autoscalingGroup.AutoscalingGroup) as {
+          [key: string]: { tag?: unknown[] };
         },
+      );
+      expect(asgResource.tag).toEqual(
+        expect.arrayContaining([
+          {
+            key: "AmazonECSManaged",
+            value: "",
+            propagate_at_launch: true,
+          },
+        ]),
       );
     });
 
@@ -1719,13 +1722,16 @@ describe("cluster", () => {
         enableManagedTerminationProtection: false,
       });
 
-      // THEN
+      // THEN - other aspect-rendered tag blocks may exist, but never the
+      // AmazonECSManaged marker
       const [asgResource] = Object.values(
         Template.resourceObjects(stack, autoscalingGroup.AutoscalingGroup) as {
-          [key: string]: { tag?: unknown[] };
+          [key: string]: { tag?: { key?: string }[] };
         },
       );
-      expect(asgResource.tag).toBeUndefined();
+      expect((asgResource.tag ?? []).map((t) => t.key)).not.toContain(
+        "AmazonECSManaged",
+      );
     });
 
     test("with expected defaults", () => {
