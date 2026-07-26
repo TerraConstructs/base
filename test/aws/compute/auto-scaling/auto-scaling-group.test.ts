@@ -3337,6 +3337,55 @@ describe("UpdatePolicy", () => {
     expect(synthAsg(stack).instance_refresh).toEqual({ strategy: "Rolling" });
   });
 
+  test("an empty alarm list is omitted rather than rendered", () => {
+    // GIVEN
+    const stack = new AwsStack(Testing.app());
+    const vpc = mockVpc(stack);
+
+    // WHEN
+    new autoscaling.AutoScalingGroup(stack, "ASG", {
+      vpc,
+      instanceType: new InstanceType("t2.micro"),
+      machineImage: MachineImage.latestAmazonLinux2(),
+      updatePolicy: autoscaling.UpdatePolicy.instanceRefresh({ alarms: [] }),
+    });
+
+    // THEN
+    // `alarm_specification.alarms` takes one or more alarm names, so an empty
+    // list is not "monitor nothing" - it is a specification the API rejects.
+    expect(synthAsg(stack).instance_refresh).toEqual({ strategy: "Rolling" });
+  });
+
+  test("protected and standby instance behavior is left to the provider default", () => {
+    // GIVEN
+    const stack = new AwsStack(Testing.app());
+    const vpc = mockVpc(stack);
+
+    // WHEN
+    new autoscaling.AutoScalingGroup(stack, "ASG", {
+      vpc,
+      instanceType: new InstanceType("t2.micro"),
+      machineImage: MachineImage.latestAmazonLinux2(),
+      updatePolicy: autoscaling.UpdatePolicy.instanceRefresh({
+        minHealthyPercentage: 90,
+      }),
+    });
+
+    // THEN
+    // Terraform deviation: the API (and CloudFormation) default both settings to
+    // `Wait`, but the AWS provider schema defaults the arguments to `Ignore` and
+    // always sends them, which is why `InstanceRefreshOptions` documents IGNORE.
+    // Synth cannot show that - the provider fills it in at plan time - so what is
+    // pinned here is that the construct emits neither key and lets the provider
+    // default stand. `tofu plan` on the autoscaling.update-policy integ fixture
+    // renders `scale_in_protected_instances = "Ignore"` / `standby_instances =
+    // "Ignore"` for exactly this config.
+    const preferences = synthAsg(stack).instance_refresh.preferences;
+    expect(preferences).toEqual({ min_healthy_percentage: 90 });
+    expect(preferences).not.toHaveProperty("scale_in_protected_instances");
+    expect(preferences).not.toHaveProperty("standby_instances");
+  });
+
   test("throws if more than 10 alarms are specified", () => {
     // GIVEN
     const stack = new AwsStack(Testing.app());
@@ -3449,6 +3498,42 @@ describe("UpdatePolicy", () => {
     ).toThrow(
       /The difference between minHealthyPercentage and maxHealthyPercentage cannot be greater than 100, got 200/,
     );
+  });
+
+  // the Auto Scaling API takes integer percentages and an integer number of
+  // seconds; a decimal is in range but renders as `90.5` / `"1.5"` and is
+  // rejected on apply, so it has to fail here where the options are written.
+  test("throws if minHealthyPercentage is not a whole number", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({ minHealthyPercentage: 90.5 }),
+    ).toThrow(/minHealthyPercentage must be a whole number, got 90.5/);
+  });
+
+  test("throws if maxHealthyPercentage is not a whole number", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        minHealthyPercentage: 90,
+        maxHealthyPercentage: 110.5,
+      }),
+    ).toThrow(/maxHealthyPercentage must be a whole number, got 110.5/);
+  });
+
+  test("throws if a checkpoint percentage is not a whole number", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        checkpointPercentages: [12.5, 100],
+      }),
+    ).toThrow(/checkpointPercentages must be whole numbers, got 12.5/);
+  });
+
+  test("throws if a duration is not a whole number of seconds", () => {
+    // this one comes from Duration#toSeconds rather than the factory, which is
+    // why the option validation does not repeat the check.
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        instanceWarmup: Duration.seconds(1.5),
+      }),
+    ).toThrow(/1.5 must be a whole number of seconds/);
   });
 });
 

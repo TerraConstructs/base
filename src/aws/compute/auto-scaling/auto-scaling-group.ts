@@ -929,6 +929,11 @@ export interface InstanceRefreshOptions {
   /**
    * What to do with instances that are protected from scale in.
    *
+   * Terraform deviation: the Auto Scaling API - and therefore CloudFormation - defaults this
+   * to `WAIT`, which stalls the refresh for an hour and then fails it. The AWS provider
+   * schema defaults the argument to `Ignore` and always sends it, so the API default never
+   * applies and leaving this unset means `IGNORE` here.
+   *
    * @default ScaleInProtectedInstances.IGNORE
    */
   readonly scaleInProtectedInstances?: ScaleInProtectedInstances;
@@ -942,6 +947,10 @@ export interface InstanceRefreshOptions {
 
   /**
    * What to do with instances that are in the `Standby` state.
+   *
+   * Terraform deviation: as with `scaleInProtectedInstances`, the API and CloudFormation
+   * default to `WAIT` but the provider schema defaults the argument to `Ignore` and always
+   * sends it, so leaving this unset means `IGNORE` here.
    *
    * @default StandbyInstances.IGNORE
    */
@@ -984,6 +993,11 @@ function renderInstanceRefreshPreferences(
       );
     }
     checkpointPercentages.forEach((percentage, i) => {
+      if (!Number.isInteger(percentage)) {
+        throw new UnscopedValidationError(
+          `checkpointPercentages must be whole numbers, got ${percentage}`,
+        );
+      }
       if (percentage < 1 || percentage > 100) {
         throw new UnscopedValidationError(
           `checkpointPercentages must be between 1 and 100, got ${percentage}`,
@@ -1016,21 +1030,29 @@ function renderInstanceRefreshPreferences(
       "minHealthyPercentage must be specified when maxHealthyPercentage is specified",
     );
   }
-  if (
-    minHealthyPercentage !== undefined &&
-    (minHealthyPercentage < 0 || minHealthyPercentage > 100)
-  ) {
-    throw new UnscopedValidationError(
-      `minHealthyPercentage must be between 0 and 100, got ${minHealthyPercentage}`,
-    );
+  if (minHealthyPercentage !== undefined) {
+    if (!Number.isInteger(minHealthyPercentage)) {
+      throw new UnscopedValidationError(
+        `minHealthyPercentage must be a whole number, got ${minHealthyPercentage}`,
+      );
+    }
+    if (minHealthyPercentage < 0 || minHealthyPercentage > 100) {
+      throw new UnscopedValidationError(
+        `minHealthyPercentage must be between 0 and 100, got ${minHealthyPercentage}`,
+      );
+    }
   }
-  if (
-    maxHealthyPercentage !== undefined &&
-    (maxHealthyPercentage < 100 || maxHealthyPercentage > 200)
-  ) {
-    throw new UnscopedValidationError(
-      `maxHealthyPercentage must be between 100 and 200, got ${maxHealthyPercentage}`,
-    );
+  if (maxHealthyPercentage !== undefined) {
+    if (!Number.isInteger(maxHealthyPercentage)) {
+      throw new UnscopedValidationError(
+        `maxHealthyPercentage must be a whole number, got ${maxHealthyPercentage}`,
+      );
+    }
+    if (maxHealthyPercentage < 100 || maxHealthyPercentage > 200) {
+      throw new UnscopedValidationError(
+        `maxHealthyPercentage must be between 100 and 200, got ${maxHealthyPercentage}`,
+      );
+    }
   }
   if (
     minHealthyPercentage !== undefined &&
@@ -1044,9 +1066,12 @@ function renderInstanceRefreshPreferences(
 
   const preferences: autoscalingGroup.AutoscalingGroupInstanceRefreshPreferences =
     {
-      alarmSpecification: alarms
-        ? { alarms: alarms.map((alarm) => alarm.alarmName) }
-        : undefined,
+      // an empty list is not "monitor no alarms", it is an alarm specification the
+      // API rejects - omit the block entirely, the way `triggers: []` is omitted
+      alarmSpecification:
+        alarms && alarms.length > 0
+          ? { alarms: alarms.map((alarm) => alarm.alarmName) }
+          : undefined,
       autoRollback,
       // Terraform deviation: the provider types these two as strings even though the API takes
       // a number of seconds, so render the seconds instead of an ISO-8601 duration.
@@ -1074,6 +1099,8 @@ function validateDurationSeconds(
   if (duration.isUnresolved()) {
     return;
   }
+  // `toSeconds()` itself rejects a duration that is not a whole number of seconds,
+  // which is what the API requires - no separate integer check is needed here.
   const seconds = duration.toSeconds();
   if (seconds < min || seconds > max) {
     throw new UnscopedValidationError(
