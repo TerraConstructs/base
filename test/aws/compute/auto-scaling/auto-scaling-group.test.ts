@@ -3142,13 +3142,325 @@ describe("InstanceMaintenancePolicy", () => {
   });
 });
 
-// Not supported by Terraform Provider: `migrateToLaunchTemplate` /
-// `updatePolicy` (AutoScalingReplacingUpdate / AutoScalingRollingUpdate) are
-// CloudFormation UpdatePolicy concepts with no aws_autoscaling_group
-// equivalent - see the deviation note on CommonAutoScalingGroupProps in
-// src/aws/compute/auto-scaling/auto-scaling-group.ts. Neither
-// `migrateToLaunchTemplate` nor `updatePolicy` is a property of
-// AutoScalingGroupProps in this port.
+describe("UpdatePolicy", () => {
+  test("no update policy by default", () => {
+    // GIVEN
+    const stack = new AwsStack(Testing.app());
+    const vpc = mockVpc(stack);
+
+    // WHEN
+    new autoscaling.AutoScalingGroup(stack, "ASG", {
+      vpc,
+      instanceType: new InstanceType("t2.micro"),
+      machineImage: MachineImage.latestAmazonLinux2(),
+    });
+
+    // THEN
+    expect(synthAsg(stack).instance_refresh).toBeUndefined();
+  });
+
+  test("instanceRefresh() renders the Rolling strategy with no preferences", () => {
+    // GIVEN
+    const stack = new AwsStack(Testing.app());
+    const vpc = mockVpc(stack);
+
+    // WHEN
+    new autoscaling.AutoScalingGroup(stack, "ASG", {
+      vpc,
+      instanceType: new InstanceType("t2.micro"),
+      machineImage: MachineImage.latestAmazonLinux2(),
+      updatePolicy: autoscaling.UpdatePolicy.instanceRefresh(),
+    });
+
+    // THEN
+    const asg = synthAsg(stack);
+    expect(asg.instance_refresh).toEqual({ strategy: "Rolling" });
+  });
+
+  test("updatePolicy is part of CommonAutoScalingGroupProps", () => {
+    // GIVEN
+    const stack = new AwsStack(Testing.app());
+    const vpc = mockVpc(stack);
+
+    // WHEN
+    // constructs that compose an AutoScalingGroup (ecs.Cluster#addCapacity,
+    // AsgCapacityProvider, ...) accept CommonAutoScalingGroupProps and spread it
+    // onto the group, so the policy has to live on the common interface to reach
+    // them.
+    const common: autoscaling.CommonAutoScalingGroupProps = {
+      updatePolicy: autoscaling.UpdatePolicy.instanceRefresh(),
+    };
+    new autoscaling.AutoScalingGroup(stack, "ASG", {
+      vpc,
+      instanceType: new InstanceType("t2.micro"),
+      machineImage: MachineImage.latestAmazonLinux2(),
+      ...common,
+    });
+
+    // THEN
+    expect(synthAsg(stack).instance_refresh).toEqual({ strategy: "Rolling" });
+  });
+
+  test("instanceRefresh() renders every supported preference", () => {
+    // GIVEN
+    const stack = new AwsStack(Testing.app());
+    const vpc = mockVpc(stack);
+    const alarm = new cloudwatch.Alarm(stack, "RefreshAlarm", {
+      metric: new cloudwatch.Metric({
+        namespace: "Test",
+        metricName: "Metric",
+      }),
+      threshold: 1,
+      evaluationPeriods: 1,
+    });
+
+    // WHEN
+    new autoscaling.AutoScalingGroup(stack, "ASG", {
+      vpc,
+      instanceType: new InstanceType("t2.micro"),
+      machineImage: MachineImage.latestAmazonLinux2(),
+      updatePolicy: autoscaling.UpdatePolicy.instanceRefresh({
+        strategy: autoscaling.InstanceRefreshStrategy.ROLLING,
+        triggers: ["tag", "desired_capacity"],
+        alarms: [alarm],
+        autoRollback: true,
+        checkpointPercentages: [25, 50, 100],
+        checkpointDelay: Duration.minutes(10),
+        instanceWarmup: Duration.minutes(5),
+        minHealthyPercentage: 90,
+        maxHealthyPercentage: 110,
+        scaleInProtectedInstances:
+          autoscaling.ScaleInProtectedInstances.REFRESH,
+        skipMatching: true,
+        standbyInstances: autoscaling.StandbyInstances.TERMINATE,
+      }),
+    });
+
+    // THEN
+    Template.synth(stack).toHaveResourceWithProperties(
+      autoscalingGroup.AutoscalingGroup,
+      {
+        instance_refresh: {
+          strategy: "Rolling",
+          triggers: ["tag", "desired_capacity"],
+          preferences: {
+            alarm_specification: {
+              alarms: [stack.resolve(alarm.alarmName)],
+            },
+            auto_rollback: true,
+            // Terraform deviation: the provider types checkpoint_delay and
+            // instance_warmup as strings even though the API takes seconds.
+            checkpoint_delay: "600",
+            checkpoint_percentages: [25, 50, 100],
+            instance_warmup: "300",
+            max_healthy_percentage: 110,
+            min_healthy_percentage: 90,
+            scale_in_protected_instances: "Refresh",
+            skip_matching: true,
+            standby_instances: "Terminate",
+          },
+        },
+      },
+    );
+  });
+
+  test("an instance refresh and an instance maintenance policy are independent", () => {
+    // GIVEN
+    const stack = new AwsStack(Testing.app());
+    const vpc = mockVpc(stack);
+
+    // WHEN
+    new autoscaling.AutoScalingGroup(stack, "ASG", {
+      vpc,
+      instanceType: new InstanceType("t2.micro"),
+      machineImage: MachineImage.latestAmazonLinux2(),
+      // the group-level instance maintenance policy...
+      minHealthyPercentage: 100,
+      maxHealthyPercentage: 200,
+      // ...and the refresh-scoped preferences of the same name are separate
+      // fields: the preferences only apply while a refresh is running.
+      updatePolicy: autoscaling.UpdatePolicy.instanceRefresh({
+        minHealthyPercentage: 50,
+        maxHealthyPercentage: 150,
+      }),
+    });
+
+    // THEN
+    const asg = synthAsg(stack);
+    expect(asg.instance_maintenance_policy).toEqual({
+      min_healthy_percentage: 100,
+      max_healthy_percentage: 200,
+    });
+    expect(asg.instance_refresh.preferences).toEqual({
+      min_healthy_percentage: 50,
+      max_healthy_percentage: 150,
+    });
+  });
+
+  test("minHealthyPercentage/maxHealthyPercentage alone do not trigger a refresh", () => {
+    // GIVEN
+    const stack = new AwsStack(Testing.app());
+    const vpc = mockVpc(stack);
+
+    // WHEN
+    new autoscaling.AutoScalingGroup(stack, "ASG", {
+      vpc,
+      instanceType: new InstanceType("t2.micro"),
+      machineImage: MachineImage.latestAmazonLinux2(),
+      minHealthyPercentage: 100,
+      maxHealthyPercentage: 200,
+    });
+
+    // THEN
+    // https://github.com/TerraConstructs/base/issues/129 - the instance
+    // maintenance policy governs replacements the group performs anyway; only
+    // `instance_refresh` makes a launch template change roll out.
+    const asg = synthAsg(stack);
+    expect(asg.instance_maintenance_policy).toBeDefined();
+    expect(asg.instance_refresh).toBeUndefined();
+  });
+
+  test("empty triggers are omitted", () => {
+    // GIVEN
+    const stack = new AwsStack(Testing.app());
+    const vpc = mockVpc(stack);
+
+    // WHEN
+    new autoscaling.AutoScalingGroup(stack, "ASG", {
+      vpc,
+      instanceType: new InstanceType("t2.micro"),
+      machineImage: MachineImage.latestAmazonLinux2(),
+      updatePolicy: autoscaling.UpdatePolicy.instanceRefresh({ triggers: [] }),
+    });
+
+    // THEN
+    expect(synthAsg(stack).instance_refresh).toEqual({ strategy: "Rolling" });
+  });
+
+  test("throws if more than 10 alarms are specified", () => {
+    // GIVEN
+    const stack = new AwsStack(Testing.app());
+    const metric = new cloudwatch.Metric({
+      namespace: "Test",
+      metricName: "Metric",
+    });
+    const alarms = Array.from(
+      { length: 11 },
+      (_, i) =>
+        new cloudwatch.Alarm(stack, `Alarm${i}`, {
+          metric,
+          threshold: 1,
+          evaluationPeriods: 1,
+        }),
+    );
+
+    // THEN
+    expect(() => autoscaling.UpdatePolicy.instanceRefresh({ alarms })).toThrow(
+      /Up to 10 alarms may be monitored during an instance refresh, got 11/,
+    );
+  });
+
+  test("throws if checkpointDelay is set without checkpointPercentages", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        checkpointDelay: Duration.minutes(5),
+      }),
+    ).toThrow(
+      /checkpointDelay can only be specified together with checkpointPercentages/,
+    );
+  });
+
+  test("throws if checkpointPercentages are empty", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({ checkpointPercentages: [] }),
+    ).toThrow(/checkpointPercentages must contain at least one value/);
+  });
+
+  test("throws if checkpointPercentages are not ascending and unique", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        checkpointPercentages: [50, 25, 100],
+      }),
+    ).toThrow(/checkpointPercentages must be unique and in ascending order/);
+
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        checkpointPercentages: [50, 50, 100],
+      }),
+    ).toThrow(/checkpointPercentages must be unique and in ascending order/);
+  });
+
+  test("throws if a checkpoint percentage is out of range", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        checkpointPercentages: [0, 100],
+      }),
+    ).toThrow(/checkpointPercentages must be between 1 and 100, got 0/);
+  });
+
+  test("throws if checkpointDelay is out of range", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        checkpointPercentages: [100],
+        checkpointDelay: Duration.days(3),
+      }),
+    ).toThrow(
+      /checkpointDelay must be between 0 and 172800 seconds, got 259200/,
+    );
+  });
+
+  test("throws if instanceWarmup is out of range", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        instanceWarmup: Duration.hours(7),
+      }),
+    ).toThrow(/instanceWarmup must be between 0 and 21600 seconds, got 25200/);
+  });
+
+  test("throws if maxHealthyPercentage is specified without minHealthyPercentage", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({ maxHealthyPercentage: 110 }),
+    ).toThrow(
+      /minHealthyPercentage must be specified when maxHealthyPercentage is specified/,
+    );
+  });
+
+  test("throws if minHealthyPercentage is out of range", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({ minHealthyPercentage: 101 }),
+    ).toThrow(/minHealthyPercentage must be between 0 and 100, got 101/);
+  });
+
+  test("throws if maxHealthyPercentage is out of range", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        minHealthyPercentage: 100,
+        maxHealthyPercentage: 250,
+      }),
+    ).toThrow(/maxHealthyPercentage must be between 100 and 200, got 250/);
+  });
+
+  test("throws if the healthy percentage range is greater than 100", () => {
+    expect(() =>
+      autoscaling.UpdatePolicy.instanceRefresh({
+        minHealthyPercentage: 0,
+        maxHealthyPercentage: 200,
+      }),
+    ).toThrow(
+      /The difference between minHealthyPercentage and maxHealthyPercentage cannot be greater than 100, got 200/,
+    );
+  });
+});
+
+// Not supported by Terraform Provider: `migrateToLaunchTemplate` is a
+// launch-configuration migration knob for a resource shape this port never
+// synthesizes, and `UpdatePolicy.replacingUpdate()` /
+// `UpdatePolicy.rollingUpdate()` are CloudFormation-driven policies with no
+// aws_autoscaling_group equivalent - see the deviation note on
+// CommonAutoScalingGroupProps in
+// src/aws/compute/auto-scaling/auto-scaling-group.ts. `updatePolicy` does exist
+// on AutoScalingGroupProps in this port, but only carries
+// `UpdatePolicy.instanceRefresh()` (see the "UpdatePolicy" describe block).
 test.skip("throws if updatePolicy is not set when migrateToLaunchTemplate is true", () => {
   // migrateToLaunchTemplate / updatePolicy not ported.
 });
@@ -3159,6 +3471,18 @@ test.skip("throws if updatePolicy is set with AutoScalingReplacingUpdate when mi
 
 function mockSecurityGroup(stack: AwsStack) {
   return SecurityGroup.fromSecurityGroupId(stack, "MySG", "most-secure");
+}
+
+/**
+ * The single synthesized `aws_autoscaling_group` object, for assertions on
+ * blocks that are expected to be absent (which `toHaveResourceWithProperties`
+ * cannot express).
+ */
+function synthAsg(stack: AwsStack): any {
+  const [asg] = Object.values(
+    Template.resourceObjects(stack, autoscalingGroup.AutoscalingGroup),
+  ) as any[];
+  return asg;
 }
 
 function getTestStack(): AwsStack {
