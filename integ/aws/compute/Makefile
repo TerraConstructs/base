@@ -44,6 +44,10 @@ autoscaling.custom-scaling: ## Test AutoScalingGroup custom scaling (Schedule.cr
 	go test -v -count 1 -timeout 30m ./... -run ^TestAutoscalingCustomScaling$
 .PHONY: autoscaling.custom-scaling
 
+autoscaling.update-policy: ## Test AutoScalingGroup UpdatePolicy.instanceRefresh (launch template change rolls out)
+	go test -v -count 1 -timeout 45m ./... -run ^TestAutoscalingUpdatePolicy$
+.PHONY: autoscaling.update-policy
+
 instance-public: ## Test Compute Instance with public IP
 	go test -v -count 1 -timeout 15m ./... -run ^TestInstancePublic$
 .PHONY: instance-public

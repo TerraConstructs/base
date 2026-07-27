@@ -688,11 +688,12 @@ export class Cluster extends AwsConstructBase implements ICluster {
         ? MachineImageType.BOTTLEROCKET
         : MachineImageType.AMAZON_LINUX_2);
 
-    // TERRACONSTRUCTS DEVIATION: upstream additionally threads `updateType`/`updatePolicy`
-    // into the created AutoScalingGroup here (CloudFormation `UpdatePolicy`/`CreationPolicy`).
-    // This repo's `autoscaling.CommonAutoScalingGroupProps` has no update-policy surface --
-    // `aws_autoscaling_group` has no equivalent Terraform attribute -- so that plumbing is
-    // omitted (see `auto-scaling-group.ts` `CommonAutoScalingGroupProps` doc comment).
+    // TERRACONSTRUCTS DEVIATION: upstream additionally defaults the deprecated `updateType` to
+    // `UpdateType.REPLACING_UPDATE` here, a CloudFormation `UpdatePolicy`/`CreationPolicy`
+    // concept with no `aws_autoscaling_group` attribute behind it, so that default is omitted
+    // (see the `CommonAutoScalingGroupProps` doc comment in `auto-scaling-group.ts`). An
+    // explicit `updatePolicy: UpdatePolicy.instanceRefresh(...)` does reach the group - it
+    // rides along in the `...options` spread below.
     const autoScalingGroup = new autoscaling.AutoScalingGroup(this, id, {
       vpc: this.vpc,
       machineImage,

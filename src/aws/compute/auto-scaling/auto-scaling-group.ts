@@ -82,10 +82,17 @@ export enum Monitoring {
  * `CreationPolicy`/`UpdatePolicy` attribute pair (surfaced on this construct via the deprecated
  * `updateType`/`rollingUpdateConfiguration`/`resourceSignalCount`/`resourceSignalTimeout`/
  * `replacingUpdateMinSuccessfulInstancesPercent` properties and their `Signals`/`UpdatePolicy`
- * replacements) plus a CloudFormation-Init integration (`init`/`initOptions`). Both are
- * CloudFormation-template concepts with no Terraform resource attribute or provider behavior to
- * back them - `aws_autoscaling_group` has no creation/update-policy or init equivalent - so none
- * of that surface is ported here.
+ * replacements) plus a CloudFormation-Init integration (`init`/`initOptions`). Most of that is
+ * CloudFormation-template machinery with no Terraform resource attribute or provider behavior to
+ * back it - `aws_autoscaling_group` has no creation-policy, resource-signal or init equivalent -
+ * so `signals`, `init`/`initOptions` and the deprecated `updateType` family are not ported.
+ *
+ * The one exception is CloudFormation's `UpdatePolicy.AutoScalingInstanceRefresh`, which does have
+ * a direct Terraform counterpart in the `instance_refresh` block. It is ported here as
+ * `updatePolicy: UpdatePolicy.instanceRefresh(...)` - see `UpdatePolicy`. CloudFormation's other
+ * two update policies (`AutoScalingReplacingUpdate` and `AutoScalingRollingUpdate`) orchestrate
+ * instance replacement from the CloudFormation side and have no provider equivalent, so
+ * `UpdatePolicy.replacingUpdate()` / `UpdatePolicy.rollingUpdate()` are deliberately absent.
  */
 export interface CommonAutoScalingGroupProps {
   /**
@@ -358,6 +365,17 @@ export interface CommonAutoScalingGroupProps {
    * @default None
    */
   readonly azCapacityDistributionStrategy?: CapacityDistributionStrategy;
+
+  /**
+   * How existing instances are updated when the Auto Scaling group's configuration changes.
+   *
+   * Without an update policy a change to the launch template (a new baked AMI, for example)
+   * only applies to instances launched from then on - the instances already running keep the
+   * old configuration until something else replaces them.
+   *
+   * @default - No update policy. Running instances are left untouched when the group changes.
+   */
+  readonly updatePolicy?: UpdatePolicy;
 }
 
 /**
@@ -708,6 +726,387 @@ export interface AutoScalingGroupProps
    * @default - No instance maintenance policy.
    */
   readonly minHealthyPercentage?: number;
+}
+
+/**
+ * How existing instances should be updated when the Auto Scaling group changes.
+ *
+ * Terraform deviation: upstream AWS CDK renders this to the CloudFormation `UpdatePolicy`
+ * attribute and offers `replacingUpdate()` and `rollingUpdate()`, both of which are driven by
+ * CloudFormation itself and have no `aws_autoscaling_group` counterpart. Only
+ * `AutoScalingInstanceRefresh` maps onto a real provider feature (the `instance_refresh` block),
+ * so `instanceRefresh()` is the only policy available here.
+ */
+export abstract class UpdatePolicy {
+  /**
+   * Replace the instances in the Auto Scaling group by starting an instance refresh.
+   *
+   * A refresh is always triggered by a change to the group's launch template or mixed instances
+   * policy; `triggers` adds further attributes to watch.
+   *
+   * @see https://docs.aws.amazon.com/autoscaling/ec2/userguide/asg-instance-refresh.html
+   */
+  public static instanceRefresh(
+    options: InstanceRefreshOptions = {},
+  ): UpdatePolicy {
+    const preferences = renderInstanceRefreshPreferences(options);
+
+    return new (class extends UpdatePolicy {
+      public _renderInstanceRefresh(): autoscalingGroup.AutoscalingGroupInstanceRefresh {
+        return {
+          strategy: options.strategy ?? InstanceRefreshStrategy.ROLLING,
+          triggers:
+            options.triggers && options.triggers.length > 0
+              ? options.triggers
+              : undefined,
+          preferences,
+        };
+      }
+    })();
+  }
+
+  /**
+   * Render the `instance_refresh` block of the underlying `aws_autoscaling_group`.
+   *
+   * @internal
+   */
+  public abstract _renderInstanceRefresh(): autoscalingGroup.AutoscalingGroupInstanceRefresh;
+}
+
+/**
+ * The strategy an instance refresh uses to replace instances.
+ */
+export enum InstanceRefreshStrategy {
+  /**
+   * Replace instances a batch at a time, respecting the configured healthy percentages.
+   *
+   * Terraform deviation: CloudFormation additionally accepts `ReplaceRootVolume`, but the
+   * AWS provider rejects any `strategy` other than `Rolling`.
+   */
+  ROLLING = "Rolling",
+}
+
+/**
+ * What an instance refresh does with instances that are protected from scale in.
+ */
+export enum ScaleInProtectedInstances {
+  /**
+   * Replace instances that are protected from scale in.
+   */
+  REFRESH = "Refresh",
+
+  /**
+   * Leave instances that are protected from scale in alone and keep replacing the rest.
+   */
+  IGNORE = "Ignore",
+
+  /**
+   * Wait one hour for scale-in protection to be removed, then fail the refresh.
+   */
+  WAIT = "Wait",
+}
+
+/**
+ * What an instance refresh does with instances that are in the `Standby` state.
+ */
+export enum StandbyInstances {
+  /**
+   * Terminate instances that are in `Standby`.
+   */
+  TERMINATE = "Terminate",
+
+  /**
+   * Leave instances that are in `Standby` alone and keep replacing the `InService` ones.
+   */
+  IGNORE = "Ignore",
+
+  /**
+   * Wait one hour for the instances to be returned to service, then fail the refresh.
+   */
+  WAIT = "Wait",
+}
+
+/**
+ * Options for customizing the instance refresh.
+ *
+ * These map onto the `instance_refresh` block of `aws_autoscaling_group`, which in turn mirrors
+ * the `Preferences` of CloudFormation's `AutoScalingInstanceRefresh` update policy.
+ *
+ * @see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-updatepolicy.html#cfn-attributes-updatepolicy-instancerefresh
+ */
+export interface InstanceRefreshOptions {
+  /**
+   * The strategy to use for the instance refresh.
+   *
+   * @default InstanceRefreshStrategy.ROLLING
+   */
+  readonly strategy?: InstanceRefreshStrategy;
+
+  /**
+   * Additional Auto Scaling group attributes whose change should trigger an instance refresh.
+   *
+   * Terraform deviation: this has no CloudFormation equivalent. CloudFormation refreshes on a
+   * fixed set of property changes, whereas the provider always refreshes on `launch_template` /
+   * `mixed_instances_policy` changes and lets you opt into more. Values are
+   * `aws_autoscaling_group` attribute names, for example `tag`, `desired_capacity` or
+   * `vpc_zone_identifier`.
+   *
+   * @default - Only launch template and mixed instances policy changes trigger a refresh.
+   */
+  readonly triggers?: string[];
+
+  /**
+   * CloudWatch alarms to monitor while the instance refresh runs.
+   *
+   * If any of them goes into `ALARM` state the instance refresh fails. At most 10 alarms
+   * may be specified.
+   *
+   * @default - No alarms are monitored.
+   */
+  readonly alarms?: cloudwatch.IAlarm[];
+
+  /**
+   * Whether to roll the group back to its previous configuration if the instance refresh fails.
+   *
+   * Terraform deviation: CloudFormation has no `AutoRollback` preference because it rolls the
+   * whole stack back instead. The provider exposes the underlying Auto Scaling API option
+   * directly.
+   *
+   * @default false
+   */
+  readonly autoRollback?: boolean;
+
+  /**
+   * How long to wait at each checkpoint before continuing.
+   *
+   * Only meaningful together with `checkpointPercentages`.
+   *
+   * @default - AWS default of 1 hour when `checkpointPercentages` is set.
+   */
+  readonly checkpointDelay?: Duration;
+
+  /**
+   * Threshold percentages at which the instance refresh pauses, in ascending order.
+   *
+   * Each value must be unique. To replace every instance in the group the last value must
+   * be `100`.
+   *
+   * @see https://docs.aws.amazon.com/autoscaling/ec2/userguide/asg-adding-checkpoints-instance-refresh.html
+   *
+   * @default - The refresh runs to completion without checkpoints.
+   */
+  readonly checkpointPercentages?: number[];
+
+  /**
+   * How long the refresh waits after a new instance enters the `InService` state before
+   * moving on to the next one.
+   *
+   * @default - The group's `defaultInstanceWarmup`, or its health check grace period.
+   */
+  readonly instanceWarmup?: Duration;
+
+  /**
+   * The maximum percentage of the desired capacity that may be in service and healthy, or
+   * pending, while instances are being replaced.
+   *
+   * Value range is 100 to 200. If specified, `minHealthyPercentage` must be specified too and
+   * the difference between them cannot be greater than 100.
+   *
+   * @default - The group's instance maintenance policy if set, otherwise the AWS default.
+   */
+  readonly maxHealthyPercentage?: number;
+
+  /**
+   * The minimum percentage of the desired capacity that must stay in service, healthy and
+   * ready to use for the refresh to continue.
+   *
+   * Value range is 0 to 100.
+   *
+   * @default - The group's instance maintenance policy if set, otherwise the AWS default.
+   */
+  readonly minHealthyPercentage?: number;
+
+  /**
+   * What to do with instances that are protected from scale in.
+   *
+   * Terraform deviation: the Auto Scaling API - and therefore CloudFormation - defaults this
+   * to `WAIT`, which stalls the refresh for an hour and then fails it. The AWS provider
+   * schema defaults the argument to `Ignore` and always sends it, so the API default never
+   * applies and leaving this unset means `IGNORE` here.
+   *
+   * @default ScaleInProtectedInstances.IGNORE
+   */
+  readonly scaleInProtectedInstances?: ScaleInProtectedInstances;
+
+  /**
+   * Whether to skip replacing instances that already match the desired configuration.
+   *
+   * @default false
+   */
+  readonly skipMatching?: boolean;
+
+  /**
+   * What to do with instances that are in the `Standby` state.
+   *
+   * Terraform deviation: as with `scaleInProtectedInstances`, the API and CloudFormation
+   * default to `WAIT` but the provider schema defaults the argument to `Ignore` and always
+   * sends it, so leaving this unset means `IGNORE` here.
+   *
+   * @default StandbyInstances.IGNORE
+   */
+  readonly standbyInstances?: StandbyInstances;
+}
+
+/**
+ * Validate the instance refresh options and render them into the provider's `preferences` block.
+ *
+ * Validation happens eagerly in `UpdatePolicy.instanceRefresh()` so mistakes surface where the
+ * options are written rather than at synth time, which is why this throws
+ * `UnscopedValidationError` - there is no construct in scope yet.
+ */
+function renderInstanceRefreshPreferences(
+  options: InstanceRefreshOptions,
+): autoscalingGroup.AutoscalingGroupInstanceRefreshPreferences | undefined {
+  const {
+    alarms,
+    autoRollback,
+    checkpointDelay,
+    checkpointPercentages,
+    instanceWarmup,
+    maxHealthyPercentage,
+    minHealthyPercentage,
+    scaleInProtectedInstances,
+    skipMatching,
+    standbyInstances,
+  } = options;
+
+  if (alarms && alarms.length > 10) {
+    throw new UnscopedValidationError(
+      `Up to 10 alarms may be monitored during an instance refresh, got ${alarms.length}`,
+    );
+  }
+
+  if (checkpointPercentages !== undefined) {
+    if (checkpointPercentages.length === 0) {
+      throw new UnscopedValidationError(
+        "checkpointPercentages must contain at least one value",
+      );
+    }
+    checkpointPercentages.forEach((percentage, i) => {
+      if (!Number.isInteger(percentage)) {
+        throw new UnscopedValidationError(
+          `checkpointPercentages must be whole numbers, got ${percentage}`,
+        );
+      }
+      if (percentage < 1 || percentage > 100) {
+        throw new UnscopedValidationError(
+          `checkpointPercentages must be between 1 and 100, got ${percentage}`,
+        );
+      }
+      if (i > 0 && percentage <= checkpointPercentages[i - 1]) {
+        throw new UnscopedValidationError(
+          `checkpointPercentages must be unique and in ascending order, got ${JSON.stringify(checkpointPercentages)}`,
+        );
+      }
+    });
+  } else if (checkpointDelay !== undefined) {
+    throw new UnscopedValidationError(
+      "checkpointDelay can only be specified together with checkpointPercentages",
+    );
+  }
+
+  if (checkpointDelay !== undefined) {
+    validateDurationSeconds("checkpointDelay", checkpointDelay, 0, 172800);
+  }
+  if (instanceWarmup !== undefined) {
+    validateDurationSeconds("instanceWarmup", instanceWarmup, 0, 21600);
+  }
+
+  if (
+    maxHealthyPercentage !== undefined &&
+    minHealthyPercentage === undefined
+  ) {
+    throw new UnscopedValidationError(
+      "minHealthyPercentage must be specified when maxHealthyPercentage is specified",
+    );
+  }
+  if (minHealthyPercentage !== undefined) {
+    if (!Number.isInteger(minHealthyPercentage)) {
+      throw new UnscopedValidationError(
+        `minHealthyPercentage must be a whole number, got ${minHealthyPercentage}`,
+      );
+    }
+    if (minHealthyPercentage < 0 || minHealthyPercentage > 100) {
+      throw new UnscopedValidationError(
+        `minHealthyPercentage must be between 0 and 100, got ${minHealthyPercentage}`,
+      );
+    }
+  }
+  if (maxHealthyPercentage !== undefined) {
+    if (!Number.isInteger(maxHealthyPercentage)) {
+      throw new UnscopedValidationError(
+        `maxHealthyPercentage must be a whole number, got ${maxHealthyPercentage}`,
+      );
+    }
+    if (maxHealthyPercentage < 100 || maxHealthyPercentage > 200) {
+      throw new UnscopedValidationError(
+        `maxHealthyPercentage must be between 100 and 200, got ${maxHealthyPercentage}`,
+      );
+    }
+  }
+  if (
+    minHealthyPercentage !== undefined &&
+    maxHealthyPercentage !== undefined &&
+    maxHealthyPercentage - minHealthyPercentage > 100
+  ) {
+    throw new UnscopedValidationError(
+      `The difference between minHealthyPercentage and maxHealthyPercentage cannot be greater than 100, got ${maxHealthyPercentage - minHealthyPercentage}`,
+    );
+  }
+
+  const preferences: autoscalingGroup.AutoscalingGroupInstanceRefreshPreferences =
+    {
+      // an empty list is not "monitor no alarms", it is an alarm specification the
+      // API rejects - omit the block entirely, the way `triggers: []` is omitted
+      alarmSpecification:
+        alarms && alarms.length > 0
+          ? { alarms: alarms.map((alarm) => alarm.alarmName) }
+          : undefined,
+      autoRollback,
+      // Terraform deviation: the provider types these two as strings even though the API takes
+      // a number of seconds, so render the seconds instead of an ISO-8601 duration.
+      checkpointDelay: checkpointDelay?.toSeconds().toString(),
+      checkpointPercentages,
+      instanceWarmup: instanceWarmup?.toSeconds().toString(),
+      maxHealthyPercentage,
+      minHealthyPercentage,
+      scaleInProtectedInstances,
+      skipMatching,
+      standbyInstances,
+    };
+
+  return Object.values(preferences).every((value) => value === undefined)
+    ? undefined
+    : preferences;
+}
+
+function validateDurationSeconds(
+  name: string,
+  duration: Duration,
+  min: number,
+  max: number,
+): void {
+  if (duration.isUnresolved()) {
+    return;
+  }
+  // `toSeconds()` itself rejects a duration that is not a whole number of seconds,
+  // which is what the API requires - no separate integer check is needed here.
+  const seconds = duration.toSeconds();
+  if (seconds < min || seconds > max) {
+    throw new UnscopedValidationError(
+      `${name} must be between ${min} and ${max} seconds, got ${seconds}`,
+    );
+  }
 }
 
 /**
@@ -1436,6 +1835,7 @@ export class AutoScalingGroup
         props.minHealthyPercentage,
         props.maxHealthyPercentage,
       ),
+      instanceRefresh: props.updatePolicy?._renderInstanceRefresh(),
       ...this.getLaunchSettings(
         props.launchTemplate ?? launchTemplateFromConfig,
         props.mixedInstancesPolicy,

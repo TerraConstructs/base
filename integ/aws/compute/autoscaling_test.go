@@ -1,13 +1,18 @@
 package test
 
 import (
+	"fmt"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/terraconstructs/go-synth/executors"
 
+	"github.com/gruntwork-io/terratest/modules/retry"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	util "github.com/terraconstructs/base/integ/aws"
 )
@@ -160,4 +165,103 @@ func validateAutoscalingCustomScaling(t *testing.T, tfWorkingDir, awsRegion stri
 	)
 	require.NotNil(t, cpuPolicy.TargetTrackingConfiguration.TargetValue)
 	assert.Equal(t, float64(50), *cpuPolicy.TargetTrackingConfiguration.TargetValue)
+}
+
+// Test the autoscaling.update-policy app
+//
+// https://github.com/aws/aws-cdk/blob/v2.233.0/packages/@aws-cdk-testing/framework-integ/test/aws-autoscaling/test/integ.asg-update-policy.ts
+//
+// Structural port of the upstream update-policy fixture. Upstream deploys an
+// AutoScalingGroup with `UpdatePolicy.rollingUpdate()`, a CloudFormation-driven
+// replacement CloudFormation performs itself; this port configures
+// `UpdatePolicy.instanceRefresh()` instead, which is the only update policy the
+// `aws_autoscaling_group` resource can back (see the deviation note on
+// CommonAutoScalingGroupProps).
+//
+// https://github.com/TerraConstructs/base/issues/129 - the whole point of the
+// policy is that a launch template change reaches the instances already running,
+// so validation deploys, changes the launch template, applies again, and checks
+// that EC2 Auto Scaling actually started a refresh.
+func TestAutoscalingUpdatePolicy(t *testing.T) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "autoscaling.update-policy", options, validateAutoscalingUpdatePolicy)
+}
+
+func validateAutoscalingUpdatePolicy(t *testing.T, tfWorkingDir, awsRegion string) {
+	opts := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+	asgName := util.LoadOutputAttribute(t, opts, "asg", "autoScalingGroupName")
+
+	// (a) The freshly deployed group runs its single instance off a launch
+	// template. `instance_refresh` is not an Auto Scaling API attribute - it only
+	// tells the provider what to do on a subsequent apply - so there is nothing to
+	// assert about it on the group itself yet, and no refresh has run.
+	group := util.GetAutoScalingGroup(t, awsRegion, asgName)
+	require.NotNil(t, group.DesiredCapacity)
+	assert.Equal(t, int32(1), *group.DesiredCapacity)
+	require.NotNil(t, group.LaunchTemplate, "expected the group to launch from a launch template")
+
+	require.Empty(t,
+		util.GetAsgInstanceRefreshes(t, awsRegion, asgName),
+		"expected no instance refresh before the launch template changes",
+	)
+
+	// (b) Change the launch template and apply again.
+	//
+	// This second synth+apply lives inside the validate stage rather than in stages
+	// of its own so the `%-synth-only` / `%-validate-only` make targets (which only
+	// know the four standard stage names) keep behaving sensibly.
+	envVars := executors.EnvMap(os.Environ())
+	envVars["AWS_REGION"] = awsRegion
+	envVars["ENVIRONMENT_NAME"] = "test"
+	envVars["STACK_NAME"] = "autoscaling.update-policy"
+	envVars["LAUNCH_TEMPLATE_REVISION"] = "v2"
+
+	util.SynthApp(t, "autoscaling.update-policy", tfWorkingDir, envVars, "handlers")
+	util.DeployUsingTerraform(t, tfWorkingDir, nil)
+
+	// (c) The apply hands the rollout to EC2 Auto Scaling and returns without
+	// waiting for it, so poll until the refresh shows up.
+	refresh, err := retry.DoWithRetryInterfaceE(
+		t,
+		fmt.Sprintf("Waiting for an instance refresh on Auto Scaling group %s", asgName),
+		30, // 30 * 10s = 5 minutes
+		10*time.Second,
+		func() (interface{}, error) {
+			refreshes := util.GetAsgInstanceRefreshes(t, awsRegion, asgName)
+			if len(refreshes) == 0 {
+				return nil, fmt.Errorf(
+					"Auto Scaling group %s has no instance refresh after the launch template changed",
+					asgName,
+				)
+			}
+			return refreshes[0], nil
+		},
+	)
+	require.NoError(t, err)
+
+	instanceRefresh := refresh.(types.InstanceRefresh)
+	assert.NotContains(t,
+		[]types.InstanceRefreshStatus{
+			types.InstanceRefreshStatusFailed,
+			types.InstanceRefreshStatusCancelled,
+			types.InstanceRefreshStatusCancelling,
+			types.InstanceRefreshStatusRollbackInProgress,
+			types.InstanceRefreshStatusRollbackFailed,
+			types.InstanceRefreshStatusRollbackSuccessful,
+		},
+		instanceRefresh.Status,
+		"instance refresh went wrong: %v", instanceRefresh.StatusReason,
+	)
+
+	// The preferences configured through `UpdatePolicy.instanceRefresh()` must have
+	// reached the StartInstanceRefresh call, not just the Terraform config.
+	require.NotNil(t, instanceRefresh.Preferences)
+	require.NotNil(t, instanceRefresh.Preferences.MinHealthyPercentage)
+	assert.Equal(t, int32(0), *instanceRefresh.Preferences.MinHealthyPercentage)
+	require.NotNil(t, instanceRefresh.Preferences.MaxHealthyPercentage)
+	assert.Equal(t, int32(100), *instanceRefresh.Preferences.MaxHealthyPercentage)
+	require.NotNil(t, instanceRefresh.Preferences.InstanceWarmup)
+	assert.Equal(t, int32(0), *instanceRefresh.Preferences.InstanceWarmup)
 }

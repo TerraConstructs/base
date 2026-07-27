@@ -108,3 +108,31 @@ func GetAsgScalingPolicies(t testing.TestingT, region, asgName string) []types.S
 	require.NoError(t, err)
 	return policies
 }
+
+// GetAsgInstanceRefreshesE lists the instance refreshes of the given Auto Scaling group,
+// most recent first.
+//
+// EC2 Auto Scaling keeps the last 100 refreshes for 6 weeks, so this covers refreshes that
+// have already finished as well as one that is still running.
+func GetAsgInstanceRefreshesE(t testing.TestingT, region, asgName string) ([]types.InstanceRefresh, error) {
+	logger.Log(t, fmt.Sprintf("Describing instance refreshes for Auto Scaling group %s in %s", asgName, region))
+	client, err := NewAsgClientE(t, region)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.DescribeInstanceRefreshes(context.Background(), &autoscaling.DescribeInstanceRefreshesInput{
+		AutoScalingGroupName: aws.String(asgName),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.InstanceRefreshes, nil
+}
+
+// GetAsgInstanceRefreshes fetches the instance refreshes or fails the test.
+func GetAsgInstanceRefreshes(t testing.TestingT, region, asgName string) []types.InstanceRefresh {
+	refreshes, err := GetAsgInstanceRefreshesE(t, region, asgName)
+	require.NoError(t, err)
+	return refreshes
+}
