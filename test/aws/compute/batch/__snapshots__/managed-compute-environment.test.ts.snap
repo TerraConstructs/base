@@ -1,0 +1,842 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ManagedComputeEnvironment synth FargateComputeEnvironment synthesizes and matches snapshot 1`] = `
+"{
+  "data": {
+    "aws_availability_zones": {
+      "AvailabilityZones": {
+        "provider": "aws"
+      }
+    },
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_batch_compute_environment": {
+      "MyFargateCE_045471C1": {
+        "compute_resources": {
+          "max_vcpus": 256,
+          "security_group_ids": [
+            "\${aws_security_group.MyFargateCE_SecurityGroup_7BDA9A96.id}"
+          ],
+          "subnets": [
+            "\${aws_subnet.vpc_PrivateSubnet1_D641CC73.id}",
+            "\${aws_subnet.vpc_PrivateSubnet2_5BC02ADB.id}",
+            "\${aws_subnet.vpc_PrivateSubnet3_EF7C29AE.id}"
+          ],
+          "type": "FARGATE"
+        },
+        "name_prefix": "gTestStack553BDD39-TestStackMyFargateCE",
+        "state": "ENABLED",
+        "tags": {
+          "Name": "Default-MyFargateCE",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "type": "MANAGED"
+      }
+    },
+    "aws_eip": {
+      "vpc_PublicSubnet1_EIP_DA49DCBE": {
+        "domain": "vpc",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet1",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      },
+      "vpc_PublicSubnet2_EIP_9B3743B1": {
+        "domain": "vpc",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet2",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      },
+      "vpc_PublicSubnet3_EIP_2C3B9D91": {
+        "domain": "vpc",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_internet_gateway": {
+      "vpc_IGW_E57CBDCA": {
+        "tags": {
+          "Name": "TestStack/vpc",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_internet_gateway_attachment": {
+      "vpc_VPCGW_7984C166": {
+        "internet_gateway_id": "\${aws_internet_gateway.vpc_IGW_E57CBDCA.id}",
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      }
+    },
+    "aws_nat_gateway": {
+      "vpc_PublicSubnet1_NATGateway_9C16659E": {
+        "allocation_id": "\${aws_eip.vpc_PublicSubnet1_EIP_DA49DCBE.allocation_id}",
+        "depends_on": [
+          "aws_route_table_association.vpc_PublicSubnet1_RouteTableAssociation_5D3F4579",
+          "aws_route.vpc_PublicSubnet1_DefaultRoute_10708846"
+        ],
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet1_97C7DB44.id}",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet1",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      },
+      "vpc_PublicSubnet2_NATGateway_9B8AE11A": {
+        "allocation_id": "\${aws_eip.vpc_PublicSubnet2_EIP_9B3743B1.allocation_id}",
+        "depends_on": [
+          "aws_route_table_association.vpc_PublicSubnet2_RouteTableAssociation_21F81B59",
+          "aws_route.vpc_PublicSubnet2_DefaultRoute_A1EC0F60"
+        ],
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet2_95A217D1.id}",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet2",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      },
+      "vpc_PublicSubnet3_NATGateway_82F6CA9E": {
+        "allocation_id": "\${aws_eip.vpc_PublicSubnet3_EIP_2C3B9D91.allocation_id}",
+        "depends_on": [
+          "aws_route_table_association.vpc_PublicSubnet3_RouteTableAssociation_D102D1C4",
+          "aws_route.vpc_PublicSubnet3_DefaultRoute_3F356A11"
+        ],
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet3_68F3A03C.id}",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_route": {
+      "vpc_PrivateSubnet1_DefaultRoute_1AA8E2E5": {
+        "destination_cidr_block": "0.0.0.0/0",
+        "nat_gateway_id": "\${aws_nat_gateway.vpc_PublicSubnet1_NATGateway_9C16659E.id}",
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet1_RouteTable_B41A48CC.id}"
+      },
+      "vpc_PrivateSubnet2_DefaultRoute_B0E07F99": {
+        "destination_cidr_block": "0.0.0.0/0",
+        "nat_gateway_id": "\${aws_nat_gateway.vpc_PublicSubnet2_NATGateway_9B8AE11A.id}",
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet2_RouteTable_7280F23E.id}"
+      },
+      "vpc_PrivateSubnet3_DefaultRoute_30C45F47": {
+        "destination_cidr_block": "0.0.0.0/0",
+        "nat_gateway_id": "\${aws_nat_gateway.vpc_PublicSubnet3_NATGateway_82F6CA9E.id}",
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet3_RouteTable_24DA79A0.id}"
+      },
+      "vpc_PublicSubnet1_DefaultRoute_10708846": {
+        "depends_on": [
+          "aws_internet_gateway_attachment.vpc_VPCGW_7984C166"
+        ],
+        "destination_cidr_block": "0.0.0.0/0",
+        "gateway_id": "\${aws_internet_gateway.vpc_IGW_E57CBDCA.id}",
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet1_RouteTable_48A2DF9B.id}"
+      },
+      "vpc_PublicSubnet2_DefaultRoute_A1EC0F60": {
+        "depends_on": [
+          "aws_internet_gateway_attachment.vpc_VPCGW_7984C166"
+        ],
+        "destination_cidr_block": "0.0.0.0/0",
+        "gateway_id": "\${aws_internet_gateway.vpc_IGW_E57CBDCA.id}",
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet2_RouteTable_EB40D4CB.id}"
+      },
+      "vpc_PublicSubnet3_DefaultRoute_3F356A11": {
+        "depends_on": [
+          "aws_internet_gateway_attachment.vpc_VPCGW_7984C166"
+        ],
+        "destination_cidr_block": "0.0.0.0/0",
+        "gateway_id": "\${aws_internet_gateway.vpc_IGW_E57CBDCA.id}",
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet3_RouteTable_A3C00665.id}"
+      }
+    },
+    "aws_route_table": {
+      "vpc_PrivateSubnet1_RouteTable_B41A48CC": {
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet1",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PrivateSubnet2_RouteTable_7280F23E": {
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet2",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PrivateSubnet3_RouteTable_24DA79A0": {
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet1_RouteTable_48A2DF9B": {
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet1",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet2_RouteTable_EB40D4CB": {
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet2",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet3_RouteTable_A3C00665": {
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      }
+    },
+    "aws_route_table_association": {
+      "vpc_PrivateSubnet1_RouteTableAssociation_67945127": {
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet1_RouteTable_B41A48CC.id}",
+        "subnet_id": "\${aws_subnet.vpc_PrivateSubnet1_D641CC73.id}"
+      },
+      "vpc_PrivateSubnet2_RouteTableAssociation_007E94D3": {
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet2_RouteTable_7280F23E.id}",
+        "subnet_id": "\${aws_subnet.vpc_PrivateSubnet2_5BC02ADB.id}"
+      },
+      "vpc_PrivateSubnet3_RouteTableAssociation_C58B3C2C": {
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet3_RouteTable_24DA79A0.id}",
+        "subnet_id": "\${aws_subnet.vpc_PrivateSubnet3_EF7C29AE.id}"
+      },
+      "vpc_PublicSubnet1_RouteTableAssociation_5D3F4579": {
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet1_RouteTable_48A2DF9B.id}",
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet1_97C7DB44.id}"
+      },
+      "vpc_PublicSubnet2_RouteTableAssociation_21F81B59": {
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet2_RouteTable_EB40D4CB.id}",
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet2_95A217D1.id}"
+      },
+      "vpc_PublicSubnet3_RouteTableAssociation_D102D1C4": {
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet3_RouteTable_A3C00665.id}",
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet3_68F3A03C.id}"
+      }
+    },
+    "aws_security_group": {
+      "MyFargateCE_SecurityGroup_7BDA9A96": {
+        "description": "TestStack/MyFargateCE/SecurityGroup",
+        "egress": [
+          {
+            "cidr_blocks": [
+              "0.0.0.0/0"
+            ],
+            "description": "Allow all outbound traffic by default",
+            "from_port": 0,
+            "ipv6_cidr_blocks": null,
+            "prefix_list_ids": null,
+            "protocol": "-1",
+            "security_groups": null,
+            "self": null,
+            "to_port": 0
+          }
+        ],
+        "name": "gTestStack553BDD39TestStackMyFargateCESecurityGroup3A43DE00",
+        "tags": {
+          "Name": "Default-MyFargateCE",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      }
+    },
+    "aws_subnet": {
+      "vpc_PrivateSubnet1_D641CC73": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
+        "cidr_block": "10.0.96.0/19",
+        "map_public_ip_on_launch": false,
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet1",
+          "aws-cdk:subnet-name": "Private",
+          "aws-cdk:subnet-type": "Private",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PrivateSubnet2_5BC02ADB": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
+        "cidr_block": "10.0.128.0/19",
+        "map_public_ip_on_launch": false,
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet2",
+          "aws-cdk:subnet-name": "Private",
+          "aws-cdk:subnet-type": "Private",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PrivateSubnet3_EF7C29AE": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 2)}",
+        "cidr_block": "10.0.160.0/19",
+        "map_public_ip_on_launch": false,
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet3",
+          "aws-cdk:subnet-name": "Private",
+          "aws-cdk:subnet-type": "Private",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet1_97C7DB44": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
+        "cidr_block": "10.0.0.0/19",
+        "map_public_ip_on_launch": true,
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet1",
+          "aws-cdk:subnet-name": "Public",
+          "aws-cdk:subnet-type": "Public",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet2_95A217D1": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
+        "cidr_block": "10.0.32.0/19",
+        "map_public_ip_on_launch": true,
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet2",
+          "aws-cdk:subnet-name": "Public",
+          "aws-cdk:subnet-type": "Public",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet3_68F3A03C": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 2)}",
+        "cidr_block": "10.0.64.0/19",
+        "map_public_ip_on_launch": true,
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet3",
+          "aws-cdk:subnet-name": "Public",
+          "aws-cdk:subnet-type": "Public",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      }
+    },
+    "aws_vpc": {
+      "vpc_A2121C38": {
+        "cidr_block": "10.0.0.0/16",
+        "enable_dns_hostnames": true,
+        "enable_dns_support": true,
+        "instance_tenancy": "default",
+        "tags": {
+          "Name": "TestStack/vpc",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`ManagedComputeEnvironment synth ManagedEc2EcsComputeEnvironment synthesizes and matches snapshot 1`] = `
+"{
+  "data": {
+    "aws_availability_zones": {
+      "AvailabilityZones": {
+        "provider": "aws"
+      }
+    },
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "MyCE_InstanceProfileRole_AssumeRolePolicy_09EEBA12": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ec2.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ec2": {
+        "service_name": "ec2"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_batch_compute_environment": {
+      "MyCE_4356D913": {
+        "compute_resources": {
+          "allocation_strategy": "BEST_FIT_PROGRESSIVE",
+          "instance_role": "\${aws_iam_instance_profile.MyCE_InstanceProfile_6BEF3CD4.arn}",
+          "instance_type": [
+            "optimal"
+          ],
+          "max_vcpus": 256,
+          "min_vcpus": 0,
+          "security_group_ids": [
+            "\${aws_security_group.MyCE_SecurityGroup_81DCAA06.id}"
+          ],
+          "subnets": [
+            "\${aws_subnet.vpc_PrivateSubnet1_D641CC73.id}",
+            "\${aws_subnet.vpc_PrivateSubnet2_5BC02ADB.id}",
+            "\${aws_subnet.vpc_PrivateSubnet3_EF7C29AE.id}"
+          ],
+          "type": "EC2"
+        },
+        "name_prefix": "gTestStack553BDD39-TestStackMyCE",
+        "state": "ENABLED",
+        "tags": {
+          "Name": "Default-MyCE",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "type": "MANAGED"
+      }
+    },
+    "aws_eip": {
+      "vpc_PublicSubnet1_EIP_DA49DCBE": {
+        "domain": "vpc",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet1",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      },
+      "vpc_PublicSubnet2_EIP_9B3743B1": {
+        "domain": "vpc",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet2",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      },
+      "vpc_PublicSubnet3_EIP_2C3B9D91": {
+        "domain": "vpc",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_iam_instance_profile": {
+      "MyCE_InstanceProfile_6BEF3CD4": {
+        "name": "gTestStack553BDD39TestStackMyCEInstanceProfileE581CADC",
+        "role": "\${aws_iam_role.MyCE_InstanceProfileRole_895D248D.name}",
+        "tags": {
+          "Name": "Default-MyCE",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_iam_role": {
+      "MyCE_InstanceProfileRole_895D248D": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.MyCE_InstanceProfileRole_AssumeRolePolicy_09EEBA12.json}",
+        "name_prefix": "gTestStack553BDD39-InstanceProfileRole",
+        "tags": {
+          "Name": "Default-MyCE",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_iam_role_policy_attachment": {
+      "MyCE_AmazonEC2ContainerServiceforEC2Role_Roles0_98D8511A": {
+        "policy_arn": "arn:\${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role",
+        "role": "\${aws_iam_role.MyCE_InstanceProfileRole_895D248D.name}"
+      }
+    },
+    "aws_internet_gateway": {
+      "vpc_IGW_E57CBDCA": {
+        "tags": {
+          "Name": "TestStack/vpc",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_internet_gateway_attachment": {
+      "vpc_VPCGW_7984C166": {
+        "internet_gateway_id": "\${aws_internet_gateway.vpc_IGW_E57CBDCA.id}",
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      }
+    },
+    "aws_nat_gateway": {
+      "vpc_PublicSubnet1_NATGateway_9C16659E": {
+        "allocation_id": "\${aws_eip.vpc_PublicSubnet1_EIP_DA49DCBE.allocation_id}",
+        "depends_on": [
+          "aws_route_table_association.vpc_PublicSubnet1_RouteTableAssociation_5D3F4579",
+          "aws_route.vpc_PublicSubnet1_DefaultRoute_10708846"
+        ],
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet1_97C7DB44.id}",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet1",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      },
+      "vpc_PublicSubnet2_NATGateway_9B8AE11A": {
+        "allocation_id": "\${aws_eip.vpc_PublicSubnet2_EIP_9B3743B1.allocation_id}",
+        "depends_on": [
+          "aws_route_table_association.vpc_PublicSubnet2_RouteTableAssociation_21F81B59",
+          "aws_route.vpc_PublicSubnet2_DefaultRoute_A1EC0F60"
+        ],
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet2_95A217D1.id}",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet2",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      },
+      "vpc_PublicSubnet3_NATGateway_82F6CA9E": {
+        "allocation_id": "\${aws_eip.vpc_PublicSubnet3_EIP_2C3B9D91.allocation_id}",
+        "depends_on": [
+          "aws_route_table_association.vpc_PublicSubnet3_RouteTableAssociation_D102D1C4",
+          "aws_route.vpc_PublicSubnet3_DefaultRoute_3F356A11"
+        ],
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet3_68F3A03C.id}",
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_route": {
+      "vpc_PrivateSubnet1_DefaultRoute_1AA8E2E5": {
+        "destination_cidr_block": "0.0.0.0/0",
+        "nat_gateway_id": "\${aws_nat_gateway.vpc_PublicSubnet1_NATGateway_9C16659E.id}",
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet1_RouteTable_B41A48CC.id}"
+      },
+      "vpc_PrivateSubnet2_DefaultRoute_B0E07F99": {
+        "destination_cidr_block": "0.0.0.0/0",
+        "nat_gateway_id": "\${aws_nat_gateway.vpc_PublicSubnet2_NATGateway_9B8AE11A.id}",
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet2_RouteTable_7280F23E.id}"
+      },
+      "vpc_PrivateSubnet3_DefaultRoute_30C45F47": {
+        "destination_cidr_block": "0.0.0.0/0",
+        "nat_gateway_id": "\${aws_nat_gateway.vpc_PublicSubnet3_NATGateway_82F6CA9E.id}",
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet3_RouteTable_24DA79A0.id}"
+      },
+      "vpc_PublicSubnet1_DefaultRoute_10708846": {
+        "depends_on": [
+          "aws_internet_gateway_attachment.vpc_VPCGW_7984C166"
+        ],
+        "destination_cidr_block": "0.0.0.0/0",
+        "gateway_id": "\${aws_internet_gateway.vpc_IGW_E57CBDCA.id}",
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet1_RouteTable_48A2DF9B.id}"
+      },
+      "vpc_PublicSubnet2_DefaultRoute_A1EC0F60": {
+        "depends_on": [
+          "aws_internet_gateway_attachment.vpc_VPCGW_7984C166"
+        ],
+        "destination_cidr_block": "0.0.0.0/0",
+        "gateway_id": "\${aws_internet_gateway.vpc_IGW_E57CBDCA.id}",
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet2_RouteTable_EB40D4CB.id}"
+      },
+      "vpc_PublicSubnet3_DefaultRoute_3F356A11": {
+        "depends_on": [
+          "aws_internet_gateway_attachment.vpc_VPCGW_7984C166"
+        ],
+        "destination_cidr_block": "0.0.0.0/0",
+        "gateway_id": "\${aws_internet_gateway.vpc_IGW_E57CBDCA.id}",
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet3_RouteTable_A3C00665.id}"
+      }
+    },
+    "aws_route_table": {
+      "vpc_PrivateSubnet1_RouteTable_B41A48CC": {
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet1",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PrivateSubnet2_RouteTable_7280F23E": {
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet2",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PrivateSubnet3_RouteTable_24DA79A0": {
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet1_RouteTable_48A2DF9B": {
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet1",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet2_RouteTable_EB40D4CB": {
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet2",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet3_RouteTable_A3C00665": {
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet3",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      }
+    },
+    "aws_route_table_association": {
+      "vpc_PrivateSubnet1_RouteTableAssociation_67945127": {
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet1_RouteTable_B41A48CC.id}",
+        "subnet_id": "\${aws_subnet.vpc_PrivateSubnet1_D641CC73.id}"
+      },
+      "vpc_PrivateSubnet2_RouteTableAssociation_007E94D3": {
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet2_RouteTable_7280F23E.id}",
+        "subnet_id": "\${aws_subnet.vpc_PrivateSubnet2_5BC02ADB.id}"
+      },
+      "vpc_PrivateSubnet3_RouteTableAssociation_C58B3C2C": {
+        "route_table_id": "\${aws_route_table.vpc_PrivateSubnet3_RouteTable_24DA79A0.id}",
+        "subnet_id": "\${aws_subnet.vpc_PrivateSubnet3_EF7C29AE.id}"
+      },
+      "vpc_PublicSubnet1_RouteTableAssociation_5D3F4579": {
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet1_RouteTable_48A2DF9B.id}",
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet1_97C7DB44.id}"
+      },
+      "vpc_PublicSubnet2_RouteTableAssociation_21F81B59": {
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet2_RouteTable_EB40D4CB.id}",
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet2_95A217D1.id}"
+      },
+      "vpc_PublicSubnet3_RouteTableAssociation_D102D1C4": {
+        "route_table_id": "\${aws_route_table.vpc_PublicSubnet3_RouteTable_A3C00665.id}",
+        "subnet_id": "\${aws_subnet.vpc_PublicSubnet3_68F3A03C.id}"
+      }
+    },
+    "aws_security_group": {
+      "MyCE_SecurityGroup_81DCAA06": {
+        "description": "TestStack/MyCE/SecurityGroup",
+        "egress": [
+          {
+            "cidr_blocks": [
+              "0.0.0.0/0"
+            ],
+            "description": "Allow all outbound traffic by default",
+            "from_port": 0,
+            "ipv6_cidr_blocks": null,
+            "prefix_list_ids": null,
+            "protocol": "-1",
+            "security_groups": null,
+            "self": null,
+            "to_port": 0
+          }
+        ],
+        "name": "gTestStack553BDD39TestStackMyCESecurityGroup19E4E64C",
+        "tags": {
+          "Name": "Default-MyCE",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      }
+    },
+    "aws_subnet": {
+      "vpc_PrivateSubnet1_D641CC73": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
+        "cidr_block": "10.0.96.0/19",
+        "map_public_ip_on_launch": false,
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet1",
+          "aws-cdk:subnet-name": "Private",
+          "aws-cdk:subnet-type": "Private",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PrivateSubnet2_5BC02ADB": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
+        "cidr_block": "10.0.128.0/19",
+        "map_public_ip_on_launch": false,
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet2",
+          "aws-cdk:subnet-name": "Private",
+          "aws-cdk:subnet-type": "Private",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PrivateSubnet3_EF7C29AE": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 2)}",
+        "cidr_block": "10.0.160.0/19",
+        "map_public_ip_on_launch": false,
+        "tags": {
+          "Name": "TestStack/vpc/PrivateSubnet3",
+          "aws-cdk:subnet-name": "Private",
+          "aws-cdk:subnet-type": "Private",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet1_97C7DB44": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 0)}",
+        "cidr_block": "10.0.0.0/19",
+        "map_public_ip_on_launch": true,
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet1",
+          "aws-cdk:subnet-name": "Public",
+          "aws-cdk:subnet-type": "Public",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet2_95A217D1": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 1)}",
+        "cidr_block": "10.0.32.0/19",
+        "map_public_ip_on_launch": true,
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet2",
+          "aws-cdk:subnet-name": "Public",
+          "aws-cdk:subnet-type": "Public",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      },
+      "vpc_PublicSubnet3_68F3A03C": {
+        "availability_zone": "\${element(data.aws_availability_zones.AvailabilityZones.names, 2)}",
+        "cidr_block": "10.0.64.0/19",
+        "map_public_ip_on_launch": true,
+        "tags": {
+          "Name": "TestStack/vpc/PublicSubnet3",
+          "aws-cdk:subnet-name": "Public",
+          "aws-cdk:subnet-type": "Public",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "vpc_id": "\${aws_vpc.vpc_A2121C38.id}"
+      }
+    },
+    "aws_vpc": {
+      "vpc_A2121C38": {
+        "cidr_block": "10.0.0.0/16",
+        "enable_dns_hostnames": true,
+        "enable_dns_support": true,
+        "instance_tenancy": "default",
+        "tags": {
+          "Name": "TestStack/vpc",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;

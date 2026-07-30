@@ -1,0 +1,125 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`FairshareSchedulingPolicy Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_batch_scheduling_policy": {
+      "schedulingPolicy_EF30C9A9": {
+        "fair_share_policy": {
+          "share_distribution": [
+          ]
+        },
+        "name": "gTestStack553BDD39-TestStackschedulingPolicy1129156A",
+        "tags": {
+          "Name": "Default-schedulingPolicy",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`FairshareSchedulingPolicy Should synth and match SnapShot with shares and computeReservation 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_batch_scheduling_policy": {
+      "schedulingPolicy_EF30C9A9": {
+        "fair_share_policy": {
+          "compute_reservation": 75,
+          "share_decay_seconds": 3600,
+          "share_distribution": [
+            {
+              "share_identifier": "myShareId",
+              "weight_factor": 0.5
+            },
+            {
+              "share_identifier": "myShareId2",
+              "weight_factor": 1
+            }
+          ]
+        },
+        "name": "FairsharePolicyName",
+        "tags": {
+          "Name": "Default-schedulingPolicy",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;

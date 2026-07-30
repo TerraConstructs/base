@@ -1,0 +1,99 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`UnmanagedComputeEnvironment Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "MyCE_BatchServiceRole_AssumeRolePolicy_C0F10B18": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_batch.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_batch": {
+        "service_name": "batch"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_batch_compute_environment": {
+      "MyCE_4356D913": {
+        "name_prefix": "gTestStack553BDD39-TestStackMyCE",
+        "service_role": "\${aws_iam_role.MyCE_BatchServiceRole_4FDA2CB6.arn}",
+        "state": "ENABLED",
+        "tags": {
+          "Name": "Default-MyCE",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "type": "UNMANAGED"
+      }
+    },
+    "aws_iam_role": {
+      "MyCE_BatchServiceRole_4FDA2CB6": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.MyCE_BatchServiceRole_AssumeRolePolicy_C0F10B18.json}",
+        "name_prefix": "gTestStack553BDD39-yCEBatchServiceRole",
+        "tags": {
+          "Name": "Default-MyCE",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_iam_role_policy_attachment": {
+      "MyCE_AWSBatchServiceRole_Roles0_645F56BE": {
+        "policy_arn": "arn:\${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AWSBatchServiceRole",
+        "role": "\${aws_iam_role.MyCE_BatchServiceRole_4FDA2CB6.name}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
