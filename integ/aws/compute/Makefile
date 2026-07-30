@@ -111,3 +111,7 @@ ecs.sd-awsvpc-nw: ## Test EC2 service with CloudMap service discovery (awsvpc) +
 ecs.asg-capacity-provider: ## Test EC2 service on an AsgCapacityProvider (cluster capacity-provider strategy) + ALB
 	go test -v -count 1 -timeout 45m ./... -run ^TestEcsAsgCapacityProvider$
 .PHONY: ecs.asg-capacity-provider
+
+batch.job-queue: ## Test Batch JobQueue + FairshareSchedulingPolicy + 2 ManagedEc2EcsComputeEnvironments (ordered CEs, addComputeEnvironment()/addShare())
+	go test -v -count 1 -timeout 30m ./... -run ^TestBatchJobQueue$
+.PHONY: batch.job-queue
