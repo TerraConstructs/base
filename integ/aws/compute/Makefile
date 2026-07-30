@@ -119,3 +119,7 @@ batch.job-queue: ## Test Batch JobQueue + FairshareSchedulingPolicy + 2 ManagedE
 batch.spot-mnp: ## Test Batch BEST_FIT spot fleet role policy + nested/five-group multinode job definitions (PR #136 review)
 	go test -v -count 1 -timeout 30m ./... -run ^TestBatchSpotMnp$
 .PHONY: batch.spot-mnp
+
+sfn.batch-submit-job: ## Test StepFunctions BatchSubmitJob task end-to-end (Pass -> BatchSubmitJob -> StateMachine, real EC2-backed Batch job execution)
+	go test -v -count 1 -timeout 40m ./... -run ^TestSfnBatchSubmitJob$
+.PHONY: sfn.batch-submit-job
