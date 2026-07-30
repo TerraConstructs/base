@@ -73,8 +73,6 @@ exports[`EcsJobDefinition Should synth and match SnapShot for EC2 container 1`] 
           "EC2"
         ],
         "propagate_tags": true,
-        "retry_strategy": {
-        },
         "tags": {
           "Name": "Default-JobDefn",
           "grid:EnvironmentName": "Default",
@@ -190,8 +188,6 @@ exports[`EcsJobDefinition Should synth and match SnapShot for Fargate container 
         "platform_capabilities": [
           "FARGATE"
         ],
-        "retry_strategy": {
-        },
         "tags": {
           "Name": "Default-JobDefn",
           "grid:EnvironmentName": "Default",

@@ -194,8 +194,6 @@ exports[`JobDefinitionBase synth MultiNodeJobDefinition synthesizes and matches 
         "platform_capabilities": [
           "EC2"
         ],
-        "retry_strategy": {
-        },
         "tags": {
           "Name": "Default-JobDefn",
           "grid:EnvironmentName": "Default",

@@ -105,8 +105,6 @@ exports[`MultiNodeJobDefinition Should synth and match SnapShot 1`] = `
           "EC2"
         ],
         "propagate_tags": true,
-        "retry_strategy": {
-        },
         "tags": {
           "Name": "Default-ECSJobDefn",
           "grid:EnvironmentName": "Default",

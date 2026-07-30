@@ -1,7 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-batch/lib/job-definition-base.ts
 
 import { batchJobDefinition } from "@cdktn/provider-aws";
-import { Lazy } from "cdktn";
 import { Construct } from "constructs";
 import { Duration } from "../../../duration";
 import {
@@ -255,6 +254,13 @@ export abstract class JobDefinitionBase
 {
   public abstract readonly jobDefinitionArn: string;
   public abstract readonly jobDefinitionName: string;
+  /**
+   * The underlying aws_batch_job_definition L1, redeclared `public readonly` by the
+   * resource-creating subclasses (`EcsJobDefinition`, `MultiNodeJobDefinition`).
+   * Optional because `fromJobDefinitionArn()` Import subclasses create no resource.
+   * Needed here so `toTerraform()` can attach the retry_strategy block at prepare time.
+   */
+  protected readonly resource?: batchJobDefinition.BatchJobDefinition;
 
   public readonly parameters?: { [key: string]: any };
   public readonly retryAttempts?: number;
@@ -282,6 +288,43 @@ export abstract class JobDefinitionBase
   addRetryStrategy(strategy: RetryStrategy): void {
     this.retryStrategies.push(strategy);
   }
+
+  /**
+   * Adds resource to the terraform JSON output.
+   *
+   * called by TerraformStack.prepareStack()
+   *
+   * TERRACONSTRUCTS DEVIATION: attaches the `retry_strategy` block to the underlying
+   * `aws_batch_job_definition` at prepare time -- after every `addRetryStrategy()`
+   * call has landed -- and ONLY when it has content. Rendering it from the constructor
+   * requires a Lazy for the mutable `evaluateOnExit` list, and any token inside the
+   * block keeps an empty `retry_strategy {}` alive in the emitted JSON; AWS never
+   * reads an empty retry strategy back, so that empty block plans an in-place update
+   * on EVERY subsequent plan (perpetual drift, observed live via the
+   * sfn.batch-submit-job integ test's post-apply `tofu plan -detailed-exitcode`
+   * oracle). Plain values at prepare time also let the generated provider mapper do
+   * the camelCase -> snake_case conversion (a Lazy token bypasses it).
+   * Idempotent: `putRetryStrategy` overwrites the same value on re-entrant
+   * `prepareStack()` runs.
+   */
+  public toTerraform(): any {
+    if (
+      this.resource &&
+      (this.retryAttempts !== undefined || this.retryStrategies.length > 0)
+    ) {
+      this.resource.putRetryStrategy({
+        attempts: this.retryAttempts,
+        evaluateOnExit:
+          this.retryStrategies.length === 0
+            ? undefined
+            : this.retryStrategies.map((strategy) => ({
+                action: strategy.action,
+                ...strategy.on,
+              })),
+      });
+    }
+    return {};
+  }
 }
 
 /**
@@ -298,7 +341,7 @@ export abstract class JobDefinitionBase
  */
 export type BaseJobDefinitionProperties = Pick<
   batchJobDefinition.BatchJobDefinitionConfig,
-  "parameters" | "retryStrategy" | "schedulingPriority" | "timeout"
+  "parameters" | "schedulingPriority" | "timeout"
 >;
 
 /**
@@ -309,32 +352,17 @@ export function baseJobDefinitionProperties(
 ): BaseJobDefinitionProperties {
   return {
     parameters: stringifyParameters(baseJobDefinition.parameters),
-    retryStrategy: {
-      attempts: baseJobDefinition.retryAttempts,
-      // NOTE: the `xxxToTerraform` conversion (camelCase -> snake_case) that the generated
-      // `BatchJobDefinition._toTerraform()` normally applies via `cdktn.listMapper()` only runs
-      // against plain arrays -- a `Lazy`-wrapped value is still a token (not `Array.isArray()`)
-      // at that point, so `listMapper` passes it through unmapped and the eventually-resolved
-      // array would keep its camelCase keys. Apply the mapper ourselves inside `produce()`.
-      evaluateOnExit: Lazy.anyValue(
-        {
-          produce: () => {
-            if (baseJobDefinition.retryStrategies.length === 0) {
-              return undefined;
-            }
-            return baseJobDefinition.retryStrategies.map((strategy) =>
-              batchJobDefinition.batchJobDefinitionRetryStrategyEvaluateOnExitToTerraform(
-                {
-                  action: strategy.action,
-                  ...strategy.on,
-                },
-              ),
-            );
-          },
-        },
-        { omitEmptyArray: true },
-      ),
-    },
+    // retry_strategy is intentionally NOT rendered here -- see
+    // JobDefinitionBase.toTerraform(), which puts the block at prepare time only when
+    // it has content. A constructor-time value cannot work: addRetryStrategy() mutates
+    // after construction (forcing a Lazy), but a Lazy token inside the block keeps an
+    // empty `retry_strategy {}` alive past cdktn's empty-block pruning, and AWS never
+    // reads back an empty retry strategy -- so the empty block causes PERPETUAL plan
+    // drift on every applied job definition (caught live by the sfn.batch-submit-job
+    // integ test's post-apply drift oracle). A block-level Lazy fails differently: the
+    // generated BatchJobDefinitionRetryStrategyOutputReference setter destructures
+    // `value.attempts`/`value.evaluateOnExit` with no IResolvable branch, silently
+    // dropping the block.
     schedulingPriority: baseJobDefinition.schedulingPriority,
     timeout: {
       attemptDurationSeconds: baseJobDefinition.timeout?.toSeconds(),

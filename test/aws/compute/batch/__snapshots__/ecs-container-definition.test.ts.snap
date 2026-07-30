@@ -72,8 +72,6 @@ exports[`EcsContainerDefinition Should synth and match SnapShot 1`] = `
         "platform_capabilities": [
           "FARGATE"
         ],
-        "retry_strategy": {
-        },
         "tags": {
           "Name": "Default-ECSJobDefn",
           "grid:EnvironmentName": "Default",
