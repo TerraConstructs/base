@@ -237,10 +237,7 @@ test("JobQueue respects schedulingPolicy", () => {
   const vpc = new Vpc(stack, "vpc");
 
   // WHEN
-  const policy = new batch.FairshareSchedulingPolicy(
-    stack,
-    "FairsharePolicy",
-  );
+  const policy = new batch.FairshareSchedulingPolicy(stack, "FairsharePolicy");
   const ce = new batch.ManagedEc2EcsComputeEnvironment(stack, "CE", {
     vpc,
   });
@@ -287,17 +284,10 @@ test("JobQueue respects addComputeEnvironment", () => {
   const vpc = new Vpc(stack, "vpc");
 
   // WHEN
-  const firstCe = new batch.ManagedEc2EcsComputeEnvironment(
-    stack,
-    "FirstCE",
-    {
-      vpc,
-    },
-  );
-  const policy = new batch.FairshareSchedulingPolicy(
-    stack,
-    "FairsharePolicy",
-  );
+  const firstCe = new batch.ManagedEc2EcsComputeEnvironment(stack, "FirstCE", {
+    vpc,
+  });
+  const policy = new batch.FairshareSchedulingPolicy(stack, "FairsharePolicy");
   const queue = new batch.JobQueue(stack, "JobQueue", {
     computeEnvironments: [
       {
@@ -629,8 +619,7 @@ describe("JobQueue (job-queue.test.ts snapshot)", () => {
           action: batch.JobStateTimeLimitActionsAction.CANCEL,
           maxTime: Duration.minutes(10),
           reason:
-            batch.JobStateTimeLimitActionsReason
-              .INSUFFICIENT_INSTANCE_CAPACITY,
+            batch.JobStateTimeLimitActionsReason.INSUFFICIENT_INSTANCE_CAPACITY,
           state: batch.JobStateTimeLimitActionsState.RUNNABLE,
         },
       ],

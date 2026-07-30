@@ -32,9 +32,7 @@ test("MultiNodeJobDefinition respects mainNode", () => {
           {
             cpu: 256,
             memory: Size.mebibytes(2048),
-            image: ecs.ContainerImage.fromRegistry(
-              "amazon/amazon-ecs-sample",
-            ),
+            image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
           },
         ),
         startNode: 0,
@@ -85,9 +83,7 @@ test("EcsJobDefinition respects propagateTags", () => {
           {
             cpu: 256,
             memory: Size.mebibytes(2048),
-            image: ecs.ContainerImage.fromRegistry(
-              "amazon/amazon-ecs-sample",
-            ),
+            image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
           },
         ),
         startNode: 0,
@@ -119,9 +115,7 @@ test("MultiNodeJobDefinition respects instanceType", () => {
           {
             cpu: 256,
             memory: Size.mebibytes(2048),
-            image: ecs.ContainerImage.fromRegistry(
-              "amazon/amazon-ecs-sample",
-            ),
+            image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
           },
         ),
         startNode: 0,
@@ -170,9 +164,7 @@ test("MultiNodeJobDefinition one container", () => {
           {
             cpu: 256,
             memory: Size.mebibytes(2048),
-            image: ecs.ContainerImage.fromRegistry(
-              "amazon/amazon-ecs-sample",
-            ),
+            image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
           },
         ),
         startNode: 0,
@@ -223,9 +215,7 @@ test("MultiNodeJobDefinition two containers", () => {
           {
             cpu: 256,
             memory: Size.mebibytes(2048),
-            image: ecs.ContainerImage.fromRegistry(
-              "amazon/amazon-ecs-sample",
-            ),
+            image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
           },
         ),
         startNode: 0,
@@ -238,9 +228,7 @@ test("MultiNodeJobDefinition two containers", () => {
           {
             cpu: 512,
             memory: Size.mebibytes(4096),
-            image: ecs.ContainerImage.fromRegistry(
-              "amazon/amazon-ecs-sample",
-            ),
+            image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
           },
         ),
         startNode: 10,

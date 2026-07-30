@@ -1597,13 +1597,13 @@ describe("Fargate containers", () => {
 describe("EcsContainerDefinition", () => {
   test("Should synth and match SnapShot", () => {
     // GIVEN
-    const stack = newStack();
-    new HttpBackend(stack, gridBackendConfig);
+    const snapStack = newStack();
+    new HttpBackend(snapStack, gridBackendConfig);
 
     // WHEN
-    new batch.EcsJobDefinition(stack, "ECSJobDefn", {
+    new batch.EcsJobDefinition(snapStack, "ECSJobDefn", {
       container: new batch.EcsFargateContainerDefinition(
-        stack,
+        snapStack,
         "EcsContainer",
         {
           ...defaultContainerProps,
@@ -1612,8 +1612,8 @@ describe("EcsContainerDefinition", () => {
     });
 
     // THEN
-    stack.prepareStack(); // may generate additional resources
-    expect(Testing.synth(stack)).toMatchSnapshot();
+    snapStack.prepareStack(); // may generate additional resources
+    expect(Testing.synth(snapStack)).toMatchSnapshot();
   });
 });
 

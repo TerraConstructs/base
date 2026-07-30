@@ -1,6 +1,9 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-batch/test/ecs-job-definition.test.ts
 
-import { batchJobDefinition, dataAwsIamPolicyDocument } from "@cdktn/provider-aws";
+import {
+  batchJobDefinition,
+  dataAwsIamPolicyDocument,
+} from "@cdktn/provider-aws";
 import { HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
@@ -290,13 +293,17 @@ describe("EcsJobDefinition", () => {
 
     // WHEN
     new batch.EcsJobDefinition(stack, "JobDefn", {
-      container: new batch.EcsFargateContainerDefinition(stack, "EcsContainer", {
-        cpu: 256,
-        image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
-        memory: Size.mebibytes(2048),
-        fargateCpuArchitecture: ecs.CpuArchitecture.ARM64,
-        fargateOperatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-      }),
+      container: new batch.EcsFargateContainerDefinition(
+        stack,
+        "EcsContainer",
+        {
+          cpu: 256,
+          image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+          memory: Size.mebibytes(2048),
+          fargateCpuArchitecture: ecs.CpuArchitecture.ARM64,
+          fargateOperatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        },
+      ),
     });
 
     // THEN
