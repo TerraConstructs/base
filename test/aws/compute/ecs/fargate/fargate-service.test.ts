@@ -4114,6 +4114,94 @@ describe("fargate service", () => {
     });
   });
 
+  test("Container Insights metrics", () => {
+    // GIVEN
+    const stack = new AwsStack();
+    const vpc = new compute.Vpc(stack, "MyVpc");
+    const cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+    const taskDefinition = new ecs.FargateTaskDefinition(
+      stack,
+      "FargateTaskDef",
+    );
+    taskDefinition.addContainer("Container", {
+      image: ecs.ContainerImage.fromRegistry("hello"),
+    });
+
+    // WHEN
+    const service = new ecs.FargateService(stack, "Service", {
+      cluster,
+      taskDefinition,
+    });
+
+    const dimensions = {
+      ClusterName: stack.resolve(cluster.clusterName),
+      ServiceName: stack.resolve(service.serviceName),
+    };
+
+    // THEN
+    // MemoryUtilized is absolute MiB, unlike the AWS/ECS MemoryUtilization percentage.
+    expect(stack.resolve(service.metricMemoryUtilized())).toEqual({
+      dimensions,
+      namespace: "ECS/ContainerInsights",
+      metricName: "MemoryUtilized",
+      period: Duration.minutes(5),
+      statistic: "Maximum",
+    });
+
+    expect(stack.resolve(service.metricMemoryReserved())).toEqual({
+      dimensions,
+      namespace: "ECS/ContainerInsights",
+      metricName: "MemoryReserved",
+      period: Duration.minutes(5),
+      statistic: "Maximum",
+    });
+
+    expect(stack.resolve(service.metricCpuUtilized())).toEqual({
+      dimensions,
+      namespace: "ECS/ContainerInsights",
+      metricName: "CpuUtilized",
+      period: Duration.minutes(5),
+      statistic: "Maximum",
+    });
+
+    expect(stack.resolve(service.metricCpuReserved())).toEqual({
+      dimensions,
+      namespace: "ECS/ContainerInsights",
+      metricName: "CpuReserved",
+      period: Duration.minutes(5),
+      statistic: "Maximum",
+    });
+
+    // props override the canned statistic and period
+    expect(
+      stack.resolve(
+        service.metricMemoryUtilized({
+          statistic: "Average",
+          period: Duration.minutes(1),
+        }),
+      ),
+    ).toEqual({
+      dimensions,
+      namespace: "ECS/ContainerInsights",
+      metricName: "MemoryUtilized",
+      period: Duration.minutes(1),
+      statistic: "Average",
+    });
+
+    // escape hatch for Container Insights metrics without a canned helper
+    expect(
+      stack.resolve(
+        service.metricContainerInsights("EphemeralStorageUtilized"),
+      ),
+    ).toEqual({
+      dimensions,
+      namespace: "ECS/ContainerInsights",
+      metricName: "EphemeralStorageUtilized",
+      period: Duration.minutes(5),
+      statistic: "Average",
+    });
+  });
+
   describe("When import a Fargate Service", () => {
     test("fromFargateServiceArn old format", () => {
       // GIVEN
