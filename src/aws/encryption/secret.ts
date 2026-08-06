@@ -29,6 +29,7 @@ import {
 } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
 import * as iam from "../iam";
+import { escapeTerraformTemplateLiteral } from "../util";
 
 const SECRET_SYMBOL = Symbol.for("terraconstructs/aws/encryption.Secret");
 
@@ -712,6 +713,11 @@ export class Secret extends SecretBase {
    * conflicting second `AWSCURRENT` version for the same secret.
    */
   private secretVersion?: secretsmanagerSecretVersion.SecretsmanagerSecretVersion;
+  /**
+   * Set by `_markRotationAttached()` when a `RotationSchedule` takes ownership
+   * of this secret's value (see `toTerraform`).
+   */
+  private rotationAttached = false;
 
   protected readonly autoCreatePolicy = true;
   // TODO: Use Ephemeral Resources as soon as Hashicorp decides to update CDKTF T_T
@@ -780,7 +786,17 @@ export class Secret extends SecretBase {
             includeSpace: generateSecretString.includeSpace ?? false,
             requireEachIncludedType:
               generateSecretString.requireEachIncludedType ?? true,
-            excludeCharacters: generateSecretString.excludeCharacters,
+            // TERRACONSTRUCTS DEVIATION: `excludeCharacters` is free text
+            // written into a Terraform resource argument, where `${`/`%{`
+            // are interpreted as template directives -- escape it so
+            // synthesis stays valid Terraform. See
+            // `escapeTerraformTemplateLiteral` in `src/aws/util.ts`.
+            excludeCharacters:
+              generateSecretString.excludeCharacters !== undefined
+                ? escapeTerraformTemplateLiteral(
+                    generateSecretString.excludeCharacters,
+                  )
+                : undefined,
           },
         );
 
@@ -950,8 +966,32 @@ export class Secret extends SecretBase {
    * Mirrors the idempotent `toTerraform()` pattern used by `iam/policy.ts`.
    */
   public toTerraform(): any {
-    this.getOrCreateSecretVersion();
+    const version = this.getOrCreateSecretVersion();
+    // TERRACONSTRUCTS DEVIATION: with a rotation schedule attached, the
+    // rotation Lambda replaces AWSCURRENT out-of-band -- the Terraform-held
+    // initial value is stale by design. Without ignore_changes, the next
+    // `terraform apply` would REPLACE the rotated version with the stale
+    // initial value (clobbering live credentials) and every plan would report
+    // drift. Upstream CloudFormation never reads the value back, so it has no
+    // equivalent problem. Live-verified by integ/aws/encryption
+    // TestSecretRotation's drift oracle.
+    if (this.rotationAttached) {
+      version.addOverride("lifecycle.ignore_changes", [
+        "secret_string",
+        "version_stages",
+      ]);
+    }
     return {};
+  }
+
+  /**
+   * Marks this secret as owned by a rotation schedule so the initial version
+   * stops enforcing its value (see `toTerraform`). Called (duck-typed) by
+   * `RotationSchedule`.
+   * @internal
+   */
+  public _markRotationAttached(): void {
+    this.rotationAttached = true;
   }
 
   /**
@@ -1227,6 +1267,18 @@ export class SecretTargetAttachment
     statement: iam.PolicyStatement,
   ): iam.AddToResourcePolicyResult {
     return this.attachedSecret.addToResourcePolicy(statement);
+  }
+
+  /**
+   * Forwards rotation-ownership marking to the attached secret (rotation
+   * schedules are commonly created on the attachment -- see
+   * `Secret._markRotationAttached`).
+   * @internal
+   */
+  public _markRotationAttached(): void {
+    if (Secret.isSecret(this.attachedSecret)) {
+      (this.attachedSecret as Secret)._markRotationAttached();
+    }
   }
 }
 
