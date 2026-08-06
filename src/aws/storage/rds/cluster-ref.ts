@@ -2,10 +2,7 @@
 
 import type { IClusterEngine } from "./cluster-engine";
 import type { Endpoint } from "./endpoint";
-// TODO: omitted — upstream also imports `DatabaseProxy`/`DatabaseProxyOptions` from `./proxy` for
-// `IDatabaseCluster.addProxy()` below. `./proxy` is not ported in this repo yet — it lands in a
-// later PR (RDS PR 2e), matching the existing barrel deferral in `./index.ts` —
-// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/cluster-ref.ts#L3
+import type { DatabaseProxy, DatabaseProxyOptions } from "./proxy";
 import { IAwsConstruct } from "../../aws-construct";
 import * as ec2 from "../../compute";
 import * as secretsmanager from "../../encryption";
@@ -67,11 +64,10 @@ export interface IDatabaseCluster
    */
   readonly clusterArn: string;
 
-  // TODO: omitted — upstream also declares `addProxy(id, options): DatabaseProxy` here. `DatabaseProxy`
-  // (and the `./proxy` module it lives in) is not ported in this repo yet — it lands in a later PR
-  // (RDS PR 2e), matching the existing barrel deferral in `./index.ts` —
-  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/cluster-ref.ts#L60-L62
-  // addProxy(id: string, options: DatabaseProxyOptions): DatabaseProxy;
+  /**
+   * Add a new db proxy to this cluster.
+   */
+  addProxy(id: string, options: DatabaseProxyOptions): DatabaseProxy;
 
   /**
    * Grant the given identity connection access to the Cluster.
