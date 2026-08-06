@@ -260,7 +260,7 @@ exports[`subnet group creates a subnet group from minimal properties 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

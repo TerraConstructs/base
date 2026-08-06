@@ -3,6 +3,7 @@
 import { Annotations } from "cdktn";
 import type { Construct } from "constructs";
 import { DEFAULT_PASSWORD_EXCLUDE_CHARS } from "./private/util";
+import { Duration } from "../../../duration";
 import { md5hash } from "../../../helpers-internal";
 import { AwsStack } from "../../aws-stack";
 import * as secretsmanager from "../../encryption";
@@ -51,6 +52,20 @@ export interface DatabaseSecretProps {
    * @default " %+~`#$&*()|[]{}:;<>?!'/@\"\\"
    */
   readonly excludeCharacters?: string;
+
+  /**
+   * The number of days that Secrets Manager waits before it can delete the secret.
+   *
+   * TERRACONSTRUCTS DEVIATION: not present upstream (CloudFormation deletes
+   * secrets immediately on stack delete; deletion recovery is a
+   * Terraform-provider concept, `recovery_window_in_days`). Exposed as a
+   * pass-through to `encryption.SecretProps.recoveryWindow` so deterministic
+   * secret names can be re-created promptly (e.g. integ fixtures use
+   * `Duration.days(0)`).
+   *
+   * @default - AWS default of 30 days
+   */
+  readonly recoveryWindow?: Duration;
 
   /**
    * Whether to replace this secret when the criteria for the password change.
@@ -119,6 +134,7 @@ export class DatabaseSecret extends secretsmanager.Secret {
         excludeCharacters,
       },
       replicaRegions: props.replicaRegions,
+      recoveryWindow: props.recoveryWindow,
     });
 
     // TERRACONSTRUCTS DEVIATION: upstream overrides the CFN logical ID so that CloudFormation

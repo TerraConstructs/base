@@ -30,7 +30,7 @@ exports[`parameter group does not create a parameter group if it wasn't bound to
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
