@@ -3,16 +3,7 @@
 import { dbOptionGroup } from "@cdktn/provider-aws";
 import { Lazy } from "cdktn";
 import { Construct } from "constructs";
-// TERRACONSTRUCTS DEVIATION: upstream types `engine` as `IInstanceEngine` from
-// `./instance-engine`. That module (with the full instance engine + version-constant tables)
-// lands in a later PR (RDS PR 2b); this file only reads `engineType`/`engineVersion`, both
-// already present on the narrower `IEngine`, so it is used here as a stand-in. Once
-// `instance-engine.ts` lands, tighten `OptionGroupProps.engine` back to `IInstanceEngine`.
-// NOTE: for jsii consumers that tightening is a source/ABI-BREAKING parameter-type change, so
-// it MUST land in the same (unreleased) minor as this file ships — i.e. within the RDS PR
-// stack (PR 2b), never after a release —
-// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/option-group.ts#L91
-import { IEngine } from "./engine";
+import type { IInstanceEngine } from "./instance-engine";
 import { ValidationError } from "../../../errors";
 import {
   AwsConstructBase,
@@ -103,7 +94,7 @@ export interface OptionGroupProps extends AwsConstructProps {
   /**
    * The database engine that this option group is associated with.
    */
-  readonly engine: IEngine;
+  readonly engine: IInstanceEngine;
 
   /**
    * A description of the option group.

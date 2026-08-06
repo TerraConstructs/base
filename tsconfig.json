@@ -28,7 +28,8 @@
     "types": [
       "jest",
       "mime-types",
-      "node"
+      "node",
+      "semver"
     ],
     "skipLibCheck": true,
     "isolatedModules": true
