@@ -121,6 +121,9 @@ export * as autoscaling from "./auto-scaling";
 // aws-ecs
 export * as ecs from "./ecs";
 
+// aws-batch
+export * as batch from "./batch";
+
 // temp export, required by base types
 export * from "./lb-shared/grid-lookup-types";
 export * from "./lb-shared/base-listener";

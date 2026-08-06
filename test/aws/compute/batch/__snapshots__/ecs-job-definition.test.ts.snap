@@ -1,0 +1,232 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EcsJobDefinition Should synth and match SnapShot for EC2 container 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "EcsContainer_ExecutionRole_AssumeRolePolicy_7A8AA016": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "EcsContainer_ExecutionRole_DefaultPolicy_9809842A": {
+        "statement": [
+          {
+            "actions": [
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "arn:\${data.aws_partition.Partitition.partition}:logs:\${data.aws_region.Region.name}:\${data.aws_caller_identity.CallerIdentity.account_id}:log-group:/aws/batch/job:*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_batch_job_definition": {
+      "JobDefn_A747EE6E": {
+        "container_properties": "{\\"image\\":\\"amazon/amazon-ecs-sample\\",\\"environment\\":[],\\"executionRoleArn\\":\\"\${aws_iam_role.EcsContainer_ExecutionRole_3B199293.arn}\\",\\"readonlyRootFilesystem\\":false,\\"resourceRequirements\\":[{\\"type\\":\\"MEMORY\\",\\"value\\":\\"2048\\"},{\\"type\\":\\"VCPU\\",\\"value\\":\\"256\\"}]}",
+        "name": "gTestStack553BDD39-TestStackJobDefn94988875",
+        "platform_capabilities": [
+          "EC2"
+        ],
+        "propagate_tags": true,
+        "tags": {
+          "Name": "Default-JobDefn",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "type": "container"
+      }
+    },
+    "aws_iam_role": {
+      "EcsContainer_ExecutionRole_3B199293": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.EcsContainer_ExecutionRole_AssumeRolePolicy_7A8AA016.json}",
+        "name_prefix": "gTestStack553BDD39-tainerExecutionRole",
+        "tags": {
+          "Name": "Default-ExecutionRole",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "EcsContainer_ExecutionRole_DefaultPolicy_ResourceRoles0_F479FC9D": {
+        "name": "TestStackEcsContainerExecutionRoleDefaultPolicy38F01257",
+        "policy": "\${data.aws_iam_policy_document.EcsContainer_ExecutionRole_DefaultPolicy_9809842A.json}",
+        "role": "\${aws_iam_role.EcsContainer_ExecutionRole_3B199293.name}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`EcsJobDefinition Should synth and match SnapShot for Fargate container with runtimePlatform 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "EcsContainer_ExecutionRole_AssumeRolePolicy_7A8AA016": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "EcsContainer_ExecutionRole_DefaultPolicy_9809842A": {
+        "statement": [
+          {
+            "actions": [
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "arn:\${data.aws_partition.Partitition.partition}:logs:\${data.aws_region.Region.name}:\${data.aws_caller_identity.CallerIdentity.account_id}:log-group:/aws/batch/job:*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_ecs-tasks": {
+        "service_name": "ecs-tasks"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+      }
+    ]
+  },
+  "resource": {
+    "aws_batch_job_definition": {
+      "JobDefn_A747EE6E": {
+        "container_properties": "{\\"image\\":\\"amazon/amazon-ecs-sample\\",\\"environment\\":[],\\"executionRoleArn\\":\\"\${aws_iam_role.EcsContainer_ExecutionRole_3B199293.arn}\\",\\"readonlyRootFilesystem\\":false,\\"resourceRequirements\\":[{\\"type\\":\\"MEMORY\\",\\"value\\":\\"2048\\"},{\\"type\\":\\"VCPU\\",\\"value\\":\\"256\\"}],\\"fargatePlatformConfiguration\\":{},\\"networkConfiguration\\":{\\"assignPublicIp\\":\\"DISABLED\\"},\\"runtimePlatform\\":{\\"cpuArchitecture\\":\\"ARM64\\",\\"operatingSystemFamily\\":\\"LINUX\\"}}",
+        "name": "gTestStack553BDD39-TestStackJobDefn94988875",
+        "platform_capabilities": [
+          "FARGATE"
+        ],
+        "tags": {
+          "Name": "Default-JobDefn",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        },
+        "type": "container"
+      }
+    },
+    "aws_iam_role": {
+      "EcsContainer_ExecutionRole_3B199293": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.EcsContainer_ExecutionRole_AssumeRolePolicy_7A8AA016.json}",
+        "name_prefix": "gTestStack553BDD39-tainerExecutionRole",
+        "tags": {
+          "Name": "Default-ExecutionRole",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "gTestStack553BDD39"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "EcsContainer_ExecutionRole_DefaultPolicy_ResourceRoles0_F479FC9D": {
+        "name": "TestStackEcsContainerExecutionRoleDefaultPolicy38F01257",
+        "policy": "\${data.aws_iam_policy_document.EcsContainer_ExecutionRole_DefaultPolicy_9809842A.json}",
+        "role": "\${aws_iam_role.EcsContainer_ExecutionRole_3B199293.name}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;

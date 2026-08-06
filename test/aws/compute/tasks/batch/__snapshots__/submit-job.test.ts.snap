@@ -1,0 +1,141 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`BatchSubmitJob synth BatchSubmitJob synthesizes and matches snapshot 1`] = `
+{
+  "policyDocuments": {
+    "ComputeEnv_InstanceProfileRole_AssumeRolePolicy_B1C16A1D": {
+      "statement": [
+        {
+          "actions": [
+            "sts:AssumeRole",
+          ],
+          "effect": "Allow",
+          "principals": [
+            {
+              "identifiers": [
+                "\${data.aws_service_principal.aws_svcp_default_region_ec2.name}",
+              ],
+              "type": "Service",
+            },
+          ],
+        },
+      ],
+    },
+    "Container_ExecutionRole_AssumeRolePolicy_FBB2FE98": {
+      "statement": [
+        {
+          "actions": [
+            "sts:AssumeRole",
+          ],
+          "effect": "Allow",
+          "principals": [
+            {
+              "identifiers": [
+                "\${data.aws_service_principal.aws_svcp_default_region_ecs-tasks.name}",
+              ],
+              "type": "Service",
+            },
+          ],
+        },
+      ],
+    },
+    "Container_ExecutionRole_DefaultPolicy_16BEB772": {
+      "statement": [
+        {
+          "actions": [
+            "logs:CreateLogStream",
+            "logs:PutLogEvents",
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:\${data.aws_partition.Partitition.partition}:logs:\${data.aws_region.Region.name}:\${data.aws_caller_identity.CallerIdentity.account_id}:log-group:/aws/batch/job:*",
+          ],
+        },
+      ],
+    },
+    "StateMachine_Role_AssumeRolePolicy_8578B18E": {
+      "statement": [
+        {
+          "actions": [
+            "sts:AssumeRole",
+          ],
+          "effect": "Allow",
+          "principals": [
+            {
+              "identifiers": [
+                "\${data.aws_service_principal.aws_svcp_default_region_states.name}",
+              ],
+              "type": "Service",
+            },
+          ],
+        },
+      ],
+    },
+    "StateMachine_Role_DefaultPolicy_536E7ACB": {
+      "statement": [
+        {
+          "actions": [
+            "batch:SubmitJob",
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:\${data.aws_partition.Partitition.partition}:batch:\${data.aws_region.Region.name}:\${data.aws_caller_identity.CallerIdentity.account_id}:job-definition/*",
+            "\${aws_batch_job_queue.JobQueue_EE3AD499.arn}",
+          ],
+        },
+        {
+          "actions": [
+            "batch:DescribeJobs",
+            "batch:TerminateJob",
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*",
+          ],
+        },
+        {
+          "actions": [
+            "events:PutTargets",
+            "events:PutRule",
+            "events:DescribeRule",
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:\${data.aws_partition.Partitition.partition}:events:\${data.aws_region.Region.name}:\${data.aws_caller_identity.CallerIdentity.account_id}:rule/StepFunctionsGetEventsForBatchJobsRule",
+          ],
+        },
+      ],
+    },
+  },
+  "rolePolicies": {
+    "Container_ExecutionRole_DefaultPolicy_ResourceRoles0_AF9A8628": {
+      "name": "TestStackContainerExecutionRoleDefaultPolicy59D076EB",
+      "policy": "\${data.aws_iam_policy_document.Container_ExecutionRole_DefaultPolicy_16BEB772.json}",
+      "role": "\${aws_iam_role.Container_ExecutionRole_65F36CD2.name}",
+    },
+    "StateMachine_Role_DefaultPolicy_ResourceRoles0_0500EB10": {
+      "name": "TestStackStateMachineRoleDefaultPolicyB6697D4B",
+      "policy": "\${data.aws_iam_policy_document.StateMachine_Role_DefaultPolicy_536E7ACB.json}",
+      "role": "\${aws_iam_role.StateMachine_Role_B840431D.name}",
+    },
+  },
+  "stateMachine": {
+    "StateMachine_2E01A3A5": {
+      "definition": "{"StartAt":"Task","States":{"Task":{"End":true,"Type":"Task","Resource":"arn:\${data.aws_partition.Partitition.partition}:states:::batch:submitJob.sync","Parameters":{"JobDefinition":"\${aws_batch_job_definition.JobDefinition_24FFE3ED.arn}","JobName":"JobName","JobQueue":"\${aws_batch_job_queue.JobQueue_EE3AD499.arn}"}}}}",
+      "depends_on": [
+        "data.aws_iam_policy_document.StateMachine_Role_AssumeRolePolicy_8578B18E",
+        "aws_iam_role.StateMachine_Role_B840431D",
+        "data.aws_iam_policy_document.StateMachine_Role_DefaultPolicy_536E7ACB",
+        "aws_iam_role_policy.StateMachine_Role_DefaultPolicy_ResourceRoles0_0500EB10",
+      ],
+      "name_prefix": "gTestStack553BDD39-TestStackStateMachine",
+      "role_arn": "\${aws_iam_role.StateMachine_Role_B840431D.arn}",
+      "tags": {
+        "Name": "Default-StateMachine",
+        "grid:EnvironmentName": "Default",
+        "grid:UUID": "gTestStack553BDD39",
+      },
+    },
+  },
+}
+`;
