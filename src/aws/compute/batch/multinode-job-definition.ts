@@ -323,24 +323,32 @@ export class MultiNodeJobDefinition
   }
 }
 
-// With the topology validated (contiguous, non-overlapping ranges starting at node 0 -
-// see validateContainers), the sum of inclusive range lengths equals highestEndNode + 1.
+// AWS Batch permits NESTED node ranges (e.g. 0:10 plus 4:5, where the nested range
+// overrides properties of the enclosing one -
+// https://docs.aws.amazon.com/batch/latest/APIReference/API_NodeRangeProperty.html), so
+// numNodes is the highest covered node index + 1 - NOT the sum of inclusive range
+// lengths (upstream's calculation, which double-counts overridden nodes: 0:10 + 4:5
+// would yield 13 for an 11-node job). Requires the topology validated by
+// validateContainers (complete coverage from node 0).
 function computeNumNodes(containers: MultiNodeContainer[]) {
-  let result = 0;
-
+  let highestEndNode = 0;
   for (const container of containers) {
-    result += container.endNode - container.startNode + 1;
+    highestEndNode = Math.max(highestEndNode, container.endNode);
   }
-
-  return result;
+  return highestEndNode + 1;
 }
 
-// TERRACONSTRUCTS DEVIATION: upstream only checks the containers array is non-empty, so
-// gapped ranges undercount numNodes relative to the highest node index, overlapping ranges
-// overcount, inverted ranges can even produce a negative numNodes, and mainNode is never
-// checked - all deferring a malformed node_properties failure to Terraform/AWS. Validate
-// the full topology (non-negative ordered ranges, no overlaps or gaps, coverage from node
-// 0, mainNode within range) so numNodes is derived from a consistent topology.
+// TERRACONSTRUCTS DEVIATION: upstream only checks the containers array is non-empty,
+// deferring malformed node_properties failures to Terraform/AWS. Validated here (run at
+// synth over the CURRENT array contents, so post-construction mutation of the public
+// `containers` array cannot bypass any check):
+// - every range well-formed (integers, startNode >= 0, endNode >= startNode);
+// - no EcsFargateContainerDefinition (AWS Batch multi-node is EC2-only; construction and
+//   addContainer() reject eagerly, this re-checks lazily-read state);
+// - at most 5 node groups (https://docs.aws.amazon.com/batch/latest/userguide/mnp-node-groups.html);
+// - COMPLETE coverage from node 0 with no gaps - nested/overlapping ranges are ALLOWED
+//   (AWS-supported property overrides);
+// - mainNode within the covered range.
 function validateContainers(
   containers: MultiNodeContainer[],
   mainNode: number,
@@ -350,7 +358,12 @@ function validateContainers(
   }
 
   const errors: string[] = [];
-  for (const { startNode, endNode } of containers) {
+  if (containers.length > 5) {
+    errors.push(
+      `multinode jobs support no more than five node groups, got ${containers.length}`,
+    );
+  }
+  for (const { startNode, endNode, container } of containers) {
     if (!Number.isInteger(startNode) || !Number.isInteger(endNode)) {
       errors.push(
         `node range ${startNode}:${endNode} is invalid - startNode and endNode must be integers`,
@@ -364,32 +377,33 @@ function validateContainers(
         `node range ${startNode}:${endNode} is invalid - endNode must be >= startNode`,
       );
     }
+    if (container instanceof EcsFargateContainerDefinition) {
+      errors.push(
+        `container for nodes ${startNode}:${endNode} is an EcsFargateContainerDefinition, but AWS Batch multi-node parallel jobs support only EC2 - use EcsEc2ContainerDefinition instead`,
+      );
+    }
   }
   if (errors.length > 0) {
     return errors;
   }
 
+  // Coverage sweep: sorted by startNode, every node from 0 to the highest endNode must
+  // be covered by at least one range (frontier tracking); overlaps are permitted.
   const sorted = [...containers].sort((a, b) => a.startNode - b.startNode);
-  if (sorted[0].startNode !== 0) {
-    errors.push(
-      `node ranges must start at node 0, but the lowest range starts at node ${sorted[0].startNode}`,
-    );
-  }
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1];
-    const curr = sorted[i];
-    if (curr.startNode <= prev.endNode) {
+  let frontier = -1;
+  for (const { startNode, endNode } of sorted) {
+    if (startNode > frontier + 1) {
       errors.push(
-        `node ranges ${prev.startNode}:${prev.endNode} and ${curr.startNode}:${curr.endNode} overlap`,
+        frontier < 0
+          ? `node ranges must start at node 0, but the lowest range starts at node ${startNode}`
+          : `nodes ${frontier + 1}..${startNode - 1} are not covered by any range - ranges must cover every node`,
       );
-    } else if (curr.startNode !== prev.endNode + 1) {
-      errors.push(
-        `node ranges ${prev.startNode}:${prev.endNode} and ${curr.startNode}:${curr.endNode} leave a gap - ranges must cover every node exactly once`,
-      );
+      break;
     }
+    frontier = Math.max(frontier, endNode);
   }
 
-  const highestEndNode = sorted[sorted.length - 1].endNode;
+  const highestEndNode = sorted.reduce((max, c) => Math.max(max, c.endNode), 0);
   if (
     !Number.isInteger(mainNode) ||
     mainNode < 0 ||

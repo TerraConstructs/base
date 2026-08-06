@@ -491,16 +491,69 @@ describe("multinode node-range topology validation", () => {
         { startNode: 0, endNode: 3 },
         { startNode: 8, endNode: 10 },
       ]),
-    ).toThrow(/leave a gap/);
+    ).toThrow(/are not covered by any range/);
   });
 
-  test("rejects overlapping ranges", () => {
+  test("accepts AWS-supported nested override ranges and derives numNodes from the covered topology", () => {
+    // https://docs.aws.amazon.com/batch/latest/APIReference/API_NodeRangeProperty.html:
+    // a nested range (4:5 inside 0:10) overrides properties of the enclosing range.
+    // numNodes must be 11 (highest node + 1), not 13 (upstream's sum of lengths).
+    const stack = getAwsStack();
+    new batch.MultiNodeJobDefinition(stack, "ECSJobDefn", {
+      containers: [
+        { container: ec2Container(stack, "Outer"), startNode: 0, endNode: 10 },
+        { container: ec2Container(stack, "Nested"), startNode: 4, endNode: 5 },
+      ],
+    });
+    Template.fromStack(stack, { runValidations: true });
+
+    const jobDefn = batchJobDefinitionsFor(stack)[0];
+    const nodeProperties = JSON.parse(jobDefn.node_properties);
+    expect(nodeProperties.numNodes).toEqual(11);
     expect(
-      synthWithRanges([
-        { startNode: 0, endNode: 5 },
-        { startNode: 3, endNode: 8 },
-      ]),
-    ).toThrow(/overlap/);
+      nodeProperties.nodeRangeProperties.map((n: any) => n.targetNodes),
+    ).toEqual(["0:10", "4:5"]);
+  });
+
+  test("rejects more than five node groups (AWS limit); accepts exactly five", () => {
+    // https://docs.aws.amazon.com/batch/latest/userguide/mnp-node-groups.html
+    const five = Array.from({ length: 5 }, (_, i) => ({
+      startNode: i,
+      endNode: i,
+    }));
+    synthWithRanges(five)();
+
+    const six = Array.from({ length: 6 }, (_, i) => ({
+      startNode: i,
+      endNode: i,
+    }));
+    expect(synthWithRanges(six)).toThrow(
+      /no more than five node groups, got 6/,
+    );
+  });
+
+  test("re-validates at synth: Fargate container pushed directly onto the public containers array is rejected", () => {
+    // the eager constructor/addContainer guards can be bypassed by mutating the
+    // public mutable array - synth-time validation over the current contents
+    // must still catch it.
+    const stack = getAwsStack();
+    const jobDefn = new batch.MultiNodeJobDefinition(stack, "ECSJobDefn", {
+      containers: [
+        { container: ec2Container(stack, "Ec2Ctr"), startNode: 0, endNode: 9 },
+      ],
+    });
+    jobDefn.containers.push({
+      container: new batch.EcsFargateContainerDefinition(stack, "FargateCtr", {
+        cpu: 256,
+        memory: Size.mebibytes(2048),
+        image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+      }),
+      startNode: 10,
+      endNode: 14,
+    });
+    expect(() => Template.fromStack(stack, { runValidations: true })).toThrow(
+      /multi-node parallel jobs support only EC2/,
+    );
   });
 
   test("rejects inverted ranges", () => {
