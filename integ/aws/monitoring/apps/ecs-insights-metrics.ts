@@ -3,8 +3,10 @@
 //
 // Extended beyond the upstream test (which only asserts the cluster setting): each
 // `ECS/ContainerInsights` canned metric on BaseService creates a CloudWatch alarm, so
-// the Go validation can read the monitors back and verify namespace, metric name,
-// dimensions, statistic, and period against what Container Insights actually emits.
+// the Go validation can read the deployed monitors back and verify their configured
+// namespace, metric name, dimensions, statistic, and period. It validates the deployed
+// cluster setting and alarm configuration, not runtime metric publication — CloudWatch
+// accepts alarms on metric/dimension combinations that have not emitted data yet.
 
 import { App, LocalBackend, TerraformOutput } from "cdktn";
 import { aws } from "../../../../src";
@@ -105,7 +107,7 @@ const cpuReservedAlarm = service
 const ephemeralStorageAlarm = service
   .metricContainerInsights("EphemeralStorageUtilized")
   .createAlarm(stack, "EphemeralStorageAlarm", {
-    threshold: 20 * 1024, // MiB (20 GiB is the Fargate default ephemeral storage size)
+    threshold: 20, // GB — EphemeralStorageUtilized is reported in GB; Fargate's default capacity is 20 GB
     evaluationPeriods: 1,
   });
 
