@@ -1,0 +1,289 @@
+// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/private/util.ts
+
+import { Construct } from "constructs";
+// TODO: omitted — `renderCredentials`/`renderSnapshotCredentials` below (which construct one) are
+// commented out because they route through `Credentials.fromSecret`/`SnapshotCredentials.fromSecret`
+// in `../props`, which are themselves commented out (depend on `ISecret.secretValueFromJson`, not
+// ported in this repo). Reinstate this import alongside those.
+// — https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/private/util.ts#L8
+// import { DatabaseSecret } from "../database-secret";
+import { ValidationError } from "../../../../errors";
+import * as ec2 from "../../../compute";
+import * as iam from "../../../iam";
+import type { IBucket } from "../../bucket";
+import type { IEngine } from "../engine";
+import type {
+  CommonRotationUserOptions,
+  Credentials,
+  SnapshotCredentials,
+} from "../props";
+
+/**
+ * The default set of characters we exclude from generated passwords for database users.
+ * It's a combination of characters that have a tendency to cause problems in shell scripts,
+ * some engine-specific characters (for example, Oracle doesn't like '@' in its passwords),
+ * and some that trip up other services, like DMS.
+ *
+ * This constant is private to the RDS module.
+ */
+export const DEFAULT_PASSWORD_EXCLUDE_CHARS = " %+~`#$&*()|[]{}:;<>?!'/@\"\\";
+
+/** Common base of `DatabaseInstanceProps` and `DatabaseClusterBaseProps` that has only the S3 props */
+export interface DatabaseS3ImportExportProps {
+  readonly s3ImportRole?: iam.IRole;
+  readonly s3ImportBuckets?: IBucket[];
+  readonly s3ExportRole?: iam.IRole;
+  readonly s3ExportBuckets?: IBucket[];
+}
+
+/**
+ * Validates the S3 import/export props and returns the import/export roles, if any.
+ * If `combineRoles` is true, will reuse the import role for export (or vice versa) if possible.
+ *
+ * Notably, `combineRoles` is set to true for instances, but false for clusters.
+ * This is because the `combineRoles` functionality is most applicable to instances and didn't exist
+ * for the initial clusters implementation. To maintain backwards compatibility, it is set to false for clusters.
+ */
+export function setupS3ImportExport(
+  scope: Construct,
+  props: DatabaseS3ImportExportProps,
+  combineRoles: boolean,
+): { s3ImportRole?: iam.IRole; s3ExportRole?: iam.IRole } {
+  let s3ImportRole = props.s3ImportRole;
+  let s3ExportRole = props.s3ExportRole;
+
+  if (props.s3ImportBuckets && props.s3ImportBuckets.length > 0) {
+    if (props.s3ImportRole) {
+      throw new ValidationError(
+        "Only one of s3ImportRole or s3ImportBuckets must be specified, not both.",
+        scope,
+      );
+    }
+
+    s3ImportRole =
+      combineRoles && s3ExportRole
+        ? s3ExportRole
+        : new iam.Role(scope, "S3ImportRole", {
+            assumedBy: new iam.ServicePrincipal("rds.amazonaws.com"),
+          });
+    for (const bucket of props.s3ImportBuckets) {
+      bucket.grantRead(s3ImportRole);
+    }
+  }
+
+  if (props.s3ExportBuckets && props.s3ExportBuckets.length > 0) {
+    if (props.s3ExportRole) {
+      throw new ValidationError(
+        "Only one of s3ExportRole or s3ExportBuckets must be specified, not both.",
+        scope,
+      );
+    }
+
+    s3ExportRole =
+      combineRoles && s3ImportRole
+        ? s3ImportRole
+        : new iam.Role(scope, "S3ExportRole", {
+            assumedBy: new iam.ServicePrincipal("rds.amazonaws.com"),
+          });
+    for (const bucket of props.s3ExportBuckets) {
+      bucket.grantReadWrite(s3ExportRole);
+    }
+  }
+
+  return { s3ImportRole, s3ExportRole };
+}
+
+export function engineDescription(engine: IEngine) {
+  return (
+    engine.engineType +
+    (engine.engineVersion?.fullVersion
+      ? `-${engine.engineVersion.fullVersion}`
+      : "")
+  );
+}
+
+/**
+ * By default, deletion protection is disabled.
+ * Enable if explicitly provided or if the RemovalPolicy has been set to RETAIN
+ *
+ * TERRACONSTRUCTS DEVIATION: upstream also accepts a `removalPolicy?: core.RemovalPolicy` and
+ * implies deletion protection when it is `RETAIN`. `core.RemovalPolicy` is not ported in this repo
+ * (see `notify/queue.ts` / `encryption/secret.ts` for the same omission), so that fallback is
+ * dropped and only the explicit `deletionProtection` flag is honored.
+ */
+export function defaultDeletionProtection(
+  deletionProtection?: boolean,
+): boolean | undefined {
+  return deletionProtection;
+}
+
+/**
+ * Validates that credentials used with manageMasterUserPassword don't include unsupported properties.
+ * When RDS manages the master password, only 'username' and 'encryptionKey' are allowed.
+ */
+export function validateManagedPasswordCredentials(
+  scope: Construct,
+  credentials?: Credentials,
+): void {
+  const unsupportedProps = [
+    credentials?.excludeCharacters && "excludeCharacters",
+    credentials?.password && "password",
+    credentials?.replicaRegions && "replicaRegions",
+    credentials?.secret && "secret",
+    credentials?.secretName && "secretName",
+    credentials?.usernameAsString && "usernameAsString",
+  ].filter(Boolean);
+
+  if (unsupportedProps.length > 0) {
+    throw new ValidationError(
+      "When manageMasterUserPassword is enabled, only 'username' and 'encryptionKey' are allowed in credentials. " +
+        `Found unsupported properties: ${unsupportedProps.join(", ")}.`,
+      scope,
+    );
+  }
+}
+
+/**
+ * Validates that snapshot credentials used with manageMasterUserPassword don't include unsupported properties.
+ * When RDS manages the master password, only 'username' and 'encryptionKey' are allowed.
+ */
+export function validateManagedPasswordSnapshotCredentials(
+  scope: Construct,
+  snapshotCredentials?: SnapshotCredentials,
+): void {
+  const unsupportedProps = [
+    snapshotCredentials?.excludeCharacters && "excludeCharacters",
+    snapshotCredentials?.generatePassword && "generatePassword",
+    snapshotCredentials?.password && "password",
+    snapshotCredentials?.replaceOnPasswordCriteriaChanges &&
+      "replaceOnPasswordCriteriaChanges",
+    snapshotCredentials?.replicaRegions && "replicaRegions",
+    snapshotCredentials?.secret && "secret",
+  ].filter(Boolean);
+
+  if (unsupportedProps.length > 0) {
+    throw new ValidationError(
+      "When manageMasterUserPassword is enabled, only 'username' and 'encryptionKey' are allowed in snapshotCredentials. " +
+        `Found unsupported properties: ${unsupportedProps.join(", ")}.`,
+      scope,
+    );
+  }
+}
+
+// TODO: omitted — depends on `Credentials.fromSecret` in `../props`, which is commented out there
+// (it in turn depends on `ISecret.secretValueFromJson`, not ported in this repo — see the
+// TERRACONSTRUCTS DEVIATION note on `ISecret` in `../../encryption/secret.ts`). Reinstate this
+// alongside `Credentials.fromSecret` once that capability lands.
+// — https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/private/util.ts#L135-L159
+// /**
+//  * Renders the credentials for an instance or cluster
+//  */
+// export function renderCredentials(
+//   scope: Construct,
+//   engine: IEngine,
+//   credentials?: Credentials,
+// ): Credentials {
+//   let renderedCredentials =
+//     credentials ?? Credentials.fromUsername(engine.defaultUsername ?? "admin"); // For backwards compatibilty
+//
+//   if (!renderedCredentials.secret && !renderedCredentials.password) {
+//     renderedCredentials = Credentials.fromSecret(
+//       new DatabaseSecret(scope, "Secret", {
+//         username: renderedCredentials.username,
+//         secretName: renderedCredentials.secretName,
+//         encryptionKey: renderedCredentials.encryptionKey,
+//         excludeCharacters: renderedCredentials.excludeCharacters,
+//         // if username must be referenced as a string we can safely replace the
+//         // secret when customization options are changed without risking a replacement
+//         replaceOnPasswordCriteriaChanges: credentials?.usernameAsString,
+//         replicaRegions: renderedCredentials.replicaRegions,
+//       }),
+//       // pass username if it must be referenced as a string
+//       credentials?.usernameAsString ? renderedCredentials.username : undefined,
+//     );
+//   }
+//
+//   return renderedCredentials;
+// }
+
+// TODO: omitted — depends on `SnapshotCredentials.fromSecret` in `../props`, which is commented out
+// there (it in turn depends on `ISecret.secretValueFromJson`, not ported in this repo — see the
+// TERRACONSTRUCTS DEVIATION note on `ISecret` in `../../encryption/secret.ts`). Reinstate this
+// alongside `SnapshotCredentials.fromSecret` once that capability lands.
+// — https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/private/util.ts#L161-L185
+// /**
+//  * Renders the credentials for an instance or cluster using provided snapshot credentials
+//  */
+// export function renderSnapshotCredentials(
+//   scope: Construct,
+//   credentials?: SnapshotCredentials,
+// ) {
+//   let renderedCredentials = credentials;
+//
+//   let secret = renderedCredentials?.secret;
+//   if (!secret && renderedCredentials?.generatePassword) {
+//     if (!renderedCredentials.username) {
+//       throw new ValidationError(
+//         "`snapshotCredentials` `username` must be specified when `generatePassword` is set to true",
+//         scope,
+//       );
+//     }
+//
+//     renderedCredentials = SnapshotCredentials.fromSecret(
+//       new DatabaseSecret(scope, "SnapshotSecret", {
+//         username: renderedCredentials.username,
+//         encryptionKey: renderedCredentials.encryptionKey,
+//         excludeCharacters: renderedCredentials.excludeCharacters,
+//         replaceOnPasswordCriteriaChanges:
+//           renderedCredentials.replaceOnPasswordCriteriaChanges,
+//         replicaRegions: renderedCredentials.replicaRegions,
+//       }),
+//     );
+//   }
+//
+//   return renderedCredentials;
+// }
+
+// TODO: omitted — depends on `core.RemovalPolicy`, which is not ported in this repo (see
+// `notify/queue.ts` / `encryption/secret.ts` for the same omission). There is no substitute value
+// to fall back to here (unlike `defaultDeletionProtection` above), so this helper is dropped
+// entirely; callers should decide subnet-group/instance removal behavior directly.
+// — https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/private/util.ts#L187-L203
+// /**
+//  * The RemovalPolicy that should be applied to a "helper" resource, if the base resource has the given removal policy
+//  *
+//  * - For Clusters, this determines the RemovalPolicy for Instances/SubnetGroups.
+//  * - For Instances, this determines the RemovalPolicy for SubnetGroups.
+//  *
+//  * If the basePolicy is:
+//  *
+//  *  DESTROY or SNAPSHOT -> DESTROY (snapshot is good enough to recreate)
+//  *  RETAIN              -> RETAIN  (anything else will lose data or fail to deploy)
+//  *  (undefined)         -> DESTROY (base policy is assumed to be SNAPSHOT)
+//  */
+// export function helperRemovalPolicy(basePolicy?: RemovalPolicy): RemovalPolicy {
+//   return basePolicy === RemovalPolicy.RETAIN
+//     ? RemovalPolicy.RETAIN
+//     : RemovalPolicy.DESTROY;
+// }
+
+/**
+ * Return a given value unless it's the same as another value
+ */
+export function renderUnless<A>(value: A, suppressValue: A): A | undefined {
+  return value === suppressValue ? undefined : value;
+}
+
+/**
+ * Applies defaults for rotation options
+ */
+export function applyDefaultRotationOptions(
+  options: CommonRotationUserOptions,
+  defaultvpcSubnets?: ec2.SubnetSelection,
+): CommonRotationUserOptions {
+  return {
+    excludeCharacters: DEFAULT_PASSWORD_EXCLUDE_CHARS,
+    vpcSubnets: defaultvpcSubnets,
+    ...options,
+  };
+}

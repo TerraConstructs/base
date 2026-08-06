@@ -1,0 +1,172 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`setupS3ImportExport creates separate import/export roles by default and grants bucket access 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "S3ExportRole_AssumeRolePolicy_C0FB376B": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_rds.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "S3ExportRole_DefaultPolicy_7257BF3B": {
+        "statement": [
+          {
+            "actions": [
+              "s3:GetObject*",
+              "s3:GetBucket*",
+              "s3:List*",
+              "s3:DeleteObject*",
+              "s3:PutObject",
+              "s3:PutObjectLegalHold",
+              "s3:PutObjectRetention",
+              "s3:PutObjectTagging",
+              "s3:PutObjectVersionTagging",
+              "s3:Abort*"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "\${aws_s3_bucket.ExportBucket_4E99310E.arn}",
+              "\${aws_s3_bucket.ExportBucket_4E99310E.arn}/*"
+            ]
+          }
+        ]
+      },
+      "S3ImportRole_AssumeRolePolicy_2983AFF6": {
+        "statement": [
+          {
+            "actions": [
+              "sts:AssumeRole"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${data.aws_service_principal.aws_svcp_default_region_rds.name}"
+                ],
+                "type": "Service"
+              }
+            ]
+          }
+        ]
+      },
+      "S3ImportRole_DefaultPolicy_7ACE45F7": {
+        "statement": [
+          {
+            "actions": [
+              "s3:GetObject*",
+              "s3:GetBucket*",
+              "s3:List*"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "\${aws_s3_bucket.ImportBucket_BAF3A8E9.arn}",
+              "\${aws_s3_bucket.ImportBucket_BAF3A8E9.arn}/*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_service_principal": {
+      "aws_svcp_default_region_rds": {
+        "service_name": "rds"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_iam_role": {
+      "S3ExportRole_9C11D7D4": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.S3ExportRole_AssumeRolePolicy_C0FB376B.json}",
+        "name_prefix": "a123e4567-e89b-12d3MyStackS3ExportRole",
+        "tags": {
+          "Name": "Test-S3ExportRole",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "a123e4567-e89b-12d3"
+        }
+      },
+      "S3ImportRole_7DB4B537": {
+        "assume_role_policy": "\${data.aws_iam_policy_document.S3ImportRole_AssumeRolePolicy_2983AFF6.json}",
+        "name_prefix": "a123e4567-e89b-12d3MyStackS3ImportRole",
+        "tags": {
+          "Name": "Test-S3ImportRole",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "a123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_iam_role_policy": {
+      "S3ExportRole_DefaultPolicy_ResourceRoles0_5368BE27": {
+        "name": "MyStackS3ExportRoleDefaultPolicy218004A4",
+        "policy": "\${data.aws_iam_policy_document.S3ExportRole_DefaultPolicy_7257BF3B.json}",
+        "role": "\${aws_iam_role.S3ExportRole_9C11D7D4.name}"
+      },
+      "S3ImportRole_DefaultPolicy_ResourceRoles0_F1C7FC84": {
+        "name": "MyStackS3ImportRoleDefaultPolicyAE5CCCD6",
+        "policy": "\${data.aws_iam_policy_document.S3ImportRole_DefaultPolicy_7ACE45F7.json}",
+        "role": "\${aws_iam_role.S3ImportRole_7DB4B537.name}"
+      }
+    },
+    "aws_s3_bucket": {
+      "ExportBucket_4E99310E": {
+        "bucket_prefix": "a123e4567-e89b-12dystackexportbucket",
+        "tags": {
+          "Name": "Test-ExportBucket",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "a123e4567-e89b-12d3"
+        }
+      },
+      "ImportBucket_BAF3A8E9": {
+        "bucket_prefix": "a123e4567-e89b-12dystackimportbucket",
+        "tags": {
+          "Name": "Test-ImportBucket",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "a123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
