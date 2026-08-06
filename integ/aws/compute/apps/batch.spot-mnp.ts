@@ -10,7 +10,7 @@
 //     (https://docs.aws.amazon.com/batch/latest/userguide/mnp-node-groups.html) deploys.
 // No jobs are submitted - the compute environment stays at 0 instances (minvCpus 0).
 
-import { App, LocalBackend, TerraformOutput } from "cdktn";
+import { App, LocalBackend, TerraformOutput, TerraformVariable } from "cdktn";
 import { aws, Size } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
@@ -77,8 +77,18 @@ function ec2Container(id: string) {
   });
 }
 
-// (2) nested override topology: 0:10 outer + 4:5 nested => 11 nodes.
+// (2) nested override topology: 0:10 outer + 4:5 nested => 11 nodes. mainNode comes
+// from a Terraform NUMERIC VARIABLE (unresolved token at synth) to prove the
+// PR #136 token-mainNode fix survives the full CDKTN token resolution -> Terraform
+// provider -> AWS Batch round trip (resolved MainNode read back by the validator).
+const mainNodeVar = new TerraformVariable(stack, "nested-main-node", {
+  type: "number",
+  default: 2,
+  description:
+    "mainNode for the nested MNP job definition (unresolved-token regression, PR #136)",
+});
 new aws.compute.batch.MultiNodeJobDefinition(stack, "NestedMnp", {
+  mainNode: mainNodeVar.numberValue,
   containers: [
     { container: ec2Container("NestedOuter"), startNode: 0, endNode: 10 },
     { container: ec2Container("NestedInner"), startNode: 4, endNode: 5 },

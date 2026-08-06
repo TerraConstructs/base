@@ -93,8 +93,11 @@ func validateBatchSpotMnp(t *testing.T, tfWorkingDir, awsRegion string) {
 
 	// --- (2)/(3) AWS accepted both multi-node topologies - read numNodes and the
 	// node-range entries back via DescribeJobDefinitions. ---
-	assertNodeProperties(t, batchClient, ctx, nestedMnpArn, 11, []string{"0:10", "4:5"})
-	assertNodeProperties(t, batchClient, ctx, fiveGroupMnpArn, 5, []string{"0:0", "1:1", "2:2", "3:3", "4:4"})
+	// The nested definition's mainNode is fed from the Terraform variable
+	// `nested-main-node` (default 2) - reading 2 back proves the unresolved-token
+	// mainNode survived token resolution -> provider -> AWS Batch (PR #136 review).
+	assertNodeProperties(t, batchClient, ctx, nestedMnpArn, 11, 2, []string{"0:10", "4:5"})
+	assertNodeProperties(t, batchClient, ctx, fiveGroupMnpArn, 5, 0, []string{"0:0", "1:1", "2:2", "3:3", "4:4"})
 
 	// --- Drift oracle: re-planning the applied stack must show zero changes. ---
 	planExitCode := terraform.PlanExitCode(t, opts)
@@ -102,7 +105,7 @@ func validateBatchSpotMnp(t *testing.T, tfWorkingDir, awsRegion string) {
 		"expected `tofu plan -detailed-exitcode` to report no drift after apply (got exit code %d)", planExitCode)
 }
 
-func assertNodeProperties(t *testing.T, client *batch.Client, ctx context.Context, jobDefinitionArn string, wantNumNodes int, wantTargetNodes []string) {
+func assertNodeProperties(t *testing.T, client *batch.Client, ctx context.Context, jobDefinitionArn string, wantNumNodes int, wantMainNode int, wantTargetNodes []string) {
 	jdOut, err := client.DescribeJobDefinitions(ctx, &batch.DescribeJobDefinitionsInput{
 		JobDefinitions: []string{jobDefinitionArn},
 	})
@@ -119,6 +122,7 @@ func assertNodeProperties(t *testing.T, client *batch.Client, ctx context.Contex
 	require.NoError(t, json.Unmarshal(raw, &np))
 
 	assert.Equal(t, wantNumNodes, np.NumNodes, "numNodes mismatch for %s", jobDefinitionArn)
+	assert.Equal(t, wantMainNode, np.MainNode, "mainNode mismatch for %s", jobDefinitionArn)
 	var gotTargets []string
 	for _, nr := range np.NodeRangeProperties {
 		gotTargets = append(gotTargets, nr.TargetNodes)
