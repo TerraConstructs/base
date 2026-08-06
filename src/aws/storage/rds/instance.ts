@@ -25,6 +25,8 @@ import type {
   SnapshotCredentials,
 } from "./props";
 import { Credentials, PerformanceInsightRetention } from "./props";
+import type { DatabaseProxyOptions } from "./proxy";
+import { DatabaseProxy, ProxyTarget } from "./proxy";
 import type { ISubnetGroup } from "./subnet-group";
 import { SubnetGroup } from "./subnet-group";
 import { validateDatabaseInstanceProps } from "./validate-database-insights";
@@ -96,10 +98,10 @@ export interface IDatabaseInstance
    */
   readonly engine?: IInstanceEngine;
 
-  // TODO: omitted — upstream also declares `addProxy(id, options): DatabaseProxy` here. `DatabaseProxy`
-  // (and the `./proxy` module it lives in) is not ported in this repo yet — it lands in a later PR
-  // (RDS PR 2e), matching the existing barrel deferral in `./index.ts` —
-  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/instance.ts#L86-L89
+  /**
+   * Add a new db proxy to this instance.
+   */
+  addProxy(id: string, options: DatabaseProxyOptions): DatabaseProxy;
 
   /**
    * Grant the given identity connection access to the database.
@@ -292,18 +294,15 @@ export abstract class DatabaseInstanceBase
    */
   public abstract readonly connections: ec2.Connections;
 
-  // TODO: omitted — see the TODO on `IDatabaseInstance` above; `DatabaseProxy`/`./proxy` is not
-  // ported yet (RDS PR 2e) —
-  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/instance.ts#L246-L251
-  // /**
-  //  * Add a new db proxy to this instance.
-  //  */
-  // public addProxy(id: string, options: DatabaseProxyOptions): DatabaseProxy {
-  //   return new DatabaseProxy(this, id, {
-  //     proxyTarget: ProxyTarget.fromInstance(this),
-  //     ...options,
-  //   });
-  // }
+  /**
+   * Add a new db proxy to this instance.
+   */
+  public addProxy(id: string, options: DatabaseProxyOptions): DatabaseProxy {
+    return new DatabaseProxy(this, id, {
+      proxyTarget: ProxyTarget.fromInstance(this),
+      ...options,
+    });
+  }
 
   /**
    * [disable-awslint:no-grants]

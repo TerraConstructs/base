@@ -36,6 +36,10 @@ rds.cluster: ## Test DatabaseCluster L2 (live Aurora PostgreSQL Serverless v2 + 
 	go test -v -count 1 -timeout 60m ./... -run ^TestRdsCluster$
 .PHONY: rds.cluster
 
+rds.proxy: ## Test DatabaseProxy L2 (live RDS Proxy fronting MySQL db.t3.micro)
+	go test -v -count 1 -timeout 45m ./... -run ^TestRdsProxy$
+.PHONY: rds.proxy
+
 bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 	go test -v -count 1 -timeout 15m ./... -run ^TestBucketNotifications$
 .PHONY: bucket-notifications
