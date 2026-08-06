@@ -967,19 +967,34 @@ export class Secret extends SecretBase {
    */
   public toTerraform(): any {
     const version = this.getOrCreateSecretVersion();
-    // TERRACONSTRUCTS DEVIATION: with a rotation schedule attached, the
-    // rotation Lambda replaces AWSCURRENT out-of-band -- the Terraform-held
-    // initial value is stale by design. Without ignore_changes, the next
-    // `terraform apply` would REPLACE the rotated version with the stale
-    // initial value (clobbering live credentials) and every plan would report
-    // drift. Upstream CloudFormation never reads the value back, so it has no
-    // equivalent problem. Live-verified by integ/aws/encryption
-    // TestSecretRotation's drift oracle.
+    // TERRACONSTRUCTS DEVIATION: two cases must stop Terraform from enforcing
+    // the version's secret_string; both are CloudFormation-parity fixes
+    // live-verified by drift oracles (integ/aws/encryption TestSecretRotation,
+    // integ/aws/storage TestRdsGroups):
+    // 1. generateSecretString: implemented via the aws_secretsmanager_random_password
+    //    DATA SOURCE, which generates a NEW password on every plan/refresh.
+    //    Without ignore_changes every plan drifts and every apply REPLACES the
+    //    live password. CloudFormation generates once server-side at create
+    //    and never reads the value back -- parity means freezing the initial
+    //    generated value (changing generation options intentionally does not
+    //    regenerate; that is exactly CFN's behavior, see
+    //    DatabaseSecret.replaceOnPasswordCriteriaChanges).
+    // 2. rotation attached: the rotation Lambda replaces AWSCURRENT
+    //    out-of-band -- the Terraform-held initial value is stale by design;
+    //    without ignore_changes the next apply would clobber the rotated
+    //    credentials.
+    const ignoreChanges: string[] = [];
+    if (this.randomPassword) {
+      ignoreChanges.push("secret_string");
+    }
     if (this.rotationAttached) {
-      version.addOverride("lifecycle.ignore_changes", [
-        "secret_string",
-        "version_stages",
-      ]);
+      if (!ignoreChanges.includes("secret_string")) {
+        ignoreChanges.push("secret_string");
+      }
+      ignoreChanges.push("version_stages");
+    }
+    if (ignoreChanges.length > 0) {
+      version.addOverride("lifecycle.ignore_changes", ignoreChanges);
     }
     return {};
   }

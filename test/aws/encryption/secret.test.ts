@@ -55,6 +55,36 @@ test("default secret", () => {
   );
 });
 
+test("generated-password secret freezes secret_string (data source regenerates every plan)", () => {
+  // GIVEN -- default secret uses the aws_secretsmanager_random_password DATA
+  // source, which generates a NEW value on every plan/refresh. CFN parity
+  // (generate once at create) requires lifecycle.ignore_changes -- otherwise
+  // every plan drifts and every apply replaces the live password
+  // (live-verified by integ/aws/storage TestRdsGroups' drift oracle).
+  new encryption.Secret(stack, "Secret");
+
+  // THEN
+  const template = new Template(stack);
+  const [version]: any[] = template.resourceTypeArray(
+    secretsmanagerSecretVersion.SecretsmanagerSecretVersion,
+  );
+  expect(version.lifecycle.ignore_changes).toEqual(["secret_string"]);
+});
+
+test("explicit-value secret keeps secret_string enforced (no ignore_changes)", () => {
+  // WHEN
+  new encryption.Secret(stack, "Secret", {
+    secretStringValue: "not-generated",
+  });
+
+  // THEN
+  const template = new Template(stack);
+  const [version]: any[] = template.resourceTypeArray(
+    secretsmanagerSecretVersion.SecretsmanagerSecretVersion,
+  );
+  expect(version.lifecycle).toBeUndefined();
+});
+
 test("set recoveryWindow to secret", () => {
   // WHEN
   new encryption.Secret(stack, "Secret", {

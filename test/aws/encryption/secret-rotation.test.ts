@@ -197,15 +197,18 @@ test("rotation ownership adds ignore_changes to the secret's initial version", (
   ]);
 });
 
-test("secret without rotation keeps its version enforced (no ignore_changes)", () => {
-  // GIVEN -- `secret` from beforeEach, no rotation attached
+test("secret without rotation freezes only secret_string (generated password), not version_stages", () => {
+  // GIVEN -- `secret` from beforeEach uses a generated password, so
+  // secret_string is frozen regardless (the random-password data source
+  // regenerates every plan); version_stages is only ignored once a rotation
+  // schedule owns the secret.
   const template = new Template(stack);
 
   // THEN
   const [version]: any[] = template.resourceTypeArray(
     secretsmanagerSecretVersion.SecretsmanagerSecretVersion,
   );
-  expect(version.lifecycle).toBeUndefined();
+  expect(version.lifecycle.ignore_changes).toEqual(["secret_string"]);
 });
 
 test("secret rotation multi user", () => {
