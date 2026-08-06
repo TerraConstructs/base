@@ -61,7 +61,9 @@ import {
   Cluster,
 } from "../cluster";
 import { ContainerDefinition, Protocol } from "../container-definition";
+import { ContainerInsightsMetrics } from "../container-insights-canned-metrics";
 import { IDeploymentLifecycleHookTarget } from "../deployment-lifecycle-hook-target";
+import { MetricWithDims } from "../ecs-canned-metrics.generated";
 import { LogDriver, LogDriverConfig } from "../log-drivers/log-driver";
 
 /**
@@ -1938,6 +1940,122 @@ export abstract class BaseService
     props?: cloudwatch.MetricOptions,
   ): cloudwatch.Metric {
     return this.metric("CPUUtilization", props);
+  }
+
+  /**
+   * This method returns the specified CloudWatch metric name for this service from the
+   * `ECS/ContainerInsights` namespace.
+   *
+   * Unlike `metric()`, which reads `AWS/ECS` utilization as a percentage of the task's
+   * reservation, Container Insights reports absolute values (CPU units, MiB). Requires
+   * Container Insights to be enabled on the cluster.
+   *
+   * @see https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Container-Insights-metrics-ECS.html
+   */
+  public metricContainerInsights(
+    metricName: string,
+    props?: cloudwatch.MetricOptions,
+  ): cloudwatch.Metric {
+    return new cloudwatch.Metric({
+      namespace: "ECS/ContainerInsights",
+      metricName,
+      dimensionsMap: {
+        ClusterName: this.cluster.clusterName,
+        ServiceName: this.serviceName,
+      },
+      ...props,
+    }).attachTo(this);
+  }
+
+  /**
+   * This method returns the CloudWatch metric for the memory used by this service's
+   * tasks, in MiB, aggregated across the service.
+   *
+   * Use this rather than `metricMemoryUtilization()` when you need absolute MiB instead
+   * of a percentage of the task's reservation. Note this is a service-level aggregate:
+   * one leaking task or container among several can stay hidden below the aggregate, so
+   * this suits service/task aggregate monitoring, not per-container memory-limit
+   * tracking (which requires Container Insights enhanced observability metrics with
+   * task/container-level dimensions).
+   *
+   * Requires Container Insights to be enabled on the cluster.
+   *
+   * @default maximum over 5 minutes
+   */
+  public metricMemoryUtilized(
+    props?: cloudwatch.MetricOptions,
+  ): cloudwatch.Metric {
+    return this.cannedContainerInsightsMetric(
+      ContainerInsightsMetrics.memoryUtilizedMaximum,
+      props,
+    );
+  }
+
+  /**
+   * This method returns the CloudWatch metric for the memory reserved by this service's
+   * tasks, in MiB.
+   *
+   * Requires Container Insights to be enabled on the cluster.
+   *
+   * @default maximum over 5 minutes
+   */
+  public metricMemoryReserved(
+    props?: cloudwatch.MetricOptions,
+  ): cloudwatch.Metric {
+    return this.cannedContainerInsightsMetric(
+      ContainerInsightsMetrics.memoryReservedMaximum,
+      props,
+    );
+  }
+
+  /**
+   * This method returns the CloudWatch metric for the CPU units used by this service's
+   * tasks.
+   *
+   * Requires Container Insights to be enabled on the cluster.
+   *
+   * @default maximum over 5 minutes
+   */
+  public metricCpuUtilized(
+    props?: cloudwatch.MetricOptions,
+  ): cloudwatch.Metric {
+    return this.cannedContainerInsightsMetric(
+      ContainerInsightsMetrics.cpuUtilizedMaximum,
+      props,
+    );
+  }
+
+  /**
+   * This method returns the CloudWatch metric for the CPU units reserved by this
+   * service's tasks.
+   *
+   * Requires Container Insights to be enabled on the cluster.
+   *
+   * @default maximum over 5 minutes
+   */
+  public metricCpuReserved(
+    props?: cloudwatch.MetricOptions,
+  ): cloudwatch.Metric {
+    return this.cannedContainerInsightsMetric(
+      ContainerInsightsMetrics.cpuReservedMaximum,
+      props,
+    );
+  }
+
+  private cannedContainerInsightsMetric(
+    fn: (dims: {
+      ClusterName: string;
+      ServiceName: string;
+    }) => MetricWithDims<{ ClusterName: string; ServiceName: string }>,
+    props?: cloudwatch.MetricOptions,
+  ): cloudwatch.Metric {
+    return new cloudwatch.Metric({
+      ...fn({
+        ClusterName: this.cluster.clusterName,
+        ServiceName: this.serviceName,
+      }),
+      ...props,
+    }).attachTo(this);
   }
 
   /**

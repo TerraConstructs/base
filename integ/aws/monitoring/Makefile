@@ -4,6 +4,10 @@ all: ## Test all Monitoring integrations
 	go test -v -timeout 30m ./...
 .PHONY: all
 
+ecs-insights-metrics: ## Test ECS/ContainerInsights service metrics and alarms
+	go test -v -count 1 -timeout 30m ./... -run ^TestEcsInsightsMetrics$
+.PHONY: ecs-insights-metrics
+
 log-destination-kinesis: ## Test CloudWatch Log Delivery to Kinesis
 	go test -v -count 1 -timeout 15m ./... -run ^TestLogDestinationKinesis$
 .PHONY: log-destination-kinesis

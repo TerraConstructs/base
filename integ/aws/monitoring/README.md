@@ -11,6 +11,7 @@ Run terratest:
 
 Test Targets:
   all                        Test all Monitoring integrations
+  ecs-insights-metrics       Test ECS/ContainerInsights service metrics and alarms
   log-destination-kinesis    Test CloudWatch Log Delivery to Kinesis
   log-destination-lambda     Test CloudWatch Log Delivery to Lambda
   log-group-dataprotection   Test CloudWatch Log Group Data Protection

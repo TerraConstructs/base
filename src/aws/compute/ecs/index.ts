@@ -5,6 +5,10 @@ export * from "./base/service-managed-volume";
 
 export * from "./availability-zone-rebalancing";
 export * from "./container-definition";
+// NOTE: ./container-insights-canned-metrics is deliberately NOT exported, matching the
+// generated canned-metric modules. jsii cannot model their inline dimension types
+// (JSII1003: only string-indexed map types are supported). The public surface is the
+// metricContainerInsights()/metricMemoryUtilized()/... methods on BaseService.
 export * from "./container-image";
 export * from "./amis";
 export * from "./cluster";
