@@ -16,6 +16,7 @@ import {
   AssetType,
   TerraformAsset,
   // ref,
+  FileAssetPackaging,
 } from "cdktn";
 import { Construct } from "constructs";
 import * as mime from "mime-types";
@@ -25,7 +26,6 @@ import {
   DockerImageAssetLocation,
   DockerImageAssetSource,
   FileAssetLocation,
-  FileAssetPackaging,
   FileAssetSource,
 } from "../assets";
 
@@ -165,8 +165,8 @@ export class AwsAssetManager implements IAssetManager {
       bucketName: this.bucket!.bucket,
       objectKey: s3Asset.key,
       httpUrl,
+      objectUrl: this.buildS3ObjectUrl(s3Asset.key),
       s3Url: httpUrl,
-      s3ObjectUrl: this.buildS3ObjectUrl(s3Asset.key),
     };
     // Store in the map for future lookups
     this.fileAssetMap.set(objectKey, location);

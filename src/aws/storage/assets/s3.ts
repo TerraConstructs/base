@@ -156,7 +156,6 @@ export class Asset extends Construct implements cdk.IAsset {
     const staging = new cdk.AssetStaging(this, "Stage", {
       ...props,
       sourcePath: path.resolve(props.path),
-      follow: props.followSymlinks,
       assetHash: props.assetHash ?? props.sourceHash,
     });
 
@@ -165,7 +164,7 @@ export class Asset extends Construct implements cdk.IAsset {
 
     const stack = AwsStack.ofAwsConstruct(this);
 
-    this.assetPath = staging.relativeStagedPath(stack);
+    this.assetPath = staging.absoluteStagedPath;
 
     this.isFile = staging.packaging === cdk.FileAssetPackaging.FILE;
 
@@ -179,7 +178,7 @@ export class Asset extends Construct implements cdk.IAsset {
     });
     this.s3BucketName = location.bucketName;
     this.s3ObjectKey = location.objectKey;
-    this.s3ObjectUrl = location.s3ObjectUrl;
+    this.s3ObjectUrl = location.objectUrl!;
     this.httpUrl = location.httpUrl;
     this.s3Url = location.httpUrl; // for backwards compatibility
 

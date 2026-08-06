@@ -81,12 +81,10 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
   },
   "provider": {
     "archive": [
-      {
-      }
+      {}
     ],
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -138,8 +136,7 @@ exports[`Function with Storage Should synth and match SnapShot 1`] = `
           "aws_iam_role_policy.HelloWorld_ServiceRole_DefaultPolicy_ResourceRoles0_F82A2883"
         ],
         "environment": {
-          "variables": {
-          }
+          "variables": {}
         },
         "filename": "\${data.archive_file.HelloWorld_TestStackHelloWorldacbd18db4cc2f85cedef654fccc4a4d8D135A4C7_9A2A35D2.output_path}",
         "function_name": "gTestStack553BDD39-TestStackHelloWorld",
@@ -258,8 +255,7 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -330,8 +326,7 @@ exports[`Function with event rules Should handle dependencies on permissions 1`]
           "aws_iam_role_policy.HelloWorld_ServiceRole_DefaultPolicy_ResourceRoles0_F82A2883"
         ],
         "environment": {
-          "variables": {
-          }
+          "variables": {}
         },
         "filename": "\${data.terraform_remote_state.cross-stack-reference-input-TestStack.outputs.cross-stack-output-dataarchive_fileHelloWorld_TestStackHelloWorldacbd18db4cc2f85cedef654fccc4a4d8D135A4C7_9A2A35D2output_path}",
         "function_name": "gTestStack553BDD39-TestStackHelloWorld",
