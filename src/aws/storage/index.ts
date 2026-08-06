@@ -39,3 +39,6 @@ export * as assets from "./assets";
 
 // aws-rds
 export * as rds from "./rds";
+
+// aws-docdb
+export * as docdb from "./docdb";
