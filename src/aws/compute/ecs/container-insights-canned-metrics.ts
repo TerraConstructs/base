@@ -19,9 +19,12 @@ import { MetricWithDims } from "./ecs-canned-metrics.generated";
  *
  * These complement `ECSMetrics`, which only covers `AWS/ECS`. The two namespaces are not
  * interchangeable: `AWS/ECS` reports utilization as a *percentage of the task's
- * reservation*, whereas Container Insights reports absolute CPU units and MiB. Only the
- * latter can be compared against a container's hard memory limit, which is what you need
- * to detect a container approaching an OOM kill.
+ * reservation*, whereas Container Insights reports absolute CPU units and MiB.
+ *
+ * These are aggregates over all tasks in the selected dimension set (e.g. all tasks of a
+ * service) — they cannot single out one task or container, so a single outlier can be
+ * hidden by the aggregate. Per-task/per-container series require Container Insights
+ * *enhanced observability* metrics and dimensions, which are not covered here.
  *
  * Requires Container Insights to be enabled on the cluster.
  */
@@ -99,25 +102,6 @@ export class ContainerInsightsMetrics {
       metricName: "CpuReserved",
       dimensionsMap: dimensions,
       statistic: "Maximum",
-    };
-  }
-
-  /**
-   * Number of tasks running for the service.
-   */
-  public static runningTaskCountAverage(dimensions: {
-    ClusterName: string;
-    ServiceName: string;
-  }): MetricWithDims<{ ClusterName: string; ServiceName: string }>;
-  public static runningTaskCountAverage(dimensions: {
-    ClusterName: string;
-  }): MetricWithDims<{ ClusterName: string }>;
-  public static runningTaskCountAverage(dimensions: any): MetricWithDims<any> {
-    return {
-      namespace: "ECS/ContainerInsights",
-      metricName: "RunningTaskCount",
-      dimensionsMap: dimensions,
-      statistic: "Average",
     };
   }
 }

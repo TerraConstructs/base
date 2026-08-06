@@ -1969,12 +1969,14 @@ export abstract class BaseService
 
   /**
    * This method returns the CloudWatch metric for the memory used by this service's
-   * tasks, in MiB.
+   * tasks, in MiB, aggregated across the service.
    *
-   * Use this rather than `metricMemoryUtilization()` when you need to compare against a
-   * container's hard memory limit — for example to redeploy a leaking service before it
-   * is OOM-killed. The `AWS/ECS` percentage is relative to the task's reservation and
-   * cannot answer that question.
+   * Use this rather than `metricMemoryUtilization()` when you need absolute MiB instead
+   * of a percentage of the task's reservation. Note this is a service-level aggregate:
+   * one leaking task or container among several can stay hidden below the aggregate, so
+   * this suits service/task aggregate monitoring, not per-container memory-limit
+   * tracking (which requires Container Insights enhanced observability metrics with
+   * task/container-level dimensions).
    *
    * Requires Container Insights to be enabled on the cluster.
    *
