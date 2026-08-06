@@ -63,6 +63,11 @@
       "type": "build"
     },
     {
+      "name": "@types/semver",
+      "version": "^7.5.0",
+      "type": "build"
+    },
+    {
       "name": "@typescript-eslint/eslint-plugin",
       "version": "^8",
       "type": "build"
@@ -188,6 +193,11 @@
     {
       "name": "minimatch",
       "version": "^10.2.5",
+      "type": "bundled"
+    },
+    {
+      "name": "semver",
+      "version": "^7.6.0",
       "type": "bundled"
     },
     {

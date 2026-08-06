@@ -5,7 +5,6 @@ import { App, Testing, Token } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
 import * as compute from "../../../../src/aws/compute";
-import { IEngine } from "../../../../src/aws/storage/rds";
 import * as rds from "../../../../src/aws/storage/rds";
 import { Template } from "../../../assertions";
 
@@ -16,16 +15,6 @@ const providerConfig = { region: "us-east-1" };
 // is machine-dependent and would leak into the snapshot
 const gridBackendConfig = {
   address: "http://localhost:3000",
-};
-
-// TERRACONSTRUCTS DEVIATION: upstream's `DatabaseInstanceEngine.oracleSe2({ version:
-// OracleEngineVersion.VER_12_1 })` comes from `instance-engine.ts`, which lands in a later PR
-// (RDS PR 2b). This minimal `IEngine` stand-in only carries the `engineType`/`engineVersion`
-// this suite reads —
-// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/option-group.test.ts#L13-L15
-const ORACLE_SE2_12_1: IEngine = {
-  engineType: "oracle-se2",
-  engineVersion: { fullVersion: "12.1.0.2.v22", majorVersion: "12.1" },
 };
 
 let app: App;
@@ -44,7 +33,9 @@ describe("option group", () => {
   test("create an option group", () => {
     // WHEN
     new rds.OptionGroup(stack, "Options", {
-      engine: ORACLE_SE2_12_1,
+      engine: rds.DatabaseInstanceEngine.oracleSe2({
+        version: rds.OracleEngineVersion.VER_12_1,
+      }),
       configurations: [
         {
           name: "XMLDB",
@@ -71,7 +62,9 @@ describe("option group", () => {
 
     // WHEN
     const optionGroup = new rds.OptionGroup(stack, "Options", {
-      engine: ORACLE_SE2_12_1,
+      engine: rds.DatabaseInstanceEngine.oracleSe2({
+        version: rds.OracleEngineVersion.VER_12_1,
+      }),
       configurations: [
         {
           name: "OEM",
@@ -127,7 +120,9 @@ describe("option group", () => {
 
     // WHEN
     new rds.OptionGroup(stack, "Options", {
-      engine: ORACLE_SE2_12_1,
+      engine: rds.DatabaseInstanceEngine.oracleSe2({
+        version: rds.OracleEngineVersion.VER_12_1,
+      }),
       configurations: [
         {
           name: "OEM",
@@ -157,7 +152,9 @@ describe("option group", () => {
     expect(
       () =>
         new rds.OptionGroup(stack, "Options", {
-          engine: ORACLE_SE2_12_1,
+          engine: rds.DatabaseInstanceEngine.oracleSe2({
+            version: rds.OracleEngineVersion.VER_12_1,
+          }),
           configurations: [
             {
               name: "OEM",
@@ -170,7 +167,9 @@ describe("option group", () => {
 
   test("option group with option group name", () => {
     const optionGroup = new rds.OptionGroup(stack, "Options", {
-      engine: ORACLE_SE2_12_1,
+      engine: rds.DatabaseInstanceEngine.oracleSe2({
+        version: rds.OracleEngineVersion.VER_12_1,
+      }),
       configurations: [],
       optionGroupName: "my-custom-group",
     });
@@ -187,7 +186,9 @@ describe("option group", () => {
 
   test("option group without option group name gets a uniqueResourceName default", () => {
     const optionGroup = new rds.OptionGroup(stack, "Options", {
-      engine: ORACLE_SE2_12_1,
+      engine: rds.DatabaseInstanceEngine.oracleSe2({
+        version: rds.OracleEngineVersion.VER_12_1,
+      }),
       configurations: [],
     });
 

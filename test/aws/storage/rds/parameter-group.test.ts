@@ -7,7 +7,6 @@ import {
 import { App, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws";
-import { IEngine } from "../../../../src/aws/storage/rds";
 import * as rds from "../../../../src/aws/storage/rds";
 import { Template } from "../../../assertions";
 
@@ -20,14 +19,7 @@ const gridBackendConfig = {
   address: "http://localhost:3000",
 };
 
-// TERRACONSTRUCTS DEVIATION: upstream engines (`DatabaseClusterEngine.AURORA_MYSQL`) come from
-// `instance-engine.ts`/`cluster-engine.ts`, which land in a later PR (RDS PR 2b). This minimal
-// `IEngine` stand-in only carries the `parameterGroupFamily` this suite reads —
-// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/parameter-group.test.ts#L3
-const AURORA_MYSQL: IEngine = {
-  engineType: "aurora-mysql",
-  parameterGroupFamily: "aurora-mysql5.7",
-};
+const AURORA_MYSQL = rds.DatabaseClusterEngine.AURORA_MYSQL;
 
 let app: App;
 let stack: AwsStack;

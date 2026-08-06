@@ -90,6 +90,7 @@ const project = new cdk.JsiiProject({
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
     "@types/mime-types",
+    "@types/semver@^7.5.0",
     "fast-check@^3.23.2",
     "delay@^5.0.0",
     // TODO: replace eslint/prettier headacheswith biome
@@ -103,6 +104,7 @@ const project = new cdk.JsiiProject({
     "@balena/dockerignore@^1.0.2",
     "ignore@^5.3.2",
     "minimatch@^10.2.5",
+    "semver@^7.6.0",
   ],
   // deps: ["@balena/dockerignore@^1.0.2", "ignore@^5.3.2"],
 
