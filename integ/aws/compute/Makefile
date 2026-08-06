@@ -115,3 +115,7 @@ ecs.asg-capacity-provider: ## Test EC2 service on an AsgCapacityProvider (cluste
 batch.job-queue: ## Test Batch JobQueue + FairshareSchedulingPolicy + 2 ManagedEc2EcsComputeEnvironments (ordered CEs, addComputeEnvironment()/addShare())
 	go test -v -count 1 -timeout 30m ./... -run ^TestBatchJobQueue$
 .PHONY: batch.job-queue
+
+batch.spot-mnp: ## Test Batch BEST_FIT spot fleet role policy + nested/five-group multinode job definitions (PR #136 review)
+	go test -v -count 1 -timeout 30m ./... -run ^TestBatchSpotMnp$
+.PHONY: batch.spot-mnp
