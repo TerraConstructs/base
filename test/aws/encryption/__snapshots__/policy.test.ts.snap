@@ -61,6 +61,11 @@ exports[`ResourcePolicy Should synth and match SnapShot 1`] = `
     },
     "aws_secretsmanager_secret_version": {
       "Secret_SecretVersion_1CCEE6BD": {
+        "lifecycle": {
+          "ignore_changes": [
+            "secret_string"
+          ]
+        },
         "secret_id": "\${aws_secretsmanager_secret.Secret_A720EF05.arn}",
         "secret_string": "\${data.aws_secretsmanager_random_password.Secret_RandomPassword_01FCD53F.random_password}"
       }
