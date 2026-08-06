@@ -1,20 +1,19 @@
 // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/validate-database-insights.ts
 
-// TODO: omitted — entire file depends on DatabaseCluster/DatabaseClusterProps (./cluster),
-// DatabaseInstance/DatabaseInstanceProps (./instance), and PerformanceInsightRetention (./props),
-// none of which are ported in this slice (they land in later RDS PRs: 2c DatabaseInstance,
-// 2d DatabaseCluster). Re-enable verbatim once those files land.
-// — https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/validate-database-insights.ts
-/*
 import type { Construct } from "constructs";
-import type { DatabaseClusterProps } from "./cluster";
-import { ClusterScailabilityType, DatabaseCluster, DBClusterStorageType } from "./cluster";
 import { DatabaseInsightsMode } from "./database-insights-mode";
 import type { DatabaseInstanceProps } from "./instance";
 import { DatabaseInstance } from "./instance";
 import { PerformanceInsightRetention } from "./props";
 import type { ValidationRule } from "../../../helpers-internal";
 import { validateAllProps } from "../../../helpers-internal";
+
+// TODO: omitted — `DatabaseClusterProps`/`DatabaseCluster`/`ClusterScailabilityType`/
+// `DBClusterStorageType` (./cluster) are not ported in this slice (lands in RDS PR 2d). The
+// cluster-specific rule sets (`clusterSpecificRules`, `limitlessDatabaseRules`) and
+// `validateDatabaseClusterProps` below are left commented out until then; only the
+// instance-applicable `databaseInsightsRules`/`validateDatabaseInstanceProps` are reinstated here —
+// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/validate-database-insights.ts#L1-L90
 
 // Common validation rules for database insights
 const databaseInsightsRules: ValidationRule<any>[] = [
@@ -24,68 +23,85 @@ const databaseInsightsRules: ValidationRule<any>[] = [
       (props.performanceInsightRetention !== undefined ||
         props.performanceInsightEncryptionKey !== undefined ||
         props.databaseInsightsMode === DatabaseInsightsMode.ADVANCED),
-    message: () => '`enablePerformanceInsights` disabled, but `performanceInsightRetention` or `performanceInsightEncryptionKey` was set, or `databaseInsightsMode` was set to \'${DatabaseInsightsMode.ADVANCED}\'',
+    message: () =>
+      "`enablePerformanceInsights` disabled, but `performanceInsightRetention` or `performanceInsightEncryptionKey` was set, or `databaseInsightsMode` was set to '${DatabaseInsightsMode.ADVANCED}'",
   },
   {
-    condition: (props) => props.databaseInsightsMode === DatabaseInsightsMode.ADVANCED &&
-      props.performanceInsightRetention !== PerformanceInsightRetention.MONTHS_15,
-    message: () => '`performanceInsightRetention` must be set to \'${PerformanceInsightRetention.MONTHS_15}\' when `databaseInsightsMode` is set to \'${DatabaseInsightsMode.ADVANCED}\'',
+    condition: (props) =>
+      props.databaseInsightsMode === DatabaseInsightsMode.ADVANCED &&
+      props.performanceInsightRetention !==
+        PerformanceInsightRetention.MONTHS_15,
+    message: () =>
+      "`performanceInsightRetention` must be set to '${PerformanceInsightRetention.MONTHS_15}' when `databaseInsightsMode` is set to '${DatabaseInsightsMode.ADVANCED}'",
   },
 ];
 
-// Cluster-specific validation rules
-const clusterSpecificRules: ValidationRule<DatabaseClusterProps>[] = [
-  {
-    condition: (props) => props.replicationSourceIdentifier !== undefined && props.credentials !== undefined,
-    message: () => "Cannot specify both `replicationSourceIdentifier` and `credentials`. The value is inherited from the source DB cluster",
-  },
-];
-
-// Rules for Aurora Limitless database
-const limitlessDatabaseRules: ValidationRule<DatabaseClusterProps>[] = [
-  {
-    condition: (props) => !props.enablePerformanceInsights,
-    message: () => "Performance Insights must be enabled for Aurora Limitless Database",
-  },
-  {
-    condition: (props) => !props.performanceInsightRetention
-      || props.performanceInsightRetention < PerformanceInsightRetention.MONTHS_1,
-    message: () => "Performance Insights retention period must be set to at least 31 days for Aurora Limitless Database",
-  },
-  {
-    condition: (props) => !props.monitoringInterval || !props.enableClusterLevelEnhancedMonitoring,
-    message: () => "Cluster level enhanced monitoring must be set for Aurora Limitless Database. Please set 'monitoringInterval' and enable 'enableClusterLevelEnhancedMonitoring'",
-  },
-  {
-    condition: (props) => !!(props.writer || props.readers),
-    message: () => "Aurora Limitless Database does not support reader or writer instances",
-  },
-  {
-    condition: (props) => !props.engine.engineVersion?.fullVersion?.endsWith("limitless"),
-    message: (props) => `Aurora Limitless Database requires an engine version that supports it, got: ${props.engine.engineVersion?.fullVersion}`,
-  },
-  {
-    condition: (props) => props.storageType !== DBClusterStorageType.AURORA_IOPT1,
-    message: (props) => `Aurora Limitless Database requires I/O optimized storage type, got: ${props.storageType}`,
-  },
-  {
-    condition: (props) => props.cloudwatchLogsExports === undefined || props.cloudwatchLogsExports.length === 0,
-    message: () => "Aurora Limitless Database requires CloudWatch Logs exports to be set",
-  },
-];
+// TODO: omitted — cluster-specific validation rules; depend on `DatabaseClusterProps` (not ported
+// in this slice, lands in RDS PR 2d) —
+// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/validate-database-insights.ts#L36-L75
+// // Cluster-specific validation rules
+// const clusterSpecificRules: ValidationRule<DatabaseClusterProps>[] = [
+//   {
+//     condition: (props) => props.replicationSourceIdentifier !== undefined && props.credentials !== undefined,
+//     message: () => "Cannot specify both `replicationSourceIdentifier` and `credentials`. The value is inherited from the source DB cluster",
+//   },
+// ];
+//
+// // Rules for Aurora Limitless database
+// const limitlessDatabaseRules: ValidationRule<DatabaseClusterProps>[] = [
+//   {
+//     condition: (props) => !props.enablePerformanceInsights,
+//     message: () => "Performance Insights must be enabled for Aurora Limitless Database",
+//   },
+//   {
+//     condition: (props) => !props.performanceInsightRetention
+//       || props.performanceInsightRetention < PerformanceInsightRetention.MONTHS_1,
+//     message: () => "Performance Insights retention period must be set to at least 31 days for Aurora Limitless Database",
+//   },
+//   {
+//     condition: (props) => !props.monitoringInterval || !props.enableClusterLevelEnhancedMonitoring,
+//     message: () => "Cluster level enhanced monitoring must be set for Aurora Limitless Database. Please set 'monitoringInterval' and enable 'enableClusterLevelEnhancedMonitoring'",
+//   },
+//   {
+//     condition: (props) => !!(props.writer || props.readers),
+//     message: () => "Aurora Limitless Database does not support reader or writer instances",
+//   },
+//   {
+//     condition: (props) => !props.engine.engineVersion?.fullVersion?.endsWith("limitless"),
+//     message: (props) => `Aurora Limitless Database requires an engine version that supports it, got: ${props.engine.engineVersion?.fullVersion}`,
+//   },
+//   {
+//     condition: (props) => props.storageType !== DBClusterStorageType.AURORA_IOPT1,
+//     message: (props) => `Aurora Limitless Database requires I/O optimized storage type, got: ${props.storageType}`,
+//   },
+//   {
+//     condition: (props) => props.cloudwatchLogsExports === undefined || props.cloudwatchLogsExports.length === 0,
+//     message: () => "Aurora Limitless Database requires CloudWatch Logs exports to be set",
+//   },
+// ];
 
 // Validates database instance properties
-export function validateDatabaseInstanceProps(scope: Construct, props: DatabaseInstanceProps): void {
-  validateAllProps(scope, DatabaseInstance.name, props, databaseInsightsRules as ValidationRule<DatabaseInstanceProps>[]);
+export function validateDatabaseInstanceProps(
+  scope: Construct,
+  props: DatabaseInstanceProps,
+): void {
+  validateAllProps(
+    scope,
+    DatabaseInstance.name,
+    props,
+    databaseInsightsRules as ValidationRule<DatabaseInstanceProps>[],
+  );
 }
 
-// Validates database cluster properties
-export function validateDatabaseClusterProps(scope: Construct, props: DatabaseClusterProps): void {
-  const isLimitlessCluster = props.clusterScailabilityType === ClusterScailabilityType.LIMITLESS;
-  const applicableRules = isLimitlessCluster
-    ? [...databaseInsightsRules as ValidationRule<DatabaseClusterProps>[], ...clusterSpecificRules, ...limitlessDatabaseRules]
-    : [...databaseInsightsRules as ValidationRule<DatabaseClusterProps>[], ...clusterSpecificRules];
-
-  validateAllProps(scope, DatabaseCluster.name, props, applicableRules);
-}
-*/
+// TODO: omitted — depends on `DatabaseClusterProps`/`DatabaseCluster` (not ported in this slice,
+// lands in RDS PR 2d) —
+// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/validate-database-insights.ts#L82-L90
+// // Validates database cluster properties
+// export function validateDatabaseClusterProps(scope: Construct, props: DatabaseClusterProps): void {
+//   const isLimitlessCluster = props.clusterScailabilityType === ClusterScailabilityType.LIMITLESS;
+//   const applicableRules = isLimitlessCluster
+//     ? [...databaseInsightsRules as ValidationRule<DatabaseClusterProps>[], ...clusterSpecificRules, ...limitlessDatabaseRules]
+//     : [...databaseInsightsRules as ValidationRule<DatabaseClusterProps>[], ...clusterSpecificRules];
+//
+//   validateAllProps(scope, DatabaseCluster.name, props, applicableRules);
+// }

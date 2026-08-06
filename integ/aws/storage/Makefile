@@ -28,6 +28,10 @@ rds.groups: ## Test RDS SubnetGroup, ParameterGroup (both binds), OptionGroup, D
 	go test -v -count 1 -timeout 20m ./... -run ^TestRdsGroups$
 .PHONY: rds.groups
 
+rds.instance: ## Test DatabaseInstance L2 (live Postgres db.t3.micro + attached secret)
+	go test -v -count 1 -timeout 45m ./... -run ^TestRdsInstance$
+.PHONY: rds.instance
+
 bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 	go test -v -count 1 -timeout 15m ./... -run ^TestBucketNotifications$
 .PHONY: bucket-notifications
