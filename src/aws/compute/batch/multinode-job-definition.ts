@@ -5,6 +5,7 @@ import { IResolvable, Lazy } from "cdktn";
 import { Construct } from "constructs";
 import {
   ContainerPropertiesConfig,
+  EcsFargateContainerDefinition,
   IEcsContainerDefinition,
 } from "./ecs-container-definition";
 import { Compatibility } from "./ecs-job-definition";
@@ -14,6 +15,7 @@ import {
   JobDefinitionBase,
   JobDefinitionProps,
 } from "./job-definition-base";
+import { ValidationError } from "../../../errors";
 import { ArnFormat } from "../../arn";
 import { AwsStack } from "../../aws-stack";
 import { InstanceType } from "../instance-types";
@@ -181,10 +183,13 @@ export class MultiNodeJobDefinition
     jobDefinitionArn: string,
   ): IJobDefinition {
     const stack = AwsStack.ofAwsConstruct(scope);
-    const jobDefinitionName = stack.splitArn(
-      jobDefinitionArn,
-      ArnFormat.SLASH_RESOURCE_NAME,
-    ).resourceName!;
+    // TERRACONSTRUCTS DEVIATION: upstream keeps the `:revision` suffix here (so
+    // `job-definition/my-job-def:7` imports as name `my-job-def:7`) while
+    // `EcsJobDefinition.fromJobDefinitionArn()` strips it. The revision belongs to the
+    // ARN, not the name - strip it consistently.
+    const jobDefinitionName = stack
+      .splitArn(jobDefinitionArn, ArnFormat.SLASH_RESOURCE_NAME)
+      .resourceName!.split(":")[0];
 
     class Import extends JobDefinitionBase implements IJobDefinition {
       public readonly jobDefinitionArn = jobDefinitionArn;
@@ -214,6 +219,7 @@ export class MultiNodeJobDefinition
     super(scope, id, props);
 
     this.containers = props?.containers ?? [];
+    this.containers.forEach((c) => this.validateEc2Container(c));
     this.mainNode = props?.mainNode;
     this._instanceType = props?.instanceType;
     this.propagateTags = props?.propagateTags;
@@ -257,7 +263,7 @@ export class MultiNodeJobDefinition
     this.jobDefinitionName = this.resource.name;
 
     this.node.addValidation({
-      validate: () => validateContainers(this.containers),
+      validate: () => validateContainers(this.containers, this.mainNode ?? 0),
     });
   }
 
@@ -274,7 +280,27 @@ export class MultiNodeJobDefinition
   }
 
   public addContainer(container: MultiNodeContainer) {
+    this.validateEc2Container(container);
     this.containers.push(container);
+  }
+
+  /**
+   * TERRACONSTRUCTS DEVIATION: upstream types `MultiNodeContainer.container` as the broad
+   * `IEcsContainerDefinition` and silently accepts `EcsFargateContainerDefinition`, but AWS
+   * Batch does not support Fargate for multi-node parallel jobs - the rendered configuration
+   * is rejected at RegisterJobDefinition time (verified live: ClientException
+   * "networkConfiguration not applicable for EC2."). The interface type is kept for upstream
+   * API parity; reject Fargate containers at construction instead of failing at deploy.
+   */
+  private validateEc2Container(container: MultiNodeContainer): void {
+    if (container.container instanceof EcsFargateContainerDefinition) {
+      throw new ValidationError(
+        `MultiNodeJobDefinition container for nodes ${container.startNode}:${container.endNode}` +
+          " is an EcsFargateContainerDefinition, but AWS Batch multi-node parallel jobs" +
+          " support only EC2 - use EcsEc2ContainerDefinition instead.",
+        this,
+      );
+    }
   }
 
   private renderNodeProperties(): NodePropertiesConfig {
@@ -297,6 +323,8 @@ export class MultiNodeJobDefinition
   }
 }
 
+// With the topology validated (contiguous, non-overlapping ranges starting at node 0 -
+// see validateContainers), the sum of inclusive range lengths equals highestEndNode + 1.
 function computeNumNodes(containers: MultiNodeContainer[]) {
   let result = 0;
 
@@ -307,6 +335,70 @@ function computeNumNodes(containers: MultiNodeContainer[]) {
   return result;
 }
 
-function validateContainers(containers: MultiNodeContainer[]): string[] {
-  return containers.length === 0 ? ["multinode job has no containers!"] : [];
+// TERRACONSTRUCTS DEVIATION: upstream only checks the containers array is non-empty, so
+// gapped ranges undercount numNodes relative to the highest node index, overlapping ranges
+// overcount, inverted ranges can even produce a negative numNodes, and mainNode is never
+// checked - all deferring a malformed node_properties failure to Terraform/AWS. Validate
+// the full topology (non-negative ordered ranges, no overlaps or gaps, coverage from node
+// 0, mainNode within range) so numNodes is derived from a consistent topology.
+function validateContainers(
+  containers: MultiNodeContainer[],
+  mainNode: number,
+): string[] {
+  if (containers.length === 0) {
+    return ["multinode job has no containers!"];
+  }
+
+  const errors: string[] = [];
+  for (const { startNode, endNode } of containers) {
+    if (!Number.isInteger(startNode) || !Number.isInteger(endNode)) {
+      errors.push(
+        `node range ${startNode}:${endNode} is invalid - startNode and endNode must be integers`,
+      );
+    } else if (startNode < 0) {
+      errors.push(
+        `node range ${startNode}:${endNode} is invalid - startNode must be non-negative`,
+      );
+    } else if (endNode < startNode) {
+      errors.push(
+        `node range ${startNode}:${endNode} is invalid - endNode must be >= startNode`,
+      );
+    }
+  }
+  if (errors.length > 0) {
+    return errors;
+  }
+
+  const sorted = [...containers].sort((a, b) => a.startNode - b.startNode);
+  if (sorted[0].startNode !== 0) {
+    errors.push(
+      `node ranges must start at node 0, but the lowest range starts at node ${sorted[0].startNode}`,
+    );
+  }
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    if (curr.startNode <= prev.endNode) {
+      errors.push(
+        `node ranges ${prev.startNode}:${prev.endNode} and ${curr.startNode}:${curr.endNode} overlap`,
+      );
+    } else if (curr.startNode !== prev.endNode + 1) {
+      errors.push(
+        `node ranges ${prev.startNode}:${prev.endNode} and ${curr.startNode}:${curr.endNode} leave a gap - ranges must cover every node exactly once`,
+      );
+    }
+  }
+
+  const highestEndNode = sorted[sorted.length - 1].endNode;
+  if (
+    !Number.isInteger(mainNode) ||
+    mainNode < 0 ||
+    mainNode > highestEndNode
+  ) {
+    errors.push(
+      `mainNode ${mainNode} is not covered by the configured node ranges (0..${highestEndNode})`,
+    );
+  }
+
+  return errors;
 }

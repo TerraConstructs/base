@@ -381,3 +381,166 @@ function batchJobDefinitionsFor(forStack: AwsStack): any[] {
     batchJobDefinition.BatchJobDefinition,
   ) as any[];
 }
+
+// ---------------------------------------------------------------------------
+// TERRACONSTRUCTS additions (no upstream counterparts) - regression tests for
+// the PR #136 review findings on MultiNodeJobDefinition.
+// ---------------------------------------------------------------------------
+
+function ec2Container(stack: AwsStack, id: string) {
+  return new batch.EcsEc2ContainerDefinition(stack, id, {
+    cpu: 256,
+    memory: Size.mebibytes(2048),
+    image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+  });
+}
+
+describe("multinode rejects Fargate containers", () => {
+  // AWS Batch does not support Fargate for multi-node parallel jobs; the rendered
+  // config is rejected at RegisterJobDefinition time (verified live: ClientException
+  // "networkConfiguration not applicable for EC2.").
+  test("at construction", () => {
+    const stack = getAwsStack();
+    expect(() => {
+      new batch.MultiNodeJobDefinition(stack, "ECSJobDefn", {
+        containers: [
+          {
+            container: new batch.EcsFargateContainerDefinition(
+              stack,
+              "FargateCtr",
+              {
+                cpu: 256,
+                memory: Size.mebibytes(2048),
+                image: ecs.ContainerImage.fromRegistry(
+                  "amazon/amazon-ecs-sample",
+                ),
+              },
+            ),
+            startNode: 0,
+            endNode: 9,
+          },
+        ],
+      });
+    }).toThrow(/multi-node parallel jobs support only EC2/);
+  });
+
+  test("via addContainer()", () => {
+    const stack = getAwsStack();
+    const jobDefn = new batch.MultiNodeJobDefinition(stack, "ECSJobDefn", {
+      containers: [
+        { container: ec2Container(stack, "Ec2Ctr"), startNode: 0, endNode: 9 },
+      ],
+    });
+    expect(() => {
+      jobDefn.addContainer({
+        container: new batch.EcsFargateContainerDefinition(
+          stack,
+          "FargateCtr",
+          {
+            cpu: 256,
+            memory: Size.mebibytes(2048),
+            image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+          },
+        ),
+        startNode: 10,
+        endNode: 14,
+      });
+    }).toThrow(/multi-node parallel jobs support only EC2/);
+  });
+});
+
+test("fromJobDefinitionArn strips the :revision suffix like EcsJobDefinition", () => {
+  // upstream keeps the revision in the imported name; stripped here for consistency
+  // with EcsJobDefinition.fromJobDefinitionArn (the revision belongs to the ARN).
+  const stack = getAwsStack();
+  const arn =
+    "arn:aws:batch:us-east-1:111122223333:job-definition/my-job-def:7";
+
+  const imported = batch.MultiNodeJobDefinition.fromJobDefinitionArn(
+    stack,
+    "Imported",
+    arn,
+  );
+
+  expect(imported.jobDefinitionArn).toEqual(arn);
+  expect(imported.jobDefinitionName).toEqual("my-job-def");
+});
+
+describe("multinode node-range topology validation", () => {
+  // upstream only checks non-emptiness: gapped ranges undercount numNodes, overlapping
+  // ranges overcount, inverted ranges can produce a negative numNodes, and mainNode is
+  // never checked - all deferring a malformed node_properties failure to Terraform/AWS.
+  function synthWithRanges(
+    ranges: Array<{ startNode: number; endNode: number }>,
+    mainNode?: number,
+  ) {
+    const stack = getAwsStack();
+    new batch.MultiNodeJobDefinition(stack, "ECSJobDefn", {
+      mainNode,
+      containers: ranges.map((r, i) => ({
+        container: ec2Container(stack, `Ctr${i}`),
+        ...r,
+      })),
+    });
+    return () => Template.fromStack(stack, { runValidations: true });
+  }
+
+  test("rejects gapped ranges", () => {
+    expect(
+      synthWithRanges([
+        { startNode: 0, endNode: 3 },
+        { startNode: 8, endNode: 10 },
+      ]),
+    ).toThrow(/leave a gap/);
+  });
+
+  test("rejects overlapping ranges", () => {
+    expect(
+      synthWithRanges([
+        { startNode: 0, endNode: 5 },
+        { startNode: 3, endNode: 8 },
+      ]),
+    ).toThrow(/overlap/);
+  });
+
+  test("rejects inverted ranges", () => {
+    expect(synthWithRanges([{ startNode: 5, endNode: 2 }])).toThrow(
+      /endNode must be >= startNode/,
+    );
+  });
+
+  test("rejects negative startNode", () => {
+    expect(synthWithRanges([{ startNode: -1, endNode: 2 }])).toThrow(
+      /startNode must be non-negative/,
+    );
+  });
+
+  test("rejects ranges that do not start at node 0", () => {
+    expect(synthWithRanges([{ startNode: 1, endNode: 4 }])).toThrow(
+      /must start at node 0/,
+    );
+  });
+
+  test("rejects mainNode outside the configured ranges", () => {
+    expect(synthWithRanges([{ startNode: 0, endNode: 9 }], 99)).toThrow(
+      /mainNode 99 is not covered/,
+    );
+  });
+
+  test("accepts contiguous multi-range topologies and derives a consistent numNodes", () => {
+    const stack = getAwsStack();
+    new batch.MultiNodeJobDefinition(stack, "ECSJobDefn", {
+      mainNode: 5,
+      containers: [
+        { container: ec2Container(stack, "A"), startNode: 0, endNode: 9 },
+        { container: ec2Container(stack, "B"), startNode: 10, endNode: 14 },
+      ],
+    });
+    Template.fromStack(stack, { runValidations: true });
+
+    const jobDefn = batchJobDefinitionsFor(stack)[0];
+    const nodeProperties = JSON.parse(jobDefn.node_properties);
+    expect(nodeProperties.numNodes).toEqual(15);
+    expect(nodeProperties.mainNode).toEqual(5);
+  });
+});
