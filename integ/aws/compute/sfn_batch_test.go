@@ -56,12 +56,14 @@ func validateSfnBatchSubmitJob(t *testing.T, tfWorkingDir, awsRegion string) {
 	jobDefinitionArn := util.LoadOutputAttribute(t, opts, "job-definition", "arn")
 	jobDefinitionName := util.LoadOutputAttribute(t, opts, "job-definition", "name")
 	computeEnvArn := util.LoadOutputAttribute(t, opts, "compute-env", "arn")
+	stopStateMachineArn := util.LoadOutputAttribute(t, opts, "stop-state-machine", "arn")
 	require.NotEmpty(t, stateMachineArn)
 	require.NotEmpty(t, jobQueueArn)
 	require.NotEmpty(t, jobQueueName)
 	require.NotEmpty(t, jobDefinitionArn)
 	require.NotEmpty(t, jobDefinitionName)
 	require.NotEmpty(t, computeEnvArn)
+	require.NotEmpty(t, stopStateMachineArn)
 
 	batchClient := util.NewBatchClient(t, awsRegion)
 	ctx := context.Background()
@@ -147,14 +149,15 @@ func validateSfnBatchSubmitJob(t *testing.T, tfWorkingDir, awsRegion string) {
 	// Step Functions issue a best-effort batch:TerminateJob for the in-flight job -
 	// without the grant the job would be orphaned and keep running/accruing cost
 	// (https://docs.aws.amazon.com/step-functions/latest/dg/service-integration-iam-templates.html#iam-cancel-tasks).
-	// Start a second execution and stop it while its job is still queued/running;
-	// the job must reach a terminal FAILED state (terminated), not SUCCEEDED. The
-	// CE is already warm from (3)-(5), so the job would otherwise complete within
-	// seconds - stop immediately after the job appears. ---
-	stopExecArn := util.StartSfnExecution(t, awsRegion, stateMachineArn, map[string]string{"bar": "StopMe"})
+	// The stop path has its own state machine + job definition running an
+	// INTENTIONALLY LONG-RUNNING BUT BOUNDED workload (sleep 300, Batch attempt
+	// timeout 360s) under the UNIQUE job name MyStopJob, so this check never races
+	// job completion on the (now warm) compute environment and never collides with
+	// the happy path's MyJob. ---
+	stopExecArn := util.StartSfnExecution(t, awsRegion, stopStateMachineArn, map[string]string{})
 
-	// Wait for the submitted job to exist (execution enters the task state and
-	// SubmitJob returns), then stop the execution right away.
+	// Wait for the submitted MyStopJob to exist (execution enters the task state and
+	// SubmitJob returns) - the sleep workload guarantees it stays active afterwards.
 	var stopJobId string
 	for i := 0; i < 40 && stopJobId == ""; i++ {
 		for _, status := range []batchtypes.JobStatus{
@@ -168,7 +171,7 @@ func validateSfnBatchSubmitJob(t *testing.T, tfWorkingDir, awsRegion string) {
 			})
 			require.NoError(t, listErr)
 			for _, job := range listOut2.JobSummaryList {
-				if job.JobName != nil && strings.HasSuffix(*job.JobName, "MyJob") && job.JobId != nil {
+				if job.JobName != nil && strings.HasSuffix(*job.JobName, "MyStopJob") && job.JobId != nil {
 					stopJobId = *job.JobId
 					break
 				}
@@ -181,16 +184,14 @@ func validateSfnBatchSubmitJob(t *testing.T, tfWorkingDir, awsRegion string) {
 			time.Sleep(3 * time.Second)
 		}
 	}
-	require.NotEmpty(t, stopJobId, "expected the second execution to submit a Batch job within the polling budget")
-	t.Logf("stop-test: second execution %s submitted job %s - stopping the execution now", *stopExecArn, stopJobId)
+	require.NotEmpty(t, stopJobId, "expected the stop-path execution to submit MyStopJob within the polling budget")
+	t.Logf("stop-test: execution %s submitted job %s (MyStopJob) - stopping the execution now", *stopExecArn, stopJobId)
 
 	util.StopSfnExecution(t, awsRegion, *stopExecArn)
 
 	// The stopped execution must go ABORTED, and Step Functions' cancellation must
-	// drive the job to FAILED (terminated) - a SUCCEEDED job here means the
-	// TerminateJob attempt was not made or not permitted. If the job happened to
-	// finish in the race window before the stop landed, fail loudly so the flake
-	// is visible rather than silently passing.
+	// drive the sleeping job to FAILED (terminated) - it cannot SUCCEED inside the
+	// assertion window because the workload sleeps for 300s.
 	_, stopWaitErr := util.WaitForSfnExecutionStatusE(t, awsRegion, *stopExecArn, sfntypes.ExecutionStatusAborted, 20, 6*time.Second)
 	require.NoError(t, stopWaitErr, "expected the stopped execution to reach ABORTED")
 
@@ -206,5 +207,5 @@ func validateSfnBatchSubmitJob(t *testing.T, tfWorkingDir, awsRegion string) {
 		time.Sleep(6 * time.Second)
 	}
 	assert.Equal(t, batchtypes.JobStatusFailed, stoppedJobStatus,
-		"expected the Batch job %s to be terminated (FAILED) after StopExecution - SUCCEEDED means the stop raced job completion, any other status means the TerminateJob grant did not take effect", stopJobId)
+		"expected the sleeping Batch job %s (MyStopJob) to be terminated (FAILED) after StopExecution - any other outcome means the TerminateJob grant did not take effect", stopJobId)
 }

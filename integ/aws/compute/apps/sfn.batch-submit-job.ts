@@ -124,4 +124,50 @@ new aws.compute.StateMachine(stack, "StateMachine", {
   outputName: "state-machine",
 });
 
+// --- Cancellation fixture (no upstream counterpart): the StopExecution/TerminateJob
+// regression in sfn_batch_test.go needs a job that is reliably STILL RUNNING when the
+// validator stops the execution. The happy-path print-and-exit job races completion on
+// a warm compute environment, so the stop path gets its own INTENTIONALLY LONG-RUNNING
+// BUT BOUNDED workload (sleep 300 - Batch's attempt timeout below caps it even if
+// termination never arrives) and a UNIQUE job name (MyStopJob) so the validator
+// correlates jobs to this path without racing the happy-path job. ---
+const stopJobDefinition = new aws.compute.batch.EcsJobDefinition(
+  stack,
+  "StopJobDefinition",
+  {
+    container: new aws.compute.batch.EcsEc2ContainerDefinition(
+      stack,
+      "StopContainer",
+      {
+        image: aws.compute.ecs.ContainerImage.fromRegistry(
+          "public.ecr.aws/docker/library/python:3.13-alpine",
+        ),
+        command: ["python", "-c", "import time; time.sleep(300)"],
+        cpu: 256,
+        memory: Size.mebibytes(2048),
+      },
+    ),
+    registerOutputs: true,
+    outputName: "stop-job-definition",
+  },
+);
+
+const submitStopJob = new aws.compute.tasks.BatchSubmitJob(
+  stack,
+  "Submit Stop Job",
+  {
+    jobDefinitionArn: stopJobDefinition.jobDefinitionArn,
+    jobQueueArn: jobQueue.jobQueueArn,
+    jobName: "MyStopJob",
+    // Bounded even without termination: Batch kills the attempt at 360s.
+    taskTimeout: aws.compute.Timeout.duration(Duration.seconds(360)),
+  },
+);
+
+new aws.compute.StateMachine(stack, "StopStateMachine", {
+  definitionBody: aws.compute.DefinitionBody.fromChainable(submitStopJob),
+  registerOutputs: true,
+  outputName: "stop-state-machine",
+});
+
 app.synth();
