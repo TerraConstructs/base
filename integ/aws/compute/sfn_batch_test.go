@@ -124,23 +124,87 @@ func validateSfnBatchSubmitJob(t *testing.T, tfWorkingDir, awsRegion string) {
 		assert.Equal(t, batchtypes.JobStatusSucceeded, jobOut.Jobs[0].Status,
 			"expected batch job %s to have SUCCEEDED, got %s (%s)",
 			out.JobId, jobOut.Jobs[0].Status, aws.ToString(jobOut.Jobs[0].StatusReason))
-		return
+	} else {
+		// Fallback: no JobId parsed from the execution output - list SUCCEEDED jobs on
+		// the queue and suffix-match the MyJob name (never assert the exact
+		// gridUUID-prefixed name).
+		listOut, err := batchClient.ListJobs(ctx, &batch.ListJobsInput{
+			JobQueue:  &jobQueueArn,
+			JobStatus: batchtypes.JobStatusSucceeded,
+		})
+		require.NoError(t, err)
+		var found bool
+		for _, job := range listOut.JobSummaryList {
+			if job.JobName != nil && strings.HasSuffix(*job.JobName, "MyJob") {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "expected a SUCCEEDED job on queue %s with a name ending in MyJob", jobQueueName)
 	}
 
-	// Fallback: no JobId parsed from the execution output - list SUCCEEDED jobs on
-	// the queue and suffix-match the MyJob name (never assert the exact
-	// gridUUID-prefixed name).
-	listOut, err := batchClient.ListJobs(ctx, &batch.ListJobsInput{
-		JobQueue:  &jobQueueArn,
-		JobStatus: batchtypes.JobStatusSucceeded,
-	})
-	require.NoError(t, err)
-	var found bool
-	for _, job := range listOut.JobSummaryList {
-		if job.JobName != nil && strings.HasSuffix(*job.JobName, "MyJob") {
-			found = true
-			break
+	// --- (6) TerminateJob grant (PR #137 review): stopping a .sync execution makes
+	// Step Functions issue a best-effort batch:TerminateJob for the in-flight job -
+	// without the grant the job would be orphaned and keep running/accruing cost
+	// (https://docs.aws.amazon.com/step-functions/latest/dg/service-integration-iam-templates.html#iam-cancel-tasks).
+	// Start a second execution and stop it while its job is still queued/running;
+	// the job must reach a terminal FAILED state (terminated), not SUCCEEDED. The
+	// CE is already warm from (3)-(5), so the job would otherwise complete within
+	// seconds - stop immediately after the job appears. ---
+	stopExecArn := util.StartSfnExecution(t, awsRegion, stateMachineArn, map[string]string{"bar": "StopMe"})
+
+	// Wait for the submitted job to exist (execution enters the task state and
+	// SubmitJob returns), then stop the execution right away.
+	var stopJobId string
+	for i := 0; i < 40 && stopJobId == ""; i++ {
+		for _, status := range []batchtypes.JobStatus{
+			batchtypes.JobStatusSubmitted, batchtypes.JobStatusPending,
+			batchtypes.JobStatusRunnable, batchtypes.JobStatusStarting,
+			batchtypes.JobStatusRunning,
+		} {
+			listOut2, listErr := batchClient.ListJobs(ctx, &batch.ListJobsInput{
+				JobQueue:  &jobQueueArn,
+				JobStatus: status,
+			})
+			require.NoError(t, listErr)
+			for _, job := range listOut2.JobSummaryList {
+				if job.JobName != nil && strings.HasSuffix(*job.JobName, "MyJob") && job.JobId != nil {
+					stopJobId = *job.JobId
+					break
+				}
+			}
+			if stopJobId != "" {
+				break
+			}
+		}
+		if stopJobId == "" {
+			time.Sleep(3 * time.Second)
 		}
 	}
-	assert.True(t, found, "expected a SUCCEEDED job on queue %s with a name ending in MyJob", jobQueueName)
+	require.NotEmpty(t, stopJobId, "expected the second execution to submit a Batch job within the polling budget")
+	t.Logf("stop-test: second execution %s submitted job %s - stopping the execution now", *stopExecArn, stopJobId)
+
+	util.StopSfnExecution(t, awsRegion, *stopExecArn)
+
+	// The stopped execution must go ABORTED, and Step Functions' cancellation must
+	// drive the job to FAILED (terminated) - a SUCCEEDED job here means the
+	// TerminateJob attempt was not made or not permitted. If the job happened to
+	// finish in the race window before the stop landed, fail loudly so the flake
+	// is visible rather than silently passing.
+	_, stopWaitErr := util.WaitForSfnExecutionStatusE(t, awsRegion, *stopExecArn, sfntypes.ExecutionStatusAborted, 20, 6*time.Second)
+	require.NoError(t, stopWaitErr, "expected the stopped execution to reach ABORTED")
+
+	var stoppedJobStatus batchtypes.JobStatus
+	for i := 0; i < 40; i++ {
+		jobOut2, descErr := batchClient.DescribeJobs(ctx, &batch.DescribeJobsInput{Jobs: []string{stopJobId}})
+		require.NoError(t, descErr)
+		require.Len(t, jobOut2.Jobs, 1)
+		stoppedJobStatus = jobOut2.Jobs[0].Status
+		if stoppedJobStatus == batchtypes.JobStatusFailed || stoppedJobStatus == batchtypes.JobStatusSucceeded {
+			break
+		}
+		time.Sleep(6 * time.Second)
+	}
+	assert.Equal(t, batchtypes.JobStatusFailed, stoppedJobStatus,
+		"expected the Batch job %s to be terminated (FAILED) after StopExecution - SUCCEEDED means the stop raced job completion, any other status means the TerminateJob grant did not take effect", stopJobId)
 }
