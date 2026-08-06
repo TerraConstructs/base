@@ -1462,6 +1462,20 @@ describe("ManagedEc2EcsComputeEnvironment", () => {
         }),
       },
     );
+    // TERRACONSTRUCTS addition (PR #136 review): the generated role must carry the
+    // AmazonEC2SpotFleetTaggingRole managed policy - AWS requires it for Batch to
+    // launch/tag/terminate the fleet's instances; a bare role (upstream behavior)
+    // synthesizes fine but is unusable at runtime.
+    // https://docs.aws.amazon.com/batch/latest/userguide/spot_fleet_IAM_role.html
+    Template.synth(stack).toHaveResourceWithProperties(
+      iamRolePolicyAttachment.IamRolePolicyAttachment,
+      {
+        role: stack.resolve(ce.spotFleetRole!.roleName),
+        policy_arn: expect.stringMatching(
+          /service-role\/AmazonEC2SpotFleetTaggingRole/,
+        ),
+      },
+    );
     // Template.fromStack(stack).hasResourceProperties('AWS::Batch::ComputeEnvironment', {
     //   ...pascalCaseExpectedEcsProps,
     //   ComputeResources: {

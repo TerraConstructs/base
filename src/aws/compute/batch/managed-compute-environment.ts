@@ -1035,6 +1035,19 @@ function createInstanceRoleAndProfile(
 function createSpotFleetRole(scope: Construct): iam.IRole {
   return new iam.Role(scope, "SpotFleetRole", {
     assumedBy: new iam.ServicePrincipal("spotfleet.amazonaws.com"),
+    // TERRACONSTRUCTS DEVIATION: AWS requires the Spot Fleet role to carry the
+    // AmazonEC2SpotFleetTaggingRole managed policy so Batch can launch, tag, and
+    // terminate the fleet's instances
+    // (https://docs.aws.amazon.com/batch/latest/userguide/spot_fleet_IAM_role.html).
+    // Upstream aws-cdk creates the role with no permissions at all - the default
+    // BEST_FIT spot path synthesizes fine but hands Batch an unusable role.
+    managedPolicies: [
+      iam.ManagedPolicy.fromAwsManagedPolicyName(
+        scope,
+        "AmazonEC2SpotFleetTaggingRole",
+        "service-role/AmazonEC2SpotFleetTaggingRole",
+      ),
+    ],
   });
 }
 
