@@ -9,7 +9,7 @@ import {
   secretsmanagerSecretPolicy,
   dataAwsIamPolicyDocument,
 } from "@cdktn/provider-aws";
-import { App, Testing } from "cdktn";
+import { App, HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as ec2 from "../../../src/aws/compute";
@@ -25,6 +25,9 @@ let target: ec2.Connections;
 beforeEach(() => {
   app = Testing.app();
   stack = new AwsStack(app);
+  // Snapshotted stacks must not use the default local backend -- it embeds a
+  // machine-dependent absolute tfstate path in synth output (conventions.md).
+  new HttpBackend(stack, { address: "http://localhost:3000" });
   vpc = new ec2.Vpc(stack, "VPC");
   secret = new encryption.Secret(stack, "Secret");
   securityGroup = new ec2.SecurityGroup(stack, "SecurityGroup", { vpc });
