@@ -10,7 +10,7 @@
 // minimal IEngine literals below carry only the fields these constructs read
 // (same stand-in idiom as test/aws/storage/rds/parameter-group.test.ts).
 import { App, LocalBackend, TerraformOutput } from "cdktn";
-import { aws } from "../../../../src";
+import { aws, Duration } from "../../../../src";
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
 const region = process.env.AWS_REGION ?? "us-east-1";
@@ -102,6 +102,10 @@ const optionGroup = new aws.storage.rds.OptionGroup(stack, "Options", {
 
 const secret = new aws.storage.rds.DatabaseSecret(stack, "Secret", {
   username: "dbadmin",
+  // Force immediate deletion on destroy so the deterministic secret name can
+  // be re-created across repeated integ runs (run 2 failed on the 30-day
+  // recovery window from run 1's destroy).
+  recoveryWindow: Duration.days(0),
 });
 
 new TerraformOutput(stack, "subnet_group_name", {
