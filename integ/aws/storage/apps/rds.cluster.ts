@@ -44,7 +44,7 @@ const vpc = new aws.compute.Vpc(stack, "Vpc", {
 
 const cluster = new aws.storage.rds.DatabaseCluster(stack, "Cluster", {
   engine: aws.storage.rds.DatabaseClusterEngine.auroraPostgres({
-    version: aws.storage.rds.AuroraPostgresEngineVersion.VER_16_4,
+    version: aws.storage.rds.AuroraPostgresEngineVersion.VER_16_8,
   }),
   vpc,
   vpcSubnets: { subnetType: aws.compute.SubnetType.PRIVATE_ISOLATED },
