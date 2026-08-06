@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-batch/lib/multinode-job-definition.ts
 
 import { batchJobDefinition } from "@cdktn/provider-aws";
-import { IResolvable, Lazy } from "cdktn";
+import { IResolvable, Lazy, Token } from "cdktn";
 import { Construct } from "constructs";
 import {
   ContainerPropertiesConfig,
@@ -254,7 +254,9 @@ export class MultiNodeJobDefinition
         // themselves be wrapped in `Lazy.anyValue()`/`Lazy.numberValue()` (matching upstream's own
         // `Lazy.any()`/`Lazy.number()` for the same reason) so the `this.containers` iteration is
         // deferred to synth time, not evaluated eagerly here.
-        nodeProperties: this.stack.toJsonString(this.renderNodeProperties()),
+        nodeProperties: Lazy.stringValue({
+          produce: () => this.renderNodePropertiesJson(),
+        }),
         platformCapabilities: [Compatibility.EC2],
       },
     );
@@ -303,23 +305,38 @@ export class MultiNodeJobDefinition
     }
   }
 
-  private renderNodeProperties(): NodePropertiesConfig {
-    return {
-      mainNode: this.mainNode ?? 0,
-      nodeRangeProperties: Lazy.anyValue({
-        produce: () =>
-          this.containers.map((container) => ({
-            targetNodes: `${container.startNode}:${container.endNode}`,
-            container: {
-              ...container.container._renderContainerDefinition(),
-              instanceType: this._instanceType?.toString(),
-            },
-          })),
-      }),
-      numNodes: Lazy.numberValue({
-        produce: () => computeNumNodes(this.containers),
-      }),
+  /**
+   * Renders the jsonencoded node_properties string at synth time (after all
+   * addContainer() mutations).
+   *
+   * TERRACONSTRUCTS DEVIATION: an unresolved (token) mainNode cannot go through the
+   * generic stack.toJsonString() path - that resolves every token to its STRING
+   * interpolation form before JSON.stringify, so a Terraform-variable-backed number
+   * renders as `"mainNode":"${var.x}"` and the provider rejects the applied config with
+   * `json: cannot unmarshal string into Go struct field NodeProperties.MainNode of type
+   * int32` (caught live by the batch.spot-mnp integ test). For a token mainNode the
+   * interpolation is spliced into the JSON text UNQUOTED (`"mainNode":${var.x},...`),
+   * so Terraform's template evaluation produces a JSON number; string tokens elsewhere
+   * in the document keep their quoted form. Literal mainNode values keep the exact
+   * previous rendering.
+   */
+  private renderNodePropertiesJson(): string {
+    const mainNode = this.mainNode ?? 0;
+    const rest = {
+      nodeRangeProperties: this.containers.map((container) => ({
+        targetNodes: `${container.startNode}:${container.endNode}`,
+        container: {
+          ...container.container._renderContainerDefinition(),
+          instanceType: this._instanceType?.toString(),
+        },
+      })),
+      numNodes: computeNumNodes(this.containers),
     };
+    if (!Token.isUnresolved(mainNode)) {
+      return JSON.stringify(this.stack.resolve({ mainNode, ...rest }));
+    }
+    const restJson = JSON.stringify(this.stack.resolve(rest));
+    return `{"mainNode":${this.stack.resolve(mainNode)},${restJson.slice(1)}`;
   }
 }
 
@@ -404,10 +421,14 @@ function validateContainers(
   }
 
   const highestEndNode = sorted.reduce((max, c) => Math.max(max, c.endNode), 0);
+  // Skip the literal checks for an unresolved mainNode (e.g. a Terraform variable):
+  // CDKTN encodes unresolved numbers as reversible sentinel doubles, which would fail
+  // Number.isInteger()/range comparisons here even though the resolved value is valid
+  // (upstream passes mainNode through unvalidated; same Token.isUnresolved guard idiom
+  // as managed-compute-environment.ts).
   if (
-    !Number.isInteger(mainNode) ||
-    mainNode < 0 ||
-    mainNode > highestEndNode
+    !Token.isUnresolved(mainNode) &&
+    (!Number.isInteger(mainNode) || mainNode < 0 || mainNode > highestEndNode)
   ) {
     errors.push(
       `mainNode ${mainNode} is not covered by the configured node ranges (0..${highestEndNode})`,

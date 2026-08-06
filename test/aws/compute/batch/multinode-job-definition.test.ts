@@ -1,7 +1,7 @@
 // https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-batch/test/multinode-job-definition.test.ts
 
 import { batchJobDefinition } from "@cdktn/provider-aws";
-import { App, HttpBackend, Testing } from "cdktn";
+import { App, HttpBackend, TerraformVariable, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../../src/aws/aws-stack";
 import {
@@ -571,6 +571,34 @@ describe("multinode node-range topology validation", () => {
   test("rejects ranges that do not start at node 0", () => {
     expect(synthWithRanges([{ startNode: 1, endNode: 4 }])).toThrow(
       /must start at node 0/,
+    );
+  });
+
+  test("accepts an unresolved (Terraform variable) mainNode token without literal validation", () => {
+    // CDKTN encodes unresolved numbers as sentinel doubles - applying
+    // Number.isInteger()/range checks to them rejected valid variable-backed
+    // mainNode values (PR #136 review blocker; upstream passes mainNode through
+    // unvalidated). The literal checks must be skipped for tokens and the token
+    // must survive into the rendered node_properties.
+    const stack = getAwsStack();
+    const mainNodeVar = new TerraformVariable(stack, "main-node", {
+      type: "number",
+      default: 2,
+    });
+    new batch.MultiNodeJobDefinition(stack, "ECSJobDefn", {
+      mainNode: mainNodeVar.numberValue,
+      containers: [
+        { container: ec2Container(stack, "A"), startNode: 0, endNode: 10 },
+      ],
+    });
+    Template.fromStack(stack, { runValidations: true });
+    const jobDefn = batchJobDefinitionsFor(stack)[0];
+    // The interpolation must be spliced UNQUOTED so Terraform's template evaluation
+    // yields a JSON number - `"mainNode":"${var...}"` (string-typed) is rejected by
+    // the provider at apply time (json: cannot unmarshal string into ... int32).
+    expect(jobDefn.node_properties).toContain('"mainNode":${var.main-node},');
+    expect(jobDefn.node_properties).not.toContain(
+      '"mainNode":"${var.main-node}"',
     );
   });
 
