@@ -40,6 +40,11 @@ export interface UnmanagedComputeEnvironmentProps
    * **If this parameter is not provided on a fairshare queue, no capacity is reserved**;
    * that is, the `FairshareSchedulingPolicy` is ignored.
    *
+   * // TERRACONSTRUCTS DEVIATION: NOT SUPPORTED - the aws_batch_compute_environment
+   * Terraform resource cannot express this Batch API parameter, so supplying it throws a
+   * `ValidationError` at construction (fail-fast) instead of silently deploying a compute
+   * environment without the requested capacity.
+   *
    * @default 0
    */
   readonly unmanagedvCpus?: number;
@@ -111,6 +116,24 @@ export class UnmanagedComputeEnvironment
     super(scope, id, props);
 
     this.unmanagedvCPUs = props?.unmanagedvCpus;
+
+    // TERRACONSTRUCTS DEVIATION (fail-fast): the `aws_batch_compute_environment` Terraform
+    // resource has no attribute for the Batch CreateComputeEnvironment `unmanagedvCpus`
+    // parameter (verified against @cdktn/provider-aws 6.52.0), so a supplied value would
+    // synthesize and deploy a compute environment WITHOUT the requested vCPU capacity --
+    // silently breaking FairshareSchedulingPolicy capacity reservations. Upstream forwards
+    // it to CloudFormation; until the provider exposes it, reject it loudly rather than
+    // dropping it.
+    if (props?.unmanagedvCpus !== undefined) {
+      throw new ValidationError(
+        "unmanagedvCpus is not supported: the Terraform provider's" +
+          " aws_batch_compute_environment resource cannot express the Batch" +
+          " 'unmanagedvCpus' parameter, so the value would be silently ignored at" +
+          " deploy time. Omit it (and manage unmanaged capacity outside Terraform)" +
+          " until provider support exists.",
+        this,
+      );
+    }
 
     // gridUUID physical naming (HARD REPO INVARIANT): the `aws_batch_compute_environment`
     // Terraform resource exposes both `name` (exact) and `name_prefix` (Terraform-generated

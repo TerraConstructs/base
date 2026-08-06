@@ -146,24 +146,22 @@ test("respects serviceRole", () => {
   // });
 });
 
-test("respects unmanagedvCpus", () => {
+// upstream title: 'respects unmanagedvCpus'. TERRACONSTRUCTS DEVIATION (fail-fast):
+// `unmanagedvCpus` has no counterpart on `BatchComputeEnvironmentConfig` (verified against
+// @cdktn/provider-aws 6.52.0) even though the Batch CreateComputeEnvironment API accepts it.
+// Silently dropping the value would deploy a compute environment without the requested
+// FairshareSchedulingPolicy capacity, so the construct rejects it at construction. See
+// mappings/aws-batch.json (CfnComputeEnvironment entry, "UNMAPPABLE Cfn props" section).
+test("rejects unmanagedvCpus - the Terraform provider cannot express it", () => {
   // GIVEN
   stack = getAwsStack();
 
-  // WHEN
-  const ce = new batch.UnmanagedComputeEnvironment(stack, "MyCE", {
-    unmanagedvCpus: 256,
-  });
-
-  // THEN
-  // TERRACONSTRUCTS DEVIATION (provider-unsupported): `unmanagedvCpus` has no counterpart on
-  // `BatchComputeEnvironmentConfig` (verified against @cdktn/provider-aws 6.52.0) even though the
-  // underlying Batch CreateComputeEnvironment API accepts it -- the Terraform provider does not
-  // expose it at all. It is preserved as a construct-level, TF-resource-less property only (for
-  // FairshareSchedulingPolicy-aware JobQueues to read); it cannot be asserted against the synthesized
-  // `aws_batch_compute_environment` resource. See mappings/aws-batch.json (CfnComputeEnvironment entry,
-  // "UNMAPPABLE Cfn props" section).
-  expect(ce.unmanagedvCPUs).toEqual(256);
+  // WHEN / THEN
+  expect(() => {
+    new batch.UnmanagedComputeEnvironment(stack, "MyCE", {
+      unmanagedvCpus: 256,
+    });
+  }).toThrow(/unmanagedvCpus is not supported/);
 
   // Template.fromStack(stack).hasResourceProperties('AWS::Batch::ComputeEnvironment', {
   //   ...pascalCaseExpectedProps,
