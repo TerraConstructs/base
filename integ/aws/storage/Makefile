@@ -40,6 +40,10 @@ rds.proxy: ## Test DatabaseProxy L2 (live RDS Proxy fronting MySQL db.t3.micro)
 	go test -v -count 1 -timeout 45m ./... -run ^TestRdsProxy$
 .PHONY: rds.proxy
 
+docdb.cluster: ## Test DocDB DatabaseCluster L2 (live DocumentDB cluster + instance)
+	go test -v -count 1 -timeout 45m ./... -run ^TestDocdbCluster$
+.PHONY: docdb.cluster
+
 bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 	go test -v -count 1 -timeout 15m ./... -run ^TestBucketNotifications$
 .PHONY: bucket-notifications
