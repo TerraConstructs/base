@@ -542,6 +542,14 @@ describe("BatchSubmitJob", () => {
             effect: "Allow",
             resources: ["*"],
           },
+          // .sync (RUN_JOB) polling fallback + best-effort cancellation - job ids
+          // are runtime-generated, so AWS's IAM template documents Resource "*"
+          // (https://docs.aws.amazon.com/step-functions/latest/dg/connect-batch.html).
+          {
+            actions: ["batch:DescribeJobs", "batch:TerminateJob"],
+            effect: "Allow",
+            resources: ["*"],
+          },
           {
             actions: [
               "events:PutTargets",
@@ -603,6 +611,119 @@ describe("BatchSubmitJob", () => {
     //   },
     // });
   });
+
+  // -------------------------------------------------------------------------
+  // TERRACONSTRUCTS additions (no upstream counterparts) - PR #137 review:
+  // AWS's IAM template for the Batch integration requires batch:DescribeJobs
+  // (.sync polling fallback) and batch:TerminateJob (best-effort cancellation
+  // on StopExecution) for RUN_JOB, and neither the wildcard nor the
+  // EventBridge managed-rule statement for REQUEST_RESPONSE.
+  // https://docs.aws.amazon.com/step-functions/latest/dg/connect-batch.html
+  // -------------------------------------------------------------------------
+
+  test("RUN_JOB (default) grants DescribeJobs/TerminateJob wildcard alongside scoped SubmitJob", () => {
+    // WHEN
+    const task = new BatchSubmitJob(stack, "Task", {
+      jobDefinitionArn: batchJobDefinition.jobDefinitionArn,
+      jobQueueArn: batchJobQueue.jobQueueArn,
+      jobName: "JobName",
+    });
+    new compute.StateMachine(stack, "ParentStateMachine", {
+      definitionBody: compute.DefinitionBody.fromChainable(task),
+    });
+
+    // THEN
+    const template = new Template(stack);
+    template.expect.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+      {
+        statement: [
+          {
+            actions: ["batch:SubmitJob"],
+            effect: "Allow",
+            resources: [
+              expect.stringMatching(/job-definition\/\*/),
+              stack.resolve(batchJobQueue.jobQueueArn),
+            ],
+          },
+          {
+            actions: ["batch:DescribeJobs", "batch:TerminateJob"],
+            effect: "Allow",
+            resources: ["*"],
+          },
+          {
+            actions: [
+              "events:PutTargets",
+              "events:PutRule",
+              "events:DescribeRule",
+            ],
+            effect: "Allow",
+            resources: [
+              expect.stringMatching(
+                /rule\/StepFunctionsGetEventsForBatchJobsRule$/,
+              ),
+            ],
+          },
+        ],
+      },
+    );
+  });
+
+  test("REQUEST_RESPONSE grants only batch:SubmitJob - no .sync polling/cancel/events statements", () => {
+    // WHEN
+    const task = new BatchSubmitJob(stack, "Task", {
+      jobDefinitionArn: batchJobDefinition.jobDefinitionArn,
+      jobQueueArn: batchJobQueue.jobQueueArn,
+      jobName: "JobName",
+      integrationPattern: compute.IntegrationPattern.REQUEST_RESPONSE,
+    });
+    new compute.StateMachine(stack, "ParentStateMachine", {
+      definitionBody: compute.DefinitionBody.fromChainable(task),
+    });
+
+    // THEN
+    const template = new Template(stack);
+    template.expect.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+      {
+        statement: [
+          {
+            actions: ["batch:SubmitJob"],
+            effect: "Allow",
+            resources: [
+              expect.stringMatching(/job-definition\/\*/),
+              stack.resolve(batchJobQueue.jobQueueArn),
+            ],
+          },
+        ],
+      },
+    );
+    const synthed = Testing.synth(stack);
+    expect(synthed).not.toContain("batch:TerminateJob");
+    expect(synthed).not.toContain("StepFunctionsGetEventsForBatchJobsRule");
+  });
+
+  test("rejects a literal zero-second timeout instead of silently dropping it", () => {
+    // upstream truthiness bug: `if (definedTimeout && ...)` skips 0, and the
+    // render path `if (this.props.timeout)` silently omits it.
+    expect(() => {
+      new BatchSubmitJob(stack, "TaskTimeout0", {
+        jobDefinitionArn: batchJobDefinition.jobDefinitionArn,
+        jobQueueArn: batchJobQueue.jobQueueArn,
+        jobName: "JobName",
+        taskTimeout: compute.Timeout.duration(Duration.seconds(0)),
+      });
+    }).toThrow(/attempt duration must be greater than 60 seconds. Received 0/);
+
+    expect(() => {
+      new BatchSubmitJob(stack, "Timeout0", {
+        jobDefinitionArn: batchJobDefinition.jobDefinitionArn,
+        jobQueueArn: batchJobQueue.jobQueueArn,
+        jobName: "JobName",
+        timeout: Duration.seconds(0),
+      });
+    }).toThrow(/attempt duration must be greater than 60 seconds. Received 0/);
+  });
 });
 
 // snapshot tests must not use the default local backend - its state file path
@@ -658,7 +779,15 @@ describe("BatchSubmitJob synth", () => {
     });
 
     // THEN
+    // Snapshot only the task-relevant artifacts (state machine definition + IAM
+    // policy documents) rather than the full supporting infrastructure - the full
+    // stack snapshot churned on every unrelated synthesis change (PR #137 review).
     synthStack.prepareStack();
-    expect(Testing.synth(synthStack)).toMatchSnapshot();
+    const synthed = JSON.parse(Testing.synth(synthStack));
+    expect({
+      stateMachine: synthed.resource.aws_sfn_state_machine,
+      rolePolicies: synthed.resource.aws_iam_role_policy,
+      policyDocuments: synthed.data.aws_iam_policy_document,
+    }).toMatchSnapshot();
   });
 });

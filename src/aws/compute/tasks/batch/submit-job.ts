@@ -233,7 +233,9 @@ export class BatchSubmitJob extends compute.TaskStateBase {
         props.taskTimeout?.seconds,
         (timeout, taskTimeout) => {
           const definedTimeout = timeout ?? taskTimeout;
-          if (definedTimeout && definedTimeout < 60) {
+          // `!== undefined` (not truthiness): a literal 0-second timeout must be
+          // rejected here, not silently skipped (upstream has the truthiness bug).
+          if (definedTimeout !== undefined && definedTimeout < 60) {
             throw new ValidationError(
               `attempt duration must be greater than 60 seconds. Received ${definedTimeout} seconds.`,
               this,
@@ -264,10 +266,13 @@ export class BatchSubmitJob extends compute.TaskStateBase {
    * @internal
    */
   protected _renderTask(): any {
+    // `!== undefined` (not truthiness) so a 0-second value cannot silently vanish
+    // from the rendered Parameters (upstream has the truthiness bug; 0 is rejected
+    // by the constructor validation above regardless).
     let timeout: number | undefined = undefined;
-    if (this.props.timeout) {
+    if (this.props.timeout !== undefined) {
       timeout = this.props.timeout.toSeconds();
-    } else if (this.props.taskTimeout?.seconds) {
+    } else if (this.props.taskTimeout?.seconds !== undefined) {
       timeout = this.props.taskTimeout.seconds;
     } else if (this.props.taskTimeout?.path) {
       timeout = compute.JsonPath.numberAt(this.props.taskTimeout.path);
@@ -306,7 +311,10 @@ export class BatchSubmitJob extends compute.TaskStateBase {
             ? { Attempts: this.props.attempts }
             : undefined,
         Tags: this.props.tags,
-        Timeout: timeout ? { AttemptDurationSeconds: timeout } : undefined,
+        Timeout:
+          timeout !== undefined
+            ? { AttemptDurationSeconds: timeout }
+            : undefined,
       }),
       // BatchSubmitJob repurposes timeout/taskTimeout to mean the Batch
       // AttemptDurationSeconds (rendered above, nested in Parameters.Timeout).
@@ -320,7 +328,7 @@ export class BatchSubmitJob extends compute.TaskStateBase {
   }
 
   private configurePolicyStatements(): iam.PolicyStatement[] {
-    return [
+    const statements = [
       // Resource level access control for job-definition requires revision which batch does not support yet
       // Using the alternative permissions as mentioned here:
       // https://docs.aws.amazon.com/batch/latest/userguide/batch-supported-iam-actions-resources.html
@@ -347,17 +355,42 @@ export class BatchSubmitJob extends compute.TaskStateBase {
           ? ["batch:SubmitJob", "batch:TagResource"]
           : ["batch:SubmitJob"],
       }),
-      new iam.PolicyStatement({
-        resources: [
-          AwsStack.ofAwsConstruct(this).formatArn({
-            service: "events",
-            resource: "rule",
-            resourceName: "StepFunctionsGetEventsForBatchJobsRule",
-          }),
-        ],
-        actions: ["events:PutTargets", "events:PutRule", "events:DescribeRule"],
-      }),
     ];
+
+    // TERRACONSTRUCTS DEVIATION: upstream grants only batch:SubmitJob plus the (unconditional)
+    // EventBridge managed-rule statement. Per AWS's IAM policy template for the Batch
+    // integration (https://docs.aws.amazon.com/step-functions/latest/dg/connect-batch.html),
+    // the Run a Job (.sync) pattern additionally requires batch:DescribeJobs (the polling
+    // fallback - without it an execution can get STUCK if the EventBridge completion event
+    // is missed or incomplete) and batch:TerminateJob (Step Functions' best-effort job
+    // cancellation when an execution is stopped - without it a stopped execution leaves the
+    // Batch job running and accruing cost). Job ids are generated at runtime, so AWS
+    // documents Resource "*" for these. Request Response gets neither statement: it does
+    // not poll, cancel, or use the EventBridge managed rule.
+    if (this.integrationPattern === compute.IntegrationPattern.RUN_JOB) {
+      statements.push(
+        new iam.PolicyStatement({
+          resources: ["*"],
+          actions: ["batch:DescribeJobs", "batch:TerminateJob"],
+        }),
+        new iam.PolicyStatement({
+          resources: [
+            AwsStack.ofAwsConstruct(this).formatArn({
+              service: "events",
+              resource: "rule",
+              resourceName: "StepFunctionsGetEventsForBatchJobsRule",
+            }),
+          ],
+          actions: [
+            "events:PutTargets",
+            "events:PutRule",
+            "events:DescribeRule",
+          ],
+        }),
+      );
+    }
+
+    return statements;
   }
 
   private configureContainerOverrides(
