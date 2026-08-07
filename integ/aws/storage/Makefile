@@ -59,3 +59,7 @@ redshift.cluster: ## Test Redshift Cluster L2 (live single-node ra3.large cluste
 bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 	go test -v -count 1 -timeout 15m ./... -run ^TestBucketNotifications$
 .PHONY: bucket-notifications
+
+backup.plan: ## Test Backup Plan/Vault/Selection L2s (live plan over a DynamoDB table)
+	go test -v -count 1 -timeout 30m ./... -run ^TestBackupPlan$
+.PHONY: backup.plan
