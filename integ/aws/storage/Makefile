@@ -48,6 +48,10 @@ elasticache.serverless-cache: ## Test ElastiCache ServerlessCache L2 (live Valke
 	go test -v -count 1 -timeout 30m ./... -run ^TestElasticacheServerlessCache$
 .PHONY: elasticache.serverless-cache
 
+neptune.cluster: ## Test Neptune DatabaseCluster L2 (live serverless cluster + instance)
+	go test -v -count 1 -timeout 45m ./... -run ^TestNeptuneCluster$
+.PHONY: neptune.cluster
+
 bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 	go test -v -count 1 -timeout 15m ./... -run ^TestBucketNotifications$
 .PHONY: bucket-notifications
