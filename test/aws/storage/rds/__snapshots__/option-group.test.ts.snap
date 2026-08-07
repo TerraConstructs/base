@@ -1,0 +1,58 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`option group create an option group 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_db_option_group": {
+      "Options_66AB347B": {
+        "engine_name": "oracle-se2",
+        "major_engine_version": "12.1",
+        "name": "mystackoptions11c60eb5",
+        "option": [
+          {
+            "option_name": "XMLDB"
+          }
+        ],
+        "option_group_description": "Option group for oracle-se2 12.1",
+        "tags": {
+          "Name": "Test-Options",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "a123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
