@@ -1,0 +1,115 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ClusterParameterGroup create a cluster parameter group 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_neptune_cluster_parameter_group": {
+      "Params_A8366201": {
+        "description": "desc",
+        "family": "neptune1",
+        "name": "mystackparams9fd42da1",
+        "parameter": [
+          {
+            "name": "key",
+            "value": "value"
+          }
+        ],
+        "tags": {
+          "Name": "Test-Params",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "a123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`ParameterGroup create a instance/db parameter group 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_neptune_parameter_group": {
+      "Params_A8366201": {
+        "description": "desc",
+        "family": "neptune1",
+        "name": "mystackparams9fd42da1",
+        "parameter": [
+          {
+            "name": "key",
+            "value": "value"
+          }
+        ],
+        "tags": {
+          "Name": "Test-Params",
+          "grid:EnvironmentName": "Test",
+          "grid:UUID": "a123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.52.0"
+      }
+    }
+  }
+}"
+`;
