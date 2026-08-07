@@ -48,3 +48,6 @@ export * as elasticache from "./elasticache";
 
 // aws-neptune-alpha
 export * as neptune from "./neptune";
+
+// aws-redshift-alpha
+export * as redshift from "./redshift";
