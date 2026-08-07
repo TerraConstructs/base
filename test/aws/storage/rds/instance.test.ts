@@ -1,0 +1,2815 @@
+// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts
+
+import {
+  dbInstance,
+  dbInstanceRoleAssociation,
+  dbSubnetGroup,
+  securityGroup,
+  vpcSecurityGroupIngressRule,
+  vpcSecurityGroupEgressRule,
+  iamRole,
+  dataAwsIamPolicyDocument,
+  secretsmanagerSecret,
+  secretsmanagerSecretVersion,
+  dataAwsSecretsmanagerRandomPassword,
+  secretsmanagerSecretRotation,
+  serverlessapplicationrepositoryCloudformationStack,
+  cloudwatchEventRule,
+} from "@cdktn/provider-aws";
+import { App, TerraformVariable, Testing } from "cdktn";
+import "cdktn/lib/testing/adapters/jest";
+import { Construct } from "constructs";
+import { ArnFormat, AwsStack } from "../../../../src/aws";
+import * as compute from "../../../../src/aws/compute";
+import * as encryption from "../../../../src/aws/encryption";
+import {
+  ManagedPolicy,
+  Role,
+  ServicePrincipal,
+  AccountPrincipal,
+  CompositePrincipal,
+} from "../../../../src/aws/iam";
+import { IRuleTarget } from "../../../../src/aws/notify";
+import { Bucket } from "../../../../src/aws/storage/bucket";
+import * as rds from "../../../../src/aws/storage/rds";
+import { Duration } from "../../../../src/duration";
+import { Template } from "../../../assertions";
+
+const environmentName = "Test";
+const gridUUID = "a123e4567-e89b-12d3";
+const providerConfig = { region: "us-east-1" };
+// snapshot tests must not use the default local backend - its state file path
+// is machine-dependent and would leak into the snapshot
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
+
+let app: App;
+let stack: AwsStack;
+let vpc: compute.IVpc;
+beforeEach(() => {
+  app = Testing.app();
+  stack = new AwsStack(app, "MyStack", {
+    environmentName,
+    gridUUID,
+    providerConfig,
+    gridBackendConfig,
+  });
+  vpc = new compute.Vpc(stack, "VPC", { maxAzs: 2 });
+});
+
+describe("instance", () => {
+  test("create a DB instance", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.oracleSe2({
+        version: rds.OracleEngineVersion.VER_19_0_0_0_2020_04_R1,
+      }),
+      licenseModel: rds.LicenseModel.BRING_YOUR_OWN_LICENSE,
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE2,
+        compute.InstanceSize.MEDIUM,
+      ),
+      multiAz: true,
+      storageType: rds.StorageType.IO1,
+      credentials: rds.Credentials.fromUsername("syscdk", {
+        excludeCharacters: '"@/\\',
+      }),
+      vpc,
+      databaseName: "ORCL",
+      storageEncrypted: true,
+      backupRetention: Duration.days(7),
+      monitoringInterval: Duration.minutes(1),
+      enablePerformanceInsights: true,
+      cloudwatchLogsExports: ["trace", "audit", "alert", "listener"],
+      // TODO: omitted — upstream also passes `cloudwatchLogsRetention:
+      // logs.RetentionDays.ONE_MONTH` here and then asserts
+      // `resourceCountIs('Custom::LogRetention', 4)`. Lambda-backed per-export log retention
+      // (`aws-logs` `LogRetention` custom resource) is not portable to a Terraform-native
+      // `enabled_cloudwatch_logs_exports` list -- see the "CloudWatch log exports" rule in the
+      // slice plan (same omission as the neptune plan) —
+      // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L47
+      autoMinorVersionUpgrade: false,
+    });
+
+    // THEN
+    const t = new Template(stack, { snapshot: true });
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      instance_class: "db.t2.medium",
+      allocated_storage: 100,
+      auto_minor_version_upgrade: false,
+      backup_retention_period: 7,
+      copy_tags_to_snapshot: true,
+      db_name: "ORCL",
+      db_subnet_group_name: expect.any(String),
+      enabled_cloudwatch_logs_exports: ["trace", "audit", "alert", "listener"],
+      performance_insights_enabled: true,
+      engine: "oracle-se2",
+      engine_version: "19.0.0.0.ru-2020-04.rur-2020-04.r1",
+      iops: 1000,
+      license_model: "bring-your-own-license",
+      username: expect.any(String),
+      password: expect.any(String),
+      monitoring_interval: 60,
+      monitoring_role_arn: expect.any(String),
+      multi_az: true,
+      performance_insights_retention_period: 7,
+      storage_encrypted: true,
+      storage_type: "io1",
+    });
+
+    t.expect.toHaveResourceWithProperties(dbSubnetGroup.DbSubnetGroup, {
+      description: "Subnet group for Instance database",
+      subnet_ids: [
+        stack.resolve(vpc.privateSubnets[0].subnetId),
+        stack.resolve(vpc.privateSubnets[1].subnetId),
+      ],
+    });
+
+    t.expect.toHaveResourceWithProperties(securityGroup.SecurityGroup, {
+      description: "Security group for Instance database",
+    });
+
+    t.resourceCountIs(iamRole.IamRole, 1);
+
+    t.expect.toHaveResourceWithProperties(
+      secretsmanagerSecret.SecretsmanagerSecret,
+      {
+        description: expect.stringMatching(/^Generated by the CDK for stack: /),
+      },
+    );
+    t.expect.toHaveDataSourceWithProperties(
+      dataAwsSecretsmanagerRandomPassword.DataAwsSecretsmanagerRandomPassword,
+      {
+        password_length: 30,
+        exclude_characters: '"@/\\',
+      },
+    );
+    t.expectResources(
+      secretsmanagerSecretVersion.SecretsmanagerSecretVersion,
+    ).toHaveLength(1);
+  });
+
+  test.each([
+    [rds.StorageType.STANDARD, "standard", 2000, undefined],
+    [rds.StorageType.GP2, "gp2", 2000, undefined],
+    [rds.StorageType.GP3, "gp3", 2000, 2000],
+    [rds.StorageType.IO1, "io1", 2000, 2000],
+    [rds.StorageType.IO1, "io1", undefined, 1000],
+    [rds.StorageType.IO2, "io2", 2000, 2000],
+    [rds.StorageType.IO2, "io2", undefined, 1000],
+  ])(
+    "storage type and IOPS for %s storage type",
+    (inStorageType, outStorageType, inIops, outIops) => {
+      new rds.DatabaseInstance(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_30,
+        }),
+        vpc,
+        storageType: inStorageType,
+        iops: inIops,
+      });
+
+      const t = new Template(stack);
+      // `objectContaining` cannot assert key absence (it requires the key to
+      // be present with value `undefined`), so only pass `iops` through when
+      // it is expected to be set, and check the raw resource otherwise.
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        storage_type: outStorageType,
+        ...(outIops !== undefined && { iops: outIops }),
+      });
+      if (outIops === undefined) {
+        const [dbInstanceResource] = t.resourceTypeArray(
+          dbInstance.DbInstance,
+        ) as any[];
+        expect(dbInstanceResource.iops).toBeUndefined();
+      }
+    },
+  );
+
+  test("throws when create database with specific AZ and multiAZ enabled", () => {
+    expect(() => {
+      new rds.DatabaseInstance(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        multiAz: true,
+        availabilityZone: "ew-west-1a",
+      });
+    }).toThrow(
+      /Requesting a specific availability zone is not valid for Multi-AZ instances/,
+    );
+  });
+
+  test("instance with option and parameter group", () => {
+    const optionGroup = new rds.OptionGroup(stack, "OptionGroup", {
+      engine: rds.DatabaseInstanceEngine.oracleSe2({
+        version: rds.OracleEngineVersion.VER_19_0_0_0_2020_04_R1,
+      }),
+      configurations: [{ name: "XMLDB" }],
+    });
+
+    const parameterGroup = new rds.ParameterGroup(stack, "ParameterGroup", {
+      engine: rds.DatabaseInstanceEngine.sqlServerEe({
+        version: rds.SqlServerEngineVersion.VER_11,
+      }),
+      description: "desc",
+      parameters: { key: "value" },
+    });
+
+    // WHEN
+    new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.SQL_SERVER_EE,
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE2,
+        compute.InstanceSize.SMALL,
+      ),
+      vpc,
+      optionGroup,
+      parameterGroup,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      parameter_group_name: stack.resolve(
+        parameterGroup.bindToInstance({}).parameterGroupName,
+      ),
+      option_group_name: stack.resolve(optionGroup.optionGroupName),
+    });
+  });
+
+  test("instance with inline parameter group", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.sqlServerEe({
+        version: rds.SqlServerEngineVersion.VER_11,
+      }),
+      vpc,
+      parameters: { locks: "100" },
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      parameter_group_name: expect.any(String),
+    });
+    // TERRACONSTRUCTS DEVIATION: this repo's `dbParameterGroup.DbParameterGroup` `family` field
+    // name is namespaced with the `T1DbParameterGroup` provider resource type import; see
+    // parameter-group.test.ts for the same assertion pattern.
+  });
+
+  test("instance with inline parameter group and parameterGroup arg fails", () => {
+    const parameterGroup = new rds.ParameterGroup(stack, "ParameterGroup", {
+      engine: rds.DatabaseInstanceEngine.sqlServerEe({
+        version: rds.SqlServerEngineVersion.VER_11,
+      }),
+      parameters: { key: "value" },
+    });
+
+    expect(() => {
+      new rds.DatabaseInstance(stack, "Database", {
+        engine: rds.DatabaseInstanceEngine.sqlServerEe({
+          version: rds.SqlServerEngineVersion.VER_11,
+        }),
+        vpc,
+        parameters: { locks: "100" },
+        parameterGroup,
+      });
+    }).toThrow(/You cannot specify both parameterGroup and parameters/);
+  });
+
+  test("can specify subnet type", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      credentials: rds.Credentials.fromUsername("syscdk"),
+      vpc,
+      vpcSubnets: { subnetType: compute.SubnetType.PRIVATE_WITH_EGRESS },
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      db_subnet_group_name: expect.any(String),
+      publicly_accessible: false,
+    });
+    t.expect.toHaveResourceWithProperties(dbSubnetGroup.DbSubnetGroup, {
+      description: "Subnet group for Instance database",
+      subnet_ids: [
+        stack.resolve(vpc.privateSubnets[0].subnetId),
+        stack.resolve(vpc.privateSubnets[1].subnetId),
+      ],
+    });
+  });
+
+  test("instance with IPv4 network type", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.SQL_SERVER_EE,
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE2,
+        compute.InstanceSize.SMALL,
+      ),
+      vpc,
+      networkType: rds.NetworkType.IPV4,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      network_type: "IPV4",
+    });
+  });
+
+  // TODO: omitted — upstream's "instance with cloudwatchLogsExports" / "instance replica with
+  // cloudwatchLogsExports" / "instance snapshot with cloudwatchLogsExports" all assert
+  // `instance.cloudwatchLogGroups[...]` (a map of `logs.ILogGroup` built by the Lambda-backed
+  // `LogRetention` custom resource per exported log type -- `cloudwatchLogsRetention`). That
+  // per-export log-group/retention machinery has no Terraform-native equivalent to
+  // `enabled_cloudwatch_logs_exports` (a fire-and-forget list -- RDS creates the underlying
+  // CloudWatch Log Groups itself, with no retention control) -- see the "CloudWatch log exports"
+  // rule in the slice plan. The `enabled_cloudwatch_logs_exports` property itself IS ported and
+  // exercised in "create a DB instance" above; only the `cloudwatchLogGroups` getter and its
+  // backing `cloudwatchLogsRetention` prop are omitted here —
+  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L363-L432
+  // test('instance with cloudwatchLogsExports', () => { ... });
+  // test('instance replica with cloudwatchLogsExports', () => { ... });
+  // test('instance snapshot with cloudwatchLogsExports', () => { ... });
+
+  test("instance with dual-stack network type", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.SQL_SERVER_EE,
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE2,
+        compute.InstanceSize.SMALL,
+      ),
+      vpc,
+      networkType: rds.NetworkType.DUAL,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      network_type: "DUAL",
+    });
+  });
+
+  test.each([[true], [false]])(
+    "instance with applyImmediately set to %s",
+    (applyImmediately) => {
+      // WHEN
+      new rds.DatabaseInstance(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.MYSQL,
+        instanceType: compute.InstanceType.of(
+          compute.InstanceClass.BURSTABLE4_GRAVITON,
+          compute.InstanceSize.SMALL,
+        ),
+        vpc,
+        applyImmediately,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        apply_immediately: applyImmediately,
+      });
+    },
+  );
+
+  describe("DatabaseInstanceFromSnapshot", () => {
+    test("create an instance from snapshot", () => {
+      new rds.DatabaseInstanceFromSnapshot(stack, "Instance", {
+        snapshotIdentifier: "my-snapshot",
+        engine: rds.DatabaseInstanceEngine.postgres({
+          version: rds.PostgresEngineVersion.VER_16_3,
+        }),
+        instanceType: compute.InstanceType.of(
+          compute.InstanceClass.BURSTABLE2,
+          compute.InstanceSize.LARGE,
+        ),
+        vpc,
+      });
+
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        snapshot_identifier: "my-snapshot",
+      });
+    });
+
+    test("can generate a new snapshot password", () => {
+      new rds.DatabaseInstanceFromSnapshot(stack, "Instance", {
+        snapshotIdentifier: "my-snapshot",
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        credentials: rds.SnapshotCredentials.fromGeneratedSecret("admin", {
+          excludeCharacters: '"@/\\',
+        }),
+      });
+
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        password: expect.any(String),
+      });
+      // `username` is not settable when restoring from a snapshot -- the
+      // matcher's `objectContaining` cannot assert key absence (it requires
+      // the key to be present), so check the raw synthesized resource instead.
+      const [dbInstanceResource] = t.resourceTypeArray(
+        dbInstance.DbInstance,
+      ) as any[];
+      expect(dbInstanceResource.username).toBeUndefined();
+      t.expect.toHaveDataSourceWithProperties(
+        dataAwsSecretsmanagerRandomPassword.DataAwsSecretsmanagerRandomPassword,
+        {
+          password_length: 30,
+          exclude_characters: '"@/\\',
+        },
+      );
+      t.expect.toHaveResourceWithProperties(
+        secretsmanagerSecret.SecretsmanagerSecret,
+        {
+          description: expect.stringMatching(
+            /^Generated by the CDK for stack: /,
+          ),
+        },
+      );
+    });
+
+    test("fromGeneratedSecret with replica regions", () => {
+      new rds.DatabaseInstanceFromSnapshot(stack, "Instance", {
+        snapshotIdentifier: "my-snapshot",
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        credentials: rds.SnapshotCredentials.fromGeneratedSecret("admin", {
+          replicaRegions: [{ region: "eu-west-1" }],
+        }),
+      });
+
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(
+        secretsmanagerSecret.SecretsmanagerSecret,
+        {
+          replica: [{ region: "eu-west-1" }],
+        },
+      );
+    });
+
+    test("throws if generating a new password without a username", () => {
+      expect(
+        () =>
+          new rds.DatabaseInstanceFromSnapshot(stack, "Instance", {
+            snapshotIdentifier: "my-snapshot",
+            engine: rds.DatabaseInstanceEngine.mysql({
+              version: rds.MysqlEngineVersion.VER_8_0_19,
+            }),
+            vpc,
+            credentials: { generatePassword: true },
+          }),
+      ).toThrow(
+        /`credentials` `username` must be specified when `generatePassword` is set to true/,
+      );
+    });
+
+    test("can set a new snapshot password from an existing plain password", () => {
+      // TERRACONSTRUCTS DEVIATION: upstream passes `cdk.SecretValue.unsafePlainText(...)`;
+      // `core.SecretValue` is not ported (see the DEVIATION note at the top of `props.ts`), so
+      // `SnapshotCredentials.fromPassword` here takes a plain string directly —
+      // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L538-L551
+      new rds.DatabaseInstanceFromSnapshot(stack, "Instance", {
+        snapshotIdentifier: "my-snapshot",
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        credentials: rds.SnapshotCredentials.fromPassword("mysecretpassword"),
+      });
+
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        password: "mysecretpassword",
+      });
+    });
+
+    // TODO: omitted — `SnapshotCredentials.fromSecret()` depends on `ISecret.secretValueFromJson`,
+    // which is not ported in this repo (commented out in `../../../../src/aws/storage/rds/props.ts`
+    // — see the TERRACONSTRUCTS DEVIATION note on `ISecret` in `../../../../src/aws/encryption/secret.ts`).
+    // Reinstate once that capability lands —
+    // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L553-L571
+    // test('can set a new snapshot password from an existing Secret', () => { ... });
+
+    test("can create a new database instance with fromDatabaseInstanceAttributes using a token for the port", () => {
+      // GIVEN
+      const databasePort = new TerraformVariable(stack, "DatabasePort", {
+        type: "number",
+        default: 5432,
+      });
+
+      // WHEN
+      const instance = rds.DatabaseInstance.fromDatabaseInstanceAttributes(
+        stack,
+        "DatabaseInstance",
+        {
+          instanceIdentifier: "",
+          securityGroups: [],
+          instanceEndpointAddress: "",
+          port: databasePort.numberValue,
+        },
+      );
+
+      // THEN
+      expect(stack.resolve(instance.dbInstanceEndpointPort)).toEqual(
+        stack.resolve(`${databasePort.numberValue}`),
+      );
+    });
+
+    // TERRACONSTRUCTS DEVIATION: `DatabaseInstanceBase.fromLookup()` throws instead of performing
+    // a CDK-CLI context-provider lookup (no CDKTF-native equivalent) — see the TERRACONSTRUCTS
+    // DEVIATION note on `fromLookup` in `../../../../src/aws/storage/rds/instance.ts`.
+    test("fromLookup throws because context-provider lookups are not supported in TerraConstructs", () => {
+      expect(() =>
+        rds.DatabaseInstanceBase.fromLookup(stack, "Lookup", {
+          instanceIdentifier: "my-instance",
+        }),
+      ).toThrow(/not supported in TerraConstructs/);
+    });
+
+    // TODO: omitted — `DBClusterSnapshotIdentifier` (restoring a DB instance from an Aurora
+    // cluster snapshot) has no equivalent in the Terraform `aws_db_instance` resource schema
+    // (only `snapshot_identifier`, for restoring from a DB *instance* snapshot, is exposed --
+    // see `node_modules/@cdktn/provider-aws/lib/db-instance/index.d.ts`). `clusterSnapshotIdentifier`
+    // is therefore dropped from `DatabaseInstanceFromSnapshotProps` entirely, along with its
+    // mutual-exclusivity validation against `snapshotIdentifier` —
+    // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L602-L629
+    // test('create an instance from clusterSnapshotIdentifier', () => { ... });
+    // test('throws when both snapshotIdentifier and clusterSnapshotIdentifier specified', () => { ... });
+    // test('throws when none of snapshotIdentifier or clusterSnapshotIdentifier specified', () => { ... });
+  });
+
+  test("create a read replica in the same region - with the subnet group name", () => {
+    const sourceInstance = new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.MYSQL,
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE2,
+        compute.InstanceSize.SMALL,
+      ),
+      vpc,
+    });
+
+    // WHEN
+    new rds.DatabaseInstanceReadReplica(stack, "ReadReplica", {
+      sourceDatabaseInstance: sourceInstance,
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE2,
+        compute.InstanceSize.LARGE,
+      ),
+      vpc,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      replicate_source_db: stack.resolve(sourceInstance.instanceArn),
+      db_subnet_group_name: expect.any(String),
+    });
+  });
+
+  describe("events", () => {
+    const mockTarget: IRuleTarget = {
+      bind: () => ({ arn: "ARN", id: "" }),
+    };
+
+    test("on event", () => {
+      const instance = new rds.DatabaseInstance(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.MYSQL,
+        vpc,
+      });
+
+      // WHEN
+      instance.onEvent("InstanceEvent", { target: mockTarget });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(
+        cloudwatchEventRule.CloudwatchEventRule,
+        {
+          event_pattern: stack.resolve(
+            stack.toJsonString({
+              source: ["aws.rds"],
+              resources: [instance.instanceArn],
+            }),
+          ),
+        },
+      );
+    });
+
+    test("on event without target", () => {
+      const instance = new rds.DatabaseInstance(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.MYSQL,
+        vpc,
+      });
+
+      // WHEN
+      instance.onEvent("InstanceEvent");
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(
+        cloudwatchEventRule.CloudwatchEventRule,
+        {
+          event_pattern: stack.resolve(
+            stack.toJsonString({
+              source: ["aws.rds"],
+              resources: [instance.instanceArn],
+            }),
+          ),
+        },
+      );
+    });
+  });
+
+  // TODO: omitted — `metricCPUUtilization()` / `metricReadIOPS()` / `metricWriteIOPS()` (and every
+  // other `metric*()` convenience method on `IDatabaseInstance`) come from
+  // `rds-augmentations.generated.ts`, which lands in the NEXT PR (not hand-written here). Reinstate
+  // once that generated file is ported —
+  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L770-L819
+  // test('can use metricCPUUtilization', () => { ... });
+  // test('can use metricReadIOPS', () => { ... });
+  // test('can use metricWriteIOPS', () => { ... });
+
+  test("can resolve endpoint port and socket address", () => {
+    // WHEN
+    const instance = new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.MYSQL,
+      vpc,
+    });
+
+    expect(stack.resolve(instance.instanceEndpoint.port)).toEqual(
+      stack.resolve(instance.resource.port),
+    );
+
+    expect(stack.resolve(instance.instanceEndpoint.socketAddress)).toEqual(
+      stack.resolve(
+        `${instance.instanceEndpoint.hostname}:${instance.instanceEndpoint.port}`,
+      ),
+    );
+  });
+
+  test("can deactivate backup", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.MYSQL,
+      vpc,
+      backupRetention: Duration.seconds(0),
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      backup_retention_period: 0,
+    });
+  });
+
+  test("imported instance with imported security group with allowAllOutbound set to false", () => {
+    const instance = rds.DatabaseInstance.fromDatabaseInstanceAttributes(
+      stack,
+      "Database",
+      {
+        instanceEndpointAddress: "address",
+        instanceIdentifier: "identifier",
+        port: 3306,
+        securityGroups: [
+          compute.SecurityGroup.fromSecurityGroupId(
+            stack,
+            "SG",
+            "sg-123456789",
+            { allowAllOutbound: false },
+          ),
+        ],
+      },
+    );
+
+    // WHEN
+    instance.connections.allowToAnyIpv4(compute.Port.tcp(443));
+
+    // THEN
+    const t = new Template(stack);
+    // TERRACONSTRUCTS DEVIATION: `AWS::EC2::SecurityGroupEgress` maps onto the
+    // `aws_vpc_security_group_egress_rule` resource (see `src/aws/compute/security-group.ts`).
+    t.expect.toHaveResourceWithProperties(
+      vpcSecurityGroupEgressRule.VpcSecurityGroupEgressRule,
+      {
+        security_group_id: "sg-123456789",
+      },
+    );
+  });
+
+  test("create an instance with imported monitoring role", () => {
+    const monitoringRole = new Role(stack, "MonitoringRole", {
+      assumedBy: new ServicePrincipal("monitoring.rds.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName(
+          stack,
+          "MonitoringPolicy",
+          "service-role/AmazonRDSEnhancedMonitoringRole",
+        ),
+      ],
+    });
+
+    // WHEN
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.MYSQL,
+      vpc,
+      monitoringInterval: Duration.minutes(1),
+      monitoringRole,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      monitoring_interval: 60,
+      monitoring_role_arn: stack.resolve(monitoringRole.roleArn),
+    });
+  });
+
+  test("create an instance with an existing security group", () => {
+    const sg = compute.SecurityGroup.fromSecurityGroupId(
+      stack,
+      "SG",
+      "sg-123456789",
+      { allowAllOutbound: false },
+    );
+
+    // WHEN
+    const instance = new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.MYSQL,
+      vpc,
+      securityGroups: [sg],
+    });
+    instance.connections.allowDefaultPortFromAnyIpv4();
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      vpc_security_group_ids: ["sg-123456789"],
+    });
+
+    t.expect.toHaveResourceWithProperties(
+      vpcSecurityGroupIngressRule.VpcSecurityGroupIngressRule,
+      {
+        security_group_id: "sg-123456789",
+      },
+    );
+  });
+
+  test("addRotationSingleUser()", () => {
+    // GIVEN
+    const instance = new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      vpc,
+    });
+
+    // WHEN
+    instance.addRotationSingleUser();
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(
+      secretsmanagerSecretRotation.SecretsmanagerSecretRotation,
+      {
+        rotation_rules: { schedule_expression: "rate(30 days)" },
+      },
+    );
+    t.expect.toHaveResourceWithProperties(
+      serverlessapplicationrepositoryCloudformationStack.ServerlessapplicationrepositoryCloudformationStack,
+      {
+        application_id: expect.stringContaining(
+          "SecretsManagerRDSPostgreSQLRotationSingleUser",
+        ),
+      },
+    );
+  });
+
+  test("addRotationMultiUser()", () => {
+    // GIVEN
+    const instance = new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      vpc,
+    });
+
+    // WHEN
+    const userSecret = new rds.DatabaseSecret(stack, "UserSecret", {
+      username: "user",
+    });
+    instance.addRotationMultiUser("user", {
+      secret: userSecret.attach(instance),
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(
+      serverlessapplicationrepositoryCloudformationStack.ServerlessapplicationrepositoryCloudformationStack,
+      {
+        application_id: expect.stringContaining(
+          "SecretsManagerRDSPostgreSQLRotationMultiUser",
+        ),
+        parameters: expect.objectContaining({
+          masterSecretArn: stack.resolve(instance.secret!.secretArn),
+        }),
+      },
+    );
+  });
+
+  test("addRotationSingleUser() with custom automaticallyAfter, excludeCharacters, vpcSubnets and securityGroup", () => {
+    // GIVEN
+    // The shared `vpc` fixture (from `beforeEach`) has no isolated subnets --
+    // build a dedicated VPC with public/private-with-egress/isolated subnets
+    // so the instance can sit in an isolated subnet while rotation runs in a
+    // NAT-backed private subnet.
+    const vpcWithIsolated = new compute.Vpc(stack, "VpcWithIsolated", {
+      maxAzs: 2,
+      subnetConfiguration: [
+        { name: "public", subnetType: compute.SubnetType.PUBLIC },
+        {
+          name: "private",
+          subnetType: compute.SubnetType.PRIVATE_WITH_EGRESS,
+        },
+        { name: "isolated", subnetType: compute.SubnetType.PRIVATE_ISOLATED },
+      ],
+    });
+    const securityGroup2 = new compute.SecurityGroup(stack, "SecurityGroup", {
+      vpc: vpcWithIsolated,
+    });
+
+    // WHEN
+    const instance = new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      vpc: vpcWithIsolated,
+      vpcSubnets: { subnetType: compute.SubnetType.PRIVATE_ISOLATED },
+    });
+
+    instance.addRotationSingleUser({
+      automaticallyAfter: Duration.days(15),
+      excludeCharacters: "°_@",
+      vpcSubnets: { subnetType: compute.SubnetType.PRIVATE_WITH_EGRESS },
+      securityGroup: securityGroup2,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(
+      secretsmanagerSecretRotation.SecretsmanagerSecretRotation,
+      {
+        rotation_rules: { schedule_expression: "rate(15 days)" },
+      },
+    );
+  });
+
+  test("addRotationMultiUser() with custom automaticallyAfter, excludeCharacters, vpcSubnets and securityGroup", () => {
+    // GIVEN
+    // The shared `vpc` fixture (from `beforeEach`) has no isolated subnets --
+    // build a dedicated VPC with public/private-with-egress/isolated subnets
+    // so the instance can sit in an isolated subnet while rotation runs in a
+    // NAT-backed private subnet.
+    const vpcWithIsolated = new compute.Vpc(stack, "VpcWithIsolated", {
+      maxAzs: 2,
+      subnetConfiguration: [
+        { name: "public", subnetType: compute.SubnetType.PUBLIC },
+        {
+          name: "private",
+          subnetType: compute.SubnetType.PRIVATE_WITH_EGRESS,
+        },
+        { name: "isolated", subnetType: compute.SubnetType.PRIVATE_ISOLATED },
+      ],
+    });
+    const securityGroup3 = new compute.SecurityGroup(stack, "SecurityGroup", {
+      vpc: vpcWithIsolated,
+    });
+    const userSecret = new rds.DatabaseSecret(stack, "UserSecret", {
+      username: "user",
+    });
+
+    // WHEN
+    const instance = new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      vpc: vpcWithIsolated,
+      vpcSubnets: { subnetType: compute.SubnetType.PRIVATE_ISOLATED },
+    });
+
+    instance.addRotationMultiUser("user", {
+      secret: userSecret.attach(instance),
+      automaticallyAfter: Duration.days(15),
+      excludeCharacters: "°_@",
+      vpcSubnets: { subnetType: compute.SubnetType.PRIVATE_WITH_EGRESS },
+      securityGroup: securityGroup3,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(
+      secretsmanagerSecretRotation.SecretsmanagerSecretRotation,
+      {
+        rotation_rules: { schedule_expression: "rate(15 days)" },
+      },
+    );
+  });
+
+  test("addRotationSingleUser() with VPC interface endpoint", () => {
+    // GIVEN
+    const vpcIsolatedOnly = new compute.Vpc(stack, "VpcIsolated", {
+      natGateways: 0,
+    });
+
+    const endpoint = new compute.InterfaceVpcEndpoint(stack, "Endpoint", {
+      service: compute.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+      vpc: vpcIsolatedOnly,
+      subnets: { subnetType: compute.SubnetType.PRIVATE_ISOLATED },
+    });
+
+    // WHEN
+    // DB in isolated subnet (no internet connectivity)
+    const instance = new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      vpc: vpcIsolatedOnly,
+      vpcSubnets: { subnetType: compute.SubnetType.PRIVATE_ISOLATED },
+    });
+
+    // Rotation in isolated subnet with access to Secrets Manager API via endpoint
+    instance.addRotationSingleUser({ endpoint });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(
+      serverlessapplicationrepositoryCloudformationStack.ServerlessapplicationrepositoryCloudformationStack,
+      {
+        parameters: expect.objectContaining({
+          endpoint: expect.stringContaining(`.secretsmanager.${stack.region}.`),
+        }),
+      },
+    );
+  });
+
+  test("throws when trying to add rotation to an instance without secret", () => {
+    const instance = new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.SQL_SERVER_EE,
+      credentials: rds.Credentials.fromUsername("syscdk", {
+        password: "tooshort",
+      }),
+      vpc,
+    });
+
+    // THEN
+    expect(() => instance.addRotationSingleUser()).toThrow(/without secret/);
+  });
+
+  test("throws when trying to add single user rotation multiple times", () => {
+    const instance = new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.SQL_SERVER_EE,
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE2,
+        compute.InstanceSize.SMALL,
+      ),
+      credentials: rds.Credentials.fromUsername("syscdk"),
+      vpc,
+    });
+
+    // WHEN
+    instance.addRotationSingleUser();
+
+    // THEN
+    expect(() => instance.addRotationSingleUser()).toThrow(
+      /A single user rotation was already added to this instance/,
+    );
+  });
+
+  test("throws when timezone is set for non-sqlserver database engine", () => {
+    const tzSupportedEngines = [
+      rds.DatabaseInstanceEngine.SQL_SERVER_EE,
+      rds.DatabaseInstanceEngine.SQL_SERVER_EX,
+      rds.DatabaseInstanceEngine.SQL_SERVER_SE,
+      rds.DatabaseInstanceEngine.SQL_SERVER_WEB,
+    ];
+    const tzUnsupportedEngines = [
+      rds.DatabaseInstanceEngine.MYSQL,
+      rds.DatabaseInstanceEngine.POSTGRES,
+      rds.DatabaseInstanceEngine.ORACLE_EE,
+      rds.DatabaseInstanceEngine.MARIADB,
+    ];
+
+    // THEN
+    tzSupportedEngines.forEach((engine) => {
+      expect(
+        new rds.DatabaseInstance(stack, `${engine.engineType}-db`, {
+          engine,
+          timezone: "Europe/Zurich",
+          vpc,
+        }),
+      ).toBeDefined();
+    });
+
+    tzUnsupportedEngines.forEach((engine) => {
+      expect(
+        () =>
+          new rds.DatabaseInstance(stack, `${engine.engineType}-db`, {
+            engine,
+            timezone: "Europe/Zurich",
+            vpc,
+          }),
+      ).toThrow(/timezone property can not be configured for/);
+    });
+  });
+
+  test("create an instance from snapshot with maximum allocated storage", () => {
+    // WHEN
+    new rds.DatabaseInstanceFromSnapshot(stack, "Instance", {
+      snapshotIdentifier: "my-snapshot",
+      engine: rds.DatabaseInstanceEngine.POSTGRES,
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE2,
+        compute.InstanceSize.LARGE,
+      ),
+      vpc,
+      maxAllocatedStorage: 200,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      snapshot_identifier: "my-snapshot",
+      max_allocated_storage: 200,
+    });
+  });
+
+  test("create a DB instance with maximum allocated storage", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.MYSQL,
+      vpc,
+      backupRetention: Duration.seconds(0),
+      maxAllocatedStorage: 250,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      backup_retention_period: 0,
+      max_allocated_storage: 250,
+    });
+  });
+
+  test("iam authentication - off by default", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+    });
+
+    // `objectContaining` cannot assert key absence (it requires the key to
+    // be present with value `undefined`), so check the raw synthesized
+    // resource instead.
+    const t = new Template(stack);
+    const [dbInstanceResource] = t.resourceTypeArray(
+      dbInstance.DbInstance,
+    ) as any[];
+    expect(
+      dbInstanceResource.iam_database_authentication_enabled,
+    ).toBeUndefined();
+  });
+
+  test("createGrant - creates IAM policy and enables IAM auth", () => {
+    const instance = new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+    });
+    const role = new Role(stack, "DBRole", {
+      assumedBy: new AccountPrincipal(stack.account),
+    });
+    instance.grantConnect(role);
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      iam_database_authentication_enabled: true,
+    });
+    // no dbUser passed and no secret attached -> falls back to the generated
+    // master username ("admin" for MySQL, see `engine.defaultUsername`).
+    t.expect.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+      {
+        statement: [
+          {
+            actions: ["rds-db:connect"],
+            effect: "Allow",
+            resources: [
+              stack.resolve(
+                stack.formatArn({
+                  arnFormat: ArnFormat.COLON_RESOURCE_NAME,
+                  service: "rds-db",
+                  resource: "dbuser",
+                  resourceName: `${instance.instanceResourceId}/admin`,
+                }),
+              ),
+            ],
+          },
+        ],
+      },
+    );
+  });
+
+  test("createGrant - creates IAM policy and enables IAM auth for a specific user", () => {
+    const instance = new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+    });
+    const role = new Role(stack, "DBRole", {
+      assumedBy: new AccountPrincipal(stack.account),
+    });
+    instance.grantConnect(role, "my-user");
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      iam_database_authentication_enabled: true,
+    });
+    t.expect.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+      {
+        statement: [
+          {
+            actions: ["rds-db:connect"],
+            effect: "Allow",
+            resources: [
+              stack.resolve(
+                stack.formatArn({
+                  arnFormat: ArnFormat.COLON_RESOURCE_NAME,
+                  service: "rds-db",
+                  resource: "dbuser",
+                  resourceName: `${instance.instanceResourceId}/my-user`,
+                }),
+              ),
+            ],
+          },
+        ],
+      },
+    );
+  });
+
+  test("createGrant - creates IAM policy and enables IAM auth on instance with secret credentials without passing dbUser", () => {
+    const instance = new rds.DatabaseInstance(stack, "Instance", {
+      vpc,
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_14,
+      }),
+      credentials: rds.Credentials.fromGeneratedSecret("dbuser"),
+    });
+    const role = new Role(stack, "DBRole", {
+      assumedBy: new AccountPrincipal(stack.account),
+    });
+    instance.grantConnect(role);
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      iam_database_authentication_enabled: true,
+    });
+    // no dbUser passed -> TERRACONSTRUCTS DEVIATION: falls back to the plain-string
+    // `masterUsername` stashed at construction time ("dbuser", from `Credentials.fromGeneratedSecret`)
+    // rather than upstream's `secret.secretValueFromJson('username')` dynamic reference — see the
+    // deviation note on `DatabaseInstanceSource.masterUsername` / `DatabaseInstance.grantConnect`.
+    t.expect.toHaveDataSourceWithProperties(
+      dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+      {
+        statement: [
+          {
+            actions: ["rds-db:connect"],
+            effect: "Allow",
+            resources: [
+              stack.resolve(
+                stack.formatArn({
+                  arnFormat: ArnFormat.COLON_RESOURCE_NAME,
+                  service: "rds-db",
+                  resource: "dbuser",
+                  resourceName: `${instance.instanceResourceId}/dbuser`,
+                }),
+              ),
+            ],
+          },
+        ],
+      },
+    );
+  });
+
+  test("createGrant - throws if IAM auth disabled", () => {
+    const instance = new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+      iamAuthentication: false,
+    });
+    const role = new Role(stack, "DBRole", {
+      assumedBy: new AccountPrincipal(stack.account),
+    });
+
+    expect(() => {
+      instance.grantConnect(role);
+    }).toThrow(/Cannot grant connect when IAM authentication is disabled/);
+  });
+
+  // TODO: omitted — "creates IAM policy for instance replica when the
+  // USE_CORRECT_VALUE_FOR_INSTANCE_RESOURCE_ID_PROPERTY feature flag is enabled/disabled" exercise
+  // `cx-api` CDK context feature flags, which are not ported in this repo (no equivalent
+  // synth-time feature-flag registry exists here) —
+  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L1442-L1564
+  // test('createGrant - creates IAM policy for instance replica when the ... feature flag is enabled', () => { ... });
+  // test('createGrant - creates IAM policy for instance replica when the ... feature flag is disabled by default', () => { ... });
+
+  describe("domain", () => {
+    test("sets domain property", () => {
+      const domain = "d-90670a8d36";
+
+      // WHEN
+      new rds.DatabaseInstance(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.sqlServerWeb({
+          version: rds.SqlServerEngineVersion.VER_14_00_3192_2_V1,
+        }),
+        vpc,
+        domain: domain,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        domain,
+      });
+    });
+
+    test("uses role if provided", () => {
+      const domain = "d-90670a8d36";
+
+      // WHEN
+      const role = new Role(stack, "DomainRole", {
+        assumedBy: new CompositePrincipal(
+          new ServicePrincipal("rds.amazonaws.com"),
+          new ServicePrincipal("directoryservice.rds.amazonaws.com"),
+        ),
+      });
+      new rds.DatabaseInstance(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.sqlServerWeb({
+          version: rds.SqlServerEngineVersion.VER_14_00_3192_2_V1,
+        }),
+        vpc,
+        domain: domain,
+        domainRole: role,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        domain,
+        domain_iam_role_name: stack.resolve(role.roleName),
+      });
+    });
+
+    test("creates role if not provided", () => {
+      const domain = "d-90670a8d36";
+
+      // WHEN
+      new rds.DatabaseInstance(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.sqlServerWeb({
+          version: rds.SqlServerEngineVersion.VER_14_00_3192_2_V1,
+        }),
+        vpc,
+        domain: domain,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        domain,
+        domain_iam_role_name: expect.any(String),
+      });
+
+      t.resourceCountIs(iamRole.IamRole, 1);
+    });
+
+    test("throws when domain is set for mariadb database engine", () => {
+      const domainSupportedEngines = [
+        rds.DatabaseInstanceEngine.SQL_SERVER_EE,
+        rds.DatabaseInstanceEngine.SQL_SERVER_EX,
+        rds.DatabaseInstanceEngine.SQL_SERVER_SE,
+        rds.DatabaseInstanceEngine.SQL_SERVER_WEB,
+        rds.DatabaseInstanceEngine.MYSQL,
+        rds.DatabaseInstanceEngine.POSTGRES,
+        rds.DatabaseInstanceEngine.ORACLE_EE,
+      ];
+      const domainUnsupportedEngines = [rds.DatabaseInstanceEngine.MARIADB];
+
+      // THEN
+      domainSupportedEngines.forEach((engine) => {
+        expect(
+          () =>
+            new rds.DatabaseInstance(stack, `${engine.engineType}-db`, {
+              engine,
+              domain: "d-90670a8d36",
+              vpc,
+            }),
+        ).not.toThrow();
+      });
+
+      domainUnsupportedEngines.forEach((engine) => {
+        const expectedError = new RegExp(
+          `domain property cannot be configured for ${engine.engineType}`,
+        );
+
+        expect(
+          () =>
+            new rds.DatabaseInstance(stack, `${engine.engineType}-db`, {
+              engine,
+              domain: "d-90670a8d36",
+              vpc,
+            }),
+        ).toThrow(expectedError);
+      });
+    });
+  });
+
+  describe("performance insights", () => {
+    test("instance with all performance insights properties", () => {
+      new rds.DatabaseInstance(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        enablePerformanceInsights: true,
+        performanceInsightRetention: rds.PerformanceInsightRetention.LONG_TERM,
+        performanceInsightEncryptionKey: new encryption.Key(stack, "Key"),
+      });
+
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        performance_insights_enabled: true,
+        performance_insights_retention_period: 731,
+        performance_insights_kms_key_id: expect.any(String),
+      });
+    });
+
+    test("setting performance insights fields enables performance insights", () => {
+      new rds.DatabaseInstance(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        performanceInsightRetention: rds.PerformanceInsightRetention.LONG_TERM,
+      });
+
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        performance_insights_enabled: true,
+        performance_insights_retention_period: 731,
+      });
+    });
+
+    test.each<keyof typeof rds.PerformanceInsightRetention>([
+      "DEFAULT",
+      "MONTHS_1",
+      "MONTHS_2",
+      "MONTHS_3",
+      "MONTHS_4",
+      "MONTHS_5",
+      "MONTHS_6",
+      "MONTHS_7",
+      "MONTHS_8",
+      "MONTHS_9",
+      "MONTHS_10",
+      "MONTHS_11",
+      "MONTHS_12",
+      "MONTHS_13",
+      "MONTHS_14",
+      "MONTHS_15",
+      "MONTHS_16",
+      "MONTHS_17",
+      "MONTHS_18",
+      "MONTHS_19",
+      "MONTHS_20",
+      "MONTHS_21",
+      "MONTHS_22",
+      "MONTHS_23",
+      "LONG_TERM",
+    ])(
+      "performance insights retention of %s",
+      (performanceInsightRetentionKey) => {
+        new rds.DatabaseInstance(stack, "Instance", {
+          engine: rds.DatabaseInstanceEngine.mysql({
+            version: rds.MysqlEngineVersion.VER_8_0_19,
+          }),
+          vpc,
+          performanceInsightRetention:
+            rds.PerformanceInsightRetention[performanceInsightRetentionKey],
+        });
+
+        const t = new Template(stack);
+        t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+          performance_insights_retention_period:
+            rds.PerformanceInsightRetention[performanceInsightRetentionKey],
+        });
+      },
+    );
+
+    test("explicitly disabling performance insights is respected", () => {
+      new rds.DatabaseInstanceFromSnapshot(stack, "Instance", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        snapshotIdentifier: "my-snapshot",
+        enablePerformanceInsights: false,
+      });
+
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        performance_insights_enabled: false,
+      });
+    });
+
+    test("throws if performance insights fields are set but performance insights is disabled", () => {
+      expect(() => {
+        new rds.DatabaseInstance(stack, "Instance", {
+          engine: rds.DatabaseInstanceEngine.mysql({
+            version: rds.MysqlEngineVersion.VER_8_0_19,
+          }),
+          vpc,
+          enablePerformanceInsights: false,
+          performanceInsightRetention: rds.PerformanceInsightRetention.DEFAULT,
+        });
+      }).toThrow(
+        /`enablePerformanceInsights` disabled, but `performanceInsightRetention` or `performanceInsightEncryptionKey` was set/,
+      );
+    });
+  });
+
+  test("reuse an existing subnet group", () => {
+    new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      vpc,
+      subnetGroup: rds.SubnetGroup.fromSubnetGroupName(
+        stack,
+        "SubnetGroup",
+        "my-subnet-group",
+      ),
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      db_subnet_group_name: "my-subnet-group",
+    });
+    t.resourceCountIs(dbSubnetGroup.DbSubnetGroup, 0);
+  });
+
+  test("defaultChild returns the DB Instance", () => {
+    const instance = new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      vpc,
+    });
+
+    // THEN
+    expect(instance.node.defaultChild instanceof dbInstance.DbInstance).toBe(
+      true,
+    );
+  });
+
+  test("PostgreSQL database instance uses a different default master username than 'admin', which is a reserved word", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      vpc,
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(
+      secretsmanagerSecretVersion.SecretsmanagerSecretVersion,
+      {
+        secret_string: expect.stringContaining('"username" = "postgres"'),
+      },
+    );
+  });
+
+  test("default instance identifier is truncated to the 63-char RDS DBInstanceIdentifier limit even with a deeply nested construct path", () => {
+    // TERRACONSTRUCTS DEVIATION: the default identifier is generated via
+    // `this.stack.uniqueResourceName(this, { maxLength: 63 })` -- RDS's `DBInstanceIdentifier` is
+    // capped at 63 characters, unlike the sibling `SubnetGroup`/`OptionGroup`/`ParameterGroup`
+    // (255-char AWS limits, close enough to the 256-char `uniqueResourceName` fallback to leave
+    // unbounded). A deeply nested construct path is the case that would overflow the default
+    // 256-char fallback were `maxLength` not passed explicitly.
+    let scope: Construct = stack;
+    for (let i = 0; i < 10; i++) {
+      scope = new Construct(
+        scope,
+        `NestedScopeWithAVeryLongConstructIdNumber${i}`,
+      );
+    }
+    new rds.DatabaseInstance(scope, "InstanceWithAnotherVeryLongConstructId", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+    });
+
+    const t = new Template(stack);
+    const [dbInstanceResource] = t.resourceTypeArray(
+      dbInstance.DbInstance,
+    ) as any[];
+    expect(typeof dbInstanceResource.identifier).toBe("string");
+    expect(
+      (dbInstanceResource.identifier as string).length,
+    ).toBeLessThanOrEqual(63);
+  });
+
+  test("applyImmediately is unset by default (aws_db_instance provider default: false / changes applied at next maintenance window)", () => {
+    // TERRACONSTRUCTS DEVIATION: upstream's CloudFormation `ApplyImmediately` defaults to `true`;
+    // the `aws_db_instance` provider's `apply_immediately` defaults to `false`. This port leaves the
+    // argument unset when the prop is unset, so the rendered behavior is the provider default
+    // (`false`), not upstream's documented `true` default -- see the deviation note on
+    // `DatabaseInstanceNewProps.applyImmediately`.
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+    });
+
+    const t = new Template(stack);
+    const [dbInstanceResource] = t.resourceTypeArray(
+      dbInstance.DbInstance,
+    ) as any[];
+    expect(dbInstanceResource.apply_immediately).toBeUndefined();
+  });
+
+  test("applyImmediately is rendered when explicitly set", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+      applyImmediately: true,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      apply_immediately: true,
+    });
+  });
+
+  describe("S3 Import/Export", () => {
+    test("instance with s3 import and export buckets", () => {
+      const instance = new rds.DatabaseInstance(stack, "DB", {
+        engine: rds.DatabaseInstanceEngine.sqlServerSe({
+          version: rds.SqlServerEngineVersion.VER_14_00_3192_2_V1,
+        }),
+        vpc,
+        s3ImportBuckets: [new Bucket(stack, "S3Import")],
+        s3ExportBuckets: [new Bucket(stack, "S3Export")],
+      });
+
+      // TERRACONSTRUCTS DEVIATION: upstream asserts `AssociatedRoles: [{ FeatureName:
+      // 'S3_INTEGRATION', RoleArn: ... }]` as an inline array property directly on
+      // `AWS::RDS::DBInstance`. The Terraform `aws_db_instance` resource has no equivalent inline
+      // argument (see `node_modules/@cdktn/provider-aws/lib/db-instance/index.d.ts`); instead
+      // `DatabaseInstanceBase.createInstanceRoleAssociations()` (`instance.ts`) creates one
+      // `aws_db_instance_role_association` resource per associated role. `setupS3ImportExport()`
+      // (`../../../../src/aws/storage/rds/private/util.ts`) creates the IAM role(s) and grants
+      // bucket access; `combineRoles` is `true` for SQL Server (see `setupS3ImportExport`
+      // docstring), so a single shared role is created and granted both read (import) and
+      // read/write (export) access, and only one role association is emitted (`s3Import` and
+      // `s3Export` share the same `S3_INTEGRATION` feature name for SQL Server, so the
+      // "only add the export feature if it's different from the import feature" branch in
+      // `DatabaseInstanceSource`'s constructor collapses them into one) —
+      // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L1817-L1875
+      const t = new Template(stack);
+      t.resourceCountIs(iamRole.IamRole, 1);
+      t.resourceCountIs(dbInstanceRoleAssociation.DbInstanceRoleAssociation, 1);
+      // `arn` is a computed attribute (not a resource argument), so it does not appear in the
+      // synthesized `aws_iam_role` config -- look up the shared role's logical id from the
+      // synthesized resource map and build the expected `${aws_iam_role.<id>.arn}` reference,
+      // mirroring how `db_instance_role_association.role_arn` is actually rendered.
+      const s3RoleId = Object.keys(t.resourcesByType(iamRole.IamRole))[0];
+      t.expect.toHaveResourceWithProperties(
+        dbInstanceRoleAssociation.DbInstanceRoleAssociation,
+        {
+          db_instance_identifier: stack.resolve(instance.instanceIdentifier),
+          feature_name: "S3_INTEGRATION",
+          role_arn: `\${aws_iam_role.${s3RoleId}.arn}`,
+        },
+      );
+    });
+
+    test("instance with different s3 import and export feature names creates two role associations", () => {
+      // Postgres uses distinct feature names ("s3Import" / "s3Export") for import vs. export, and
+      // is not one of the `combineRoles` engines (only Oracle/SQL Server require a single shared
+      // role), so passing the same role for both still yields two separate
+      // `aws_db_instance_role_association` resources -- one per feature name.
+      const s3Role = new Role(stack, "S3Role", {
+        assumedBy: new ServicePrincipal("rds.amazonaws.com"),
+      });
+      const instance = new rds.DatabaseInstance(stack, "DB", {
+        engine: rds.DatabaseInstanceEngine.postgres({
+          version: rds.PostgresEngineVersion.VER_16_3,
+        }),
+        vpc,
+        s3ImportRole: s3Role,
+        s3ExportRole: s3Role,
+      });
+
+      const t = new Template(stack);
+      t.resourceCountIs(dbInstanceRoleAssociation.DbInstanceRoleAssociation, 2);
+      t.expect.toHaveResourceWithProperties(
+        dbInstanceRoleAssociation.DbInstanceRoleAssociation,
+        {
+          db_instance_identifier: stack.resolve(instance.instanceIdentifier),
+          feature_name: "s3Import",
+          role_arn: stack.resolve(s3Role.roleArn),
+        },
+      );
+      t.expect.toHaveResourceWithProperties(
+        dbInstanceRoleAssociation.DbInstanceRoleAssociation,
+        {
+          db_instance_identifier: stack.resolve(instance.instanceIdentifier),
+          feature_name: "s3Export",
+          role_arn: stack.resolve(s3Role.roleArn),
+        },
+      );
+    });
+
+    test("throws if using s3 import on unsupported engine", () => {
+      const s3ImportRole = new Role(stack, "S3ImportRole", {
+        assumedBy: new ServicePrincipal("rds.amazonaws.com"),
+      });
+
+      expect(() => {
+        new rds.DatabaseInstance(stack, "DBWithImportBucket", {
+          engine: rds.DatabaseInstanceEngine.mysql({
+            version: rds.MysqlEngineVersion.VER_8_0_19,
+          }),
+          vpc,
+          s3ImportBuckets: [new Bucket(stack, "S3Import")],
+        });
+      }).toThrow(/Engine 'mysql-8.0.19' does not support S3 import/);
+      expect(() => {
+        new rds.DatabaseInstance(stack, "DBWithImportRole", {
+          engine: rds.DatabaseInstanceEngine.mysql({
+            version: rds.MysqlEngineVersion.VER_8_0_19,
+          }),
+          vpc,
+          s3ImportRole,
+        });
+      }).toThrow(/Engine 'mysql-8.0.19' does not support S3 import/);
+    });
+
+    test("throws if using s3 export on unsupported engine", () => {
+      const s3ExportRole = new Role(stack, "S3ExportRole", {
+        assumedBy: new ServicePrincipal("rds.amazonaws.com"),
+      });
+
+      expect(() => {
+        new rds.DatabaseInstance(stack, "DBWithExportBucket", {
+          engine: rds.DatabaseInstanceEngine.mysql({
+            version: rds.MysqlEngineVersion.VER_8_0_19,
+          }),
+          vpc,
+          s3ExportBuckets: [new Bucket(stack, "S3Export")],
+        });
+      }).toThrow(/Engine 'mysql-8.0.19' does not support S3 export/);
+      expect(() => {
+        new rds.DatabaseInstance(stack, "DBWithExportRole", {
+          engine: rds.DatabaseInstanceEngine.mysql({
+            version: rds.MysqlEngineVersion.VER_8_0_19,
+          }),
+          vpc,
+          s3ExportRole: s3ExportRole,
+        });
+      }).toThrow(/Engine 'mysql-8.0.19' does not support S3 export/);
+    });
+
+    test("throws if provided two different roles for import/export", () => {
+      const s3ImportRole = new Role(stack, "S3ImportRole", {
+        assumedBy: new ServicePrincipal("rds.amazonaws.com"),
+      });
+      const s3ExportRole = new Role(stack, "S3ExportRole", {
+        assumedBy: new ServicePrincipal("rds.amazonaws.com"),
+      });
+
+      expect(() => {
+        new rds.DatabaseInstance(stack, "DBWithExportBucket", {
+          engine: rds.DatabaseInstanceEngine.sqlServerEe({
+            version: rds.SqlServerEngineVersion.VER_14_00_3192_2_V1,
+          }),
+          vpc,
+          s3ImportRole,
+          s3ExportRole,
+        });
+      }).toThrow(/S3 import and export roles must be the same/);
+    });
+  });
+
+  test("fromGeneratedSecret", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      vpc,
+      credentials: rds.Credentials.fromGeneratedSecret("postgres"),
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      username: "postgres", // username is a string
+    });
+  });
+
+  test("fromGeneratedSecret with replica regions", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      vpc,
+      credentials: rds.Credentials.fromGeneratedSecret("postgres", {
+        replicaRegions: [{ region: "eu-west-1" }],
+      }),
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(
+      secretsmanagerSecret.SecretsmanagerSecret,
+      {
+        replica: [{ region: "eu-west-1" }],
+      },
+    );
+  });
+
+  test("fromPassword", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      vpc,
+      credentials: rds.Credentials.fromPassword("postgres", "s3cr3t!"),
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      username: "postgres", // username is a string
+      password: "s3cr3t!",
+    });
+  });
+
+  // TODO: omitted — `Credentials.fromSecret()` depends on `ISecret.secretValueFromJson`, which is
+  // not ported in this repo (commented out in
+  // `../../../../src/aws/storage/rds/props.ts` — see the TERRACONSTRUCTS DEVIATION note on
+  // `ISecret` in `../../../../src/aws/encryption/secret.ts`). Reinstate once that capability
+  // lands —
+  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L1999-L2018
+  // test('can set custom name to database secret by fromSecret', () => { ... });
+
+  test("can set custom name to database secret by fromGeneratedSecret", () => {
+    // WHEN
+    const secretName = "custom-secret-name";
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      credentials: rds.Credentials.fromGeneratedSecret("admin", {
+        secretName,
+      }),
+      vpc,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(
+      secretsmanagerSecret.SecretsmanagerSecret,
+      {
+        name: secretName,
+      },
+    );
+  });
+
+  describe("manageMasterUserPassword", () => {
+    test("with username and KMS encryption key", () => {
+      // GIVEN
+      const kmsKey = new encryption.Key(stack, "Key");
+
+      // WHEN
+      new rds.DatabaseInstance(stack, "Database", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        manageMasterUserPassword: true,
+        credentials: {
+          username: "testuser",
+          encryptionKey: kmsKey,
+        } as rds.Credentials,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        engine: "mysql",
+        username: "testuser",
+        manage_master_user_password: true,
+        master_user_secret_kms_key_id: stack.resolve(kmsKey.keyArn),
+      });
+      // `objectContaining` cannot assert key absence (it requires the key to
+      // be present with value `undefined`), so check the raw synthesized
+      // resource instead.
+      const [dbInstanceResource] = t.resourceTypeArray(
+        dbInstance.DbInstance,
+      ) as any[];
+      expect(dbInstanceResource.password).toBeUndefined();
+
+      t.resourceCountIs(secretsmanagerSecret.SecretsmanagerSecret, 0);
+    });
+
+    test("without username (uses engine default)", () => {
+      // WHEN
+      new rds.DatabaseInstance(stack, "Database", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        manageMasterUserPassword: true,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        engine: "mysql",
+        username: "admin", // engine default username
+        manage_master_user_password: true,
+      });
+      // `objectContaining` cannot assert key absence (it requires the key to
+      // be present with value `undefined`), so check the raw synthesized
+      // resource instead.
+      const [dbInstanceResource] = t.resourceTypeArray(
+        dbInstance.DbInstance,
+      ) as any[];
+      expect(dbInstanceResource.password).toBeUndefined();
+      expect(dbInstanceResource.master_user_secret_kms_key_id).toBeUndefined();
+
+      t.resourceCountIs(secretsmanagerSecret.SecretsmanagerSecret, 0);
+    });
+
+    test("secret.grantRead() grants kms:Decrypt when a customer managed key is used", () => {
+      // GIVEN
+      const kmsKey = new encryption.Key(stack, "Key");
+      const instance = new rds.DatabaseInstance(stack, "Database", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        manageMasterUserPassword: true,
+        credentials: {
+          username: "testuser",
+          encryptionKey: kmsKey,
+        } as rds.Credentials,
+      });
+      const role = new Role(stack, "Role", {
+        assumedBy: new ServicePrincipal("lambda.amazonaws.com"),
+      });
+
+      // WHEN
+      instance.secret!.grantRead(role);
+
+      // THEN
+      // TERRACONSTRUCTS DEVIATION: `instance.secret` for a `manageMasterUserPassword` instance
+      // refers to the RDS-managed secret (`master_user_secret` computed block, exposed via
+      // `Secret.fromSecretAttributes`), not a TerraConstructs-owned `encryption.Secret`/
+      // `DatabaseSecret`. `grantRead()` still renders the usual IAM read-policy statement scoped to
+      // that secret's ARN, plus a `kms:Decrypt` grant (with the `kms:ViaService` condition) on the
+      // customer-managed key's policy.
+      const t = new Template(stack);
+      t.expect.toHaveDataSourceWithProperties(
+        dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+        {
+          statement: [
+            {
+              actions: [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              effect: "Allow",
+              resources: [stack.resolve(instance.secret!.secretArn)],
+            },
+          ],
+        },
+      );
+      t.expect.toHaveDataSourceWithProperties(
+        dataAwsIamPolicyDocument.DataAwsIamPolicyDocument,
+        {
+          statement: expect.arrayContaining([
+            {
+              actions: ["kms:Decrypt"],
+              condition: [
+                {
+                  test: "StringEquals",
+                  values: ["secretsmanager.us-east-1.amazonaws.com"],
+                  variable: "kms:ViaService",
+                },
+              ],
+              effect: "Allow",
+              principals: [
+                {
+                  identifiers: [stack.resolve(role.roleArn)],
+                  type: "AWS",
+                },
+              ],
+              resources: ["*"],
+            },
+          ]),
+        },
+      );
+    });
+  });
+
+  describe("manageMasterUserPassword validation errors", () => {
+    test("should reject all unsupported credential properties", () => {
+      // THEN
+      expect(() => {
+        new rds.DatabaseInstance(stack, "Database", {
+          engine: rds.DatabaseInstanceEngine.mysql({
+            version: rds.MysqlEngineVersion.VER_8_0_19,
+          }),
+          vpc,
+          manageMasterUserPassword: true,
+          credentials: {
+            username: "testuser",
+            password: "password",
+            excludeCharacters: '"@/\\',
+            secretName: "my-secret",
+            replicaRegions: [{ region: "us-west-2" }],
+            usernameAsString: true,
+          } as rds.Credentials,
+        });
+      }).toThrow(
+        /When manageMasterUserPassword is enabled, only 'username' and 'encryptionKey' are allowed in credentials\. Found unsupported properties: excludeCharacters, password, replicaRegions, secretName, usernameAsString\./,
+      );
+    });
+  });
+
+  describe("manageMasterUserPassword rotation conflict", () => {
+    test("addRotationSingleUser throws when manageMasterUserPassword is enabled", () => {
+      const instance = new rds.DatabaseInstance(stack, "Database", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        manageMasterUserPassword: true,
+      });
+
+      expect(() => instance.addRotationSingleUser()).toThrow(
+        /Cannot add rotation when `manageMasterUserPassword` is enabled\. RDS automatically rotates the master password when it manages the secret\./,
+      );
+    });
+
+    test("addRotationMultiUser throws when manageMasterUserPassword is enabled", () => {
+      const instance = new rds.DatabaseInstance(stack, "Database", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+        manageMasterUserPassword: true,
+      });
+      const userSecret = new rds.DatabaseSecret(stack, "UserSecret", {
+        username: "user",
+      });
+
+      expect(() =>
+        instance.addRotationMultiUser("user", {
+          secret: userSecret.attach(instance),
+        }),
+      ).toThrow(
+        /Cannot add rotation when `manageMasterUserPassword` is enabled\. RDS automatically rotates the master password when it manages the secret\./,
+      );
+    });
+
+    test("addRotationSingleUser works when manageMasterUserPassword is not enabled (regression)", () => {
+      const instance = new rds.DatabaseInstance(stack, "Database", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_0_19,
+        }),
+        vpc,
+      });
+
+      // WHEN - should not throw
+      instance.addRotationSingleUser();
+
+      // THEN
+      const t = new Template(stack);
+      t.resourceCountIs(
+        secretsmanagerSecretRotation.SecretsmanagerSecretRotation,
+        1,
+      );
+    });
+  });
+
+  test("can set publiclyAccessible to false with public subnets", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+      vpcSubnets: { subnetType: compute.SubnetType.PUBLIC },
+      publiclyAccessible: false,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      publicly_accessible: false,
+    });
+  });
+
+  test("can set publiclyAccessible to true with private subnets", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+      vpcSubnets: { subnetType: compute.SubnetType.PRIVATE_WITH_EGRESS },
+      publiclyAccessible: true,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      publicly_accessible: true,
+    });
+  });
+
+  test("changes the case of the instance identifier", () => {
+    // WHEN
+    const instanceIdentifier = "TestInstanceIdentifier";
+    new rds.DatabaseInstance(stack, "DB", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+      instanceIdentifier,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      identifier: instanceIdentifier.toLowerCase(),
+    });
+  });
+
+  // TODO: omitted — "does not change[] the case of the cluster identifier if the
+  // lowercaseDbIdentifier feature flag is disabled" exercises a `cx-api` CDK context feature flag
+  // (`@aws-cdk/aws-rds:lowercaseDbIdentifier`). CDK's synth-time feature-flag registry is not
+  // ported in this repo; every other already-landed RDS construct (`SubnetGroup`, `OptionGroup`,
+  // ...) unconditionally lowercases generated/explicit Terraform resource names (RDS stores names
+  // lowercase server-side regardless), so `DatabaseInstance` is expected to do the same
+  // unconditionally, with no opt-out —
+  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L2252-L2272
+
+  test("throws with backupRetention on a read replica if engine does not support it", () => {
+    // GIVEN
+    const instanceType = compute.InstanceType.of(
+      compute.InstanceClass.T3,
+      compute.InstanceSize.SMALL,
+    );
+    const backupRetention = Duration.days(5);
+    const source = new rds.DatabaseInstance(stack, "Source", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_16_3,
+      }),
+      backupRetention,
+      instanceType,
+      vpc,
+    });
+
+    expect(() => {
+      new rds.DatabaseInstanceReadReplica(stack, "Replica", {
+        sourceDatabaseInstance: source,
+        backupRetention,
+        instanceType,
+        vpc,
+      });
+    }).toThrow(
+      /Cannot set 'backupRetention', as engine 'postgres-16.3' does not support automatic backups for read replicas/,
+    );
+  });
+
+  test("read replica with allocatedStorage", () => {
+    // GIVEN
+    const instanceType = compute.InstanceType.of(
+      compute.InstanceClass.T3,
+      compute.InstanceSize.SMALL,
+    );
+    const engine = rds.DatabaseInstanceEngine.postgres({
+      version: rds.PostgresEngineVersion.VER_16_3,
+    });
+    const parameterGroup = new rds.ParameterGroup(stack, "ParameterGroup", {
+      engine,
+    });
+    const source = new rds.DatabaseInstance(stack, "Source", {
+      engine,
+      instanceType,
+      vpc,
+    });
+
+    // WHEN
+    new rds.DatabaseInstanceReadReplica(stack, "Replica", {
+      sourceDatabaseInstance: source,
+      parameterGroup,
+      instanceType,
+      vpc,
+      allocatedStorage: 500,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      allocated_storage: 500,
+    });
+  });
+
+  test("can set parameter group on read replica", () => {
+    // GIVEN
+    const instanceType = compute.InstanceType.of(
+      compute.InstanceClass.T3,
+      compute.InstanceSize.SMALL,
+    );
+    const engine = rds.DatabaseInstanceEngine.postgres({
+      version: rds.PostgresEngineVersion.VER_16_3,
+    });
+    const parameterGroup = new rds.ParameterGroup(stack, "ParameterGroup", {
+      engine,
+    });
+    const source = new rds.DatabaseInstance(stack, "Source", {
+      engine,
+      instanceType,
+      vpc,
+    });
+
+    // WHEN
+    new rds.DatabaseInstanceReadReplica(stack, "Replica", {
+      sourceDatabaseInstance: source,
+      parameterGroup,
+      instanceType,
+      vpc,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      parameter_group_name: stack.resolve(
+        parameterGroup.bindToInstance({}).parameterGroupName,
+      ),
+    });
+  });
+
+  test("instance with port provided as a number", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.MYSQL,
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE2,
+        compute.InstanceSize.SMALL,
+      ),
+      vpc,
+      port: 3306,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      port: 3306,
+    });
+  });
+
+  test("instance with port provided as a CloudFormation parameter", () => {
+    // GIVEN
+    const port = new TerraformVariable(stack, "Port", { type: "number" });
+
+    // WHEN
+    new rds.DatabaseInstance(stack, "Database", {
+      engine: rds.DatabaseInstanceEngine.MYSQL,
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE2,
+        compute.InstanceSize.SMALL,
+      ),
+      vpc,
+      port: port.numberValue,
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      port: stack.resolve(port.numberValue),
+    });
+  });
+
+  test("engine is specified for read replica using domain", () => {
+    // GIVEN
+    const instanceType = compute.InstanceType.of(
+      compute.InstanceClass.T3,
+      compute.InstanceSize.SMALL,
+    );
+    const engine = rds.DatabaseInstanceEngine.postgres({
+      version: rds.PostgresEngineVersion.VER_16_3,
+    });
+    const source = new rds.DatabaseInstance(stack, "Source", {
+      engine,
+      instanceType,
+      vpc,
+    });
+
+    // WHEN
+    new rds.DatabaseInstanceReadReplica(stack, "Replica", {
+      sourceDatabaseInstance: source,
+      instanceType,
+      vpc,
+      domain: "my-domain",
+    });
+
+    // THEN
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      replicate_source_db: expect.any(String),
+      engine: "postgres",
+    });
+  });
+
+  test("specify `storageThroughput` for gp3 storage type", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_30,
+      }),
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE3,
+        compute.InstanceSize.SMALL,
+      ),
+      vpc,
+      allocatedStorage: 500,
+      storageType: rds.StorageType.GP3,
+      storageThroughput: 500,
+      iops: 4000,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      storage_type: "gp3",
+      storage_throughput: 500,
+      iops: 4000,
+    });
+  });
+
+  test("with CA certificate", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_30,
+      }),
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE3,
+        compute.InstanceSize.SMALL,
+      ),
+      vpc,
+      caCertificate: rds.CaCertificate.RDS_CA_RSA2048_G1,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      ca_cert_identifier: "rds-ca-rsa2048-g1",
+    });
+  });
+
+  test("throws with storage throughput and not GP3", () => {
+    expect(
+      () =>
+        new rds.DatabaseInstance(stack, "Instance", {
+          engine: rds.DatabaseInstanceEngine.mysql({
+            version: rds.MysqlEngineVersion.VER_8_0_30,
+          }),
+          instanceType: compute.InstanceType.of(
+            compute.InstanceClass.BURSTABLE3,
+            compute.InstanceSize.SMALL,
+          ),
+          vpc,
+          storageType: rds.StorageType.GP2,
+          storageThroughput: 500,
+        }),
+    ).toThrow(/storage throughput can only be specified with GP3 storage type/);
+  });
+
+  test("throws with a ratio of storage throughput to IOPS greater than 0.25", () => {
+    expect(
+      () =>
+        new rds.DatabaseInstance(stack, "Instance", {
+          engine: rds.DatabaseInstanceEngine.mysql({
+            version: rds.MysqlEngineVersion.VER_8_0_30,
+          }),
+          instanceType: compute.InstanceType.of(
+            compute.InstanceClass.BURSTABLE3,
+            compute.InstanceSize.SMALL,
+          ),
+          vpc,
+          allocatedStorage: 1000,
+          storageType: rds.StorageType.GP3,
+          iops: 5000,
+          storageThroughput: 2500,
+        }),
+    ).toThrow(/maximum ratio of storage throughput to IOPS is 0.25/);
+  });
+
+  test.each([
+    rds.EngineLifecycleSupport.OPEN_SOURCE_RDS_EXTENDED_SUPPORT,
+    rds.EngineLifecycleSupport.OPEN_SOURCE_RDS_EXTENDED_SUPPORT_DISABLED,
+  ])(
+    "DatabaseInstance can specify engine lifecycle support %s",
+    (engineLifecycleSupport) => {
+      // WHEN
+      new rds.DatabaseInstance(stack, "Database", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_4_5,
+        }),
+        vpc,
+        engineLifecycleSupport,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        engine_lifecycle_support: engineLifecycleSupport,
+      });
+    },
+  );
+
+  test.each([
+    rds.EngineLifecycleSupport.OPEN_SOURCE_RDS_EXTENDED_SUPPORT,
+    rds.EngineLifecycleSupport.OPEN_SOURCE_RDS_EXTENDED_SUPPORT_DISABLED,
+  ])(
+    "DatabaseInstanceFromSnapshot can specify engine lifecycle support %s",
+    (engineLifecycleSupport) => {
+      // WHEN
+      new rds.DatabaseInstanceFromSnapshot(stack, "Database", {
+        snapshotIdentifier: "my-snapshot",
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_4_5,
+        }),
+        vpc,
+        engineLifecycleSupport,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        engine_lifecycle_support: engineLifecycleSupport,
+      });
+    },
+  );
+
+  test.each([
+    rds.EngineLifecycleSupport.OPEN_SOURCE_RDS_EXTENDED_SUPPORT,
+    rds.EngineLifecycleSupport.OPEN_SOURCE_RDS_EXTENDED_SUPPORT_DISABLED,
+  ])(
+    "DatabaseInstanceReadReplica can specify engine lifecycle support %s",
+    (engineLifecycleSupport) => {
+      // GIVEN
+      const sourceInstance = new rds.DatabaseInstance(stack, "Database", {
+        engine: rds.DatabaseInstanceEngine.mysql({
+          version: rds.MysqlEngineVersion.VER_8_4_5,
+        }),
+        vpc,
+      });
+
+      // WHEN
+      new rds.DatabaseInstanceReadReplica(stack, "ReadReplica", {
+        sourceDatabaseInstance: sourceInstance,
+        instanceType: compute.InstanceType.of(
+          compute.InstanceClass.BURSTABLE2,
+          compute.InstanceSize.LARGE,
+        ),
+        vpc,
+        engineLifecycleSupport,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        replicate_source_db: stack.resolve(sourceInstance.instanceArn),
+        engine_lifecycle_support: engineLifecycleSupport,
+      });
+    },
+  );
+
+  test.each([
+    rds.DatabaseInstanceEngine.oracleEe({
+      version: rds.OracleEngineVersion.VER_19,
+    }),
+    rds.DatabaseInstanceEngine.mariaDb({
+      version: rds.MariaDbEngineVersion.VER_10_6,
+    }),
+    rds.DatabaseInstanceEngine.sqlServerEe({
+      version: rds.SqlServerEngineVersion.VER_16_00_4185_3_V1,
+    }),
+  ])(
+    "DatabaseInstance cannot specify engine lifecycle support for engine %s",
+    (engine) => {
+      expect(
+        () =>
+          new rds.DatabaseInstance(stack, "Database", {
+            engine,
+            vpc,
+            engineLifecycleSupport:
+              rds.EngineLifecycleSupport
+                .OPEN_SOURCE_RDS_EXTENDED_SUPPORT_DISABLED,
+          }),
+      ).toThrow(
+        /'engineLifecycleSupport' can only be specified for RDS for MySQL and RDS for PostgreSQL/,
+      );
+    },
+  );
+
+  test.each([
+    rds.DatabaseInstanceEngine.oracleEe({
+      version: rds.OracleEngineVersion.VER_19,
+    }),
+    rds.DatabaseInstanceEngine.mariaDb({
+      version: rds.MariaDbEngineVersion.VER_10_6,
+    }),
+    rds.DatabaseInstanceEngine.sqlServerEe({
+      version: rds.SqlServerEngineVersion.VER_16_00_4185_3_V1,
+    }),
+  ])(
+    "DatabaseInstanceFromSnapshot cannot specify engine lifecycle support for engine %s",
+    (engine) => {
+      expect(
+        () =>
+          new rds.DatabaseInstanceFromSnapshot(stack, "Database", {
+            snapshotIdentifier: "my-snapshot",
+            engine,
+            vpc,
+            engineLifecycleSupport:
+              rds.EngineLifecycleSupport
+                .OPEN_SOURCE_RDS_EXTENDED_SUPPORT_DISABLED,
+          }),
+      ).toThrow(
+        /'engineLifecycleSupport' can only be specified for RDS for MySQL and RDS for PostgreSQL/,
+      );
+    },
+  );
+
+  test.each([
+    rds.DatabaseInstanceEngine.oracleEe({
+      version: rds.OracleEngineVersion.VER_19,
+    }),
+    rds.DatabaseInstanceEngine.mariaDb({
+      version: rds.MariaDbEngineVersion.VER_10_6,
+    }),
+    rds.DatabaseInstanceEngine.sqlServerEe({
+      version: rds.SqlServerEngineVersion.VER_16_00_4185_3_V1,
+    }),
+  ])(
+    "DatabaseInstanceReadReplica cannot specify engine lifecycle support for engine %s",
+    (engine) => {
+      // GIVEN
+      const sourceInstance = new rds.DatabaseInstance(stack, "Database", {
+        engine,
+        vpc,
+      });
+
+      expect(
+        () =>
+          new rds.DatabaseInstanceReadReplica(stack, "ReadReplica", {
+            sourceDatabaseInstance: sourceInstance,
+            instanceType: compute.InstanceType.of(
+              compute.InstanceClass.BURSTABLE2,
+              compute.InstanceSize.LARGE,
+            ),
+            vpc,
+            engineLifecycleSupport:
+              rds.EngineLifecycleSupport
+                .OPEN_SOURCE_RDS_EXTENDED_SUPPORT_DISABLED,
+          }),
+      ).toThrow(
+        /'engineLifecycleSupport' can only be specified for RDS for MySQL and RDS for PostgreSQL/,
+      );
+    },
+  );
+
+  test.each([
+    rds.DatabaseInstanceEngine.mysql({
+      version: rds.MysqlEngineVersion.VER_8_4_5,
+    }),
+    rds.DatabaseInstanceEngine.mysql({
+      version: rds.MysqlEngineVersion.VER_5_7,
+    }),
+    rds.DatabaseInstanceEngine.postgres({
+      version: rds.PostgresEngineVersion.VER_16_3,
+    }),
+    rds.DatabaseInstanceEngine.postgres({
+      version: rds.PostgresEngineVersion.VER_15,
+    }),
+  ])(
+    "DatabaseInstance can specify engine lifecycle support for engine %s",
+    (engine) => {
+      // WHEN
+      new rds.DatabaseInstance(stack, "Database", {
+        engine,
+        vpc,
+        engineLifecycleSupport:
+          rds.EngineLifecycleSupport.OPEN_SOURCE_RDS_EXTENDED_SUPPORT_DISABLED,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        engine_lifecycle_support: "open-source-rds-extended-support-disabled",
+      });
+    },
+  );
+
+  test.each([
+    rds.DatabaseInstanceEngine.mysql({
+      version: rds.MysqlEngineVersion.VER_8_4_5,
+    }),
+    rds.DatabaseInstanceEngine.mysql({
+      version: rds.MysqlEngineVersion.VER_5_7,
+    }),
+    rds.DatabaseInstanceEngine.postgres({
+      version: rds.PostgresEngineVersion.VER_16_3,
+    }),
+    rds.DatabaseInstanceEngine.postgres({
+      version: rds.PostgresEngineVersion.VER_15,
+    }),
+  ])(
+    "DatabaseInstanceFromSnapshot can specify engine lifecycle support for engine %s",
+    (engine) => {
+      // WHEN
+      new rds.DatabaseInstanceFromSnapshot(stack, "Database", {
+        snapshotIdentifier: "my-snapshot",
+        engine,
+        vpc,
+        engineLifecycleSupport:
+          rds.EngineLifecycleSupport.OPEN_SOURCE_RDS_EXTENDED_SUPPORT_DISABLED,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        engine_lifecycle_support: "open-source-rds-extended-support-disabled",
+      });
+    },
+  );
+
+  test.each([
+    rds.DatabaseInstanceEngine.mysql({
+      version: rds.MysqlEngineVersion.VER_8_4_5,
+    }),
+    rds.DatabaseInstanceEngine.mysql({
+      version: rds.MysqlEngineVersion.VER_5_7,
+    }),
+    rds.DatabaseInstanceEngine.postgres({
+      version: rds.PostgresEngineVersion.VER_16_3,
+    }),
+    rds.DatabaseInstanceEngine.postgres({
+      version: rds.PostgresEngineVersion.VER_15,
+    }),
+  ])(
+    "DatabaseInstanceReadReplica can specify engine lifecycle support for engine %s",
+    (engine) => {
+      // GIVEN
+      const sourceInstance = new rds.DatabaseInstance(stack, "Database", {
+        engine,
+        vpc,
+      });
+
+      // WHEN
+      new rds.DatabaseInstanceReadReplica(stack, "ReadReplica", {
+        sourceDatabaseInstance: sourceInstance,
+        instanceType: compute.InstanceType.of(
+          compute.InstanceClass.BURSTABLE2,
+          compute.InstanceSize.LARGE,
+        ),
+        vpc,
+        engineLifecycleSupport:
+          rds.EngineLifecycleSupport.OPEN_SOURCE_RDS_EXTENDED_SUPPORT_DISABLED,
+      });
+
+      // THEN
+      const t = new Template(stack);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        replicate_source_db: stack.resolve(sourceInstance.instanceArn),
+        engine_lifecycle_support: "open-source-rds-extended-support-disabled",
+      });
+    },
+  );
+});
+
+// TERRACONSTRUCTS DEVIATION: upstream's module-level `test.each(['RETAIN','SNAPSHOT','DESTROY'])(...
+// instance RemovalPolicy ...)` exercises `cdk.RemovalPolicy`, mapped onto CloudFormation's
+// `DeletionPolicy`/`UpdateReplacePolicy`. `core.RemovalPolicy` is not ported in this repo (see the
+// TERRACONSTRUCTS DEVIATION notes on `SubnetGroupProps.removalPolicy` and
+// `ParameterGroupProps.removalPolicy`); per the slice plan, `DatabaseInstance` instead exposes the
+// underlying `aws_db_instance` fields directly and Terraform-natively (`skip_final_snapshot` /
+// `final_snapshot_identifier` / `deletion_protection`) rather than an upstream-shaped
+// `removalPolicy` enum —
+// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L2656-L2685
+describe("removal policy replacement props", () => {
+  test("skipFinalSnapshot, finalSnapshotIdentifier and deletionProtection are rendered when set", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+      skipFinalSnapshot: false,
+      finalSnapshotIdentifier: "my-final-snapshot",
+      deletionProtection: true,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      skip_final_snapshot: false,
+      final_snapshot_identifier: "my-final-snapshot",
+      deletion_protection: true,
+    });
+  });
+
+  test("skipFinalSnapshot true omits finalSnapshotIdentifier", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+      skipFinalSnapshot: true,
+    });
+
+    const t = new Template(stack);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      skip_final_snapshot: true,
+    });
+    const [dbInstanceResource] = t.resourceTypeArray(
+      dbInstance.DbInstance,
+    ) as any[];
+    expect(dbInstanceResource.final_snapshot_identifier).toBeUndefined();
+  });
+
+  test("skipFinalSnapshot, finalSnapshotIdentifier and deletionProtection are absent when unset", () => {
+    new rds.DatabaseInstance(stack, "Instance", {
+      engine: rds.DatabaseInstanceEngine.mysql({
+        version: rds.MysqlEngineVersion.VER_8_0_19,
+      }),
+      vpc,
+    });
+
+    // `objectContaining` cannot assert key absence (it requires the key to be present with value
+    // `undefined`), so check the raw synthesized resource instead.
+    const t = new Template(stack);
+    const [dbInstanceResource] = t.resourceTypeArray(
+      dbInstance.DbInstance,
+    ) as any[];
+    expect(dbInstanceResource.skip_final_snapshot).toBeUndefined();
+    expect(dbInstanceResource.final_snapshot_identifier).toBeUndefined();
+    expect(dbInstanceResource.deletion_protection).toBeUndefined();
+  });
+});
+
+// TODO: omitted — upstream's "cross-account instance" describe block depends on
+// `cdk.PhysicalName.GENERATE_IF_NEEDED` (a CDK cross-environment physical-name-generation
+// mechanism), which is not ported in this repo, plus cross-stack `CfnOutput` referencing of a
+// dynamically-generated instance ARN/identifier across two `env`-scoped stacks. Revisit once
+// physical-name generation and multi-account/-region `AwsStack` cross-referencing conventions are
+// established elsewhere in the repo —
+// https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/test/instance.test.ts#L2687-L2731
+// describe('cross-account instance', () => { ... });
+
+describe("database insights for instance", () => {
+  let app2: App;
+  let stack2: AwsStack;
+  let vpc2: compute.IVpc;
+  beforeEach(() => {
+    app2 = Testing.app();
+    stack2 = new AwsStack(app2, "MyStack", {
+      environmentName,
+      gridUUID,
+      providerConfig,
+      gridBackendConfig,
+    });
+    vpc2 = new compute.Vpc(stack2, "VPC", { maxAzs: 2 });
+  });
+
+  test("instance with the advanced mode of database insights", () => {
+    // WHEN
+    new rds.DatabaseInstance(stack2, "Instance", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_13_7,
+      }),
+      instanceType: compute.InstanceType.of(
+        compute.InstanceClass.BURSTABLE3,
+        compute.InstanceSize.MEDIUM,
+      ),
+      vpc: vpc2,
+      databaseInsightsMode: rds.DatabaseInsightsMode.ADVANCED,
+      performanceInsightRetention: rds.PerformanceInsightRetention.MONTHS_15,
+    });
+
+    // THEN
+    const t = new Template(stack2);
+    t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+      performance_insights_enabled: true,
+      performance_insights_retention_period: 465,
+      database_insights_mode: "advanced",
+    });
+  });
+
+  test.each([true, false])(
+    "instance with the standard mode of database insights when enablePerformanceInsights is %s",
+    (enablePerformanceInsights) => {
+      // WHEN
+      new rds.DatabaseInstance(stack2, "Instance", {
+        engine: rds.DatabaseInstanceEngine.postgres({
+          version: rds.PostgresEngineVersion.VER_17_5,
+        }),
+        instanceType: compute.InstanceType.of(
+          compute.InstanceClass.BURSTABLE3,
+          compute.InstanceSize.MEDIUM,
+        ),
+        vpc: vpc2,
+        enablePerformanceInsights,
+        databaseInsightsMode: rds.DatabaseInsightsMode.STANDARD,
+      });
+
+      // THEN
+      const t = new Template(stack2);
+      t.expect.toHaveResourceWithProperties(dbInstance.DbInstance, {
+        performance_insights_enabled: enablePerformanceInsights,
+        database_insights_mode: "standard",
+      });
+    },
+  );
+
+  test("throw if performance insights is disabled and the advanced mode of database insights is set", () => {
+    // THEN
+    expect(() => {
+      new rds.DatabaseInstance(stack2, "Instance", {
+        engine: rds.DatabaseInstanceEngine.postgres({
+          version: rds.PostgresEngineVersion.VER_17_5,
+        }),
+        instanceType: compute.InstanceType.of(
+          compute.InstanceClass.R5,
+          compute.InstanceSize.LARGE,
+        ),
+        vpc: vpc2,
+        enablePerformanceInsights: false,
+        databaseInsightsMode: rds.DatabaseInsightsMode.ADVANCED,
+        performanceInsightRetention: rds.PerformanceInsightRetention.MONTHS_15,
+      });
+    }).toThrow(
+      /`enablePerformanceInsights` disabled, but `performanceInsightRetention` or `performanceInsightEncryptionKey` was set, or `databaseInsightsMode` was set to '\$\{DatabaseInsightsMode\.ADVANCED\}'/,
+    );
+  });
+
+  test("throw if the advanced mode of database insights is set and any retention other than MONTHS_15 is set for performanceInsightRetention", () => {
+    // THEN
+    expect(() => {
+      new rds.DatabaseInstance(stack2, "Instance", {
+        engine: rds.DatabaseInstanceEngine.postgres({
+          version: rds.PostgresEngineVersion.VER_17_5,
+        }),
+        instanceType: compute.InstanceType.of(
+          compute.InstanceClass.R5,
+          compute.InstanceSize.LARGE,
+        ),
+        vpc: vpc2,
+        performanceInsightRetention: rds.PerformanceInsightRetention.LONG_TERM,
+        databaseInsightsMode: rds.DatabaseInsightsMode.ADVANCED,
+      });
+    }).toThrow(
+      /`performanceInsightRetention` must be set to '\$\{PerformanceInsightRetention\.MONTHS_15\}' when `databaseInsightsMode` is set to '\$\{DatabaseInsightsMode\.ADVANCED\}'/,
+    );
+  });
+});
