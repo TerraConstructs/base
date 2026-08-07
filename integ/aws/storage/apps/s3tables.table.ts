@@ -41,10 +41,24 @@ const table = new aws.storage.s3tables.Table(stack, "Table", {
   tableName: "integ_table",
   namespace,
   openTableFormat: aws.storage.s3tables.OpenTableFormat.ICEBERG,
-  // Compaction WITHOUT snapshotManagement: the one-sided maintenance shape.
+  // Compaction WITHOUT snapshotManagement: the one-sided maintenance shape
+  // (absent side rendered with AWS's documented server-side defaults).
   compaction: {
     status: aws.storage.s3tables.Status.ENABLED,
     targetFileSizeMb: 128,
+  },
+});
+
+// The mirror one-sided shape: snapshotManagement WITHOUT compaction, proving
+// the AWS-defaults fill for the compaction side too.
+const snapshotTable = new aws.storage.s3tables.Table(stack, "SnapshotTable", {
+  tableName: "integ_snapshot_table",
+  namespace,
+  openTableFormat: aws.storage.s3tables.OpenTableFormat.ICEBERG,
+  snapshotManagement: {
+    status: aws.storage.s3tables.Status.ENABLED,
+    maxSnapshotAgeHours: 48,
+    minSnapshotsToKeep: 3,
   },
 });
 
@@ -66,6 +80,10 @@ new TerraformOutput(stack, "table_name", {
 });
 new TerraformOutput(stack, "table_arn", {
   value: table.tableArn,
+  staticId: true,
+});
+new TerraformOutput(stack, "snapshot_table_name", {
+  value: snapshotTable.tableName,
   staticId: true,
 });
 

@@ -190,10 +190,13 @@ describe("Table", () => {
   // are independently optional (mirrors upstream `CfnTable`'s independent top-level properties),
   // but `aws_s3tables_table.maintenance_configuration` is a Terraform object-typed attribute whose
   // schema requires BOTH `iceberg_compaction`/`iceberg_snapshot_management` members to be present
-  // -- so whichever of `compaction`/`snapshotManagement` was not supplied is still rendered, with
-  // its scalar leaves explicit `null`, rather than omitted. These two cases (only one of
-  // `compaction`/`snapshotManagement` supplied) exercise that null-filled branch; the "created with
-  // all properties" suite above only exercises the neither-or-both paths.
+  // -- and S3 Tables auto-populates server-side defaults for every unset maintenance value
+  // (live-confirmed "Provider produced inconsistent result after apply" against planned nulls), so
+  // whichever of `compaction`/`snapshotManagement` was not supplied is rendered with AWS's
+  // documented defaults (compaction: enabled/512MB; snapshot management: enabled/120h/1) rather
+  // than omitted or null-filled. These two cases (only one of `compaction`/`snapshotManagement`
+  // supplied) exercise that defaults branch; the "created with all properties" suite above only
+  // exercises the neither-or-both paths.
   describe("created with compaction only (no snapshotManagement)", () => {
     let table: s3tables.Table;
 
@@ -213,7 +216,7 @@ describe("Table", () => {
       new Template(stack).resourceCountIs(s3TablesTable.S3TablesTable, 1);
     });
 
-    test("renders iceberg_compaction and a null-filled iceberg_snapshot_management in maintenance_configuration", () => {
+    test("renders iceberg_compaction and an AWS-defaults iceberg_snapshot_management in maintenance_configuration", () => {
       const t = new Template(stack);
       t.expect.toHaveResourceWithProperties(s3TablesTable.S3TablesTable, {
         name: "example_table",
@@ -223,10 +226,10 @@ describe("Table", () => {
             settings: { target_file_size_mb: 128 },
           },
           iceberg_snapshot_management: {
-            status: null,
+            status: "enabled",
             settings: {
-              max_snapshot_age_hours: null,
-              min_snapshots_to_keep: null,
+              max_snapshot_age_hours: 120,
+              min_snapshots_to_keep: 1,
             },
           },
         },
@@ -254,14 +257,14 @@ describe("Table", () => {
       new Template(stack).resourceCountIs(s3TablesTable.S3TablesTable, 1);
     });
 
-    test("renders iceberg_snapshot_management and a null-filled iceberg_compaction in maintenance_configuration", () => {
+    test("renders iceberg_snapshot_management and an AWS-defaults iceberg_compaction in maintenance_configuration", () => {
       const t = new Template(stack);
       t.expect.toHaveResourceWithProperties(s3TablesTable.S3TablesTable, {
         name: "example_table",
         maintenance_configuration: {
           iceberg_compaction: {
-            status: null,
-            settings: { target_file_size_mb: null },
+            status: "enabled",
+            settings: { target_file_size_mb: 512 },
           },
           iceberg_snapshot_management: {
             status: "enabled",

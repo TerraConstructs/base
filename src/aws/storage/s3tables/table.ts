@@ -661,15 +661,17 @@ export class Table extends TableBase {
    * `./table-bucket.ts` -- so both members are always rendered here too, never omitted.
    *
    * Only a literal `null` passed for an entire nested-object member (as opposed to a real object
-   * with `null`-valued scalar leaves) throws at construction time -- the generated L1's `set
+   * with explicit scalar leaves) throws at construction time -- the generated L1's `set
    * internalValue` (`@cdktn/provider-aws` 24.8.0, AWS provider 6.52.0) unconditionally does
    * `Object.keys(value).length` on any non-`undefined`, non-`IResolvable` value
    * (`node_modules/@cdktn/provider-aws/lib/s3tables-table/index.js`, both the outer
    * `S3TablesTableMaintenanceConfigurationOutputReference` and the
    * `...IcebergCompactionOutputReference`/`...IcebergSnapshotManagementOutputReference` wrappers).
-   * So whichever of `compaction`/`snapshotManagement` was not supplied is rendered as a real object
-   * with its scalar leaves explicit `null` (verified this constructs cleanly and the resulting
-   * config passes `terraform validate`), rather than `undefined`/`null` at the member level.
+   * And `null`-valued LEAVES, while valid to `terraform validate`, fail at APPLY: S3 Tables
+   * auto-populates server-side defaults for every unset maintenance value, so the provider's
+   * read-back contradicts the planned nulls ("Provider produced inconsistent result after
+   * apply", live-confirmed). Unset leaves are therefore pinned to AWS's documented defaults --
+   * see the note inside the method body.
    */
   private buildMaintenanceConfiguration(
     compaction?: CompactionProperty,
@@ -679,33 +681,29 @@ export class Table extends TableBase {
       return undefined;
     }
 
+    // TERRACONSTRUCTS DEVIATION (live-integ finding, 11th live-only defect class): the provider's
+    // object-typed `maintenance_configuration` requires ALL members, but null-filled leaves fail
+    // `terraform apply` with "Provider produced inconsistent result after apply" — S3 Tables
+    // AUTO-POPULATES server-side defaults for every unset maintenance value and returns them on
+    // read (live-confirmed: snapshot_management came back status="enabled",
+    // min_snapshots_to_keep=1, max_snapshot_age_hours=120 against planned nulls). Every unset leaf
+    // is therefore pinned to AWS's documented server-side default so the planned value matches the
+    // read-back —
+    // https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-maintenance.html
     return {
-      icebergCompaction: compaction
-        ? {
-            status: compaction.status,
-            settings: { targetFileSizeMb: compaction.targetFileSizeMb },
-          }
-        : {
-            status: null as any,
-            settings: { targetFileSizeMb: null as any },
-          },
-      icebergSnapshotManagement: snapshotManagement
-        ? {
-            status: (snapshotManagement.status ?? null) as any,
-            settings: {
-              maxSnapshotAgeHours: (snapshotManagement.maxSnapshotAgeHours ??
-                null) as any,
-              minSnapshotsToKeep: (snapshotManagement.minSnapshotsToKeep ??
-                null) as any,
-            },
-          }
-        : {
-            status: null as any,
-            settings: {
-              maxSnapshotAgeHours: null as any,
-              minSnapshotsToKeep: null as any,
-            },
-          },
+      icebergCompaction: {
+        status: compaction?.status ?? Status.ENABLED,
+        settings: {
+          targetFileSizeMb: compaction?.targetFileSizeMb ?? 512,
+        },
+      },
+      icebergSnapshotManagement: {
+        status: snapshotManagement?.status ?? Status.ENABLED,
+        settings: {
+          maxSnapshotAgeHours: snapshotManagement?.maxSnapshotAgeHours ?? 120,
+          minSnapshotsToKeep: snapshotManagement?.minSnapshotsToKeep ?? 1,
+        },
+      },
     };
   }
 

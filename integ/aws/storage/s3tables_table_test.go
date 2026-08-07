@@ -80,6 +80,24 @@ func validateS3TablesTable(t *testing.T, tfWorkingDir string, awsRegion string) 
 	require.Equal(t, int32(128), *settings.Value.TargetFileSizeMB)
 	t.Logf("s3tables: compaction enabled at %dMB target file size", *settings.Value.TargetFileSizeMB)
 
+	// --- 4b. The mirror one-sided shape: snapshot-only table, compaction side
+	// filled with AWS defaults (enabled/512MB). ---
+	snapshotTableName := outputs["snapshot_table_name"].(string)
+	gm2, err := client.GetTableMaintenanceConfiguration(ctx, &s3tables.GetTableMaintenanceConfigurationInput{
+		TableBucketARN: &bucketArn,
+		Namespace:      &namespaceName,
+		Name:           &snapshotTableName,
+	})
+	require.NoError(t, err)
+	snap, ok := gm2.Configuration[string(s3tablestypes.TableMaintenanceTypeIcebergSnapshotManagement)]
+	require.True(t, ok, "snapshot management maintenance configuration must exist")
+	require.Equal(t, s3tablestypes.MaintenanceStatusEnabled, snap.Status)
+	snapSettings, ok := snap.Settings.(*s3tablestypes.TableMaintenanceSettingsMemberIcebergSnapshotManagement)
+	require.True(t, ok, "snapshot settings must be the iceberg snapshot management member")
+	require.Equal(t, int32(48), *snapSettings.Value.MaxSnapshotAgeHours)
+	require.Equal(t, int32(3), *snapSettings.Value.MinSnapshotsToKeep)
+	t.Logf("s3tables: snapshot-only table %s reads back 48h/3 snapshots", snapshotTableName)
+
 	// --- Drift oracle: re-planning the already-applied stack must show zero
 	// changes. Proves the null-filled absent maintenance member reads back
 	// without perpetual diff. ---
