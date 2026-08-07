@@ -5,10 +5,9 @@
 // option block), and DatabaseSecret. No database instances -- every resource
 // here is free/instant, the point is the Terraform mapping round-trip.
 //
-// TERRACONSTRUCTS DEVIATION: upstream engines (rds.DatabaseInstanceEngine.*)
-// live in instance-engine.ts/cluster-engine.ts which land in RDS PR 2b; the
-// minimal IEngine literals below carry only the fields these constructs read
-// (same stand-in idiom as test/aws/storage/rds/parameter-group.test.ts).
+// Engines are the REAL storage.rds engine tables (DatabaseInstanceEngine /
+// DatabaseClusterEngine, PR 2b) -- the live run also proves their
+// parameterGroupFamily / majorEngineVersion derivations against AWS.
 import { App, LocalBackend, TerraformOutput } from "cdktn";
 import { aws, Duration } from "../../../../src";
 
@@ -55,10 +54,9 @@ const instanceParams = new aws.storage.rds.ParameterGroup(
   stack,
   "InstanceParams",
   {
-    engine: {
-      engineType: "postgres",
-      parameterGroupFamily: "postgres16",
-    },
+    engine: aws.storage.rds.DatabaseInstanceEngine.postgres({
+      version: aws.storage.rds.PostgresEngineVersion.VER_16,
+    }),
     description: "instance-bound parameter group",
     parameters: {
       log_connections: "1",
@@ -71,10 +69,9 @@ const clusterParams = new aws.storage.rds.ParameterGroup(
   stack,
   "ClusterParams",
   {
-    engine: {
-      engineType: "aurora-postgresql",
-      parameterGroupFamily: "aurora-postgresql16",
-    },
+    engine: aws.storage.rds.DatabaseClusterEngine.auroraPostgres({
+      version: aws.storage.rds.AuroraPostgresEngineVersion.VER_16_4,
+    }),
     description: "cluster-bound parameter group",
     parameters: {
       log_connections: "1",
@@ -84,11 +81,9 @@ const clusterParams = new aws.storage.rds.ParameterGroup(
 clusterParams.bindToCluster({});
 
 const optionGroup = new aws.storage.rds.OptionGroup(stack, "Options", {
-  engine: {
-    engineType: "mariadb",
-    engineVersion: { majorVersion: "10.6", fullVersion: "10.6" },
-    parameterGroupFamily: "mariadb10.6",
-  },
+  engine: aws.storage.rds.DatabaseInstanceEngine.mariaDb({
+    version: aws.storage.rds.MariaDbEngineVersion.VER_10_6,
+  }),
   description: "mariadb audit plugin option group",
   configurations: [
     {

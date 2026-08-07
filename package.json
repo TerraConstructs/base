@@ -46,6 +46,7 @@
     "@types/jest": "^29.5.14",
     "@types/mime-types": "^2.1.4",
     "@types/node": "ts5.9",
+    "@types/semver": "^7.5.0",
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
     "cdktn": "0.23.0",
@@ -87,14 +88,16 @@
     "change-case": "^4.1.1",
     "ignore": "^5.3.2",
     "mime-types": "^2.1.35",
-    "minimatch": "^10.2.5"
+    "minimatch": "^10.2.5",
+    "semver": "^7.6.0"
   },
   "bundledDependencies": [
     "@balena/dockerignore",
     "change-case",
     "ignore",
     "mime-types",
-    "minimatch"
+    "minimatch",
+    "semver"
   ],
   "pnpm": {},
   "keywords": [
