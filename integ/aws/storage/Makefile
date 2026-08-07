@@ -44,6 +44,10 @@ docdb.cluster: ## Test DocDB DatabaseCluster L2 (live DocumentDB cluster + insta
 	go test -v -count 1 -timeout 45m ./... -run ^TestDocdbCluster$
 .PHONY: docdb.cluster
 
+elasticache.serverless-cache: ## Test ElastiCache ServerlessCache L2 (live Valkey 8 + IamUser + UserGroup)
+	go test -v -count 1 -timeout 30m ./... -run ^TestElasticacheServerlessCache$
+.PHONY: elasticache.serverless-cache
+
 bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 	go test -v -count 1 -timeout 15m ./... -run ^TestBucketNotifications$
 .PHONY: bucket-notifications
