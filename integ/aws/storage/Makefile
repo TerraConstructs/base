@@ -52,6 +52,10 @@ neptune.cluster: ## Test Neptune DatabaseCluster L2 (live serverless cluster + i
 	go test -v -count 1 -timeout 45m ./... -run ^TestNeptuneCluster$
 .PHONY: neptune.cluster
 
+redshift.cluster: ## Test Redshift Cluster L2 (live single-node ra3.large cluster)
+	go test -v -count 1 -timeout 45m ./... -run ^TestRedshiftCluster$
+.PHONY: redshift.cluster
+
 bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 	go test -v -count 1 -timeout 15m ./... -run ^TestBucketNotifications$
 .PHONY: bucket-notifications
