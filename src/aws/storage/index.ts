@@ -45,3 +45,6 @@ export * as docdb from "./docdb";
 
 // aws-elasticache-alpha
 export * as elasticache from "./elasticache";
+
+// aws-neptune-alpha
+export * as neptune from "./neptune";
