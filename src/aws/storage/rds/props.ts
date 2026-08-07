@@ -88,19 +88,22 @@ export interface InstanceProps {
    */
   readonly autoMinorVersionUpgrade?: boolean;
 
-  /**
-   * Whether to allow upgrade of major version for the DB instance.
-   *
-   * @default - false
-   */
-  readonly allowMajorVersionUpgrade?: boolean;
+  // TODO: omitted — upstream's `allowMajorVersionUpgrade?: boolean` maps to
+  // `CfnDBInstance.allowMajorVersionUpgrade`. `InstanceProps` is consumed exclusively by
+  // `DatabaseClusterBaseProps.instanceProps` (the legacy per-cluster-instance path in
+  // `./cluster.ts`'s `legacyCreateInstances`), which renders `aws_rds_cluster_instance` — a
+  // resource that has NO argument for this at all (verified against the full config shape in
+  // `node_modules/@cdktn/provider-aws/lib/rds-cluster-instance/index.d.ts`), matching the identical
+  // omission on `ClusterInstanceOptions.allowMajorVersionUpgrade` in `./aurora-cluster-instance.ts` —
+  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/props.ts#L92-L96
+  // readonly allowMajorVersionUpgrade?: boolean;
 
-  /**
-   *  Whether to remove automated backups immediately after the DB instance is deleted for the DB instance.
-   *
-   * @default - true
-   */
-  readonly deleteAutomatedBackups?: boolean;
+  // TODO: omitted — upstream's `deleteAutomatedBackups?: boolean` maps to
+  // `CfnDBInstance.deleteAutomatedBackups`. Same reasoning as `allowMajorVersionUpgrade` above:
+  // `InstanceProps`'s only consumer is the legacy `aws_rds_cluster_instance` path, which has no
+  // `delete_automated_backups` argument either (verified against the same config shape) —
+  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/props.ts#L98-L103
+  // readonly deleteAutomatedBackups?: boolean;
 
   /**
    * Indicates whether the DB instance is an internet-facing instance.
