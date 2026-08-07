@@ -54,3 +54,6 @@ export * as redshift from "./redshift";
 
 // aws-backup
 export * as backup from "./backup";
+
+// aws-s3tables-alpha
+export * as s3tables from "./s3tables";
