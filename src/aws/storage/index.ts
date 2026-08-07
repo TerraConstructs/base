@@ -51,3 +51,6 @@ export * as neptune from "./neptune";
 
 // aws-redshift-alpha
 export * as redshift from "./redshift";
+
+// aws-backup
+export * as backup from "./backup";
