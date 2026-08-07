@@ -106,6 +106,8 @@ github.com/aws/aws-sdk-go-v2/service/route53 v1.46.2 h1:wmt05tPp/CaRZpPV5B4SaJ5T
 github.com/aws/aws-sdk-go-v2/service/route53 v1.46.2/go.mod h1:d+K9HESMpGb1EU9/UmmpInbGIUcAkwmcY6ZO/A3zZsw=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.93.2 h1:U3ygWUhCpiSPYSHOrRhb3gOl9T5Y3kB8k5Vjs//57bE=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.93.2/go.mod h1:79S2BdqCJpScXZA2y+cpZuocWsjGjJINyXnOsf5DTz8=
+github.com/aws/aws-sdk-go-v2/service/s3tables v1.18.4 h1:Dw488RJo3tscyq5pzpT/BIGZcfZ7GoIE+S06AG4q8ik=
+github.com/aws/aws-sdk-go-v2/service/s3tables v1.18.4/go.mod h1:7PsCRtQnxct6wWtIRr6glZNE8rDpqV+UraHwmZJMK1c=
 github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.6 h1:1KDMKvOKNrpD667ORbZ/+4OgvUoaok1gg/MLzrHF9fw=
 github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.6/go.mod h1:DmtyfCfONhOyVAJ6ZMTrDSFIeyCBlEO93Qkfhxwbxu0=
 github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.42.0 h1:2UqEBrJPyfw9guK/JuInuQkWp+3Z6Hw2eySe//LQk50=

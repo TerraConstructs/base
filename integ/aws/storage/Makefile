@@ -63,3 +63,7 @@ bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 backup.plan: ## Test Backup Plan/Vault/Selection L2s (live plan over a DynamoDB table)
 	go test -v -count 1 -timeout 30m ./... -run ^TestBackupPlan$
 .PHONY: backup.plan
+
+s3tables.table: ## Test S3 Tables TableBucket/Namespace/Table L2s (live ICEBERG table)
+	go test -v -count 1 -timeout 30m ./... -run ^TestS3TablesTable$
+.PHONY: s3tables.table
