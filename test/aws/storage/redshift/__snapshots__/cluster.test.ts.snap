@@ -118,8 +118,7 @@ exports[`check that instantiation works 1`] = `
         "cluster_type": "multi-node",
         "database_name": "default_db",
         "encrypted": "true",
-        "iam_roles": [
-        ],
+        "iam_roles": [],
         "master_password": "tooshort",
         "master_username": "admin",
         "node_type": "ra3.large",
@@ -398,7 +397,7 @@ exports[`check that instantiation works 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
