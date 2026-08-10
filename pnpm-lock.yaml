@@ -25,8 +25,8 @@ importers:
         version: 10.2.6
     devDependencies:
       '@aws-cdk/cloud-assembly-schema':
-        specifier: 49.4.0
-        version: 49.4.0
+        specifier: 54.17.0
+        version: 54.17.0
       '@aws-cdk/region-info':
         specifier: 2.233.0
         version: 2.233.0
@@ -135,8 +135,8 @@ importers:
 
 packages:
 
-  '@aws-cdk/cloud-assembly-schema@49.4.0':
-    resolution: {integrity: sha512-gZh5tHe5mtTuwWj92Hso2j1FKo7yYzRg72bKn2QfL3Nm6JRkATZKQ1uRlIR1VZcU/cN19YxeLF1Ud7ag72rbRg==}
+  '@aws-cdk/cloud-assembly-schema@54.17.0':
+    resolution: {integrity: sha512-wV1GmMM5AvDkiJIenb9aJcBiGTa5KwX/C/mIjFZCsWsB5b1rEMLnwMageqrOpL2mWKicpxqS8ofF/Yte4Lm3Dg==}
     engines: {node: '>= 18.0.0'}
     bundledDependencies:
       - jsonschema
@@ -3503,7 +3503,7 @@ packages:
 
 snapshots:
 
-  '@aws-cdk/cloud-assembly-schema@49.4.0': {}
+  '@aws-cdk/cloud-assembly-schema@54.17.0': {}
 
   '@aws-cdk/region-info@2.233.0': {}
 

@@ -33,7 +33,7 @@
     "organization": false
   },
   "devDependencies": {
-    "@aws-cdk/cloud-assembly-schema": "49.4.0",
+    "@aws-cdk/cloud-assembly-schema": "54.17.0",
     "@aws-cdk/region-info": "2.233.0",
     "@cdktn/provider-archive": "14.0.0",
     "@cdktn/provider-aws": "25.0.0",
@@ -71,7 +71,7 @@
     "typescript": "~5.9"
   },
   "peerDependencies": {
-    "@aws-cdk/cloud-assembly-schema": "^49.4.0",
+    "@aws-cdk/cloud-assembly-schema": "^54.17.0",
     "@aws-cdk/region-info": "^2.233.0",
     "@cdktn/provider-archive": "^14.0.0",
     "@cdktn/provider-aws": "^25.0.0",
