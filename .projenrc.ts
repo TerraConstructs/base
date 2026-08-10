@@ -101,10 +101,10 @@ const project = new cdk.JsiiProject({
     "mime-types",
     "change-case@^5.4.4",
     "@balena/dockerignore@^1.0.2",
-    "ignore@^5.3.2",
+    "ignore@^7.0.6",
     "minimatch@^10.2.6",
   ],
-  // deps: ["@balena/dockerignore@^1.0.2", "ignore@^5.3.2"],
+  // deps: ["@balena/dockerignore@^1.0.2", "ignore@^7.0.6"],
 
   workflowNodeVersion,
   workflowBootstrapSteps,

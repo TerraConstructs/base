@@ -85,7 +85,7 @@
   "dependencies": {
     "@balena/dockerignore": "^1.0.2",
     "change-case": "^5.4.4",
-    "ignore": "^5.3.2",
+    "ignore": "^7.0.6",
     "mime-types": "^2.1.35",
     "minimatch": "^10.2.6"
   },
