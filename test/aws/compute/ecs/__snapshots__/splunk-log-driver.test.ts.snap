@@ -78,8 +78,7 @@ exports[`SplunkLogDriver Should synth and match SnapShot 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -137,7 +136,7 @@ exports[`SplunkLogDriver Should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -229,8 +228,7 @@ exports[`SplunkLogDriver Should synth and match SnapShot with sourceType and ssm
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -288,7 +286,7 @@ exports[`SplunkLogDriver Should synth and match SnapShot with sourceType and ssm
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

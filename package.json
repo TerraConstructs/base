@@ -33,14 +33,14 @@
     "organization": false
   },
   "devDependencies": {
-    "@aws-cdk/cloud-assembly-schema": "49.4.0",
+    "@aws-cdk/cloud-assembly-schema": "54.17.0",
     "@aws-cdk/region-info": "2.233.0",
-    "@cdktn/provider-archive": "13.1.0",
-    "@cdktn/provider-aws": "24.8.0",
-    "@cdktn/provider-cloudinit": "13.1.0",
-    "@cdktn/provider-docker": "15.3.0",
-    "@cdktn/provider-time": "13.1.0",
-    "@cdktn/provider-tls": "13.1.0",
+    "@cdktn/provider-archive": "14.0.0",
+    "@cdktn/provider-aws": "25.0.0",
+    "@cdktn/provider-cloudinit": "14.0.0",
+    "@cdktn/provider-docker": "16.0.0",
+    "@cdktn/provider-time": "14.0.0",
+    "@cdktn/provider-tls": "14.0.0",
     "@jsii/spec": "^1.102.0",
     "@mrgrain/jsii-struct-builder": "^0.7.64",
     "@types/jest": "^29.5.14",
@@ -48,9 +48,9 @@
     "@types/node": "ts5.9",
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
-    "cdktn": "0.23.0",
+    "cdktn": "0.24.0",
     "commit-and-tag-version": "^12",
-    "constructs": "10.6.0",
+    "constructs": "10.7.2",
     "delay": "^5.0.0",
     "eslint": "^9",
     "eslint-config-prettier": "^9.1.2",
@@ -71,23 +71,23 @@
     "typescript": "~5.9"
   },
   "peerDependencies": {
-    "@aws-cdk/cloud-assembly-schema": "^49.4.0",
+    "@aws-cdk/cloud-assembly-schema": "^54.17.0",
     "@aws-cdk/region-info": "^2.233.0",
-    "@cdktn/provider-archive": "^13.1.0",
-    "@cdktn/provider-aws": "^24.8.0",
-    "@cdktn/provider-cloudinit": "^13.1.0",
-    "@cdktn/provider-docker": "^15.3.0",
-    "@cdktn/provider-time": "^13.1.0",
-    "@cdktn/provider-tls": "^13.1.0",
-    "cdktn": "^0.23.0",
-    "constructs": "^10.6.0"
+    "@cdktn/provider-archive": "^14.0.0",
+    "@cdktn/provider-aws": "^25.0.0",
+    "@cdktn/provider-cloudinit": "^14.0.0",
+    "@cdktn/provider-docker": "^16.0.0",
+    "@cdktn/provider-time": "^14.0.0",
+    "@cdktn/provider-tls": "^14.0.0",
+    "cdktn": "^0.24.0",
+    "constructs": "^10.7.2"
   },
   "dependencies": {
     "@balena/dockerignore": "^1.0.2",
-    "change-case": "^4.1.1",
-    "ignore": "^5.3.2",
+    "change-case": "^5.4.4",
+    "ignore": "^7.0.6",
     "mime-types": "^2.1.35",
-    "minimatch": "^10.2.5"
+    "minimatch": "^10.2.6"
   },
   "bundledDependencies": [
     "@balena/dockerignore",
@@ -101,7 +101,7 @@
     "terraconstructs"
   ],
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=22.12.0"
   },
   "devEngines": {
     "packageManager": {
@@ -125,6 +125,24 @@
     ],
     "maxWorkers": "50%",
     "testEnvironment": "node",
+    "transformIgnorePatterns": [
+      "/node_modules/(?!change-case)"
+    ],
+    "transform": {
+      "^.+\\.[t]sx?$": [
+        "ts-jest",
+        {
+          "tsconfig": "test/tsconfig.json"
+        }
+      ],
+      "^.+\\.jsx?$": [
+        "ts-jest",
+        {
+          "tsconfig": "test/tsconfig.json",
+          "useESM": false
+        }
+      ]
+    },
     "testMatch": [
       "<rootDir>/@(src|test)/**/*(*.)@(spec|test).ts?(x)",
       "<rootDir>/@(src|test)/**/__tests__/**/*.ts?(x)",
@@ -158,15 +176,7 @@
           "outputDirectory": "test-reports"
         }
       ]
-    ],
-    "transform": {
-      "^.+\\.[t]sx?$": [
-        "ts-jest",
-        {
-          "tsconfig": "test/tsconfig.json"
-        }
-      ]
-    }
+    ]
   },
   "types": "lib/index.d.ts",
   "jsii": {

@@ -67,8 +67,7 @@ exports[`WarmPool Should synth and match SnapShot with all optional properties 1
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -489,7 +488,7 @@ exports[`WarmPool Should synth and match SnapShot with all optional properties 1
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -563,8 +562,7 @@ exports[`WarmPool Should synth and match SnapShot with no optional properties 1`
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -589,8 +587,7 @@ exports[`WarmPool Should synth and match SnapShot with no optional properties 1`
           "\${aws_subnet.VPC_PrivateSubnet2_8C0AEF3A.id}",
           "\${aws_subnet.VPC_PrivateSubnet3_EAEE5839.id}"
         ],
-        "warm_pool": {
-        }
+        "warm_pool": {}
       }
     },
     "aws_eip": {
@@ -979,7 +976,7 @@ exports[`WarmPool Should synth and match SnapShot with no optional properties 1`
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

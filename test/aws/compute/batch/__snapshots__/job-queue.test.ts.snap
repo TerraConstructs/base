@@ -51,8 +51,7 @@ exports[`JobQueue (job-queue.test.ts snapshot) Should synth and match SnapShot 1
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -461,7 +460,7 @@ exports[`JobQueue (job-queue.test.ts snapshot) Should synth and match SnapShot 1
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -519,8 +518,7 @@ exports[`JobQueue (job-queue.test.ts snapshot) Should synth with schedulingPolic
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -584,8 +582,7 @@ exports[`JobQueue (job-queue.test.ts snapshot) Should synth with schedulingPolic
     "aws_batch_scheduling_policy": {
       "FairsharePolicy_A0C549BE": {
         "fair_share_policy": {
-          "share_distribution": [
-          ]
+          "share_distribution": []
         },
         "name": "g-FairsharePolicy",
         "tags": {
@@ -952,7 +949,7 @@ exports[`JobQueue (job-queue.test.ts snapshot) Should synth with schedulingPolic
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

@@ -51,8 +51,7 @@ exports[`base-service synth FargateService with default properties should synth 
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -465,7 +464,7 @@ exports[`base-service synth FargateService with default properties should synth 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -565,8 +564,7 @@ exports[`base-service synth FargateService with service connect and TLS should s
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -1017,7 +1015,7 @@ exports[`base-service synth FargateService with service connect and TLS should s
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

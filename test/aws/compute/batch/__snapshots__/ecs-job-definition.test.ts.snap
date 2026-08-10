@@ -60,8 +60,7 @@ exports[`EcsJobDefinition Should synth and match SnapShot for EC2 container 1`] 
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -109,7 +108,7 @@ exports[`EcsJobDefinition Should synth and match SnapShot for EC2 container 1`] 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -176,8 +175,7 @@ exports[`EcsJobDefinition Should synth and match SnapShot for Fargate container 
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -224,7 +222,7 @@ exports[`EcsJobDefinition Should synth and match SnapShot for Fargate container 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

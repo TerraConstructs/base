@@ -78,8 +78,7 @@ exports[`ExternalTaskDefinition synth Should synth and match SnapShot with a ful
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -148,7 +147,7 @@ exports[`ExternalTaskDefinition synth Should synth and match SnapShot with a ful
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -201,8 +200,7 @@ exports[`ExternalTaskDefinition synth Should synth and match SnapShot with defau
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -243,7 +241,7 @@ exports[`ExternalTaskDefinition synth Should synth and match SnapShot with defau
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

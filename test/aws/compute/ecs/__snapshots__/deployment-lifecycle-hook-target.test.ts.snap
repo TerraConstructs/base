@@ -135,12 +135,10 @@ exports[`DeploymentLifecycleHookTarget synth default role and multiple lifecycle
   },
   "provider": {
     "archive": [
-      {
-      }
+      {}
     ],
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -332,8 +330,7 @@ exports[`DeploymentLifecycleHookTarget synth default role and multiple lifecycle
           "aws_iam_role_policy.TestFunction_ServiceRole_DefaultPolicy_ResourceRoles0_CDD32B69"
         ],
         "environment": {
-          "variables": {
-          }
+          "variables": {}
         },
         "filename": "\${data.archive_file.TestFunction_TestStackTestFunction5a9773525b9524a75790400a170a3d638094377B_097B9965.output_path}",
         "function_name": "gTestStack553BDD39-stStackTestFunction",
@@ -649,7 +646,7 @@ exports[`DeploymentLifecycleHookTarget synth default role and multiple lifecycle
       },
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

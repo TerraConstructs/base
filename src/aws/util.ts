@@ -1,6 +1,10 @@
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/util.ts
 
-import { snakeCase } from "change-case";
+// change-case v5 is ESM-only; Node 22+ supports require() of sync ESM modules.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { snakeCase } = require("change-case") as {
+  snakeCase: (value: string) => string;
+};
 
 /**
  * Returns a copy of `obj` without `undefined` (or `null`) values in maps or arrays.

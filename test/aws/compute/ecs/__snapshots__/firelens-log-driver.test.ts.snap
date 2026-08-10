@@ -95,8 +95,7 @@ exports[`firelens log driver snapshots Should synth and match SnapShot with defa
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -158,7 +157,7 @@ exports[`firelens log driver snapshots Should synth and match SnapShot with defa
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -296,8 +295,7 @@ exports[`firelens log driver snapshots Should synth and match SnapShot with secr
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -382,7 +380,7 @@ exports[`firelens log driver snapshots Should synth and match SnapShot with secr
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

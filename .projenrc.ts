@@ -18,8 +18,8 @@ import {
   workflowBootstrapSteps,
 } from "./projenrc/github-workflows";
 
-// set strict node version compatible with webcontainers.io
-const nodeVersion = ">=20.9.0";
+// cdktn 0.24+ requires Node 22 minimum
+const nodeVersion = ">=22.12.0";
 const pnpmVersion = "11.5.0";
 const workflowNodeVersion = "24.12.0";
 
@@ -65,27 +65,27 @@ const project = new cdk.JsiiProject({
 
   // cdktn construct lib config
   peerDeps: [
-    "cdktn@^0.23.0",
-    "@cdktn/provider-aws@^24.8.0",
-    "@cdktn/provider-time@^13.1.0",
-    "@cdktn/provider-archive@^13.1.0",
-    "@cdktn/provider-tls@^13.1.0",
-    "@cdktn/provider-cloudinit@^13.1.0",
-    "@cdktn/provider-docker@^15.3.0",
-    "constructs@^10.6.0",
-    "@aws-cdk/cloud-assembly-schema@^49.4.0",
+    "cdktn@^0.24.0",
+    "@cdktn/provider-aws@^25.0.0",
+    "@cdktn/provider-time@^14.0.0",
+    "@cdktn/provider-archive@^14.0.0",
+    "@cdktn/provider-tls@^14.0.0",
+    "@cdktn/provider-cloudinit@^14.0.0",
+    "@cdktn/provider-docker@^16.0.0",
+    "constructs@^10.7.2",
+    "@aws-cdk/cloud-assembly-schema@^54.17.0",
     "@aws-cdk/region-info@^2.233.0",
   ],
   devDeps: [
-    "cdktn@^0.23.0",
-    "@cdktn/provider-aws@^24.8.0",
-    "@cdktn/provider-time@^13.1.0",
-    "@cdktn/provider-archive@^13.1.0",
-    "@cdktn/provider-tls@^13.1.0",
-    "@cdktn/provider-cloudinit@^13.1.0",
-    "@cdktn/provider-docker@^15.3.0",
-    "constructs@^10.6.0",
-    "@aws-cdk/cloud-assembly-schema@^49.4.0",
+    "cdktn@0.24.0",
+    "@cdktn/provider-aws@25.0.0",
+    "@cdktn/provider-time@14.0.0",
+    "@cdktn/provider-archive@14.0.0",
+    "@cdktn/provider-tls@14.0.0",
+    "@cdktn/provider-cloudinit@14.0.0",
+    "@cdktn/provider-docker@16.0.0",
+    "constructs@10.7.0",
+    "@aws-cdk/cloud-assembly-schema@54.17.0",
     "@aws-cdk/region-info@^2.233.0",
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
@@ -99,12 +99,12 @@ const project = new cdk.JsiiProject({
   ],
   bundledDeps: [
     "mime-types",
-    "change-case@^4.1.1",
+    "change-case@^5.4.4",
     "@balena/dockerignore@^1.0.2",
-    "ignore@^5.3.2",
-    "minimatch@^10.2.5",
+    "ignore@^7.0.6",
+    "minimatch@^10.2.6",
   ],
-  // deps: ["@balena/dockerignore@^1.0.2", "ignore@^5.3.2"],
+  // deps: ["@balena/dockerignore@^1.0.2", "ignore@^7.0.6"],
 
   workflowNodeVersion,
   workflowBootstrapSteps,
@@ -116,6 +116,19 @@ const project = new cdk.JsiiProject({
       // Jest is resource greedy so this shouldn't be more than 50%
       maxWorkers: "50%",
       testEnvironment: "node",
+      // change-case v5 is ESM-only; transform it to CJS for jest.
+      transformIgnorePatterns: ["/node_modules/(?!change-case)"],
+      transform: {
+        // Override projen's default ts-only transform to also handle .js
+        // files (needed for ESM-only bundled deps like change-case v5).
+        "^.+\\.[t]sx?$": new javascript.Transform("ts-jest", {
+          tsconfig: "test/tsconfig.json",
+        }),
+        "^.+\\.jsx?$": new javascript.Transform("ts-jest", {
+          tsconfig: "test/tsconfig.json",
+          useESM: false,
+        }),
+      },
     },
   },
 

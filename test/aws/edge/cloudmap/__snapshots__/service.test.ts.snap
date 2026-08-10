@@ -21,8 +21,7 @@ exports[`service snapshots Service for HTTP namespace should synth and match Sna
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -61,7 +60,7 @@ exports[`service snapshots Service for HTTP namespace should synth and match Sna
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -94,8 +93,7 @@ exports[`service snapshots Service for Private DNS namespace should synth and ma
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -434,7 +432,7 @@ exports[`service snapshots Service for Private DNS namespace should synth and ma
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -462,8 +460,7 @@ exports[`service snapshots Service for Public DNS namespace should synth and mat
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -512,7 +509,7 @@ exports[`service snapshots Service for Public DNS namespace should synth and mat
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
