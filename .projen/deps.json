@@ -12,32 +12,32 @@
     },
     {
       "name": "@cdktn/provider-archive",
-      "version": "^13.1.0",
+      "version": "14.0.0",
       "type": "build"
     },
     {
       "name": "@cdktn/provider-aws",
-      "version": "^24.8.0",
+      "version": "25.0.0",
       "type": "build"
     },
     {
       "name": "@cdktn/provider-cloudinit",
-      "version": "^13.1.0",
+      "version": "14.0.0",
       "type": "build"
     },
     {
       "name": "@cdktn/provider-docker",
-      "version": "^15.3.0",
+      "version": "16.0.0",
       "type": "build"
     },
     {
       "name": "@cdktn/provider-time",
-      "version": "^13.1.0",
+      "version": "14.0.0",
       "type": "build"
     },
     {
       "name": "@cdktn/provider-tls",
-      "version": "^13.1.0",
+      "version": "14.0.0",
       "type": "build"
     },
     {
@@ -74,7 +74,7 @@
     },
     {
       "name": "cdktn",
-      "version": "^0.23.0",
+      "version": "0.24.0",
       "type": "build"
     },
     {
@@ -84,7 +84,7 @@
     },
     {
       "name": "constructs",
-      "version": "^10.6.0",
+      "version": "10.7.0",
       "type": "build"
     },
     {
@@ -187,7 +187,7 @@
     },
     {
       "name": "minimatch",
-      "version": "^10.2.5",
+      "version": "^10.2.6",
       "type": "bundled"
     },
     {
@@ -202,42 +202,42 @@
     },
     {
       "name": "@cdktn/provider-archive",
-      "version": "^13.1.0",
+      "version": "^14.0.0",
       "type": "peer"
     },
     {
       "name": "@cdktn/provider-aws",
-      "version": "^24.8.0",
+      "version": "^25.0.0",
       "type": "peer"
     },
     {
       "name": "@cdktn/provider-cloudinit",
-      "version": "^13.1.0",
+      "version": "^14.0.0",
       "type": "peer"
     },
     {
       "name": "@cdktn/provider-docker",
-      "version": "^15.3.0",
+      "version": "^16.0.0",
       "type": "peer"
     },
     {
       "name": "@cdktn/provider-time",
-      "version": "^13.1.0",
+      "version": "^14.0.0",
       "type": "peer"
     },
     {
       "name": "@cdktn/provider-tls",
-      "version": "^13.1.0",
+      "version": "^14.0.0",
       "type": "peer"
     },
     {
       "name": "cdktn",
-      "version": "^0.23.0",
+      "version": "^0.24.0",
       "type": "peer"
     },
     {
       "name": "constructs",
-      "version": "^10.6.0",
+      "version": "^10.7.2",
       "type": "peer"
     }
   ],
