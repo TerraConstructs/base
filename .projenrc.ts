@@ -99,7 +99,7 @@ const project = new cdk.JsiiProject({
   ],
   bundledDeps: [
     "mime-types",
-    "change-case@^4.1.1",
+    "change-case@^5.4.4",
     "@balena/dockerignore@^1.0.2",
     "ignore@^5.3.2",
     "minimatch@^10.2.6",
@@ -116,6 +116,19 @@ const project = new cdk.JsiiProject({
       // Jest is resource greedy so this shouldn't be more than 50%
       maxWorkers: "50%",
       testEnvironment: "node",
+      // change-case v5 is ESM-only; transform it to CJS for jest.
+      transformIgnorePatterns: ["/node_modules/(?!change-case)"],
+      transform: {
+        // Override projen's default ts-only transform to also handle .js
+        // files (needed for ESM-only bundled deps like change-case v5).
+        "^.+\\.[t]sx?$": new javascript.Transform("ts-jest", {
+          tsconfig: "test/tsconfig.json",
+        }),
+        "^.+\\.jsx?$": new javascript.Transform("ts-jest", {
+          tsconfig: "test/tsconfig.json",
+          useESM: false,
+        }),
+      },
     },
   },
 

@@ -173,7 +173,7 @@
     },
     {
       "name": "change-case",
-      "version": "^4.1.1",
+      "version": "^5.4.4",
       "type": "bundled"
     },
     {
