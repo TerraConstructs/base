@@ -72,8 +72,7 @@ exports[`fargate service synth FargateService with a managed EBS volume should s
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -515,7 +514,7 @@ exports[`fargate service synth FargateService with a managed EBS volume should s
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -573,8 +572,7 @@ exports[`fargate service synth FargateService with all properties set should syn
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -1033,7 +1031,7 @@ exports[`fargate service synth FargateService with all properties set should syn
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -1091,8 +1089,7 @@ exports[`fargate service synth FargateService with an application load balancer 
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -1627,7 +1624,7 @@ exports[`fargate service synth FargateService with an application load balancer 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -1685,8 +1682,7 @@ exports[`fargate service synth FargateService with only required properties set 
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -2099,7 +2095,7 @@ exports[`fargate service synth FargateService with only required properties set 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -2157,8 +2153,7 @@ exports[`fargate service synth FargateService with service connect should synth 
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -2598,7 +2593,7 @@ exports[`fargate service synth FargateService with service connect should synth 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

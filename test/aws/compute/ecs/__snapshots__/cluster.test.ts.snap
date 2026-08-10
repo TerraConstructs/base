@@ -26,8 +26,7 @@ exports[`cluster synth Should synth and match SnapShot 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -259,7 +258,7 @@ exports[`cluster synth Should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -292,8 +291,7 @@ exports[`cluster synth Should synth and match SnapShot with Fargate capacity pro
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -541,7 +539,7 @@ exports[`cluster synth Should synth and match SnapShot with Fargate capacity pro
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -809,12 +807,10 @@ exports[`cluster synth Should synth and match SnapShot with capacity 1`] = `
   },
   "provider": {
     "archive": [
-      {
-      }
+      {}
     ],
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -1372,7 +1368,7 @@ exports[`cluster synth Should synth and match SnapShot with capacity 1`] = `
       },
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

@@ -122,12 +122,10 @@ exports[`RotationSchedule Should synth and match SnapShot 1`] = `
   },
   "provider": {
     "archive": [
-      {
-      }
+      {}
     ],
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -179,8 +177,7 @@ exports[`RotationSchedule Should synth and match SnapShot 1`] = `
           "aws_iam_role_policy.Lambda_ServiceRole_DefaultPolicy_ResourceRoles0_DE66D1AF"
         ],
         "environment": {
-          "variables": {
-          }
+          "variables": {}
         },
         "filename": "\${data.archive_file.Lambda_Lambda977ac4c4b02ffbf33727a2b3dfd94f40A3E2D98D_FA6D0A46.output_path}",
         "function_name": "g-Lambda",
@@ -255,7 +252,7 @@ exports[`RotationSchedule Should synth and match SnapShot 1`] = `
       },
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

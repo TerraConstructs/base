@@ -134,8 +134,7 @@ exports[`external service synth ExternalService with only required properties sh
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -197,8 +196,7 @@ exports[`external service synth ExternalService with only required properties sh
           "\${aws_ecs_capacity_provider.AsgCapacityProvider_760D11D9.name}"
         ],
         "cluster_name": "\${aws_ecs_cluster.EcsCluster_97242B84.name}",
-        "default_capacity_provider_strategy": [
-        ]
+        "default_capacity_provider_strategy": []
       }
     },
     "aws_ecs_service": {
@@ -647,7 +645,7 @@ exports[`external service synth ExternalService with only required properties sh
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

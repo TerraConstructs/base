@@ -134,8 +134,7 @@ exports[`ec2 service synth Ec2Service with all properties set should synth and m
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -197,8 +196,7 @@ exports[`ec2 service synth Ec2Service with all properties set should synth and m
           "\${aws_ecs_capacity_provider.AsgCapacityProvider_760D11D9.name}"
         ],
         "cluster_name": "\${aws_ecs_cluster.EcsCluster_97242B84.name}",
-        "default_capacity_provider_strategy": [
-        ]
+        "default_capacity_provider_strategy": []
       }
     },
     "aws_ecs_service": {
@@ -738,7 +736,7 @@ exports[`ec2 service synth Ec2Service with all properties set should synth and m
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -879,8 +877,7 @@ exports[`ec2 service synth Ec2Service with only required properties set should s
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -942,8 +939,7 @@ exports[`ec2 service synth Ec2Service with only required properties set should s
           "\${aws_ecs_capacity_provider.AsgCapacityProvider_760D11D9.name}"
         ],
         "cluster_name": "\${aws_ecs_cluster.EcsCluster_97242B84.name}",
-        "default_capacity_provider_strategy": [
-        ]
+        "default_capacity_provider_strategy": []
       }
     },
     "aws_ecs_service": {
@@ -1393,7 +1389,7 @@ exports[`ec2 service synth Ec2Service with only required properties set should s
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

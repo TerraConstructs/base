@@ -21,8 +21,7 @@ exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -45,7 +44,12 @@ exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`
     },
     "aws_cloudfront_key_value_store": {
       "Store_1D2A845B": {
-        "name": "g-hello-world"
+        "name": "g-hello-world",
+        "tags": {
+          "Name": "Default-Store",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
       }
     },
     "aws_cloudfrontkeyvaluestore_key": {
@@ -65,7 +69,7 @@ exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -93,14 +97,18 @@ exports[`KeyValueStore Should synth and match SnapShot 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
     "aws_cloudfront_key_value_store": {
       "Store_1D2A845B": {
-        "name": "g-hello-world"
+        "name": "g-hello-world",
+        "tags": {
+          "Name": "Default-Store",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
       }
     },
     "aws_cloudfrontkeyvaluestore_key": {
@@ -125,7 +133,7 @@ exports[`KeyValueStore Should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

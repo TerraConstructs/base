@@ -139,8 +139,7 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 1
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -202,8 +201,7 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 1
           "\${aws_ecs_capacity_provider.AsgCapacityProvider_760D11D9.name}"
         ],
         "cluster_name": "\${aws_ecs_cluster.Cluster_EB0386A7.name}",
-        "default_capacity_provider_strategy": [
-        ]
+        "default_capacity_provider_strategy": []
       }
     },
     "aws_eip": {
@@ -601,7 +599,7 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 1
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
@@ -662,8 +660,7 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 2
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -855,7 +852,7 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 2
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

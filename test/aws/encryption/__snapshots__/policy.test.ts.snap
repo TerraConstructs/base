@@ -10,8 +10,7 @@ exports[`ResourcePolicy Should synth and match SnapShot 1`] = `
     },
     "aws_iam_policy_document": {
       "Policy_C96C8195": {
-        "statement": [
-        ]
+        "statement": []
       }
     },
     "aws_partition": {
@@ -38,8 +37,7 @@ exports[`ResourcePolicy Should synth and match SnapShot 1`] = `
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -75,7 +73,7 @@ exports[`ResourcePolicy Should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }

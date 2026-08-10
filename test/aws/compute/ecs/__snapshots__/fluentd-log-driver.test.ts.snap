@@ -46,8 +46,7 @@ exports[`FluentdLogDriver Should synth and match SnapShot with all possible opti
   },
   "provider": {
     "aws": [
-      {
-      }
+      {}
     ]
   },
   "resource": {
@@ -88,7 +87,7 @@ exports[`FluentdLogDriver Should synth and match SnapShot with all possible opti
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.52.0"
+        "version": "6.58.0"
       }
     }
   }
