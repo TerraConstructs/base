@@ -629,6 +629,103 @@ describe("When specifying a task definition revision", () => {
   });
 });
 
+// TERRACONSTRUCTS-SPECIFIC: no upstream counterpart. Upstream aws-cdk only tests the mutual
+// exclusion error (aws-ecs/test/ec2/ec2-service.test.ts:2335,
+// aws-ecs/test/fargate/fargate-service.test.ts:5019) and never asserts what `propagateTags`
+// actually renders. Upstream's own render (aws-ecs/lib/base/base-service.ts:743) resolves the
+// deprecated `propagateTaskTagsFrom` alias into `propagateTagsFromSource` but then emits
+// `props.propagateTags`, so a service configured with ONLY the deprecated alias silently emits
+// nothing. `aws_ecs_service` has no server-side alias for this, so an omitted `propagate_tags`
+// means the provider sends `NONE` -- the tags are simply never propagated. These tests lock in
+// the fixed behaviour.
+describe("When specifying propagateTags", () => {
+  let stack: AwsStack;
+  let cluster: ecs.Cluster;
+  let taskDefinition: ecs.FargateTaskDefinition;
+
+  beforeEach(() => {
+    stack = new AwsStack();
+    const vpc = new compute.Vpc(stack, "Vpc");
+    cluster = new ecs.Cluster(stack, "EcsCluster", { vpc });
+    taskDefinition = new ecs.FargateTaskDefinition(stack, "FargateTaskDef");
+    taskDefinition.addContainer("web", {
+      image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample"),
+    });
+  });
+
+  test.each([
+    ecs.PropagatedTagSource.SERVICE,
+    ecs.PropagatedTagSource.TASK_DEFINITION,
+  ])("renders propagate_tags when propagateTags is %s", (source) => {
+    // WHEN
+    new ecs.FargateService(stack, "FargateService", {
+      cluster,
+      taskDefinition,
+      propagateTags: source,
+    });
+
+    // THEN
+    expect(soleResource(stack, ecsService.EcsService).propagate_tags).toEqual(
+      source,
+    );
+  });
+
+  // upstream: testDeprecated (deprecated `propagateTaskTagsFrom` prop) -- no deprecation-warning
+  // test harness in this repo, use plain test.
+  test.each([
+    ecs.PropagatedTagSource.SERVICE,
+    ecs.PropagatedTagSource.TASK_DEFINITION,
+  ])(
+    "renders propagate_tags when only the deprecated propagateTaskTagsFrom is %s",
+    (source) => {
+      // WHEN
+      new ecs.FargateService(stack, "FargateService", {
+        cluster,
+        taskDefinition,
+        propagateTaskTagsFrom: source,
+      });
+
+      // THEN
+      expect(soleResource(stack, ecsService.EcsService).propagate_tags).toEqual(
+        source,
+      );
+    },
+  );
+
+  test("omits propagate_tags when neither prop is set", () => {
+    // WHEN
+    new ecs.FargateService(stack, "FargateService", {
+      cluster,
+      taskDefinition,
+    });
+
+    // THEN
+    expect(
+      soleResource(stack, ecsService.EcsService).propagate_tags,
+    ).toBeUndefined();
+  });
+
+  test.each([
+    ["propagateTags", { propagateTags: ecs.PropagatedTagSource.NONE }],
+    [
+      "propagateTaskTagsFrom",
+      { propagateTaskTagsFrom: ecs.PropagatedTagSource.NONE },
+    ],
+  ])("omits propagate_tags when %s is NONE", (_name, props) => {
+    // WHEN
+    new ecs.FargateService(stack, "FargateService", {
+      cluster,
+      taskDefinition,
+      ...props,
+    });
+
+    // THEN
+    expect(
+      soleResource(stack, ecsService.EcsService).propagate_tags,
+    ).toBeUndefined();
+  });
+});
+
 // TERRACONSTRUCTS DEVIATION: upstream's top-level test.each(...) ('circuitbreaker is %p /\\ flag
 // is %p => DeploymentController in output: %p') exercises the
 // `@aws-cdk/aws-ecs:disableExplicitDeploymentControllerForCircuitBreaker` feature flag (via

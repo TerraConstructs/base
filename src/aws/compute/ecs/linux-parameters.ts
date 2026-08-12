@@ -181,16 +181,33 @@ export class LinuxParameters extends Construct {
       sharedMemorySize: this.sharedMemorySize,
       maxSwap: this.maxSwap?.toMebibytes(),
       swappiness: this.swappiness,
-      capabilities: {
-        add: Lazy.listValue(
-          { produce: () => this.capAdd },
-          { omitEmpty: true },
-        ),
-        drop: Lazy.listValue(
-          { produce: () => this.capDrop },
-          { omitEmpty: true },
-        ),
-      },
+      // TERRACONSTRUCTS DEVIATION: upstream unconditionally emits the `capabilities` wrapper (so an
+      // empty `Capabilities: {}` shows up whenever LinuxParameters is used for tmpfs/devices only).
+      // CloudFormation never diffs that against API read-back, but Terraform does: the ECS API drops
+      // an empty `capabilities` on read, the provider's container_definitions equivalence check does
+      // not normalise it away, and `container_definitions` is ForceNew -- so the stray `{}` churns a
+      // new task-definition revision and redeploys every service. Omit the wrapper when empty.
+      //
+      // The whole value must stay Lazy: renderLinuxParameters() is called EAGERLY from
+      // ContainerDefinition, so deciding emptiness here at render time would silently drop
+      // capabilities added after addContainer().
+      capabilities: Lazy.anyValue({
+        produce: () =>
+          this.capAdd.length === 0 && this.capDrop.length === 0
+            ? undefined
+            : {
+                add: Lazy.listValue(
+                  { produce: () => this.capAdd },
+                  { omitEmpty: true },
+                ),
+                drop: Lazy.listValue(
+                  { produce: () => this.capDrop },
+                  { omitEmpty: true },
+                ),
+              },
+        // cast keeps the public struct member's type unchanged (jsii compat); the token resolves
+        // inside the jsonencoded `container_definitions` blob exactly like `devices`/`tmpfs`.
+      }) as unknown as KernelCapabilitiesConfig,
       devices: Lazy.anyValue(
         { produce: () => this.devices.map(renderDevice) },
         { omitEmptyArray: true },

@@ -616,9 +616,12 @@ describe("container definition", () => {
           },
           hostname: "host.example.com",
           image: "/aws/aws-example-app",
-          linuxParameters: {
-            capabilities: {},
-          },
+          // upstream: aws-cdk-lib/aws-ecs/test/container-definition.test.ts:608 asserts
+          // `LinuxParameters: { Capabilities: {} }`. TERRACONSTRUCTS DEVIATION: an empty
+          // `capabilities` wrapper is omitted entirely -- see linux-parameters.ts.
+          linuxParameters: expect.not.objectContaining({
+            capabilities: expect.anything(),
+          }),
           logConfiguration: {
             logDriver: "awslogs",
             options: {
@@ -2624,12 +2627,15 @@ describe("container definition", () => {
       });
 
       // THEN
+      // upstream: aws-cdk-lib/aws-ecs/test/container-definition.test.ts:2528 asserts
+      // `LinuxParameters: { Capabilities: {} }`. TERRACONSTRUCTS DEVIATION: an empty
+      // `capabilities` wrapper is omitted entirely -- see linux-parameters.ts.
       expect(renderContainerDefinitions(stack)).toMatchObject([
         {
           image: "test",
-          linuxParameters: {
-            capabilities: {},
-          },
+          linuxParameters: expect.not.objectContaining({
+            capabilities: expect.anything(),
+          }),
         },
       ]);
       // Template.fromStack(stack).hasResourceProperties('AWS::ECS::TaskDefinition', {
@@ -2871,6 +2877,106 @@ describe("container definition", () => {
       //     }),
       //   ],
       // });
+    });
+
+    // TERRACONSTRUCTS-SPECIFIC: no upstream counterpart -- guards terraform-provider-aws
+    // behaviour. The ECS API drops an empty `capabilities` object on read-back, and the
+    // provider's `containerDefinitionsAreEquivalent` does not normalise it away. Because
+    // `aws_ecs_task_definition.container_definitions` is ForceNew, a stray `"capabilities": {}`
+    // is a permadiff: a new task-definition revision and a rolling redeploy of every service on
+    // every apply. Upstream CloudFormation never diffs against read-back, hence the divergence.
+    describe("TERRACONSTRUCTS-SPECIFIC: empty capabilities are omitted from container_definitions", () => {
+      test("no capabilities key at all when only tmpfs/devices are set", () => {
+        // GIVEN
+        const stack = new AwsStack(Testing.app({ fakeCdktfJsonPath: true }));
+        const taskDefinition = new ecs.Ec2TaskDefinition(stack, "TaskDef");
+        const linuxParameters = new ecs.LinuxParameters(
+          stack,
+          "LinuxParameters",
+        );
+
+        // WHEN
+        linuxParameters.addDevices({ hostPath: "a/b/c" });
+        linuxParameters.addTmpfs({ containerPath: "a/b/c", size: 1024 });
+
+        taskDefinition.addContainer("cont", {
+          image: ecs.ContainerImage.fromRegistry("test"),
+          memoryLimitMiB: 1024,
+          linuxParameters,
+        });
+
+        // THEN
+        const [containerDefinition] = renderContainerDefinitions(stack);
+        expect(Object.keys(containerDefinition.linuxParameters)).not.toContain(
+          "capabilities",
+        );
+        expect(containerDefinition.linuxParameters).toEqual({
+          devices: [{ hostPath: "a/b/c" }],
+          tmpfs: [{ containerPath: "a/b/c", size: 1024 }],
+        });
+      });
+
+      test("capabilities keys stay camelCase inside the jsonencoded blob", () => {
+        // GIVEN
+        const stack = new AwsStack(Testing.app({ fakeCdktfJsonPath: true }));
+        const taskDefinition = new ecs.Ec2TaskDefinition(stack, "TaskDef");
+        const linuxParameters = new ecs.LinuxParameters(
+          stack,
+          "LinuxParameters",
+        );
+
+        // WHEN
+        linuxParameters.addCapabilities(ecs.Capability.ALL);
+        linuxParameters.dropCapabilities(ecs.Capability.KILL);
+
+        taskDefinition.addContainer("cont", {
+          image: ecs.ContainerImage.fromRegistry("test"),
+          memoryLimitMiB: 1024,
+          linuxParameters,
+        });
+
+        // THEN
+        // `container_definitions` is a jsonencode()'d string destined for the ECS API, so no
+        // `*ToTerraform` converter may ever be applied to it -- the keys must stay camelCase.
+        const taskDefs = new Template(stack).resourceTypeArray(
+          ecsTaskDefinition.EcsTaskDefinition,
+        ) as Array<{ container_definitions: string }>;
+        const raw = taskDefs[0].container_definitions;
+        expect(raw).not.toMatch(/"(Capabilities|cap_add|cap_drop|Add|Drop)"/);
+
+        const [containerDefinition] = JSON.parse(raw);
+        expect(containerDefinition.linuxParameters).toEqual({
+          capabilities: { add: ["ALL"], drop: ["KILL"] },
+        });
+      });
+
+      test("capabilities added after addContainer are still rendered", () => {
+        // GIVEN
+        const stack = new AwsStack(Testing.app({ fakeCdktfJsonPath: true }));
+        const taskDefinition = new ecs.Ec2TaskDefinition(stack, "TaskDef");
+        const linuxParameters = new ecs.LinuxParameters(
+          stack,
+          "LinuxParameters",
+        );
+
+        // WHEN
+        // renderLinuxParameters() runs eagerly inside addContainer(), while both capability
+        // lists are still empty -- the omit decision must therefore happen at resolution time.
+        taskDefinition.addContainer("cont", {
+          image: ecs.ContainerImage.fromRegistry("test"),
+          memoryLimitMiB: 1024,
+          linuxParameters,
+        });
+
+        linuxParameters.addCapabilities(ecs.Capability.SYS_PTRACE);
+        linuxParameters.dropCapabilities(ecs.Capability.SETUID);
+
+        // THEN
+        const [containerDefinition] = renderContainerDefinitions(stack);
+        expect(containerDefinition.linuxParameters).toEqual({
+          capabilities: { add: ["SYS_PTRACE"], drop: ["SETUID"] },
+        });
+      });
     });
   });
 

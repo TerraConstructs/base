@@ -509,8 +509,12 @@ describe("ec2 task definition", () => {
             },
             hostname: "webHost",
             image: "amazon/amazon-ecs-sample",
+            // upstream: aws-cdk-lib/aws-ecs/test/ec2/ec2-task-definition.test.ts:374 also
+            // asserts `Capabilities: {}` here. TERRACONSTRUCTS DEVIATION: an empty
+            // `capabilities` wrapper is omitted entirely -- see linux-parameters.ts. Absence is
+            // asserted in container-definition.test.ts
+            // ("no capabilities key at all when only tmpfs/devices are set").
             linuxParameters: {
-              capabilities: {},
               initProcessEnabled: true,
               sharedMemorySize: 1024,
             },
@@ -1850,6 +1854,85 @@ describe("ec2 task definition", () => {
     }).toThrow(
       /Invalid placement constraint\(s\): distinctInstance. Only 'memberOf' is currently supported in the Ec2TaskDefinition class./,
     );
+  });
+
+  // TERRACONSTRUCTS-SPECIFIC: no upstream counterpart -- upstream aws-cdk rejects `runtimePlatform`
+  // on every non-Fargate/non-Managed-Instances task definition
+  // (aws-cdk-lib/aws-ecs/lib/base/task-definition.ts:522) and therefore has no such test.
+  // terraform-provider-aws exposes `runtime_platform` on `aws_ecs_task_definition` without any
+  // `requires_compatibilities` gating, and the ECS API documents cpuArchitecture for Linux EC2
+  // instances plus EC2-only Windows operating system families.
+  describe("setting runtimePlatform", () => {
+    test("renders runtime_platform for an ARM64 EC2 task definition", () => {
+      // GIVEN
+      const stack = newStack();
+
+      // WHEN
+      new ecs.Ec2TaskDefinition(stack, "Ec2TaskDef", {
+        runtimePlatform: {
+          cpuArchitecture: ecs.CpuArchitecture.ARM64,
+        },
+      });
+
+      // THEN
+      Template.synth(stack).toHaveResourceWithProperties(
+        ecsTaskDefinition.EcsTaskDefinition,
+        {
+          requires_compatibilities: ["EC2"],
+          runtime_platform: {
+            cpu_architecture: "ARM64",
+          },
+        },
+      );
+    });
+
+    test("renders runtime_platform for a Windows EC2 task definition without cpu/memory", () => {
+      // GIVEN
+      const stack = newStack();
+
+      // WHEN
+      new ecs.Ec2TaskDefinition(stack, "Ec2TaskDef", {
+        runtimePlatform: {
+          cpuArchitecture: ecs.CpuArchitecture.X86_64,
+          operatingSystemFamily:
+            ecs.OperatingSystemFamily.WINDOWS_SERVER_2019_CORE,
+        },
+      });
+
+      // THEN
+      // the Fargate-only Windows cpu/memory combination check must not fire here: cpu/memoryMiB are
+      // legitimately undefined on EC2, and `Number(undefined)` would otherwise throw a bogus error.
+      const taskDef = soleTaskDefinition(synthTemplate(stack));
+      expect(taskDef.cpu).toBeUndefined();
+      expect(taskDef.memory).toBeUndefined();
+      expect(taskDef.runtime_platform).toEqual({
+        cpu_architecture: "X86_64",
+        operating_system_family: "WINDOWS_SERVER_2019_CORE",
+      });
+    });
+
+    test("renders EC2-only Windows operating system families", () => {
+      // GIVEN
+      const stack = newStack();
+
+      // WHEN
+      new ecs.Ec2TaskDefinition(stack, "Ec2TaskDef", {
+        runtimePlatform: {
+          operatingSystemFamily:
+            ecs.OperatingSystemFamily.WINDOWS_SERVER_2016_FULL,
+        },
+      });
+
+      // THEN
+      Template.synth(stack).toHaveResourceWithProperties(
+        ecsTaskDefinition.EcsTaskDefinition,
+        {
+          runtime_platform: {
+            operating_system_family: "WINDOWS_SERVER_2016_FULL",
+          },
+        },
+      );
+    });
   });
 });
 

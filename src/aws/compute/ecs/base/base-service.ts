@@ -910,10 +910,13 @@ export abstract class BaseService
             rollback: props.circuitBreaker.rollback ?? false,
           }
         : undefined,
+      // TERRACONSTRUCTS DEVIATION: upstream (aws-ecs/lib/base/base-service.ts:743) emits
+      // `props.propagateTags` here, which silently drops the value when only the deprecated
+      // `propagateTaskTagsFrom` alias is set. Emit the resolved `propagateTagsFromSource` instead.
       propagateTags:
         propagateTagsFromSource === PropagatedTagSource.NONE
           ? undefined
-          : props.propagateTags,
+          : propagateTagsFromSource,
       enableEcsManagedTags: props.enableECSManagedTags ?? false,
       deploymentController: deploymentController,
       launchType: launchType,

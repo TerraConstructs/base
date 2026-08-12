@@ -20,6 +20,7 @@ import {
   ContainerDefinitionOptions,
 } from "../container-definition";
 import { PlacementConstraint } from "../placement";
+import { RuntimePlatform } from "../runtime-platform";
 
 /**
  * The properties for a task definition run on an EC2 cluster.
@@ -69,6 +70,17 @@ export interface Ec2TaskDefinitionProps extends CommonTaskDefinitionProps {
    * @default - No inference accelerators.
    */
   readonly inferenceAccelerators?: InferenceAccelerator[];
+
+  /**
+   * The operating system that your task definitions are running on.
+   *
+   * Use this to target ARM64 or Windows based EC2 container instances -- the
+   * `WINDOWS_SERVER_2016_FULL`, `WINDOWS_SERVER_2004_CORE` and
+   * `WINDOWS_SERVER_20H2_CORE` operating system families are EC2 only.
+   *
+   * @default - Undefined.
+   */
+  readonly runtimePlatform?: RuntimePlatform;
 }
 
 /**

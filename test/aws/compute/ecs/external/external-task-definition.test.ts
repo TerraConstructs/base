@@ -342,8 +342,12 @@ describe("external task definition", () => {
         },
         hostname: "webHost",
         image: "amazon/amazon-ecs-sample",
+        // upstream: aws-cdk-lib/aws-ecs/test/external/external-task-definition.test.ts:261 also
+        // asserts `Capabilities: {}` here. TERRACONSTRUCTS DEVIATION: an empty `capabilities`
+        // wrapper is omitted entirely -- see linux-parameters.ts. Absence is asserted in
+        // container-definition.test.ts
+        // ("no capabilities key at all when only tmpfs/devices are set").
         linuxParameters: {
-          capabilities: {},
           initProcessEnabled: true,
           sharedMemorySize: 1024,
         },

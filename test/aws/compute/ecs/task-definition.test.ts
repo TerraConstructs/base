@@ -1240,6 +1240,127 @@ describe("Managed Instances compatibility", () => {
       //   PlacementConstraints: Match.absent(),
       // });
     });
+
+    // TERRACONSTRUCTS-SPECIFIC: no upstream counterpart. Upstream aws-cdk omits
+    // FARGATE_AND_EC2_AND_MANAGED_INSTANCES from all of its `isXxxCompatible` helpers
+    // (aws-cdk-lib/aws-ecs/lib/base/task-definition.ts:1395-1421), so a task definition using it
+    // renders an empty `requires_compatibilities` (terraform-provider-aws would then register a
+    // task definition with no launch types) and silently skips every compatibility-gated
+    // validation, including the Fargate cpu/memory check.
+    test("isXxxCompatible and requires_compatibilities for FARGATE_AND_EC2_AND_MANAGED_INSTANCES", () => {
+      // GIVEN
+      const stack = getAwsStack();
+
+      // WHEN
+      const taskDefinition = new ecs.TaskDefinition(stack, "TD", {
+        cpu: "512",
+        memoryMiB: "1024",
+        compatibility: ecs.Compatibility.FARGATE_AND_EC2_AND_MANAGED_INSTANCES,
+      });
+
+      // THEN
+      expect(taskDefinition.isEc2Compatible).toBe(true);
+      expect(taskDefinition.isFargateCompatible).toBe(true);
+      expect(taskDefinition.isManagedInstancesCompatible).toBe(true);
+      expect(taskDefinition.isExternalCompatible).toBe(false);
+
+      Template.synth(stack).toHaveResourceWithProperties(
+        ecsTaskDefinition.EcsTaskDefinition,
+        {
+          requires_compatibilities: ["EC2", "FARGATE", "MANAGED_INSTANCES"],
+        },
+      );
+    });
+
+    // TERRACONSTRUCTS-SPECIFIC: guards that FARGATE_AND_EC2_AND_MANAGED_INSTANCES now actually
+    // reaches the Fargate cpu/memory validation instead of silently skipping it.
+    test("FARGATE_AND_EC2_AND_MANAGED_INSTANCES requires cpu and memory", () => {
+      // GIVEN
+      const stack = getAwsStack();
+
+      // THEN
+      expect(() => {
+        new ecs.TaskDefinition(stack, "TD", {
+          compatibility:
+            ecs.Compatibility.FARGATE_AND_EC2_AND_MANAGED_INSTANCES,
+        });
+      }).toThrow(/Fargate-compatible tasks require both CPU .* and memory/);
+    });
+  });
+
+  // TERRACONSTRUCTS-SPECIFIC: no upstream counterpart -- upstream rejects `runtimePlatform` on any
+  // non-Fargate/non-Managed-Instances task definition
+  // (aws-cdk-lib/aws-ecs/lib/base/task-definition.ts:522). The ECS RegisterTaskDefinition API has no
+  // such restriction and terraform-provider-aws puts `runtime_platform` on
+  // `aws_ecs_task_definition` with no `requires_compatibilities` gating.
+  describe("runtimePlatform compatibility", () => {
+    test("is rendered for EC2 compatible tasks", () => {
+      // GIVEN
+      const stack = getAwsStack();
+
+      // WHEN
+      new ecs.TaskDefinition(stack, "TD", {
+        compatibility: ecs.Compatibility.EC2,
+        runtimePlatform: {
+          cpuArchitecture: ecs.CpuArchitecture.ARM64,
+          operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        },
+      });
+
+      // THEN
+      Template.synth(stack).toHaveResourceWithProperties(
+        ecsTaskDefinition.EcsTaskDefinition,
+        {
+          requires_compatibilities: ["EC2"],
+          runtime_platform: {
+            cpu_architecture: "ARM64",
+            operating_system_family: "LINUX",
+          },
+        },
+      );
+    });
+
+    test("throws for External compatible tasks", () => {
+      // GIVEN
+      const stack = getAwsStack();
+
+      // THEN
+      expect(() => {
+        new ecs.TaskDefinition(stack, "TD", {
+          compatibility: ecs.Compatibility.EXTERNAL,
+          runtimePlatform: {
+            cpuArchitecture: ecs.CpuArchitecture.ARM64,
+          },
+        });
+      }).toThrow("Cannot specify runtimePlatform in External compatible tasks");
+    });
+
+    test("Windows EC2 tasks are not subject to the Fargate cpu/memory combinations", () => {
+      // GIVEN
+      const stack = getAwsStack();
+
+      // WHEN - cpu/memoryMiB are optional on EC2; a Fargate-only combination check would compare
+      // `Number(undefined)` here and throw.
+      new ecs.TaskDefinition(stack, "TD", {
+        compatibility: ecs.Compatibility.EC2,
+        cpu: "512",
+        memoryMiB: "512",
+        runtimePlatform: {
+          operatingSystemFamily:
+            ecs.OperatingSystemFamily.WINDOWS_SERVER_2019_CORE,
+        },
+      });
+
+      // THEN
+      Template.synth(stack).toHaveResourceWithProperties(
+        ecsTaskDefinition.EcsTaskDefinition,
+        {
+          runtime_platform: {
+            operating_system_family: "WINDOWS_SERVER_2019_CORE",
+          },
+        },
+      );
+    });
   });
 
   describe("Volume validation with configuredAtLaunch", () => {
