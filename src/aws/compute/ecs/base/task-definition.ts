@@ -259,7 +259,8 @@ export interface TaskDefinitionProps extends CommonTaskDefinitionProps {
   /**
    * The operating system that your task definitions are running on.
    *
-   * A runtimePlatform is supported only for tasks using the Fargate launch type.
+   * Supported for tasks using the Fargate, EC2 and Managed Instances launch
+   * types. Not supported for External (ECS Anywhere) tasks.
    *
    * @default - Undefined.
    */
@@ -632,13 +633,16 @@ export class TaskDefinition extends TaskDefinitionBase {
       }
     }
 
-    if (
-      !this.isFargateCompatible &&
-      !this.isManagedInstancesCompatible &&
-      props.runtimePlatform
-    ) {
+    // TERRACONSTRUCTS DEVIATION: upstream rejects `runtimePlatform` on every non-Fargate,
+    // non-Managed-Instances task definition (aws-cdk-lib/aws-ecs/lib/base/task-definition.ts:522).
+    // Neither the ECS RegisterTaskDefinition API (cpuArchitecture is documented for "Linux Amazon
+    // EC2 instance" tasks, and the WINDOWS_SERVER_2016_FULL / _2004_CORE / _20H2_CORE families are
+    // EC2-only) nor terraform-provider-aws (`runtime_platform` on `aws_ecs_task_definition` is not
+    // gated on `requires_compatibilities`) has that restriction. Only EXTERNAL (ECS Anywhere)
+    // tasks, which run on customer-managed hardware ECS does not choose a platform for, keep it.
+    if (this.isExternalCompatible && props.runtimePlatform) {
       throw new ValidationError(
-        "Cannot specify runtimePlatform in non-Fargate and non-Managed Instances compatible tasks",
+        "Cannot specify runtimePlatform in External compatible tasks",
         this,
       );
     }
@@ -672,7 +676,13 @@ export class TaskDefinition extends TaskDefinitionBase {
     this.pidMode = props.pidMode;
 
     // validate the cpu and memory size for the Windows operation system family.
-    if (props.runtimePlatform?.operatingSystemFamily?.isWindows()) {
+    // NOTE: must stay gated on `isFargateCompatible` -- these are Fargate-only cpu/memory
+    // combinations, and EC2 Windows tasks legitimately leave cpu/memoryMiB undefined (which would
+    // make the checks below compare `Number(undefined)` === NaN and throw a bogus Fargate error).
+    if (
+      this.isFargateCompatible &&
+      props.runtimePlatform?.operatingSystemFamily?.isWindows()
+    ) {
       // We know that props.cpu and props.memoryMiB are defined because an error would have been thrown previously if they were not.
       // But, typescript is not able to figure this out, so using the `!` operator here to let the type-checker know they are defined.
       this.checkFargateWindowsBasedTasksSize(
@@ -756,17 +766,15 @@ export class TaskDefinition extends TaskDefinitionBase {
             sizeInGib: this.ephemeralStorageGiB,
           }
         : undefined,
-      runtimePlatform:
-        (this.isFargateCompatible || this.isManagedInstancesCompatible) &&
-        this.runtimePlatform
-          ? {
-              cpuArchitecture:
-                this.runtimePlatform?.cpuArchitecture?._cpuArchitecture,
-              operatingSystemFamily:
-                this.runtimePlatform?.operatingSystemFamily
-                  ?._operatingSystemFamily,
-            }
-          : undefined,
+      runtimePlatform: this.runtimePlatform
+        ? {
+            cpuArchitecture:
+              this.runtimePlatform?.cpuArchitecture?._cpuArchitecture,
+            operatingSystemFamily:
+              this.runtimePlatform?.operatingSystemFamily
+                ?._operatingSystemFamily,
+          }
+        : undefined,
       enableFaultInjection: props.enableFaultInjection,
     };
 
