@@ -1240,6 +1240,54 @@ describe("Managed Instances compatibility", () => {
       //   PlacementConstraints: Match.absent(),
       // });
     });
+
+    // TERRACONSTRUCTS-SPECIFIC: no upstream counterpart. Upstream aws-cdk omits
+    // FARGATE_AND_EC2_AND_MANAGED_INSTANCES from all of its `isXxxCompatible` helpers
+    // (aws-cdk-lib/aws-ecs/lib/base/task-definition.ts:1395-1421), so a task definition using it
+    // renders an empty `requires_compatibilities` (terraform-provider-aws would then register a
+    // task definition with no launch types) and silently skips every compatibility-gated
+    // validation, including the Fargate cpu/memory check.
+    test("isXxxCompatible and requires_compatibilities for FARGATE_AND_EC2_AND_MANAGED_INSTANCES", () => {
+      // GIVEN
+      const stack = getAwsStack();
+
+      // WHEN
+      const taskDefinition = new ecs.TaskDefinition(stack, "TD", {
+        cpu: "512",
+        memoryMiB: "1024",
+        compatibility: ecs.Compatibility.FARGATE_AND_EC2_AND_MANAGED_INSTANCES,
+      });
+
+      // THEN
+      expect(taskDefinition.isEc2Compatible).toBe(true);
+      expect(taskDefinition.isFargateCompatible).toBe(true);
+      expect(taskDefinition.isManagedInstancesCompatible).toBe(true);
+      expect(taskDefinition.isExternalCompatible).toBe(false);
+
+      Template.synth(stack).toHaveResourceWithProperties(
+        ecsTaskDefinition.EcsTaskDefinition,
+        {
+          requires_compatibilities: ["EC2", "FARGATE", "MANAGED_INSTANCES"],
+        },
+      );
+    });
+
+    // TERRACONSTRUCTS-SPECIFIC: guards that FARGATE_AND_EC2_AND_MANAGED_INSTANCES now actually
+    // reaches the Fargate cpu/memory validation instead of silently skipping it.
+    test("FARGATE_AND_EC2_AND_MANAGED_INSTANCES requires cpu and memory", () => {
+      // GIVEN
+      const stack = getAwsStack();
+
+      // THEN
+      expect(() => {
+        new ecs.TaskDefinition(stack, "TD", {
+          compatibility:
+            ecs.Compatibility.FARGATE_AND_EC2_AND_MANAGED_INSTANCES,
+        });
+      }).toThrow(/Fargate-compatible tasks require both CPU .* and memory/);
+    });
+  });
+
   });
 
   describe("Volume validation with configuredAtLaunch", () => {

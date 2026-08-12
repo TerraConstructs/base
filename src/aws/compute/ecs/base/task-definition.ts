@@ -1670,6 +1670,10 @@ export function isEc2Compatible(compatibility: Compatibility): boolean {
     Compatibility.EC2,
     Compatibility.EC2_AND_FARGATE,
     Compatibility.EC2_AND_MANAGED_INSTANCES,
+    // TERRACONSTRUCTS DEVIATION: upstream omits FARGATE_AND_EC2_AND_MANAGED_INSTANCES from all
+    // four compatibility predicates, so it renders `requiresCompatibilities: []` and skips every
+    // compatibility-gated validation.
+    Compatibility.FARGATE_AND_EC2_AND_MANAGED_INSTANCES,
   ].includes(compatibility);
 }
 
@@ -1681,6 +1685,7 @@ export function isFargateCompatible(compatibility: Compatibility): boolean {
     Compatibility.FARGATE,
     Compatibility.EC2_AND_FARGATE,
     Compatibility.FARGATE_AND_MANAGED_INSTANCES,
+    Compatibility.FARGATE_AND_EC2_AND_MANAGED_INSTANCES,
   ].includes(compatibility);
 }
 
@@ -1701,6 +1706,7 @@ export function isManagedInstancesCompatible(
     Compatibility.MANAGED_INSTANCES,
     Compatibility.EC2_AND_MANAGED_INSTANCES,
     Compatibility.FARGATE_AND_MANAGED_INSTANCES,
+    Compatibility.FARGATE_AND_EC2_AND_MANAGED_INSTANCES,
   ].includes(compatibility);
 }
 
