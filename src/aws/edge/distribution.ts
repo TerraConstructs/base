@@ -7,7 +7,12 @@ import {
 } from "@cdktn/provider-aws";
 import { IResolvable, Token, Lazy } from "cdktn";
 import { Construct } from "constructs";
-import { ICertificate, IOrigin, FunctionAssociation } from ".";
+import {
+  ICertificate,
+  IOrigin,
+  FunctionAssociation,
+  FunctionEventType,
+} from ".";
 import { Duration } from "../../duration";
 import { ArnFormat } from "../arn";
 import {
@@ -480,7 +485,42 @@ export class Distribution extends AwsConstructBase implements IDistribution {
       smoothStreaming: props.smoothStreaming,
       viewerProtocolPolicy:
         props.viewerProtocolPolicy ?? ViewerProtocolPolicy.ALLOW_ALL,
+      functionAssociation: this.renderFunctionAssociations(
+        props.functionAssociations,
+      ),
     };
+  }
+
+  /**
+   * Renders the `functionAssociation` blocks for a cache behavior from the
+   * given `FunctionAssociation`s.
+   *
+   * CloudFront allows at most one function association per `FunctionEventType`
+   * for each cache behavior.
+   *
+   * @internal
+   */
+  private renderFunctionAssociations(
+    functionAssociations?: FunctionAssociation[],
+  ):
+    | cloudfrontDistribution.CloudfrontDistributionDefaultCacheBehaviorFunctionAssociation[]
+    | undefined {
+    if (!functionAssociations || functionAssociations.length === 0) {
+      return undefined;
+    }
+    const eventTypes = new Set<FunctionEventType>();
+    for (const fa of functionAssociations) {
+      if (eventTypes.has(fa.eventType)) {
+        throw new Error(
+          `Only one function association is allowed per event type, got multiple for event type ${fa.eventType}`,
+        );
+      }
+      eventTypes.add(fa.eventType);
+    }
+    return functionAssociations.map((fa) => ({
+      eventType: fa.eventType,
+      functionArn: fa.function.functionArn,
+    }));
   }
 
   private renderRestrictions(geoRestriction?: GeoRestriction) {

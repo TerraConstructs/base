@@ -16,6 +16,17 @@ import {
 export abstract class FunctionCode {
   /**
    * Inline code for function
+   *
+   * Note: unlike `fromFile`, this does NOT escape `${` sequences in the
+   * provided `code`. The string is emitted verbatim into the synthesized
+   * Terraform JSON, where cdktn tokens resolve during synth and any remaining
+   * `${...}` sequences are then interpreted by Terraform as interpolation
+   * expressions at plan time. This is intentional, since inline code is
+   * frequently built up using template literals/tokens. If your inline code
+   * legitimately contains a literal `${` (e.g. JavaScript template literal
+   * syntax used by the CloudFront Function itself), escape it as `$${`
+   * before passing it in.
+   *
    * @returns code object with inline code.
    * @param code The actual function code
    */
@@ -247,6 +258,15 @@ export class Function extends AwsConstructBase implements IFunction {
           ? [props.keyValueStore.arn]
           : undefined,
         name: this.functionName,
+        // CloudFront Functions cannot be deleted while still associated with
+        // a distribution's cache behavior. When a name change forces
+        // replacement, destroy-before-create would fail with a
+        // `FunctionInUse` error, so the replacement function must be created
+        // (and the distribution updated to reference it) before the old one
+        // is destroyed.
+        lifecycle: {
+          createBeforeDestroy: true,
+        },
       },
     );
 

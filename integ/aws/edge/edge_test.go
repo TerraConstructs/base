@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	cftypes "github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/aws/aws-sdk-go-v2/service/servicediscovery/types"
 	"github.com/stretchr/testify/require"
 	"github.com/terraconstructs/base/integ"
@@ -56,6 +58,14 @@ func TestDistributionPolicies(t *testing.T) {
 			distributionId := util.LoadOutputAttribute(t, terraformOptions, "distribution", "id")
 			util.WaitForDistributionDeployed(t, awsRegion, distributionId, 10, 10*time.Second)
 		})
+}
+
+// Run the apps/distribution-function.ts integration test
+// ref: https://github.com/TerraConstructs/base/issues/50
+// ref: https://github.com/TerraConstructs/base/issues/99
+func TestDistributionFunction(t *testing.T) {
+	envVars := executors.EnvMap(os.Environ())
+	runEdgeIntegrationTest(t, "distribution-function", "us-east-1", envVars, validateDistributionFunction)
 }
 
 // Test the apps/service-with-http-namespace.ts app
@@ -185,6 +195,73 @@ func validateURLRewriteFunction(t *testing.T, workingDir string, _awsRegion stri
 				})
 		})
 	}
+}
+
+// validateDistributionFunction verifies the aws.edge.Distribution's
+// defaultBehavior functionAssociations wiring from apps/distribution-function.ts:
+// it waits for the distribution to deploy, then confirms the associated
+// viewer-request CloudFront Function actually runs by exercising the
+// TestFunction API and asserting the marker header it stamps on the request.
+func validateDistributionFunction(t *testing.T, workingDir string, awsRegion string) {
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+
+	distributionId := util.LoadOutputAttribute(t, terraformOptions, "distribution", "id")
+	util.WaitForDistributionDeployed(t, awsRegion, distributionId, 10, 10*time.Second)
+
+	functionName := util.LoadOutputAttribute(t, terraformOptions, "function", "name")
+
+	// Assert the deployed distribution config actually carries the
+	// viewer-request FunctionAssociation for the function -- this is the
+	// direct regression check for #99/#50 (a dropped association would
+	// still let the distribution deploy and the TestFunction call below
+	// would still succeed, since TestFunction invokes the function by name
+	// independent of any distribution).
+	dist, err := util.GetDistributionE(t, awsRegion, distributionId)
+	require.NoError(t, err)
+	functionAssociations := dist.DistributionConfig.DefaultCacheBehavior.FunctionAssociations
+	require.NotNil(t, functionAssociations)
+	require.EqualValues(t, 1, aws.ToInt32(functionAssociations.Quantity))
+	require.Len(t, functionAssociations.Items, 1)
+	require.Equal(t, cftypes.EventTypeViewerRequest, functionAssociations.Items[0].EventType)
+	functionArn := aws.ToString(functionAssociations.Items[0].FunctionARN)
+	require.NotEmpty(t, functionArn)
+	require.True(t, strings.HasSuffix(functionArn, functionName),
+		"expected FunctionARN %q to end with function name %q", functionArn, functionName)
+
+	functionStage := "LIVE"
+	testEvent := &util.CloudFrontFunctionEvent{
+		Version: "1.0",
+		Context: util.Context{
+			DistributionDomainName: "d111111abcdef8.cloudfront.net",
+			DistributionID:         distributionId,
+			EventType:              "viewer-request",
+			RequestID:              "test-request-id",
+		},
+		Viewer: util.Viewer{
+			IP: "1.2.3.4",
+		},
+		Request: &util.Request{
+			Method:      "GET",
+			URI:         "/",
+			Querystring: util.ValueObject{},
+			Headers: util.ValueObject{
+				"host": util.ValueEntry{Value: "d111111abcdef8.cloudfront.net"},
+			},
+		},
+	}
+	util.TestCloudFrontFunctionWithCustomValidation(t, functionName, functionStage, *testEvent,
+		func(r *util.CloudFrontTestFunctionResult) error {
+			if r.Output == nil {
+				return fmt.Errorf("got nil Output response")
+			}
+			return integ.AssertE(r.Output, []integ.Assertion{
+				{
+					Path:           "request.headers.\"x-distribution-function\".value",
+					ExpectedRegexp: strPtr("^true$"),
+				},
+			})
+		})
 }
 
 // validateJwtVerifyFunction with testevents

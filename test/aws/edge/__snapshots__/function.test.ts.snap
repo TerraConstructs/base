@@ -1,0 +1,55 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Function Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_region": {
+      "Region": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {}
+    ]
+  },
+  "resource": {
+    "aws_cloudfront_function": {
+      "Function_76856677": {
+        "code": "whatever",
+        "comment": "Hello World",
+        "lifecycle": {
+          "create_before_destroy": true
+        },
+        "name": "g-hello-world",
+        "publish": true,
+        "runtime": "cloudfront-js-1.0",
+        "tags": {
+          "Name": "Default-Function",
+          "grid:EnvironmentName": "Default",
+          "grid:UUID": "g"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "6.58.0"
+      }
+    }
+  }
+}"
+`;

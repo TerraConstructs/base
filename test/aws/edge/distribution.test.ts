@@ -137,6 +137,149 @@ describe("Distribution", () => {
       },
     });
   });
+  test("Should render functionAssociations on default and ordered cache behaviors", () => {
+    // GIVEN
+    const bucket0 = new storage.Bucket(stack, "Bucket0", {
+      namePrefix: "bucket-0",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const bucket1 = new storage.Bucket(stack, "Bucket1", {
+      namePrefix: "bucket-1",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const viewerRequestFn = new edge.Function(stack, "ViewerRequestFn", {
+      nameSuffix: "viewer-request",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    const viewerResponseFn = new edge.Function(stack, "ViewerResponseFn", {
+      nameSuffix: "viewer-response",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket0),
+        functionAssociations: [
+          {
+            function: viewerRequestFn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+      additionalBehaviors: {
+        "/images/*": {
+          origin: new edge.S3Origin(bucket1),
+          functionAssociations: [
+            {
+              function: viewerResponseFn,
+              eventType: edge.FunctionEventType.VIEWER_RESPONSE,
+            },
+          ],
+        },
+      },
+    });
+    // THEN
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_cloudfront_distribution: {
+          HelloWorldDistribution_E7735130: {
+            default_cache_behavior: {
+              function_association: [
+                {
+                  event_type: "viewer-request",
+                  function_arn: stack.resolve(viewerRequestFn.functionArn),
+                },
+              ],
+            },
+            ordered_cache_behavior: [
+              {
+                path_pattern: "/images/*",
+                function_association: [
+                  {
+                    event_type: "viewer-response",
+                    function_arn: stack.resolve(viewerResponseFn.functionArn),
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    });
+  });
+  test("Should throw on duplicate function association event types", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "duplicate",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    // THEN
+    expect(() => {
+      new edge.Distribution(stack, "HelloWorldDistribution", {
+        defaultBehavior: {
+          origin: new edge.S3Origin(bucket),
+          functionAssociations: [
+            {
+              function: fn,
+              eventType: edge.FunctionEventType.VIEWER_REQUEST,
+            },
+            {
+              function: fn,
+              eventType: edge.FunctionEventType.VIEWER_REQUEST,
+            },
+          ],
+        },
+      });
+    }).toThrow("Only one function association is allowed per event type");
+  });
+  test("Should throw on duplicate function association event types in additional behaviors", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "duplicate",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    // WHEN - additionalBehaviors render lazily, so the error surfaces at synth
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+      },
+      additionalBehaviors: {
+        "/images/*": {
+          origin: new edge.S3Origin(bucket),
+          functionAssociations: [
+            {
+              function: fn,
+              eventType: edge.FunctionEventType.VIEWER_RESPONSE,
+            },
+            {
+              function: fn,
+              eventType: edge.FunctionEventType.VIEWER_RESPONSE,
+            },
+          ],
+        },
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).toThrow("Only one function association is allowed per event type");
+  });
   test("Should support custom Response Header Policy", () => {
     // GIVEN
     const bucket = new storage.Bucket(stack, "Bucket", {
