@@ -13,6 +13,8 @@ import {
   FunctionAssociation,
   FunctionEventType,
 } from ".";
+// aliased to avoid shadowing the global `Function` constructor
+import { Function as CloudFrontFunction } from "./function";
 import { Duration } from "../../duration";
 import { ArnFormat } from "../arn";
 import {
@@ -302,11 +304,30 @@ export class Distribution extends AwsConstructBase implements IDistribution {
               ),
             ),
         }),
-        defaultCacheBehavior: this._renderDefaultCacheBehavior({
-          pathPattern: "*", // ignored for Default Cache Behavior
-          targetOriginId: defaultOriginId,
-          ...props.defaultBehavior,
-        }),
+        defaultCacheBehavior: {
+          ...this._renderDefaultCacheBehavior({
+            pathPattern: "*", // ignored for Default Cache Behavior
+            targetOriginId: defaultOriginId,
+            ...props.defaultBehavior,
+            // rendered lazily below so associations pushed onto a caller-held
+            // array *after* construction are still picked up at synth time
+            functionAssociations: undefined,
+          }),
+          functionAssociation: Lazy.anyValue(
+            {
+              produce: () =>
+                this.renderFunctionAssociations(
+                  props.defaultBehavior.functionAssociations,
+                )?.map((fa) =>
+                  // Lazy producers need additional xxxToTerraform wrap
+                  cloudfrontDistribution.cloudfrontDistributionDefaultCacheBehaviorFunctionAssociationToTerraform(
+                    fa,
+                  ),
+                ),
+            },
+            { omitEmptyArray: true },
+          ),
+        },
         orderedCacheBehavior: Lazy.anyValue(
           {
             produce: () =>
@@ -516,6 +537,19 @@ export class Distribution extends AwsConstructBase implements IDistribution {
         );
       }
       eventTypes.add(fa.eventType);
+      // Only locally-created `Function`s are verifiable here - imported/general
+      // `IFunction` implementations may or may not be published, so leave them
+      // alone. CloudFront only allows LIVE-stage (published) functions to be
+      // associated with a distribution's cache behaviors.
+      if (
+        fa.function instanceof CloudFrontFunction &&
+        !fa.function._autoPublish
+      ) {
+        throw new Error(
+          `Function '${fa.function.node.path}' is associated with a cache behavior but was created with autoPublish: false. ` +
+            "CloudFront requires the function to be published (LIVE stage) to be associated with a distribution's cache behavior.",
+        );
+      }
     }
     return functionAssociations.map((fa) => ({
       eventType: fa.eventType,

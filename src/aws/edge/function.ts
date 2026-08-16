@@ -216,6 +216,17 @@ export class Function extends AwsConstructBase implements IFunction {
    */
   public readonly functionRuntime: string;
 
+  /**
+   * Whether this function is automatically published to the LIVE stage on
+   * creation. CloudFront only allows LIVE-stage functions to be associated
+   * with a distribution's cache behaviors, so consumers (e.g. `Distribution`)
+   * use this to fail fast when a function that opted out of auto-publish is
+   * associated with a cache behavior.
+   *
+   * @internal
+   */
+  public readonly _autoPublish: boolean;
+
   constructor(scope: Construct, id: string, props: FunctionProps) {
     super(scope, id, props);
 
@@ -246,11 +257,13 @@ export class Function extends AwsConstructBase implements IFunction {
       );
     }
 
+    this._autoPublish = props.autoPublish ?? true;
+
     this.resource = new cloudfrontFunction.CloudfrontFunction(
       this,
       "Resource",
       {
-        publish: props.autoPublish ?? true,
+        publish: this._autoPublish,
         code: props.code.render(),
         comment: props.comment ?? this.functionName,
         runtime: this.functionRuntime,

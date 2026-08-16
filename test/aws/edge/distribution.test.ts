@@ -223,24 +223,70 @@ describe("Distribution", () => {
       nameSuffix: "duplicate",
       code: edge.FunctionCode.fromInline("whatever"),
     });
+    // WHEN - default behavior renders lazily, so the error surfaces at synth
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: fn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+          {
+            function: fn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+    });
     // THEN
     expect(() => {
-      new edge.Distribution(stack, "HelloWorldDistribution", {
-        defaultBehavior: {
-          origin: new edge.S3Origin(bucket),
-          functionAssociations: [
-            {
-              function: fn,
-              eventType: edge.FunctionEventType.VIEWER_REQUEST,
-            },
-            {
-              function: fn,
-              eventType: edge.FunctionEventType.VIEWER_REQUEST,
-            },
-          ],
-        },
-      });
+      Template.fromStack(stack);
     }).toThrow("Only one function association is allowed per event type");
+  });
+  test("Should include functionAssociations pushed onto the array after construction", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "late-push",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    const functionAssociations: edge.FunctionAssociation[] = [];
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations,
+      },
+    });
+    // Associations pushed onto the caller-held array *after* construction
+    // must still be picked up, since rendering is deferred to synth time.
+    functionAssociations.push({
+      function: fn,
+      eventType: edge.FunctionEventType.VIEWER_REQUEST,
+    });
+    // THEN
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_cloudfront_distribution: {
+          HelloWorldDistribution_E7735130: {
+            default_cache_behavior: {
+              function_association: [
+                {
+                  event_type: "viewer-request",
+                  function_arn: stack.resolve(fn.functionArn),
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
   });
   test("Should throw on duplicate function association event types in additional behaviors", () => {
     // GIVEN
@@ -279,6 +325,136 @@ describe("Distribution", () => {
     expect(() => {
       Template.fromStack(stack);
     }).toThrow("Only one function association is allowed per event type");
+  });
+  test("Should throw when associating a function created with autoPublish: false", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "unpublished",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: fn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).toThrow(/autoPublish: false/);
+  });
+  test("Should throw when associating an autoPublish: false function via additional behaviors", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "unpublished",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+      },
+      additionalBehaviors: {
+        "/images/*": {
+          origin: new edge.S3Origin(bucket),
+          functionAssociations: [
+            {
+              function: fn,
+              eventType: edge.FunctionEventType.VIEWER_REQUEST,
+            },
+          ],
+        },
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).toThrow(/autoPublish: false/);
+  });
+  test("Should allow associating a function created with autoPublish: true (default)", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "published",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: true,
+    });
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: fn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).not.toThrow();
+  });
+  test("Should not reject an imported (non-Function) IFunction association", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    // An imported/general IFunction implementation is unverifiable and
+    // therefore must not be rejected, even though it can't be proven to be
+    // published to the LIVE stage.
+    // NOTE: edge.Function has no static import method yet (see the
+    // `TODO: Add static fromLookup?` in src/aws/edge/function.ts); when one
+    // is added, switch this cast to use it.
+    const importedFn: edge.IFunction = {
+      functionArn:
+        "arn:aws:cloudfront::123456789012:function/imported-function",
+    } as unknown as edge.IFunction;
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: importedFn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).not.toThrow();
   });
   test("Should support custom Response Header Policy", () => {
     // GIVEN
