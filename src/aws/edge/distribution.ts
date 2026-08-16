@@ -5,7 +5,7 @@ import {
   dataAwsCloudfrontOriginRequestPolicy,
   dataAwsCloudfrontResponseHeadersPolicy,
 } from "@cdktn/provider-aws";
-import { IResolvable, Token, Lazy } from "cdktn";
+import { Annotations, IResolvable, Token, Lazy } from "cdktn";
 import { Construct } from "constructs";
 import {
   ICertificate,
@@ -250,6 +250,7 @@ export class Distribution extends AwsConstructBase implements IDistribution {
 
   private readonly errorResponses: ErrorResponse[];
   private readonly certificate?: ICertificate;
+  private readonly warnedUnpublishedFunctions = new Set<string>();
 
   constructor(scope: Construct, name: string, props: DistributionProps) {
     super(scope, name, props);
@@ -541,13 +542,23 @@ export class Distribution extends AwsConstructBase implements IDistribution {
       // `IFunction` implementations may or may not be published, so leave them
       // alone. CloudFront only allows LIVE-stage (published) functions to be
       // associated with a distribution's cache behaviors.
+      // Lazy producers resolve more than once per synth (prepareStack +
+      // final render), so dedupe to avoid stacking identical warnings on
+      // this node's metadata.
       if (
         fa.function instanceof CloudFrontFunction &&
-        !fa.function._autoPublish
+        !fa.function._autoPublish &&
+        !fa.skipPublishCheck &&
+        !this.warnedUnpublishedFunctions.has(fa.function.node.path)
       ) {
-        throw new Error(
-          `Function '${fa.function.node.path}' is associated with a cache behavior but was created with autoPublish: false. ` +
-            "CloudFront requires the function to be published (LIVE stage) to be associated with a distribution's cache behavior.",
+        this.warnedUnpublishedFunctions.add(fa.function.node.path);
+        // TODO(https://github.com/TerraConstructs/base/issues/161): switch to
+        // Annotations.addWarningV2()/acknowledgeWarning() once the Annotations
+        // facade lands, using the id prefix below as the warning's stable id.
+        Annotations.of(this).addWarning(
+          `[terraconstructs/aws-edge:unpublishedFunctionAssociation] Function '${fa.function.node.path}' is associated with a cache behavior but was created with autoPublish: false; ` +
+            "CloudFront only allows LIVE-stage functions in cache behaviors, so this will fail at apply time unless the function is published out of band. " +
+            "Set skipPublishCheck: true on the association to acknowledge.",
         );
       }
     }

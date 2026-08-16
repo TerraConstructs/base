@@ -5,7 +5,7 @@ import {
 import { App, HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { edge, storage, AwsStack } from "../../../src/aws";
-import { Template } from "../../assertions";
+import { Annotations, Template } from "../../assertions";
 
 const gridBackendConfig = {
   address: "http://localhost:3000",
@@ -326,7 +326,7 @@ describe("Distribution", () => {
       Template.fromStack(stack);
     }).toThrow("Only one function association is allowed per event type");
   });
-  test("Should throw when associating a function created with autoPublish: false", () => {
+  test("Should warn when associating a function created with autoPublish: false", () => {
     // GIVEN
     const bucket = new storage.Bucket(stack, "Bucket", {
       namePrefix: "bucket",
@@ -351,12 +351,15 @@ describe("Distribution", () => {
         ],
       },
     });
-    // THEN
+    // THEN - no longer a hard failure, just an acknowledgeable warning
     expect(() => {
       Template.fromStack(stack);
-    }).toThrow(/autoPublish: false/);
+    }).not.toThrow();
+    Annotations.fromStack(stack).hasWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
   });
-  test("Should throw when associating an autoPublish: false function via additional behaviors", () => {
+  test("Should warn when associating an autoPublish: false function via additional behaviors", () => {
     // GIVEN
     const bucket = new storage.Bucket(stack, "Bucket", {
       namePrefix: "bucket",
@@ -389,7 +392,124 @@ describe("Distribution", () => {
     // THEN
     expect(() => {
       Template.fromStack(stack);
-    }).toThrow(/autoPublish: false/);
+    }).not.toThrow();
+    Annotations.fromStack(stack).hasWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
+  });
+  test("skipPublishCheck: true suppresses the unpublished-function warning", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "unpublished",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    // WHEN - the caller acknowledges that publication is managed elsewhere
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: fn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+            skipPublishCheck: true,
+          },
+        ],
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).not.toThrow();
+    Annotations.fromStack(stack).hasNoWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
+  });
+  test("skipPublishCheck only suppresses the acknowledged association, not others", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const acknowledgedFn = new edge.Function(stack, "AcknowledgedFn", {
+      nameSuffix: "acknowledged",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    const unacknowledgedFn = new edge.Function(stack, "UnacknowledgedFn", {
+      nameSuffix: "unacknowledged",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    // WHEN - only the first association acknowledges out-of-band publication
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: acknowledgedFn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+            skipPublishCheck: true,
+          },
+          {
+            function: unacknowledgedFn,
+            eventType: edge.FunctionEventType.VIEWER_RESPONSE,
+          },
+        ],
+      },
+    });
+    // THEN - synth first so the lazily-rendered behaviors emit their warnings
+    Template.fromStack(stack);
+    const annotations = Annotations.fromStack(stack);
+    annotations.hasWarnings({
+      message: /unpublishedFunctionAssociation.*UnacknowledgedFn/,
+    });
+    annotations.hasNoWarnings({
+      message: /unpublishedFunctionAssociation.*AcknowledgedFn/,
+    });
+  });
+  test("Should still warn for a late-pushed association with an unpublished function", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "late-unpublished",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    const functionAssociations: edge.FunctionAssociation[] = [];
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations,
+      },
+    });
+    // Pushed onto the caller-held array *after* construction - the warning
+    // check must still see it, since it is deferred to synth time.
+    functionAssociations.push({
+      function: fn,
+      eventType: edge.FunctionEventType.VIEWER_REQUEST,
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).not.toThrow();
+    Annotations.fromStack(stack).hasWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
   });
   test("Should allow associating a function created with autoPublish: true (default)", () => {
     // GIVEN
@@ -420,6 +540,9 @@ describe("Distribution", () => {
     expect(() => {
       Template.fromStack(stack);
     }).not.toThrow();
+    Annotations.fromStack(stack).hasNoWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
   });
   test("Should not reject an imported (non-Function) IFunction association", () => {
     // GIVEN
@@ -455,6 +578,9 @@ describe("Distribution", () => {
     expect(() => {
       Template.fromStack(stack);
     }).not.toThrow();
+    Annotations.fromStack(stack).hasNoWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
   });
   test("Should support custom Response Header Policy", () => {
     // GIVEN

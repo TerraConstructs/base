@@ -320,6 +320,18 @@ export interface FunctionAssociation {
 
   /** The type of event which should invoke the function. */
   readonly eventType: FunctionEventType;
+
+  /**
+   * Set this ONLY IF this function's publication to the LIVE stage is managed outside of this
+   * stack (e.g. by a pipeline or a later apply that flips autoPublish). You are acknowledging
+   * that the distribution will fail to deploy if the function is not LIVE at apply time.
+   *
+   * Has no effect for imported functions - they are never checked, since whether or not they
+   * are published is not knowable from an `IFunction` reference.
+   *
+   * @default false
+   */
+  readonly skipPublishCheck?: boolean;
 }
 
 /**
