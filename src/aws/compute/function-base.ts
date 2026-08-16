@@ -372,6 +372,7 @@ export abstract class LambdaFunctionBase
       sourceArn: permission.sourceArn ?? sourceArn,
       principalOrgId: permission.organizationId ?? principalOrgID,
       functionUrlAuthType: permission.functionUrlAuthType,
+      invokedViaFunctionUrl: permission.invokedViaFunctionUrl,
     });
   }
 
