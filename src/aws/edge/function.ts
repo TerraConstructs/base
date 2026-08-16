@@ -10,6 +10,10 @@ import {
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-cloudfront/lib/function.ts
 
+const EDGE_FUNCTION_SYMBOL = Symbol.for(
+  "terraconstructs/lib/aws/edge.Function",
+);
+
 /**
  * Represents the function's source code
  */
@@ -186,6 +190,17 @@ export interface FunctionProps extends AwsConstructProps {
  */
 export class Function extends AwsConstructBase implements IFunction {
   // TODO: Add static fromLookup?
+
+  /**
+   * Return whether the given object is a Function.
+   *
+   * Uses a symbol-based runtime check instead of `instanceof` so the
+   * identification survives duplicate copies of this library (e.g. multiple
+   * installed versions), matching `AwsStack.isAwsStack`/`Role.isRole`.
+   */
+  public static isFunction(x: any): x is Function {
+    return x !== null && typeof x === "object" && EDGE_FUNCTION_SYMBOL in x;
+  }
   public readonly resource: cloudfrontFunction.CloudfrontFunction;
 
   private readonly _outputs: FunctionOutputs;
@@ -349,3 +364,9 @@ export enum FunctionRuntime {
    */
   JS_2_0 = "cloudfront-js-2.0",
 }
+
+Object.defineProperty(Function.prototype, EDGE_FUNCTION_SYMBOL, {
+  value: true,
+  enumerable: false,
+  writable: false,
+});

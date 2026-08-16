@@ -69,6 +69,24 @@ describe("Function", () => {
     );
   });
 
+  test("isFunction identifies Function instances via symbol, not instanceof", () => {
+    // GIVEN
+    const stack = new AwsStack();
+    const fn = new edge.Function(stack, "Function", {
+      nameSuffix: "hello-world",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    // THEN
+    expect(edge.Function.isFunction(fn)).toBe(true);
+    expect(edge.Function.isFunction(undefined)).toBe(false);
+    expect(edge.Function.isFunction(null)).toBe(false);
+    expect(
+      edge.Function.isFunction({
+        functionArn: "arn:aws:cloudfront::123456789012:function/imported",
+      }),
+    ).toBe(false);
+  });
+
   test("Should synth and match SnapShot", () => {
     // GIVEN
     const stack = new AwsStack();

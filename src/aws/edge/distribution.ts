@@ -546,7 +546,7 @@ export class Distribution extends AwsConstructBase implements IDistribution {
       // final render), so dedupe to avoid stacking identical warnings on
       // this node's metadata.
       if (
-        fa.function instanceof CloudFrontFunction &&
+        CloudFrontFunction.isFunction(fa.function) &&
         !fa.function._autoPublish &&
         !fa.skipPublishCheck &&
         !this.warnedUnpublishedFunctions.has(fa.function.node.path)
