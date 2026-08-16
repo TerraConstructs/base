@@ -260,11 +260,26 @@ export class FunctionUrl extends AwsConstructBase implements IFunctionUrl {
     this.functionArn = this.resource.functionArn;
     this.function = props.function;
 
-    if (props.authType === FunctionUrlAuthType.NONE) {
+    if (this.authType === FunctionUrlAuthType.NONE) {
       props.function.addPermission("invoke-function-url", {
         principal: new iam.AnyPrincipal(),
         action: "lambda:InvokeFunctionUrl",
         functionUrlAuthType: props.authType,
+      });
+      // A public (authType NONE) Function URL also requires a standalone
+      // lambda:InvokeFunction grant - lambda:InvokeFunctionUrl alone is not
+      // sufficient and unauthenticated callers otherwise receive a 403.
+      // This mirrors the "FunctionURLInvokeAllowPublicAccess" statement the AWS
+      // Console/CLI add automatically, which is scoped down using the
+      // lambda:InvokedViaFunctionUrl condition key so this permission only
+      // applies to invocations made through the function URL (not direct
+      // lambda:InvokeFunction calls). The `invoked_via_function_url`
+      // argument on aws_lambda_permission maps 1:1 to that condition key.
+      // See: https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html
+      props.function.addPermission("invoke-function-url-via-invoke", {
+        principal: new iam.AnyPrincipal(),
+        action: "lambda:InvokeFunction",
+        invokedViaFunctionUrl: true,
       });
     }
     this.functionUrlOutputs = {

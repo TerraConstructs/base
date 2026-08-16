@@ -15,6 +15,8 @@ Test Targets:
   kvs-jwt-verify             Test Edge function for KVS JWT verify
   multi-zone-acm-pub-cert    Test Multi Zone ACM Public Certificate
   distribution-policies      Test Distribution Policies
+  distribution-function      Test Distribution Function association
+  service-with-http-namespace Test CloudMap Service with HTTP Namespace
 
 Other Targets:
   help                       Print out every target with a description

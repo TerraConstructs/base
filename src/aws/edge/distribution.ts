@@ -5,9 +5,16 @@ import {
   dataAwsCloudfrontOriginRequestPolicy,
   dataAwsCloudfrontResponseHeadersPolicy,
 } from "@cdktn/provider-aws";
-import { IResolvable, Token, Lazy } from "cdktn";
+import { Annotations, IResolvable, Token, Lazy } from "cdktn";
 import { Construct } from "constructs";
-import { ICertificate, IOrigin, FunctionAssociation } from ".";
+import {
+  ICertificate,
+  IOrigin,
+  FunctionAssociation,
+  FunctionEventType,
+} from ".";
+// aliased to avoid shadowing the global `Function` constructor
+import { Function as CloudFrontFunction } from "./function";
 import { Duration } from "../../duration";
 import { ArnFormat } from "../arn";
 import {
@@ -243,6 +250,7 @@ export class Distribution extends AwsConstructBase implements IDistribution {
 
   private readonly errorResponses: ErrorResponse[];
   private readonly certificate?: ICertificate;
+  private readonly warnedUnpublishedFunctions = new Set<string>();
 
   constructor(scope: Construct, name: string, props: DistributionProps) {
     super(scope, name, props);
@@ -297,11 +305,30 @@ export class Distribution extends AwsConstructBase implements IDistribution {
               ),
             ),
         }),
-        defaultCacheBehavior: this._renderDefaultCacheBehavior({
-          pathPattern: "*", // ignored for Default Cache Behavior
-          targetOriginId: defaultOriginId,
-          ...props.defaultBehavior,
-        }),
+        defaultCacheBehavior: {
+          ...this._renderDefaultCacheBehavior({
+            pathPattern: "*", // ignored for Default Cache Behavior
+            targetOriginId: defaultOriginId,
+            ...props.defaultBehavior,
+            // rendered lazily below so associations pushed onto a caller-held
+            // array *after* construction are still picked up at synth time
+            functionAssociations: undefined,
+          }),
+          functionAssociation: Lazy.anyValue(
+            {
+              produce: () =>
+                this.renderFunctionAssociations(
+                  props.defaultBehavior.functionAssociations,
+                )?.map((fa) =>
+                  // Lazy producers need additional xxxToTerraform wrap
+                  cloudfrontDistribution.cloudfrontDistributionDefaultCacheBehaviorFunctionAssociationToTerraform(
+                    fa,
+                  ),
+                ),
+            },
+            { omitEmptyArray: true },
+          ),
+        },
         orderedCacheBehavior: Lazy.anyValue(
           {
             produce: () =>
@@ -480,7 +507,65 @@ export class Distribution extends AwsConstructBase implements IDistribution {
       smoothStreaming: props.smoothStreaming,
       viewerProtocolPolicy:
         props.viewerProtocolPolicy ?? ViewerProtocolPolicy.ALLOW_ALL,
+      functionAssociation: this.renderFunctionAssociations(
+        props.functionAssociations,
+      ),
     };
+  }
+
+  /**
+   * Renders the `functionAssociation` blocks for a cache behavior from the
+   * given `FunctionAssociation`s.
+   *
+   * CloudFront allows at most one function association per `FunctionEventType`
+   * for each cache behavior.
+   *
+   * @internal
+   */
+  private renderFunctionAssociations(
+    functionAssociations?: FunctionAssociation[],
+  ):
+    | cloudfrontDistribution.CloudfrontDistributionDefaultCacheBehaviorFunctionAssociation[]
+    | undefined {
+    if (!functionAssociations || functionAssociations.length === 0) {
+      return undefined;
+    }
+    const eventTypes = new Set<FunctionEventType>();
+    for (const fa of functionAssociations) {
+      if (eventTypes.has(fa.eventType)) {
+        throw new Error(
+          `Only one function association is allowed per event type, got multiple for event type ${fa.eventType}`,
+        );
+      }
+      eventTypes.add(fa.eventType);
+      // Only locally-created `Function`s are verifiable here - imported/general
+      // `IFunction` implementations may or may not be published, so leave them
+      // alone. CloudFront only allows LIVE-stage (published) functions to be
+      // associated with a distribution's cache behaviors.
+      // Lazy producers resolve more than once per synth (prepareStack +
+      // final render), so dedupe to avoid stacking identical warnings on
+      // this node's metadata.
+      if (
+        CloudFrontFunction.isFunction(fa.function) &&
+        !fa.function._autoPublish &&
+        !fa.skipPublishCheck &&
+        !this.warnedUnpublishedFunctions.has(fa.function.node.path)
+      ) {
+        this.warnedUnpublishedFunctions.add(fa.function.node.path);
+        // TODO(https://github.com/TerraConstructs/base/issues/161): switch to
+        // Annotations.addWarningV2()/acknowledgeWarning() once the Annotations
+        // facade lands, using the id prefix below as the warning's stable id.
+        Annotations.of(this).addWarning(
+          `[terraconstructs/aws-edge:unpublishedFunctionAssociation] Function '${fa.function.node.path}' is associated with a cache behavior but was created with autoPublish: false; ` +
+            "CloudFront only allows LIVE-stage functions in cache behaviors, so this will fail at apply time unless the function is published out of band. " +
+            "Set skipPublishCheck: true on the association to acknowledge.",
+        );
+      }
+    }
+    return functionAssociations.map((fa) => ({
+      eventType: fa.eventType,
+      functionArn: fa.function.functionArn,
+    }));
   }
 
   private renderRestrictions(geoRestriction?: GeoRestriction) {

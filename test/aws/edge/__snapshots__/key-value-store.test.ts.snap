@@ -32,6 +32,9 @@ exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`
         "key_value_store_associations": [
           "\${aws_cloudfront_key_value_store.Store_1D2A845B.arn}"
         ],
+        "lifecycle": {
+          "create_before_destroy": true
+        },
         "name": "g-hello-world",
         "publish": true,
         "runtime": "cloudfront-js-2.0",

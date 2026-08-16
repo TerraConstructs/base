@@ -88,4 +88,18 @@ export interface Permission {
    * @default - No functionUrlAuthType
    */
   readonly functionUrlAuthType?: FunctionUrlAuthType;
+
+  /**
+   * Restricts this permission to only apply to invocations that go through a
+   * Lambda Function URL (i.e. adds the `lambda:InvokedViaFunctionUrl`
+   * condition key to the generated resource policy statement).
+   *
+   * This is used, for example, to scope the `lambda:InvokeFunction`
+   * permission that is required (in addition to `lambda:InvokeFunctionUrl`)
+   * for a public (`FunctionUrlAuthType.NONE`) function URL, mirroring the
+   * `FunctionURLInvokeAllowPublicAccess` statement the AWS Console adds.
+   *
+   * @default - no lambda:InvokedViaFunctionUrl condition is added to the statement
+   */
+  readonly invokedViaFunctionUrl?: boolean;
 }

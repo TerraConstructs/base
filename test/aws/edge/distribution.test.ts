@@ -5,7 +5,7 @@ import {
 import { App, HttpBackend, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { edge, storage, AwsStack } from "../../../src/aws";
-import { Template } from "../../assertions";
+import { Annotations, Template } from "../../assertions";
 
 const gridBackendConfig = {
   address: "http://localhost:3000",
@@ -135,6 +135,451 @@ describe("Distribution", () => {
           },
         },
       },
+    });
+  });
+  test("Should render functionAssociations on default and ordered cache behaviors", () => {
+    // GIVEN
+    const bucket0 = new storage.Bucket(stack, "Bucket0", {
+      namePrefix: "bucket-0",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const bucket1 = new storage.Bucket(stack, "Bucket1", {
+      namePrefix: "bucket-1",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const viewerRequestFn = new edge.Function(stack, "ViewerRequestFn", {
+      nameSuffix: "viewer-request",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    const viewerResponseFn = new edge.Function(stack, "ViewerResponseFn", {
+      nameSuffix: "viewer-response",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket0),
+        functionAssociations: [
+          {
+            function: viewerRequestFn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+      additionalBehaviors: {
+        "/images/*": {
+          origin: new edge.S3Origin(bucket1),
+          functionAssociations: [
+            {
+              function: viewerResponseFn,
+              eventType: edge.FunctionEventType.VIEWER_RESPONSE,
+            },
+          ],
+        },
+      },
+    });
+    // THEN
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_cloudfront_distribution: {
+          HelloWorldDistribution_E7735130: {
+            default_cache_behavior: {
+              function_association: [
+                {
+                  event_type: "viewer-request",
+                  function_arn: stack.resolve(viewerRequestFn.functionArn),
+                },
+              ],
+            },
+            ordered_cache_behavior: [
+              {
+                path_pattern: "/images/*",
+                function_association: [
+                  {
+                    event_type: "viewer-response",
+                    function_arn: stack.resolve(viewerResponseFn.functionArn),
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    });
+  });
+  test("Should throw on duplicate function association event types", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "duplicate",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    // WHEN - default behavior renders lazily, so the error surfaces at synth
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: fn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+          {
+            function: fn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).toThrow("Only one function association is allowed per event type");
+  });
+  test("Should include functionAssociations pushed onto the array after construction", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "late-push",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    const functionAssociations: edge.FunctionAssociation[] = [];
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations,
+      },
+    });
+    // Associations pushed onto the caller-held array *after* construction
+    // must still be picked up, since rendering is deferred to synth time.
+    functionAssociations.push({
+      function: fn,
+      eventType: edge.FunctionEventType.VIEWER_REQUEST,
+    });
+    // THEN
+    Template.fromStack(stack).toMatchObject({
+      resource: {
+        aws_cloudfront_distribution: {
+          HelloWorldDistribution_E7735130: {
+            default_cache_behavior: {
+              function_association: [
+                {
+                  event_type: "viewer-request",
+                  function_arn: stack.resolve(fn.functionArn),
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+  });
+  test("Should throw on duplicate function association event types in additional behaviors", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "duplicate",
+      code: edge.FunctionCode.fromInline("whatever"),
+    });
+    // WHEN - additionalBehaviors render lazily, so the error surfaces at synth
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+      },
+      additionalBehaviors: {
+        "/images/*": {
+          origin: new edge.S3Origin(bucket),
+          functionAssociations: [
+            {
+              function: fn,
+              eventType: edge.FunctionEventType.VIEWER_RESPONSE,
+            },
+            {
+              function: fn,
+              eventType: edge.FunctionEventType.VIEWER_RESPONSE,
+            },
+          ],
+        },
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).toThrow("Only one function association is allowed per event type");
+  });
+  test("Should warn when associating a function created with autoPublish: false", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "unpublished",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: fn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+    });
+    // THEN - no longer a hard failure, just an acknowledgeable warning
+    expect(() => {
+      Template.fromStack(stack);
+    }).not.toThrow();
+    Annotations.fromStack(stack).hasWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
+  });
+  test("Should warn when associating an autoPublish: false function via additional behaviors", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "unpublished",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+      },
+      additionalBehaviors: {
+        "/images/*": {
+          origin: new edge.S3Origin(bucket),
+          functionAssociations: [
+            {
+              function: fn,
+              eventType: edge.FunctionEventType.VIEWER_REQUEST,
+            },
+          ],
+        },
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).not.toThrow();
+    Annotations.fromStack(stack).hasWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
+  });
+  test("skipPublishCheck: true suppresses the unpublished-function warning", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "unpublished",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    // WHEN - the caller acknowledges that publication is managed elsewhere
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: fn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+            skipPublishCheck: true,
+          },
+        ],
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).not.toThrow();
+    Annotations.fromStack(stack).hasNoWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
+  });
+  test("skipPublishCheck only suppresses the acknowledged association, not others", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const acknowledgedFn = new edge.Function(stack, "AcknowledgedFn", {
+      nameSuffix: "acknowledged",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    const unacknowledgedFn = new edge.Function(stack, "UnacknowledgedFn", {
+      nameSuffix: "unacknowledged",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    // WHEN - only the first association acknowledges out-of-band publication
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: acknowledgedFn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+            skipPublishCheck: true,
+          },
+          {
+            function: unacknowledgedFn,
+            eventType: edge.FunctionEventType.VIEWER_RESPONSE,
+          },
+        ],
+      },
+    });
+    // THEN - synth first so the lazily-rendered behaviors emit their warnings
+    Template.fromStack(stack);
+    const annotations = Annotations.fromStack(stack);
+    annotations.hasWarnings({
+      message: /unpublishedFunctionAssociation.*UnacknowledgedFn/,
+    });
+    annotations.hasNoWarnings({
+      message: /unpublishedFunctionAssociation.*AcknowledgedFn/,
+    });
+  });
+  test("Should still warn for a late-pushed association with an unpublished function", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "late-unpublished",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: false,
+    });
+    const functionAssociations: edge.FunctionAssociation[] = [];
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations,
+      },
+    });
+    // Pushed onto the caller-held array *after* construction - the warning
+    // check must still see it, since it is deferred to synth time.
+    functionAssociations.push({
+      function: fn,
+      eventType: edge.FunctionEventType.VIEWER_REQUEST,
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).not.toThrow();
+    Annotations.fromStack(stack).hasWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
+  });
+  test("Should allow associating a function created with autoPublish: true (default)", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    const fn = new edge.Function(stack, "Fn", {
+      nameSuffix: "published",
+      code: edge.FunctionCode.fromInline("whatever"),
+      autoPublish: true,
+    });
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: fn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).not.toThrow();
+    Annotations.fromStack(stack).hasNoWarnings({
+      message: /unpublishedFunctionAssociation/,
+    });
+  });
+  test("Should not reject an imported (non-Function) IFunction association", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "Bucket", {
+      namePrefix: "bucket",
+      cloudfrontAccess: {
+        enabled: true,
+      },
+    });
+    // An imported/general IFunction implementation is unverifiable and
+    // therefore must not be rejected, even though it can't be proven to be
+    // published to the LIVE stage.
+    // NOTE: edge.Function has no static import method yet (see the
+    // `TODO: Add static fromLookup?` in src/aws/edge/function.ts); when one
+    // is added, switch this cast to use it.
+    const importedFn: edge.IFunction = {
+      functionArn:
+        "arn:aws:cloudfront::123456789012:function/imported-function",
+    } as unknown as edge.IFunction;
+    // WHEN
+    new edge.Distribution(stack, "HelloWorldDistribution", {
+      defaultBehavior: {
+        origin: new edge.S3Origin(bucket),
+        functionAssociations: [
+          {
+            function: importedFn,
+            eventType: edge.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+    });
+    // THEN
+    expect(() => {
+      Template.fromStack(stack);
+    }).not.toThrow();
+    Annotations.fromStack(stack).hasNoWarnings({
+      message: /unpublishedFunctionAssociation/,
     });
   });
   test("Should support custom Response Header Policy", () => {

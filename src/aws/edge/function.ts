@@ -10,12 +10,27 @@ import {
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-cloudfront/lib/function.ts
 
+const EDGE_FUNCTION_SYMBOL = Symbol.for(
+  "terraconstructs/lib/aws/edge.Function",
+);
+
 /**
  * Represents the function's source code
  */
 export abstract class FunctionCode {
   /**
    * Inline code for function
+   *
+   * Note: unlike `fromFile`, this does NOT escape `${` sequences in the
+   * provided `code`. The string is emitted verbatim into the synthesized
+   * Terraform JSON, where cdktn tokens resolve during synth and any remaining
+   * `${...}` sequences are then interpreted by Terraform as interpolation
+   * expressions at plan time. This is intentional, since inline code is
+   * frequently built up using template literals/tokens. If your inline code
+   * legitimately contains a literal `${` (e.g. JavaScript template literal
+   * syntax used by the CloudFront Function itself), escape it as `$${`
+   * before passing it in.
+   *
    * @returns code object with inline code.
    * @param code The actual function code
    */
@@ -175,6 +190,17 @@ export interface FunctionProps extends AwsConstructProps {
  */
 export class Function extends AwsConstructBase implements IFunction {
   // TODO: Add static fromLookup?
+
+  /**
+   * Return whether the given object is a Function.
+   *
+   * Uses a symbol-based runtime check instead of `instanceof` so the
+   * identification survives duplicate copies of this library (e.g. multiple
+   * installed versions), matching `AwsStack.isAwsStack`/`Role.isRole`.
+   */
+  public static isFunction(x: any): x is Function {
+    return x !== null && typeof x === "object" && EDGE_FUNCTION_SYMBOL in x;
+  }
   public readonly resource: cloudfrontFunction.CloudfrontFunction;
 
   private readonly _outputs: FunctionOutputs;
@@ -204,6 +230,17 @@ export class Function extends AwsConstructBase implements IFunction {
    * @attribute
    */
   public readonly functionRuntime: string;
+
+  /**
+   * Whether this function is automatically published to the LIVE stage on
+   * creation. CloudFront only allows LIVE-stage functions to be associated
+   * with a distribution's cache behaviors, so consumers (e.g. `Distribution`)
+   * use this to fail fast when a function that opted out of auto-publish is
+   * associated with a cache behavior.
+   *
+   * @internal
+   */
+  public readonly _autoPublish: boolean;
 
   constructor(scope: Construct, id: string, props: FunctionProps) {
     super(scope, id, props);
@@ -235,11 +272,13 @@ export class Function extends AwsConstructBase implements IFunction {
       );
     }
 
+    this._autoPublish = props.autoPublish ?? true;
+
     this.resource = new cloudfrontFunction.CloudfrontFunction(
       this,
       "Resource",
       {
-        publish: props.autoPublish ?? true,
+        publish: this._autoPublish,
         code: props.code.render(),
         comment: props.comment ?? this.functionName,
         runtime: this.functionRuntime,
@@ -247,6 +286,15 @@ export class Function extends AwsConstructBase implements IFunction {
           ? [props.keyValueStore.arn]
           : undefined,
         name: this.functionName,
+        // CloudFront Functions cannot be deleted while still associated with
+        // a distribution's cache behavior. When a name change forces
+        // replacement, destroy-before-create would fail with a
+        // `FunctionInUse` error, so the replacement function must be created
+        // (and the distribution updated to reference it) before the old one
+        // is destroyed.
+        lifecycle: {
+          createBeforeDestroy: true,
+        },
       },
     );
 
@@ -287,6 +335,18 @@ export interface FunctionAssociation {
 
   /** The type of event which should invoke the function. */
   readonly eventType: FunctionEventType;
+
+  /**
+   * Set this ONLY IF this function's publication to the LIVE stage is managed outside of this
+   * stack (e.g. by a pipeline or a later apply that flips autoPublish). You are acknowledging
+   * that the distribution will fail to deploy if the function is not LIVE at apply time.
+   *
+   * Has no effect for imported functions - they are never checked, since whether or not they
+   * are published is not knowable from an `IFunction` reference.
+   *
+   * @default false
+   */
+  readonly skipPublishCheck?: boolean;
 }
 
 /**
@@ -304,3 +364,9 @@ export enum FunctionRuntime {
    */
   JS_2_0 = "cloudfront-js-2.0",
 }
+
+Object.defineProperty(Function.prototype, EDGE_FUNCTION_SYMBOL, {
+  value: true,
+  enumerable: false,
+  writable: false,
+});
