@@ -72,6 +72,17 @@ export interface SqsEventSourceProps {
    * @default - No specific limit.
    */
   readonly maxConcurrency?: number;
+
+  /**
+   * Configuration for provisioned pollers that read from the event source.
+   * When specified, allows control over the minimum and maximum number of
+   * pollers that can be provisioned to process events from the queue.
+   *
+   * @see https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
+   *
+   * @default - no provisioned pollers
+   */
+  readonly provisionedPollerConfig?: compute.ProvisionedPollerConfig;
 }
 
 /**
@@ -119,6 +130,36 @@ export class SqsEventSource implements compute.IEventSource {
         );
       }
     }
+    if (this.props.provisionedPollerConfig) {
+      if (this.props.maxConcurrency !== undefined) {
+        throw new Error(
+          "provisionedPollerConfig and maxConcurrency are mutually exclusive — specify only one",
+        );
+      }
+
+      const { minimumPollers, maximumPollers } =
+        this.props.provisionedPollerConfig;
+      const hasMin =
+        minimumPollers !== undefined && !Token.isUnresolved(minimumPollers);
+      const hasMax =
+        maximumPollers !== undefined && !Token.isUnresolved(maximumPollers);
+
+      if (hasMin && (minimumPollers < 2 || minimumPollers > 200)) {
+        throw new Error(
+          `Minimum provisioned pollers for SQS must be between 2 and 200 inclusive, got: ${minimumPollers}`,
+        );
+      }
+      if (hasMax && (maximumPollers < 2 || maximumPollers > 2000)) {
+        throw new Error(
+          `Maximum provisioned pollers for SQS must be between 2 and 2000 inclusive, got: ${maximumPollers}`,
+        );
+      }
+      if (hasMin && hasMax && minimumPollers > maximumPollers) {
+        throw new Error(
+          `Minimum provisioned pollers must be less than or equal to maximum provisioned pollers, got: min=${minimumPollers}, max=${maximumPollers}`,
+        );
+      }
+    }
   }
 
   public bind(target: compute.IFunction) {
@@ -133,6 +174,7 @@ export class SqsEventSource implements compute.IEventSource {
         eventSourceArn: this.queue.queueArn,
         filters: this.props.filters,
         filterEncryption: this.props.filterEncryption,
+        provisionedPollerConfig: this.props.provisionedPollerConfig,
       },
     );
     this._eventSourceMappingId = eventSourceMapping.eventSourceMappingId;
