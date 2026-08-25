@@ -2,7 +2,7 @@
 
 import * as os from "os";
 import * as path from "path";
-import { Annotations } from "cdktn";
+import { Annotations, AssetHashType, AssetStaging } from "cdktn";
 import { IConstruct } from "constructs";
 import { Architecture, AssetCode, Code, Runtime } from "..";
 import { PackageInstallation } from "./package-installation";
@@ -15,8 +15,6 @@ import {
   getTsconfigCompilerOptions,
   isSdkV2Runtime,
 } from "./util";
-import { AssetStaging } from "../../../asset-staging";
-import { AssetHashType } from "../../../assets";
 import {
   BundlingFileAccess,
   BundlingOptions as CoreBundlingOptions,
