@@ -129,6 +129,18 @@ export class RotationSchedule extends AwsConstructBase {
       );
     }
 
+    // TERRACONSTRUCTS DEVIATION: once a rotation schedule owns this secret's
+    // value, the rotation Lambda replaces AWSCURRENT out-of-band. The secret
+    // must stop enforcing its Terraform-held initial version (see
+    // `Secret._markRotationAttached`), or the next `terraform apply` would
+    // clobber the rotated credentials with the stale initial value and every
+    // plan would report drift. Upstream CloudFormation never reads the value
+    // back, so it has no equivalent problem. Duck-typed (no import) to avoid
+    // a module cycle with ./secret; no-ops for imported secrets.
+    (
+      props.secret as unknown as { _markRotationAttached?: () => void }
+    )._markRotationAttached?.();
+
     if (props.rotationLambda?.permissionsNode.defaultChild) {
       if (props.secret.encryptionKey) {
         props.secret.encryptionKey.grantEncryptDecrypt(

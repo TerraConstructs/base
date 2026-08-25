@@ -29,6 +29,7 @@ import {
 } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
 import * as iam from "../iam";
+import { escapeTerraformTemplateLiteral } from "../util";
 
 const SECRET_SYMBOL = Symbol.for("terraconstructs/aws/encryption.Secret");
 
@@ -712,6 +713,11 @@ export class Secret extends SecretBase {
    * conflicting second `AWSCURRENT` version for the same secret.
    */
   private secretVersion?: secretsmanagerSecretVersion.SecretsmanagerSecretVersion;
+  /**
+   * Set by `_markRotationAttached()` when a `RotationSchedule` takes ownership
+   * of this secret's value (see `toTerraform`).
+   */
+  private rotationAttached = false;
 
   protected readonly autoCreatePolicy = true;
   // TODO: Use Ephemeral Resources as soon as Hashicorp decides to update CDKTF T_T
@@ -780,7 +786,17 @@ export class Secret extends SecretBase {
             includeSpace: generateSecretString.includeSpace ?? false,
             requireEachIncludedType:
               generateSecretString.requireEachIncludedType ?? true,
-            excludeCharacters: generateSecretString.excludeCharacters,
+            // TERRACONSTRUCTS DEVIATION: `excludeCharacters` is free text
+            // written into a Terraform resource argument, where `${`/`%{`
+            // are interpreted as template directives -- escape it so
+            // synthesis stays valid Terraform. See
+            // `escapeTerraformTemplateLiteral` in `src/aws/util.ts`.
+            excludeCharacters:
+              generateSecretString.excludeCharacters !== undefined
+                ? escapeTerraformTemplateLiteral(
+                    generateSecretString.excludeCharacters,
+                  )
+                : undefined,
           },
         );
 
@@ -950,8 +966,47 @@ export class Secret extends SecretBase {
    * Mirrors the idempotent `toTerraform()` pattern used by `iam/policy.ts`.
    */
   public toTerraform(): any {
-    this.getOrCreateSecretVersion();
+    const version = this.getOrCreateSecretVersion();
+    // TERRACONSTRUCTS DEVIATION: two cases must stop Terraform from enforcing
+    // the version's secret_string; both are CloudFormation-parity fixes
+    // live-verified by drift oracles (integ/aws/encryption TestSecretRotation,
+    // integ/aws/storage TestRdsGroups):
+    // 1. generateSecretString: implemented via the aws_secretsmanager_random_password
+    //    DATA SOURCE, which generates a NEW password on every plan/refresh.
+    //    Without ignore_changes every plan drifts and every apply REPLACES the
+    //    live password. CloudFormation generates once server-side at create
+    //    and never reads the value back -- parity means freezing the initial
+    //    generated value (changing generation options intentionally does not
+    //    regenerate; that is exactly CFN's behavior, see
+    //    DatabaseSecret.replaceOnPasswordCriteriaChanges).
+    // 2. rotation attached: the rotation Lambda replaces AWSCURRENT
+    //    out-of-band -- the Terraform-held initial value is stale by design;
+    //    without ignore_changes the next apply would clobber the rotated
+    //    credentials.
+    const ignoreChanges: string[] = [];
+    if (this.randomPassword) {
+      ignoreChanges.push("secret_string");
+    }
+    if (this.rotationAttached) {
+      if (!ignoreChanges.includes("secret_string")) {
+        ignoreChanges.push("secret_string");
+      }
+      ignoreChanges.push("version_stages");
+    }
+    if (ignoreChanges.length > 0) {
+      version.addOverride("lifecycle.ignore_changes", ignoreChanges);
+    }
     return {};
+  }
+
+  /**
+   * Marks this secret as owned by a rotation schedule so the initial version
+   * stops enforcing its value (see `toTerraform`). Called (duck-typed) by
+   * `RotationSchedule`.
+   * @internal
+   */
+  public _markRotationAttached(): void {
+    this.rotationAttached = true;
   }
 
   /**
@@ -1227,6 +1282,18 @@ export class SecretTargetAttachment
     statement: iam.PolicyStatement,
   ): iam.AddToResourcePolicyResult {
     return this.attachedSecret.addToResourcePolicy(statement);
+  }
+
+  /**
+   * Forwards rotation-ownership marking to the attached secret (rotation
+   * schedules are commonly created on the attachment -- see
+   * `Secret._markRotationAttached`).
+   * @internal
+   */
+  public _markRotationAttached(): void {
+    if (Secret.isSecret(this.attachedSecret)) {
+      (this.attachedSecret as Secret)._markRotationAttached();
+    }
   }
 }
 
