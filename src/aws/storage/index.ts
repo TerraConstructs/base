@@ -42,3 +42,6 @@ export * as rds from "./rds";
 
 // aws-docdb
 export * as docdb from "./docdb";
+
+// aws-elasticache-alpha
+export * as elasticache from "./elasticache";
