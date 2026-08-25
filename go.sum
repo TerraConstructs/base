@@ -46,6 +46,8 @@ github.com/aws/aws-sdk-go-v2/service/applicationautoscaling v1.41.9 h1:QoVH26Oz0
 github.com/aws/aws-sdk-go-v2/service/applicationautoscaling v1.41.9/go.mod h1:cEODDbhXiLzTqklqGNKe/VQWW4F551+Jo6BEfL1dYQc=
 github.com/aws/aws-sdk-go-v2/service/autoscaling v1.51.0 h1:1KzQVZi7OTixxaVJ8fWaJAUBjme+iQ3zBOCZhE4RgxQ=
 github.com/aws/aws-sdk-go-v2/service/autoscaling v1.51.0/go.mod h1:I1+/2m+IhnK5qEbhS3CrzjeiVloo9sItE/2K+so0fkU=
+github.com/aws/aws-sdk-go-v2/service/backup v1.60.0 h1:VLP4QZIlp/WkUfKCiju0vxHd0bhQwRf9EF6Hi3+v4gc=
+github.com/aws/aws-sdk-go-v2/service/backup v1.60.0/go.mod h1:QLSwdpaVsnD2HFCdLq3EGh5Op3M2BloVkFqjh5SOmDg=
 github.com/aws/aws-sdk-go-v2/service/batch v1.68.2 h1:Ngy4smx6Fl429OyEdB7cpUI4C6ZKngmY6P3kKcGWVWo=
 github.com/aws/aws-sdk-go-v2/service/batch v1.68.2/go.mod h1:g5szqfCT3pGgkAS2risOA5p5ocpIss7ykS2OuiZdhJg=
 github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3 h1:/nyo0QD97D5VQQL/UE+rKGNKz+BesiqJgjdmp0qtTOQ=
