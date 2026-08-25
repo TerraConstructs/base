@@ -40,6 +40,8 @@ import type {
   SnapshotCredentials,
 } from "./props";
 import { Credentials, PerformanceInsightRetention } from "./props";
+import type { DatabaseProxyOptions } from "./proxy";
+import { DatabaseProxy, ProxyTarget } from "./proxy";
 import type { ISubnetGroup } from "./subnet-group";
 import { SubnetGroup } from "./subnet-group";
 import { validateDatabaseClusterProps } from "./validate-database-insights";
@@ -746,10 +748,15 @@ export abstract class DatabaseClusterBase
     });
   }
 
-  // TODO: omitted — upstream also declares `addProxy(id, options): DatabaseProxy` here.
-  // `DatabaseProxy`/`./proxy` is not ported yet (RDS PR 2e) — same deferral as
-  // `DatabaseInstanceBase.addProxy` in `./instance.ts` —
-  // https://github.com/aws/aws-cdk/blob/v2.263.0/packages/aws-cdk-lib/aws-rds/lib/cluster.ts#L677-L685
+  /**
+   * Add a new db proxy to this cluster.
+   */
+  public addProxy(id: string, options: DatabaseProxyOptions): DatabaseProxy {
+    return new DatabaseProxy(this, id, {
+      proxyTarget: ProxyTarget.fromCluster(this),
+      ...options,
+    });
+  }
 
   /**
    * Renders the secret attachment target specifications.
