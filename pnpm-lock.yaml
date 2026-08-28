@@ -36,6 +36,9 @@ importers:
       '@cdktn/provider-aws':
         specifier: 25.7.1
         version: 25.7.1(cdktn@0.24.0(constructs@10.7.2))(constructs@10.7.2)
+      '@cdktn/provider-cfncompat':
+        specifier: 1.0.0
+        version: 1.0.0(cdktn@0.24.0(constructs@10.7.2))(constructs@10.7.2)
       '@cdktn/provider-cloudinit':
         specifier: 14.0.0
         version: 14.0.0(cdktn@0.24.0(constructs@10.7.2))(constructs@10.7.2)
@@ -395,6 +398,13 @@ packages:
 
   '@cdktn/provider-aws@25.7.1':
     resolution: {integrity: sha512-wfla2Yo3Xez6ed2qXg87EHwo0UuUBXG7DqiVeYaZxOTbG7BJl4p7GEvacWjmcronLyZO+POz9eWyy2OCrou0SQ==}
+    engines: {node: '>= 22.11.0'}
+    peerDependencies:
+      cdktn: ^0.24.0
+      constructs: '>=10.6.0 <10.8.0'
+
+  '@cdktn/provider-cfncompat@1.0.0':
+    resolution: {integrity: sha512-kgymIq3FQ8Rqe1MYYbCgB+ZXN9d8wlyIXhd01GejKTaSh6ru6MIdv9AwUSJl+bJOnDVKqGluj5nLq2zEreo7vA==}
     engines: {node: '>= 22.11.0'}
     peerDependencies:
       cdktn: ^0.24.0
@@ -3858,6 +3868,11 @@ snapshots:
       constructs: 10.7.2
 
   '@cdktn/provider-aws@25.7.1(cdktn@0.24.0(constructs@10.7.2))(constructs@10.7.2)':
+    dependencies:
+      cdktn: 0.24.0(constructs@10.7.2)
+      constructs: 10.7.2
+
+  '@cdktn/provider-cfncompat@1.0.0(cdktn@0.24.0(constructs@10.7.2))(constructs@10.7.2)':
     dependencies:
       cdktn: 0.24.0(constructs@10.7.2)
       constructs: 10.7.2
