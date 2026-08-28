@@ -1,8 +1,6 @@
-// Provenance: ~/cdktn/s3-notifications-harness/cdktn/main.ts (CONTRACT.md's three-stack
-// scenario), ported onto the cfncompat custom-resource bucket notifications support in
-// `src/aws/storage/bucket-notifications-resource.ts`. Three stacks (a/b/c) each add their
-// own notification entry (filtered by their own prefix) to one shared bucket, owned by
-// stack a and only ever imported (`Bucket.fromBucketName`) by b/c - exercising the
+// No upstream integ equivalent: three stacks (a/b/c) each add their own prefix-filtered
+// notification entry to one shared bucket, owned by stack a and only ever imported
+// (`Bucket.fromBucketName`) by b/c, exercising `BucketNotificationsResource` and the
 // `@terraconstructs/aws-s3:keepNotificationInImportedBucket` context key end to end.
 import { App, LocalBackend, TerraformOutput } from "cdktn";
 import { Construct } from "constructs";
@@ -19,8 +17,8 @@ if (!suffix) {
   );
 }
 
-// Shared bucket name every stack derives independently from SUFFIX - b/c never read a's
-// outputs, matching CONTRACT.md's cross-stack contract.
+// Shared bucket name every stack derives independently from SUFFIX: b/c never read a's
+// outputs, so the stacks stay genuinely independent.
 const bucketName = `s3n-${suffix}`;
 
 type Owner = "a" | "b" | "c";
@@ -103,8 +101,8 @@ exports.handler = async (event) => {
     { prefix: `${owner}/` },
   );
 
-  // Flat outputs (not `registerOutputs`, which emits one nested object output) so the
-  // terraform output ids are exactly what CONTRACT.md/terratest expects.
+  // Flat outputs (not `registerOutputs`, which emits one nested object output) so
+  // terratest can read each id directly with `terraform.Output`.
   new TerraformOutput(stack, "bucket_name", { value: bucketName, staticId: true });
   new TerraformOutput(stack, "lambda_arn", { value: fn.functionArn, staticId: true });
   new TerraformOutput(stack, "queue_url", { value: queue.queueUrl, staticId: true });

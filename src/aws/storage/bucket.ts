@@ -970,24 +970,24 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
   /**
    * Adds a bucket notification event destination.
    *
-   * S3 Buckets only support a single notification configuration resource.
-   * Declaring multiple `aws_s3_bucket_notification` resources to the same
-   * S3 Bucket will cause a perpetual difference in configuration.
-   *
-   * Calling this function will overwrite any existing event notifications configured
-   * for the S3 bucket outside of this beacon.
-   *
    * For a bucket owned by this stack, notifications are managed by a native
-   * `aws_s3_bucket_notification` resource by default. Set the
-   * `"@terraconstructs/aws-s3:keepNotificationInImportedBucket"` app/stack
-   * context key to a truthy value (via `node.tryGetContext`) to manage them
-   * instead through a `Custom::S3BucketNotifications` custom resource, the
-   * same mechanism always used for an imported bucket - this lets other
-   * stacks add their own notification entries to the bucket without
-   * clobbering this stack's. Switching an existing owned bucket to the
-   * custom resource is a migration step: the native resource's destroy wipes
-   * the whole notification configuration, unordered against the custom
-   * resource's Put.
+   * `aws_s3_bucket_notification` resource by default. S3 supports only one
+   * notification configuration per bucket, so that resource owns the whole
+   * configuration: it overwrites any notification configured for this bucket
+   * outside this stack, and declaring a second `aws_s3_bucket_notification`
+   * against the same bucket causes a perpetual difference.
+   *
+   * Set the `"@terraconstructs/aws-s3:keepNotificationInImportedBucket"`
+   * app/stack context key to a truthy value to manage notifications through a
+   * `Custom::S3BucketNotifications` custom resource instead - the mechanism an
+   * imported bucket always uses. The custom resource merges this stack's own
+   * entries into whatever the bucket already has, so several stacks can add
+   * notifications to one bucket without clobbering each other.
+   *
+   * Switching an already-deployed owned bucket to the custom resource is a
+   * migration step, not a no-op: destroying the native resource wipes the
+   * whole notification configuration, unordered against the custom resource's
+   * Put.
    *
    * @param event The event to trigger the notification
    * @param dest The notification destination (Lambda, SNS Topic or SQS Queue)
@@ -1020,21 +1020,12 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
 
   /**
    * Picks the notification implementation for this bucket and invokes `cb`
-   * with it, creating it on first use.
+   * with it, creating it on first use. See `addEventNotification` for the
+   * trade-off between the two implementations.
    *
-   * Imported buckets (`this` is not a `Bucket`) always use
-   * `BucketNotificationsResource` (the `Custom::S3BucketNotifications`
-   * custom resource) - it is the only way to add notifications to a bucket
-   * this stack does not own. Owned buckets use the native
-   * `aws_s3_bucket_notification` resource by default, and switch to the
-   * custom resource when the
-   * `@terraconstructs/aws-s3:keepNotificationInImportedBucket` context key
-   * (see `cx-api.ts`) is truthy, e.g. so an owning stack can share its
-   * bucket with other stacks the way an imported bucket would.
-   *
-   * Switching an existing *owned* bucket from native to custom resource is a
-   * migration step: the native resource's destroy wipes the whole
-   * notification configuration, unordered against the custom resource's Put.
+   * An imported bucket (`this` is not a `Bucket`) always uses the custom
+   * resource: it is the only way to add notifications to a bucket this stack
+   * does not own, since Terraform manages no resource for it.
    */
   private withNotifications(
     cb: (

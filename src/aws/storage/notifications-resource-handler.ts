@@ -7,15 +7,12 @@ import * as compute from "../compute";
 import { CustomResourceHandler } from "../custom-resource-handler";
 import * as iam from "../iam";
 
-// TERRACONSTRUCTS DEVIATION: upstream loads the handler source from
-// `<aws-cdk-lib>/custom-resource-handlers/dist/aws-s3/notifications-resource-handler/index.py`
-// (a build asset shipped alongside the aws-cdk-lib package) via
-// `fs.readFileSync(path.join(__dirname, ...))`. That asset pipeline is not part of this
-// package, so the (unmodified) handler source is inlined here instead - precedent:
-// `src/aws/compute/ecs/drain-hook/instance-drain-hook.ts`. Behavior is identical to
-// upstream. Unlike upstream, we do NOT strip comment lines before embedding: that
-// stripping exists only to fit CloudFormation's 4 KiB inline `ZipFile` limit, which does
-// not apply here (`Code.fromInline` renders a `data.archive_file`, not a CFN `ZipFile`).
+// TERRACONSTRUCTS DEVIATION: upstream reads this handler from an aws-cdk-lib build asset
+// (`custom-resource-handlers/dist/aws-s3/notifications-resource-handler/index.py`); that asset
+// pipeline does not exist here, so the source is inlined verbatim, as in
+// `src/aws/compute/ecs/drain-hook/instance-drain-hook.ts`. Upstream's comment-stripping is
+// also dropped: it only serves CloudFormation's 4 KiB inline `ZipFile` limit, and
+// `Code.fromInline` renders a `data.archive_file` instead.
 const HANDLER_SOURCE = `
 import boto3  # type: ignore
 import json

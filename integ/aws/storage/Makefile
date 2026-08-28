@@ -32,13 +32,10 @@ bucket-notifications-cross-stack: ## Test cross-stack S3 notifications via the c
 	go test -v -count 1 -timeout 45m ./... -run ^TestBucketNotificationsCrossStack$
 .PHONY: bucket-notifications-cross-stack
 
-# bucket-notifications-cross-stack has its own multi-stage stack sequence (synth_app,
-# deploy_a, validate_a, deploy_b, validate_ab, deploy_c, validate_abc, redeploy_a,
-# validate_abc_again, destroy_b, validate_ac, cleanup_terraform) instead of the
-# deploy_terraform/validate/cleanup_terraform stages the %-synth-only/-no-cleanup/
-# -validate-only/-cleanup-only patterns in ../../common.mk skip by name, so it needs its
-# own explicit overrides (an explicit target takes precedence over a `%` pattern rule
-# with the same stem) rather than the generic suffixes.
+# This test names its own stages (deploy_a, validate_ab, ...) rather than the
+# deploy_terraform/validate/cleanup_terraform stages ../../common.mk's %-synth-only and
+# friends skip by name, so it spells out its own suffix targets - an explicit target wins
+# over a `%` pattern rule with the same stem.
 bucket-notifications-cross-stack-synth-only: ## Synth only (no deploy/validate/cleanup) - runs without AWS creds
 	SKIP_deploy_a=true SKIP_validate_a=true SKIP_deploy_b=true SKIP_validate_ab=true \
 	SKIP_deploy_c=true SKIP_validate_abc=true SKIP_redeploy_a=true SKIP_validate_abc_again=true \

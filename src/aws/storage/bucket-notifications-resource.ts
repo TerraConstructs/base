@@ -187,10 +187,8 @@ export class BucketNotificationsResource extends AwsConstructBase {
         role: this.handlerRole,
       });
 
-      // Every bucket handled by this construct is always treated as unmanaged
-      // (see the class doc): the handler always needs to both read the
-      // bucket's existing notification configuration to merge into, and
-      // write the merged result back.
+      // Unmanaged mode (see the class doc) merges, so the handler needs to read
+      // the bucket's existing configuration as well as write the merged result.
       handler.addToRolePolicy(
         new iam.PolicyStatement({
           actions: ["s3:PutBucketNotification"],
@@ -207,6 +205,8 @@ export class BucketNotificationsResource extends AwsConstructBase {
       this.resource = new CustomResource(this, "Resource", {
         resourceType: "Custom::S3BucketNotifications",
         serviceToken: handler.functionArn,
+        // Matches the handler's own Lambda timeout: the custom resource must not
+        // give up before the function it is waiting on does.
         serviceTimeout: Duration.seconds(300),
         properties: {
           BucketName: this.bucket.bucketName,

@@ -21,8 +21,6 @@ import { Arn, ArnComponents, ArnFormat } from "./arn";
 import { CfncompatProviderConfig } from "./cfncompat-provider-config.generated";
 import * as cxapi from "./cx-api";
 import { AwsProviderConfig } from "./provider-config.generated";
-// Type-only: `storage/bucket.ts` imports `AwsStack`, so a value import here
-// would be circular. The `Bucket` class itself is required lazily, below.
 import { IAssetManager } from "../asset-manager";
 import {
   DockerImageAssetLocation,
@@ -36,6 +34,8 @@ import { toTerraformIdentifier } from "./util";
 import { ValidationError } from "../errors";
 import { deployTimeLookup } from "./region-lookup";
 import { SKIP_DEPENDENCY_PROPAGATION } from "../private/terraform-dependables-aspect";
+// Type-only: `storage/bucket.ts` imports `AwsStack`, so a value import here would be
+// circular; `customResourceResponseBucket` requires the class lazily instead.
 import type { Bucket } from "./storage/bucket";
 // import { TagType } from "./aws-construct";
 // import { TagManager, ITaggableV2 } from "./tag-manager";
@@ -286,21 +286,22 @@ export class AwsStack extends StackBase implements IAwsStack {
    * `CustomResource`s in this stack (the pre-signed PUT/GET URL the handler
    * uses to deliver its response).
    *
-   * Lazily created on first access. Returns `undefined` when the
-   * `cfncompatProviderConfig.customResourceBucket` was set, deferring to
-   * the provider's own default bucket instead.
+   * Lazily created on first access. Returns `undefined` when
+   * `cfncompatProviderConfig.customResourceBucket` is set, deferring to the
+   * provider's own default bucket instead.
    */
   public get customResourceResponseBucket(): Bucket | undefined {
     if (this._cfncompatProviderConfig?.customResourceBucket) {
       return undefined;
     }
     if (!this.customResourceResponseBucketSingleton) {
-      // Lazy import to avoid circular import dependencies during startup
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const bucketModule: typeof import("./storage/bucket") = require("./storage/bucket");
       this.customResourceResponseBucketSingleton = new bucketModule.Bucket(
         this,
         "CustomResourceResponsesBucket",
+        // force_destroy: response objects are written by handlers at apply time
+        // and are not tracked in state, so destroy would fail on a non-empty bucket.
         { forceDestroy: true },
       );
     }

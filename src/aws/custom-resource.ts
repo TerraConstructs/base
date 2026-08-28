@@ -173,6 +173,9 @@ export class CustomResource
         resourceType: type,
         resourceProperties: properties,
         serviceTimeout: props.serviceTimeout?.toSeconds(),
+        // The notifications handler (and any other unmanaged handler) uses
+        // `StackId` to tell its own entries from other stacks', so it must be
+        // stable across applies - gridUUID is, the construct path is not.
         stackId: this.stack.gridUUID,
         logicalResourceId: this.stack.uniqueResourceName(this),
         responseBucket:

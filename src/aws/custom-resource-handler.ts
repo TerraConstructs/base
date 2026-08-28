@@ -1,4 +1,4 @@
-// https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-s3/lib/notifications-resource/notifications-resource-handler.ts
+// https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-s3/lib/notifications-resource/notifications-resource-handler.ts
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "./aws-construct";
 import { AwsStack } from "./aws-stack";
