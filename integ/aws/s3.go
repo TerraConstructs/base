@@ -70,3 +70,21 @@ func GetS3BucketNotificationE(t testing.TestingT, region string, bucketName stri
 		Bucket: &bucketName,
 	})
 }
+
+// GetS3BucketNotificationLambdaArns fetches the given bucket's notification
+// configuration and returns the set of `LambdaFunctionArn`s currently configured on it -
+// e.g. to assert a cross-stack `Custom::S3BucketNotifications` merge (see
+// `BucketNotificationsResource`) landed the entries several stacks contributed, and
+// only those, without asserting a single stack's exact ordering of the others'.
+func GetS3BucketNotificationLambdaArns(t testing.TestingT, region string, bucketName string) map[string]bool {
+	config, err := GetS3BucketNotificationE(t, region, bucketName)
+	require.NoError(t, err)
+
+	arns := make(map[string]bool, len(config.LambdaFunctionConfigurations))
+	for _, c := range config.LambdaFunctionConfigurations {
+		if c.LambdaFunctionArn != nil {
+			arns[*c.LambdaFunctionArn] = true
+		}
+	}
+	return arns
+}

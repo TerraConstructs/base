@@ -2,12 +2,14 @@
   "name": "integ-aws-storage",
   "type": "module",
   "scripts": {
-    "bucket-notifications": "bun run ./bucket-notifications.ts"
+    "bucket-notifications": "bun run ./bucket-notifications.ts",
+    "bucket-notifications-cross-stack": "bun run ./bucket-notifications-cross-stack.ts"
   },
   "dependencies": {
-    "cdktn": "^0.23.0",
-    "constructs": "^10.6.0",
-    "@cdktn/provider-aws": "^24.8.0",
+    "cdktn": "^0.24.0",
+    "constructs": ">=10.7.2 <10.8.0",
+    "@cdktn/provider-aws": "^25.0.0",
+    "@cdktn/provider-cfncompat": "^1.0.0",
     "@types/aws-lambda": "^8.10.76"
   },
   "devDependencies": {

@@ -1,12 +1,20 @@
 import { mkdtempSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
+import { s3BucketNotification } from "@cdktn/provider-aws";
+import { customResource } from "@cdktn/provider-cfncompat";
 import { App, HttpBackend, Testing, TerraformLocal } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws/aws-stack";
 import * as iam from "../../../src/aws/iam";
 import * as storage from "../../../src/aws/storage";
 import { Template } from "../../assertions";
+
+// The literal context key from `src/aws/cx-api.ts`
+// (`S3_KEEP_NOTIFICATION_IN_IMPORTED_BUCKET`). Not imported directly: cx-api.ts is not
+// part of the public API (see `addEventNotification`'s JSDoc, which documents this key).
+const KEEP_NOTIFICATION_IN_IMPORTED_BUCKET =
+  "@terraconstructs/aws-s3:keepNotificationInImportedBucket";
 
 const gridBackendConfig = {
   address: "http://localhost:3000",
@@ -746,6 +754,69 @@ describe("Bucket", () => {
         },
       },
     });
+  });
+
+  test("addEventNotification on an imported bucket uses the custom resource", () => {
+    // GIVEN
+    const bucket = storage.Bucket.fromBucketName(stack, "MyBucket", "foo-bar");
+
+    // WHEN
+    bucket.addEventNotification(storage.EventType.OBJECT_CREATED, {
+      bind: () => ({
+        arn: "ARN",
+        type: storage.BucketNotificationDestinationType.TOPIC,
+      }),
+    });
+
+    // THEN - no native aws_s3_bucket_notification resource for an imported
+    // bucket, only the Custom::S3BucketNotifications custom resource - it is
+    // the only way to add notifications to a bucket this stack does not own.
+    const template = new Template(stack);
+    template.resourceCountIs(s3BucketNotification.S3BucketNotification, 0);
+    template.resourceCountIs(customResource.CustomResource, 1);
+  });
+
+  test("addEventNotification on an owned bucket uses aws_s3_bucket_notification by default", () => {
+    // GIVEN
+    const bucket = new storage.Bucket(stack, "MyBucket");
+
+    // WHEN
+    bucket.addEventNotification(storage.EventType.OBJECT_CREATED, {
+      bind: () => ({
+        arn: "ARN",
+        type: storage.BucketNotificationDestinationType.TOPIC,
+      }),
+    });
+
+    // THEN
+    const template = new Template(stack);
+    template.resourceCountIs(s3BucketNotification.S3BucketNotification, 1);
+    template.resourceCountIs(customResource.CustomResource, 0);
+  });
+
+  test("addEventNotification on an owned bucket uses the custom resource when the keepNotificationInImportedBucket context key is set", () => {
+    // GIVEN - a fresh app/stack: `Node.setContext` refuses to set context
+    // once a scope already has children, and the shared `stack` from
+    // `beforeEach` already has the `HttpBackend` child attached.
+    const contextApp = Testing.app({
+      context: { [KEEP_NOTIFICATION_IN_IMPORTED_BUCKET]: true },
+    });
+    const contextStack = new AwsStack(contextApp);
+    new HttpBackend(contextStack, gridBackendConfig);
+    const bucket = new storage.Bucket(contextStack, "MyBucket");
+
+    // WHEN
+    bucket.addEventNotification(storage.EventType.OBJECT_CREATED, {
+      bind: () => ({
+        arn: "ARN",
+        type: storage.BucketNotificationDestinationType.TOPIC,
+      }),
+    });
+
+    // THEN
+    const template = new Template(contextStack);
+    template.resourceCountIs(s3BucketNotification.S3BucketNotification, 0);
+    template.resourceCountIs(customResource.CustomResource, 1);
   });
 });
 

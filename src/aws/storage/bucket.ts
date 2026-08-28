@@ -18,6 +18,7 @@ import { Lazy, Token } from "cdktn";
 import { Construct } from "constructs";
 import { IBucketNotificationDestination } from "./bucket-destination";
 import { BucketNotifications } from "./bucket-notifications";
+import { BucketNotificationsResource } from "./bucket-notifications-resource";
 import * as perms from "./bucket-perms";
 import { BucketPolicy } from "./bucket-policy";
 import { BucketSource, BucketSourceProps } from "./bucket-source";
@@ -25,14 +26,15 @@ import { CorsConfig } from "./cors-config.generated";
 import { LifecycleConfigurationRule } from "./lifecycle-config.generated";
 import { OriginAccessIdentity } from "./origin-access-identity";
 import { WebsiteConfig } from "./website-config.generated";
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import {
   AwsConstructBase,
   IAwsConstruct,
   AwsConstructProps,
 } from "../aws-construct";
 import { AwsStack } from "../aws-stack";
+import * as cxapi from "../cx-api";
 import { parseBucketName, parseBucketArn } from "./util";
-import { UnscopedValidationError, ValidationError } from "../../errors";
 import * as kms from "../encryption";
 import * as iam from "../iam";
 
@@ -121,13 +123,21 @@ export interface BucketAttributes {
    */
   readonly region?: string;
 
-  // TODO: Use Custom Resource for withNotifications() support
-  // /**
-  //  * The role to be used by the notifications handler
-  //  *
-  //  * @default - a new role will be created.
-  //  */
-  // readonly notificationsHandlerRole?: iam.IRole;
+  /**
+   * The role to be used by the notifications handler
+   *
+   * @default - a new role will be created.
+   */
+  readonly notificationsHandlerRole?: iam.IRole;
+
+  /**
+   * Skips notification validation of Amazon SQS, Amazon SNS, and Lambda
+   * destinations for the `Custom::S3BucketNotifications` custom resource
+   * this imported bucket always uses.
+   *
+   * @default false
+   */
+  readonly notificationsSkipDestinationValidation?: boolean;
 
   /**
    * Whether the bucket is public or not.
@@ -759,7 +769,7 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
   //  */
   // protected abstract disallowPublicAccess?: boolean;
 
-  private notifications?: BucketNotifications;
+  private notifications?: BucketNotifications | BucketNotificationsResource;
 
   protected notificationsHandlerRole?: iam.IRole;
 
@@ -967,6 +977,18 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
    * Calling this function will overwrite any existing event notifications configured
    * for the S3 bucket outside of this beacon.
    *
+   * For a bucket owned by this stack, notifications are managed by a native
+   * `aws_s3_bucket_notification` resource by default. Set the
+   * `"@terraconstructs/aws-s3:keepNotificationInImportedBucket"` app/stack
+   * context key to a truthy value (via `node.tryGetContext`) to manage them
+   * instead through a `Custom::S3BucketNotifications` custom resource, the
+   * same mechanism always used for an imported bucket - this lets other
+   * stacks add their own notification entries to the bucket without
+   * clobbering this stack's. Switching an existing owned bucket to the
+   * custom resource is a migration step: the native resource's destroy wipes
+   * the whole notification configuration, unordered against the custom
+   * resource's Put.
+   *
    * @param event The event to trigger the notification
    * @param dest The notification destination (Lambda, SNS Topic or SQS Queue)
    *
@@ -991,21 +1013,49 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
     dest: IBucketNotificationDestination,
     ...filters: NotificationKeyFilter[]
   ) {
-    // TODO: This blocks adding notifications outside of the Stack owning the bucket...
-    // AWS-CDK works around this by using a CustomResource handler (Lambda function) which modifies
-    // the bucket policy in place (and CFN does not manage the actual bucket policy, so no tf state!)
     this.withNotifications((notifications) =>
       notifications.addNotification(event, dest, ...filters),
     );
   }
 
-  private withNotifications(cb: (notifications: BucketNotifications) => void) {
-    // TODO: Use Custom Resources to manage bucket notifications outside of the stack
-    // handlerRole: this.notificationsHandlerRole,
+  /**
+   * Picks the notification implementation for this bucket and invokes `cb`
+   * with it, creating it on first use.
+   *
+   * Imported buckets (`this` is not a `Bucket`) always use
+   * `BucketNotificationsResource` (the `Custom::S3BucketNotifications`
+   * custom resource) - it is the only way to add notifications to a bucket
+   * this stack does not own. Owned buckets use the native
+   * `aws_s3_bucket_notification` resource by default, and switch to the
+   * custom resource when the
+   * `@terraconstructs/aws-s3:keepNotificationInImportedBucket` context key
+   * (see `cx-api.ts`) is truthy, e.g. so an owning stack can share its
+   * bucket with other stacks the way an imported bucket would.
+   *
+   * Switching an existing *owned* bucket from native to custom resource is a
+   * migration step: the native resource's destroy wipes the whole
+   * notification configuration, unordered against the custom resource's Put.
+   */
+  private withNotifications(
+    cb: (
+      notifications: BucketNotifications | BucketNotificationsResource,
+    ) => void,
+  ) {
     if (!this.notifications) {
-      this.notifications = new BucketNotifications(this, "Notifications", {
-        bucket: this,
-      });
+      const keepInImportedBucket = !!this.node.tryGetContext(
+        cxapi.S3_KEEP_NOTIFICATION_IN_IMPORTED_BUCKET,
+      );
+      this.notifications =
+        keepInImportedBucket || !(this instanceof Bucket)
+          ? new BucketNotificationsResource(this, "Notifications", {
+              bucket: this,
+              handlerRole: this.notificationsHandlerRole,
+              skipDestinationValidation:
+                this.notificationsSkipDestinationValidation,
+            })
+          : new BucketNotifications(this, "Notifications", {
+              bucket: this,
+            });
     }
     cb(this.notifications);
   }
@@ -1337,6 +1387,9 @@ export class Bucket extends BucketBase implements IBucket {
         attrs.bucketDualStackDomainName ||
         `${bucketName}.s3.dualstack.${region}.${urlSuffix}`;
       public readonly encryptionKey = attrs.encryptionKey;
+      protected notificationsHandlerRole = attrs.notificationsHandlerRole;
+      protected notificationsSkipDestinationValidation =
+        attrs.notificationsSkipDestinationValidation;
 
       public get hostedZoneId(): string {
         const { s3StaticWebsiteHostedZoneId } = RegionInfo.get(region);
@@ -1361,7 +1414,6 @@ export class Bucket extends BucketBase implements IBucket {
         return attrs.isWebsite ?? false;
       }
       // protected disallowPublicAccess = false;
-      // protected notificationsHandlerRole = attrs.notificationsHandlerRole;
     }
 
     return new Import(scope, id, {

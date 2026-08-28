@@ -27,3 +27,28 @@ table.policy: ## Test Table with Policy
 bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 	go test -v -count 1 -timeout 15m ./... -run ^TestBucketNotifications$
 .PHONY: bucket-notifications
+
+bucket-notifications-cross-stack: ## Test cross-stack S3 notifications via the cfncompat custom resource
+	go test -v -count 1 -timeout 45m ./... -run ^TestBucketNotificationsCrossStack$
+.PHONY: bucket-notifications-cross-stack
+
+# bucket-notifications-cross-stack has its own multi-stage stack sequence (synth_app,
+# deploy_a, validate_a, deploy_b, validate_ab, deploy_c, validate_abc, redeploy_a,
+# validate_abc_again, destroy_b, validate_ac, cleanup_terraform) instead of the
+# deploy_terraform/validate/cleanup_terraform stages the %-synth-only/-no-cleanup/
+# -validate-only/-cleanup-only patterns in ../../common.mk skip by name, so it needs its
+# own explicit overrides (an explicit target takes precedence over a `%` pattern rule
+# with the same stem) rather than the generic suffixes.
+bucket-notifications-cross-stack-synth-only: ## Synth only (no deploy/validate/cleanup) - runs without AWS creds
+	SKIP_deploy_a=true SKIP_validate_a=true SKIP_deploy_b=true SKIP_validate_ab=true \
+	SKIP_deploy_c=true SKIP_validate_abc=true SKIP_redeploy_a=true SKIP_validate_abc_again=true \
+	SKIP_destroy_b=true SKIP_validate_ac=true SKIP_cleanup_terraform=true \
+	make bucket-notifications-cross-stack
+.PHONY: bucket-notifications-cross-stack-synth-only
+
+bucket-notifications-cross-stack-cleanup-only: ## Skip straight to teardown of stacks a/b/c
+	SKIP_synth_app=true SKIP_deploy_a=true SKIP_validate_a=true SKIP_deploy_b=true SKIP_validate_ab=true \
+	SKIP_deploy_c=true SKIP_validate_abc=true SKIP_redeploy_a=true SKIP_validate_abc_again=true \
+	SKIP_destroy_b=true SKIP_validate_ac=true \
+	make bucket-notifications-cross-stack
+.PHONY: bucket-notifications-cross-stack-cleanup-only
