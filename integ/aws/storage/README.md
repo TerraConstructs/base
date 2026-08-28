@@ -49,11 +49,7 @@ apply here: this test names its own stages (`deploy_a`, `validate_ab`, ...). Use
 explicit `bucket-notifications-cross-stack-synth-only` and
 `bucket-notifications-cross-stack-cleanup-only` targets instead.
 
-> [!IMPORTANT]
-> This target needs the `cdktn-io/cfncompat` Terraform provider, which
-> `registry.opentofu.org` does not serve. Terratest runs `tofu` (hardcoded in
-> `integ/aws/util.go`), so an unmodified run fails at init with
-> `Failed to query available provider packages`. To run it today, add a
-> `filesystem_mirror` for `cdktn-io/cfncompat` to the OpenTofu CLI configuration
-> (`~/.tofurc`), or point the terratest options at a `terraform` binary locally. The
-> durable fix is publishing the provider to the OpenTofu registry.
+> [!NOTE]
+> This target needs the `cdktn-io/cfncompat` provider, served by both
+> `registry.terraform.io` and `registry.opentofu.org`; terratest runs `tofu`
+> (`integ/aws/util.go`) and resolves it from the OpenTofu registry.
