@@ -1,6 +1,7 @@
 import { cdk, javascript, ReleasableCommits, TextFile } from "projen";
 import {
   AwsProviderStructBuilder,
+  CfncompatProviderStructBuilder,
   LambdaFunctionVpcConfigStructBuilder,
   S3BucketWebsiteConfigurationConfigStructBuilder,
   S3BucketCorsConfigurationConfigStructBuilder,
@@ -69,6 +70,7 @@ const project = new cdk.JsiiProject({
     "@cdktn/provider-aws@^25.0.0",
     "@cdktn/provider-time@^14.0.0",
     "@cdktn/provider-archive@^14.0.0",
+    "@cdktn/provider-cfncompat@^1.0.0",
     "@cdktn/provider-tls@^14.0.0",
     "@cdktn/provider-cloudinit@^14.0.0",
     "@cdktn/provider-docker@^16.0.0",
@@ -81,6 +83,7 @@ const project = new cdk.JsiiProject({
     "@cdktn/provider-aws@25.0.0",
     "@cdktn/provider-time@14.0.0",
     "@cdktn/provider-archive@14.0.0",
+    "@cdktn/provider-cfncompat@1.0.0",
     "@cdktn/provider-tls@14.0.0",
     "@cdktn/provider-cloudinit@14.0.0",
     "@cdktn/provider-docker@16.0.0",
@@ -228,6 +231,7 @@ new TextFile(project, ".nvmrc", {
 project.npmrc?.addConfig("node-linker", "hoisted");
 
 new AwsProviderStructBuilder(project);
+new CfncompatProviderStructBuilder(project);
 new PolicyDocumentStatementStructBuilder(project);
 new PolicyDocumentConfigStructBuilder(project);
 new LambdaFunctionVpcConfigStructBuilder(project);

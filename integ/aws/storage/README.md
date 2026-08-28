@@ -12,6 +12,8 @@ $ make
 
 Test Targets:
   bucket-notifications       Test S3 Bucket with EventBridge Notifications
+  bucket-notifications-cross-stack
+                             Test cross-stack S3 notifications via the cfncompat custom resource
 
 Other Targets:
   help                       Print out every target with a description
@@ -34,3 +36,20 @@ To clean up after running tests
 ```console
 make clean
 ```
+
+## `bucket-notifications-cross-stack`
+
+Three stacks (`a`, `b`, `c`) add their own prefix-filtered notification entry to one
+shared bucket: `a` owns the bucket, `b` and `c` only import it by name. Every entry is
+provisioned by the `Custom::S3BucketNotifications` custom resource, so each apply merges
+with the other stacks' entries instead of overwriting them.
+
+The `%-no-cleanup` / `%-synth-only` / `%-validate-only` / `%-cleanup-only` patterns do not
+apply here: this test names its own stages (`deploy_a`, `validate_ab`, ...). Use the
+explicit `bucket-notifications-cross-stack-synth-only` and
+`bucket-notifications-cross-stack-cleanup-only` targets instead.
+
+> [!NOTE]
+> This target needs the `cdktn-io/cfncompat` provider, served by both
+> `registry.terraform.io` and `registry.opentofu.org`; terratest runs `tofu`
+> (`integ/aws/util.go`) and resolves it from the OpenTofu registry.

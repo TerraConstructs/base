@@ -9,6 +9,26 @@ export const PROVIDER_ERROR_KEY = "$providerError";
 
 export const TARGET_PARTITIONS = "terraconstructs/core:target-partitions";
 
+// Ref: https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/cx-api/lib/features.ts
+
+/**
+ * When enabled, `BucketBase.addEventNotification` for an owned bucket uses the
+ * `Custom::S3BucketNotifications` custom resource (see
+ * `storage/bucket-notifications-resource.ts`) instead of the native
+ * `aws_s3_bucket_notification` resource, so other stacks can add their own
+ * notification entries to the same bucket without clobbering this stack's.
+ * Imported buckets always use the custom resource, regardless of this key.
+ *
+ * Switching an already-deployed owned bucket to the custom resource is a
+ * migration step, not a no-op: destroying the native resource wipes the whole
+ * notification configuration, unordered against the custom resource's Put.
+ *
+ * Read with `node.tryGetContext`; jsii has no exported-const support, so this
+ * is not re-exported from the package barrels (as with `TARGET_PARTITIONS`).
+ */
+export const S3_KEEP_NOTIFICATION_IN_IMPORTED_BUCKET =
+  "@terraconstructs/aws-s3:keepNotificationInImportedBucket";
+
 // Ref: https://github.com/aws/aws-cdk/blob/v2.232.2/packages/aws-cdk-lib/cx-api/lib/context/vpc.ts
 
 /**

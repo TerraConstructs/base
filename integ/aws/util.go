@@ -124,6 +124,75 @@ func SynthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string,
 	}
 }
 
+// SynthMultiStackApp synths a single app.ts that declares several named stacks
+// (`cdktf.out/stacks/<testApp>-<stack>` per `app.synth()`, one per entry of `stacks`),
+// copying each stack's output into its own working directory from `tfWorkingDirs`.
+//
+// `synth.App.Eval` (what `SynthApp` calls) copies exactly one `cdktf.out/stacks/<name>`
+// per executor run, so this mirrors `SynthApp` but drives the executor directly -
+// PreSetupFn/Setup/Exec once (a single `bun install` + single `cdktf synth`), then one
+// `CopyTo` per stack - instead of calling `SynthApp` once per stack, which would install
+// dependencies and re-run the whole app from scratch for every stack.
+func SynthMultiStackApp(t *testing.T, testApp string, stacks []string, tfWorkingDirs map[string]string, env map[string]string) {
+	zapLogger := ForwardingLogger(t, terratestLogger)
+	ctx := context.Background()
+	// path from integ/aws/*/apps/*.ts to repo root src
+	mainPathToSrc := filepath.Join("..", repoRoot, "src")
+	if _, err := os.Stat(filepath.Join(repoRoot, "lib")); err != nil {
+		t.Fatal("No lib folder, run pnpm compile before go test")
+	}
+	mainTsFile := filepath.Join("apps", testApp+".ts")
+	mainTsBytes, err := os.ReadFile(mainTsFile)
+	if err != nil {
+		t.Fatal("Failed to read" + mainTsFile)
+	}
+
+	thisFs := afero.NewOsFs()
+	e, err := executors.NewBunExecutor(zapLogger)
+	if err != nil {
+		t.Fatal("Failed to create bun executor", err)
+	}
+	defer e.Cleanup(ctx)
+
+	preSetupFn := func(e models.Executor) error {
+		cdktfPath := filepath.Join("apps", "cdktf.json")
+		if _, err := os.Stat(cdktfPath); err == nil {
+			if err := e.CopyFileFrom(ctx, thisFs, cdktfPath, "cdktf.json"); err != nil {
+				return err
+			}
+		}
+		return e.CopyFrom(ctx, thisFs, repoRoot, relPath, defaultCopyOptions)
+	}
+	if err := preSetupFn(e); err != nil {
+		t.Fatal("Failed to pre-setup bun executor", err)
+	}
+
+	config := models.AppConfig{
+		EnvVars:      env,
+		Dependencies: map[string]string{"terraconstructs": relPath},
+	}
+	if err := e.Setup(ctx, config, env); err != nil {
+		t.Fatal("Failed to set up bun executor", err)
+	}
+
+	// replace the path to src with relative package "terraconstructs"
+	mainTs := strings.ReplaceAll(string(mainTsBytes), mainPathToSrc, "terraconstructs")
+	if err := e.Exec(ctx, mainTs, env); err != nil {
+		t.Fatal("Failed to synth app", err)
+	}
+
+	for _, stack := range stacks {
+		tfWorkingDir, ok := tfWorkingDirs[stack]
+		if !ok {
+			t.Fatalf("no tfWorkingDir configured for stack %q", stack)
+		}
+		src := "cdktf.out/stacks/" + testApp + "-" + stack
+		if err := e.CopyTo(ctx, src, thisFs, tfWorkingDir, models.CopyOptions{}); err != nil {
+			t.Fatalf("Failed to copy synthesized stack %q: %v", stack, err)
+		}
+	}
+}
+
 // SaveSynthDependencies serializes and saves map of dependencies at test time to the given path.
 func SaveSynthDependencies(t *testing.T, testFolder string, dependencies *map[string]string) {
 	path := formatSynthDependenciesPath(testFolder)
