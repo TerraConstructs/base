@@ -21,6 +21,11 @@
       "type": "build"
     },
     {
+      "name": "@cdktn/provider-cfncompat",
+      "version": "1.0.0",
+      "type": "build"
+    },
+    {
       "name": "@cdktn/provider-cloudinit",
       "version": "14.0.0",
       "type": "build"
@@ -208,6 +213,11 @@
     {
       "name": "@cdktn/provider-aws",
       "version": "^25.0.0",
+      "type": "peer"
+    },
+    {
+      "name": "@cdktn/provider-cfncompat",
+      "version": "^1.0.0",
       "type": "peer"
     },
     {
