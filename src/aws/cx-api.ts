@@ -19,9 +19,12 @@ export const TARGET_PARTITIONS = "terraconstructs/core:target-partitions";
  * notification entries to the same bucket without clobbering this stack's.
  * Imported buckets always use the custom resource, regardless of this key.
  *
- * Read directly via `node.tryGetContext` (tcons idiom - no `FeatureFlags`
- * port); not exported from `src/aws/index.ts` / `storage/index.ts` since jsii
- * has no exported-const support (see `TARGET_PARTITIONS` precedent above).
+ * Switching an already-deployed owned bucket to the custom resource is a
+ * migration step, not a no-op: destroying the native resource wipes the whole
+ * notification configuration, unordered against the custom resource's Put.
+ *
+ * Read with `node.tryGetContext`; jsii has no exported-const support, so this
+ * is not re-exported from the package barrels (as with `TARGET_PARTITIONS`).
  */
 export const S3_KEEP_NOTIFICATION_IN_IMPORTED_BUCKET =
   "@terraconstructs/aws-s3:keepNotificationInImportedBucket";
