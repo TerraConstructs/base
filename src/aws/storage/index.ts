@@ -1,5 +1,7 @@
 export * from "./bucket-destination";
 export * from "./bucket-notifications";
+export * from "./bucket-notifications-resource";
+export * from "./notifications-resource-handler";
 export * from "./bucket-policy";
 export * from "./bucket-source";
 export * from "./bucket";
