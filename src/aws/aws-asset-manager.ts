@@ -13,8 +13,11 @@ import {
   registryImage as dockerRegistryImage,
 } from "@cdktn/provider-docker";
 import {
+  Annotations,
   AssetType,
+  Fn,
   TerraformAsset,
+  Token,
   // ref,
 } from "cdktn";
 import { Construct } from "constructs";
@@ -28,6 +31,7 @@ import {
   FileAssetPackaging,
   FileAssetSource,
 } from "../assets";
+import { BuildkitImage, BuildkitProvider } from "./private/buildkit-provider";
 
 export interface AwsAssetManagerOptions {
   /**
@@ -63,6 +67,33 @@ export interface AwsAssetManagerOptions {
    * @default - "" (no prefix)
    */
   readonly dockerTagPrefix?: string;
+  /**
+   * How Docker image assets are built and pushed.
+   *
+   * @default DockerAssetBuilder.DOCKER
+   */
+  readonly dockerBuilder?: DockerAssetBuilder;
+  /**
+   * BuildKit daemon address used with `DockerAssetBuilder.BUILDKIT`.
+   *
+   * @default "unix:///run/buildkit/buildkitd.sock"
+   */
+  readonly buildkitAddress?: string;
+}
+
+/**
+ * Build backend for Docker image assets.
+ */
+export enum DockerAssetBuilder {
+  /**
+   * kreuzwerker/docker `docker_image` + `docker_registry_image`. Requires a Docker Engine.
+   */
+  DOCKER = "docker",
+  /**
+   * cruxstack/buildkit `buildkit_image`: solves on a running buildkitd and pushes from it.
+   * Registry credentials come from `~/.docker/config.json` (e.g. `credHelpers` ecr-login).
+   */
+  BUILDKIT = "buildkit",
 }
 
 /**
@@ -102,6 +133,7 @@ export class AwsAssetManager implements IAssetManager {
     | ecrRepository.EcrRepository
     | dataAwsEcrRepository.DataAwsEcrRepository;
   private dockerProvider?: dockerProvider.DockerProvider;
+  private buildkitProvider?: BuildkitProvider;
   /**
    * Map of Terraform assets registered by this manager.
    */
@@ -217,6 +249,16 @@ export class AwsAssetManager implements IAssetManager {
       // type: <auto-infer>,
     });
 
+    if (this.props.dockerBuilder === DockerAssetBuilder.BUILDKIT) {
+      const location: DockerImageAssetLocation = {
+        imageUri: this.addBuildkitImage(id, asset, tfAsset.path, imageTag),
+        repositoryName: this.repository!.name,
+        imageTag,
+      };
+      this.dockerAssetMap.set(imageUri, location);
+      return location;
+    }
+
     const imageAsset = new dockerImage.Image(this.scope, `${id}_Image`, {
       // https://github.com/kreuzwerker/terraform-provider-docker/blob/v3.6.2/internal/provider/docker_buildx_build.go#L216
       name: imageUri,
@@ -277,6 +319,71 @@ export class AwsAssetManager implements IAssetManager {
     this.dockerAssetMap.set(imageUri, location);
     // Return the asset location details
     return location;
+  }
+
+  /**
+   * Build + push on buildkitd via `buildkit_image`; returns the pushed tag reference.
+   */
+  private addBuildkitImage(
+    id: string,
+    asset: DockerImageAssetSource,
+    contextPath: string,
+    imageTag: string,
+  ): string {
+    if (!asset.platform) {
+      throw new Error(
+        "DockerAssetBuilder.BUILDKIT requires an explicit platform (e.g. Platform.LINUX_ARM64)",
+      );
+    }
+    if (
+      asset.dockerBuildSsh ||
+      asset.dockerOutputs?.length ||
+      asset.networkMode
+    ) {
+      throw new Error(
+        "DockerAssetBuilder.BUILDKIT does not support buildSsh, outputs or networkMode",
+      );
+    }
+    if (asset.dockerCacheDisabled) {
+      Annotations.of(this.scope).addWarning(
+        "cacheDisabled is ignored by DockerAssetBuilder.BUILDKIT",
+      );
+    }
+    this.buildkitProvider ??= new BuildkitProvider(this.scope, "Buildkit", {
+      buildkitAddress:
+        this.props.buildkitAddress ?? "unix:///run/buildkit/buildkitd.sock",
+    });
+
+    let secrets: { [key: string]: string } | undefined;
+    for (const [key, spec] of Object.entries(asset.dockerBuildSecrets ?? {})) {
+      if (!spec.startsWith("src=")) {
+        throw new Error(
+          `build secret ${key}: only DockerBuildSecret.fromSrc is supported by DockerAssetBuilder.BUILDKIT`,
+        );
+      }
+      secrets = { ...secrets, [key]: Fn.file(spec.slice("src=".length)) };
+    }
+    const cache = (entries: DockerCacheOption[]) =>
+      entries.map((e) => ({ type: e.type, attrs: e.params }));
+
+    const image = new BuildkitImage(this.scope, `${id}_Buildkit`, {
+      provider: this.buildkitProvider,
+      context: contextPath,
+      dockerfile: asset.dockerFile ?? "Dockerfile",
+      platforms: [asset.platform],
+      registry: Token.asString(
+        Fn.element(Fn.split("/", this.repository!.repositoryUrl), 0),
+      ),
+      repository: this.repository!.name,
+      tags: [imageTag],
+      args: asset.dockerBuildArgs,
+      secrets,
+      target: asset.dockerBuildTarget,
+      cacheFrom: asset.dockerCacheFrom && cache(asset.dockerCacheFrom),
+      cacheTo: asset.dockerCacheTo && cache([asset.dockerCacheTo]),
+      triggers: { source_hash: asset.sourceHash },
+    });
+    return image.tagUrl;
   }
 
   private ensureBucket(): void {
