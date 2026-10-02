@@ -1,8 +1,5 @@
-import {
-  BundlingFileAccess,
-  DockerImage,
-  DockerRunOptions,
-} from "../../../bundling";
+import { BundlingFileAccess, DockerImage } from "../../../bundling";
+import type { DockerRunOptions } from "../../../bundling";
 
 /**
  * Bundling options

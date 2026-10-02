@@ -1,13 +1,17 @@
 // https://github.com/aws/aws-cdk/blob/v2.168.0/packages/aws-cdk-lib/aws-ecr-assets/lib/image-asset.ts
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { Annotations, Token } from "cdktn";
 import { Construct } from "constructs";
 import * as ecr from "..";
 import {
-  AssetStaging,
+  TerraformAsset,
+  AssetType,
+  resolveSha256AssetHash,
   FileFingerprintOptions,
+  FileSystem,
   IgnoreMode,
   ValidationError,
   UnscopedValidationError,
@@ -458,8 +462,14 @@ export class DockerImageAsset extends Construct implements IAsset {
       throw new ValidationError(`Cannot find file at ${file}`, this);
     }
 
-    let ignoreMode = props.ignoreMode ?? IgnoreMode.DOCKER;
-
+    // cdktn's TerraformAsset has no `ignoreStrategy` extension point (only
+    // the lower-level AssetStaging it wraps does), so it can't be handed
+    // `!`-negation patterns (e.g. forcing the Dockerfile back in after a
+    // broad .dockerignore exclude) directly -- they'd pass through as
+    // literal, non-negating exclude entries. When negation is actually in
+    // play, the directory is pre-filtered with TerraConstructs' own
+    // Docker-ignore-aware copy (see below) and handed to TerraformAsset
+    // already filtered, with no further exclude of its own.
     let exclude: string[] = props.exclude || [];
 
     const ignore = path.join(dir, ".dockerignore");
@@ -486,6 +496,24 @@ export class DockerImageAsset extends Construct implements IAsset {
     // const cdkout = Stage.of(this)?.outdir ?? "cdk.out";
     // exclude.push(cdkout);
     exclude.push("cdk.out");
+
+    // Negation entries only do anything with a Docker-ignore-aware matcher
+    // (see note above); pre-filter into a scratch copy so TerraformAsset,
+    // whose own matcher doesn't understand `!`, sees exactly the right
+    // files. Skipped when nothing actually negates, which is the common
+    // case (no .dockerignore, no user-supplied negation) -- the Dockerfile
+    // negation above is then a guaranteed no-op, so re-copying would only
+    // add I/O for no behavior change.
+    let sourceDir = dir;
+    let sourceExclude: string[] | undefined = exclude;
+    if (exclude.some((pattern) => pattern.startsWith("!"))) {
+      sourceDir = fs.mkdtempSync(path.join(os.tmpdir(), "tcons-dockerignore-"));
+      FileSystem.copyDirectory(dir, sourceDir, {
+        exclude,
+        ignoreMode: IgnoreMode.DOCKER,
+      });
+      sourceExclude = undefined;
+    }
 
     if (props.repositoryName) {
       // "@aws-cdk/aws-ecr-assets:repositoryNameDeprecated",
@@ -532,23 +560,31 @@ export class DockerImageAsset extends Construct implements IAsset {
     // deletion of the ECR repository the app used).
     extraHash.version = "1.21.0";
 
-    const staging = new AssetStaging(this, "Staging", {
-      ...props,
-      follow: props.followSymlinks,
-      exclude,
-      ignoreMode,
-      sourcePath: dir,
-      extraHash:
-        Object.keys(extraHash).length === 0
-          ? undefined
-          : JSON.stringify(extraHash),
+    const resolvedExtraHash =
+      Object.keys(extraHash).length === 0
+        ? undefined
+        : JSON.stringify(extraHash);
+
+    const resolved = resolveSha256AssetHash({
+      sourcePath: sourceDir,
+      exclude: sourceExclude,
+      extraHash: resolvedExtraHash,
     });
 
-    this.assetHash = staging.assetHash;
+    const tfAsset = new TerraformAsset(this, "Staging", {
+      path: sourceDir,
+      type: AssetType.DIRECTORY,
+      exclude: sourceExclude,
+      extraHash: resolvedExtraHash,
+      assetHash: resolved.assetHash,
+      assetHashType: resolved.assetHashType,
+    });
+
+    this.assetHash = tfAsset.assetHash;
     this.sourceHash = this.assetHash;
 
     const stack = AwsStack.ofAwsConstruct(this);
-    this.assetPath = staging.relativeStagedPath(stack);
+    this.assetPath = tfAsset.path;
     this.assetName = props.assetName;
     this.dockerBuildArgs = props.buildArgs;
     this.dockerBuildSecrets = props.buildSecrets;
@@ -567,7 +603,7 @@ export class DockerImageAsset extends Construct implements IAsset {
       dockerBuildSsh: this.dockerBuildSsh,
       dockerBuildTarget: this.dockerBuildTarget,
       dockerFile: props.file,
-      sourceHash: staging.assetHash,
+      sourceHash: this.assetHash,
       networkMode: props.networkMode?.mode,
       platform: props.platform?.platform,
       dockerOutputs: this.dockerOutputs,

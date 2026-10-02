@@ -1,5 +1,6 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-s3-assets/lib/asset.ts
 
+import * as fs from "fs";
 import * as path from "path";
 import { Construct } from "constructs";
 import * as s3 from "..";
@@ -152,34 +153,57 @@ export class Asset extends Construct implements cdk.IAsset {
 
     // this.isBundled = props.bundling != null;
 
-    // stage the asset source (conditionally).
-    const staging = new cdk.AssetStaging(this, "Stage", {
-      ...props,
-      sourcePath: path.resolve(props.path),
-      follow: props.followSymlinks,
+    // A directory is zipped for upload; anything else (including an
+    // already-zipped file) is uploaded as-is, matching the old inferred
+    // packaging behavior.
+    const resolvedPath = path.resolve(props.path);
+    const isDirectory = fs.statSync(resolvedPath).isDirectory();
+    const type = isDirectory ? cdk.AssetType.ARCHIVE : cdk.AssetType.FILE;
+
+    const resolved = cdk.resolveSha256AssetHash({
+      sourcePath: resolvedPath,
+      exclude: props.exclude,
+      extraHash: props.extraHash,
       assetHash: props.assetHash ?? props.sourceHash,
+      assetHashType: props.assetHashType,
+      bundler: props.bundler,
     });
 
-    this.assetHash = staging.assetHash;
+    const tfAsset = new cdk.TerraformAsset(this, "Stage", {
+      path: resolvedPath,
+      type,
+      exclude: props.exclude,
+      assetHash: resolved.assetHash,
+      assetHashType: resolved.assetHashType,
+      bundler: resolved.bundler,
+    });
+    resolved.finalize(tfAsset);
+
+    this.assetHash = tfAsset.assetHash;
     this.sourceHash = this.assetHash;
 
     const stack = AwsStack.ofAwsConstruct(this);
 
-    this.assetPath = staging.relativeStagedPath(stack);
+    this.assetPath = tfAsset.path;
 
-    this.isFile = staging.packaging === cdk.FileAssetPackaging.FILE;
+    this.isFile = type === cdk.AssetType.FILE;
 
-    this.isZipArchive = staging.isArchive;
+    // A directory is zipped on upload; a file that is already zip-format
+    // (.zip/.jar) is uploaded as-is but still represents a zip archive.
+    this.isZipArchive =
+      type === cdk.AssetType.ARCHIVE || /\.(zip|jar)$/i.test(resolvedPath);
 
     const location = stack.addFileAsset({
-      packaging: staging.packaging,
-      sourceHash: staging.assetHash,
+      packaging: this.isZipArchive
+        ? cdk.FileAssetPackaging.ZIP_DIRECTORY
+        : cdk.FileAssetPackaging.FILE,
+      sourceHash: this.assetHash,
       fileName: this.assetPath,
       deployTime: props.deployTime,
     });
     this.s3BucketName = location.bucketName;
     this.s3ObjectKey = location.objectKey;
-    this.s3ObjectUrl = location.s3ObjectUrl;
+    this.s3ObjectUrl = location.objectUrl!;
     this.httpUrl = location.httpUrl;
     this.s3Url = location.httpUrl; // for backwards compatibility
 

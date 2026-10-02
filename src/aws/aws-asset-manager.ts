@@ -1,4 +1,3 @@
-import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   s3Bucket,
@@ -12,11 +11,6 @@ import {
   image as dockerImage,
   registryImage as dockerRegistryImage,
 } from "@cdktn/provider-docker";
-import {
-  AssetType,
-  TerraformAsset,
-  // ref,
-} from "cdktn";
 import { Construct } from "constructs";
 import * as mime from "mime-types";
 import { IAssetManager } from "../asset-manager";
@@ -25,8 +19,8 @@ import {
   DockerImageAssetLocation,
   DockerImageAssetSource,
   FileAssetLocation,
-  FileAssetPackaging,
   FileAssetSource,
+  FileAssetPackaging,
 } from "../assets";
 
 export interface AwsAssetManagerOptions {
@@ -138,23 +132,23 @@ export class AwsAssetManager implements IAssetManager {
 
     // NOTE: AWSCDK uses sourceHash as the Construct ID
     // Avoided here because TerraformAsset paths already includes sourceHash
-    // Ensure unique ID for the asset in the scope
+    // Ensure unique ID for the asset in the scope. We no longer register a
+    // construct under the bare `id` itself (no re-staging TerraformAsset),
+    // so uniqueness is checked against the resource actually created below.
     let id = "FileAsset";
-    for (let i = 0; this.scope.node.tryFindChild(id); i++) {
-      id = `${id}_${i}`;
+    for (let i = 0; this.scope.node.tryFindChild(`${id}_S3`); i++) {
+      id = `FileAsset_${i}`;
     }
 
-    const assetStats = fs.statSync(asset.fileName);
-    const tfAsset = new TerraformAsset(this.scope, id, {
-      path: asset.fileName,
-      assetHash: asset.sourceHash,
-      type: assetStats.isDirectory() ? AssetType.ARCHIVE : AssetType.FILE,
-    });
-
+    // `asset.fileName` is already a `TerraformAsset.path` produced by the
+    // caller (e.g. `Asset`/`DockerImageAsset`), which staged and hashed the
+    // content; referencing it again here (rather than re-staging it through
+    // a second `TerraformAsset`) keeps this dedup-by-hash lookup compatible
+    // with cdktn's deferred (synth-time) staging.
     const s3Asset = new s3Object.S3Object(this.scope, `${id}_S3`, {
       key: objectKey,
       bucket: this.bucket!.bucket,
-      source: tfAsset.path,
+      source: asset.fileName,
       sourceHash: asset.sourceHash,
       contentType: mime.contentType(extension) || undefined,
     });
@@ -165,8 +159,8 @@ export class AwsAssetManager implements IAssetManager {
       bucketName: this.bucket!.bucket,
       objectKey: s3Asset.key,
       httpUrl,
+      objectUrl: this.buildS3ObjectUrl(s3Asset.key),
       s3Url: httpUrl,
-      s3ObjectUrl: this.buildS3ObjectUrl(s3Asset.key),
     };
     // Store in the map for future lookups
     this.fileAssetMap.set(objectKey, location);
@@ -203,30 +197,24 @@ export class AwsAssetManager implements IAssetManager {
     //   ? `${asset.assetName}-${asset.sourceHash}`
     //   : asset.sourceHash;
 
-    // Ensure unique ID for the asset in the scope
+    // Ensure unique ID for the asset in the scope. We no longer register a
+    // construct under the bare `id` itself (no re-staging TerraformAsset),
+    // so uniqueness is checked against the resource actually created below.
     let id = "DockerAsset";
-    for (let i = 0; this.scope.node.tryFindChild(id); i++) {
-      id = `${id}_${i}`;
+    for (let i = 0; this.scope.node.tryFindChild(`${id}_Image`); i++) {
+      id = `DockerAsset_${i}`;
     }
 
-    const tfAsset = new TerraformAsset(this.scope, id, {
-      path: asset.directoryName,
-      assetHash: asset.sourceHash,
-      type: AssetType.DIRECTORY, // Error if not directory asset type?
-      // auto infer type...
-      // type: <auto-infer>,
-    });
-
+    // `asset.directoryName` is already a `TerraformAsset.path` produced by
+    // the caller (`DockerImageAsset`), which staged and hashed the Dockerfile
+    // build context; referencing it again here (rather than re-staging it
+    // through a second `TerraformAsset`) keeps this dedup-by-hash lookup
+    // compatible with cdktn's deferred (synth-time) staging.
     const imageAsset = new dockerImage.Image(this.scope, `${id}_Image`, {
       // https://github.com/kreuzwerker/terraform-provider-docker/blob/v3.6.2/internal/provider/docker_buildx_build.go#L216
       name: imageUri,
       buildAttribute: {
-        context: tfAsset.path, // asset.directoryName, // required
-        // TODO: Verify if ${path.cwd} is needed given directoryName is relative?
-        // path.join(
-        //   Token.asString(ref("path.cwd")),
-        //   asset.directoryName,
-        // ),
+        context: asset.directoryName, // required
         dockerfile: asset.dockerFile,
         buildArgs: asset.dockerBuildArgs,
         secrets: asset.dockerBuildSecrets

@@ -1,0 +1,33 @@
+diff --git a/.jsii b/.jsii
+index 3f33984960faf6518351aca1823151541c99e991..a508608682e823e799246caf544c8ec054ba42f0 100644
+--- a/.jsii
++++ b/.jsii
+@@ -8,7 +8,7 @@
+     "url": "https://cdktn.io"
+   },
+   "dependencies": {
+-    "cdktn": "^0.24.0",
++    "cdktn": "0.25.0-pre.40",
+     "constructs": ">=10.6.0 <10.8.0"
+   },
+   "dependencyClosure": {
+@@ -2406,5 +2406,5 @@
+     }
+   },
+   "version": "14.0.0",
+-  "fingerprint": "HK3Pt1yMUOzKrbwEFgtw5xYwdAMq6M7Kafw8M4p2Yzc="
++  "fingerprint": "**********"
+ }
+diff --git a/package.json b/package.json
+index dad33e747a6883b34b25465df1d8edfeab49836b..43e592dcbd4e436e024813b6cda5c7b14214110a 100644
+--- a/package.json
++++ b/package.json
+@@ -31,7 +31,7 @@
+     "typescript": "~5.9.0"
+   },
+   "peerDependencies": {
+-    "cdktn": "^0.24.0",
++    "cdktn": "0.25.0-pre.40",
+     "constructs": ">=10.6.0 <10.8.0"
+   },
+   "keywords": [

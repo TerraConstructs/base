@@ -2,7 +2,8 @@
 
 import * as os from "os";
 import * as path from "path";
-import { Annotations } from "cdktn";
+import { BUNDLING_INPUT_DIR, BUNDLING_OUTPUT_DIR } from "@cdktn/bundler-docker";
+import { Annotations, AssetHashType, BundlerKey, BundleResult } from "cdktn";
 import { IConstruct } from "constructs";
 import { Architecture, AssetCode, Code, Runtime } from "..";
 import { PackageInstallation } from "./package-installation";
@@ -15,14 +16,15 @@ import {
   getTsconfigCompilerOptions,
   isSdkV2Runtime,
 } from "./util";
-import { AssetStaging } from "../../../asset-staging";
-import { AssetHashType } from "../../../assets";
 import {
   BundlingFileAccess,
-  BundlingOptions as CoreBundlingOptions,
+  DockerBundler,
   DockerImage,
+} from "../../../bundling";
+import type {
   DockerVolume,
-  ILocalBundling,
+  IAssetBundler,
+  BundleOptions,
 } from "../../../bundling";
 
 const ESBUILD_MAJOR_VERSION = "0";
@@ -70,9 +72,17 @@ export interface BundlingProps extends BundlingOptions {
 }
 
 /**
+ * Local (host-process) fallback for esbuild bundling, tried before falling
+ * back to the Docker-based bundler.
+ */
+interface ILocalBundling {
+  tryBundle(outputDir: string): boolean;
+}
+
+/**
  * Bundling with esbuild
  */
-export class Bundling implements CoreBundlingOptions {
+export class Bundling implements IAssetBundler {
   /**
    * esbuild bundled Lambda asset code
    */
@@ -82,7 +92,7 @@ export class Bundling implements CoreBundlingOptions {
       assetHashType: options.assetHash
         ? AssetHashType.CUSTOM
         : AssetHashType.OUTPUT,
-      bundling: new Bundling(scope, options),
+      bundler: new Bundling(scope, options),
     });
   }
 
@@ -97,19 +107,21 @@ export class Bundling implements CoreBundlingOptions {
   private static esbuildInstallation?: PackageInstallation;
   private static tscInstallation?: PackageInstallation;
 
-  // Core bundling options
-  public readonly image: DockerImage;
-  public readonly entrypoint?: string[];
-  public readonly command: string[];
-  public readonly volumes?: DockerVolume[];
-  public readonly volumesFrom?: string[];
-  public readonly environment?: { [key: string]: string };
-  public readonly workingDirectory: string;
-  public readonly user?: string;
-  public readonly securityOpt?: string;
-  public readonly network?: string;
-  public readonly local?: ILocalBundling;
-  public readonly bundlingFileAccess?: BundlingFileAccess;
+  public readonly bundlerKey: string;
+
+  // Docker bundling options
+  private readonly image: DockerImage;
+  private readonly entrypoint?: string[];
+  private readonly command: string[];
+  private readonly volumes?: DockerVolume[];
+  private readonly volumesFrom?: string[];
+  private readonly environment?: { [key: string]: string };
+  private readonly workingDirectory: string;
+  private readonly user?: string;
+  private readonly securityOpt?: string;
+  private readonly network?: string;
+  private readonly local?: ILocalBundling;
+  private readonly bundlingFileAccess?: BundlingFileAccess;
 
   private readonly projectRoot: string;
   private readonly relativeEntryPath: string;
@@ -242,15 +254,15 @@ export class Bundling implements CoreBundlingOptions {
       : DockerImage.fromRegistry("dummy"); // Do not build if we don't need to
 
     const bundlingCommand = this.createBundlingCommand({
-      inputDir: AssetStaging.BUNDLING_INPUT_DIR,
-      outputDir: AssetStaging.BUNDLING_OUTPUT_DIR,
+      inputDir: BUNDLING_INPUT_DIR,
+      outputDir: BUNDLING_OUTPUT_DIR,
       esbuildRunner: "esbuild", // esbuild is installed globally in the docker image
       tscRunner: "tsc", // tsc is installed globally in the docker image
       osPlatform: "linux", // linux docker image
     });
     this.command = props.command ?? ["bash", "-c", bundlingCommand];
     this.environment = props.environment;
-    // Bundling sets the working directory to AssetStaging.BUNDLING_INPUT_DIR
+    // Bundling sets the working directory to BUNDLING_INPUT_DIR
     // and we want to force npx to use the globally installed esbuild.
     this.workingDirectory = props.workingDirectory ?? "/";
     this.entrypoint = props.entrypoint;
@@ -266,6 +278,58 @@ export class Bundling implements CoreBundlingOptions {
       // only if Docker is not forced
       this.local = this.getLocalBundlingProvider();
     }
+
+    this.bundlerKey = BundlerKey.of(
+      "nodejs-esbuild",
+      this.image.image,
+      ...this.command,
+    )
+      .withEnv(this.environment ?? {})
+      .toString();
+  }
+
+  public bundle(options: BundleOptions): BundleResult {
+    if (this.local?.tryBundle(options.outputDir)) {
+      return BundleResult.directory(options.outputDir);
+    }
+
+    // `DockerBundler` only bind-mounts source/outputDir and has no slot for
+    // extra `volumes`/`volumesFrom`, so the default (bind-mount) path runs
+    // the image directly to keep supporting those. `VOLUME_COPY` has no
+    // such extras to preserve, so it's left to `DockerBundler`.
+    if (this.bundlingFileAccess === BundlingFileAccess.VOLUME_COPY) {
+      const dockerBundler = new DockerBundler({
+        image: this.image.image,
+        command: this.command,
+        entrypoint: this.entrypoint,
+        environment: this.environment,
+        workingDirectory: this.workingDirectory,
+        user: this.user,
+        network: this.network,
+        securityOpt: this.securityOpt,
+        bundlingFileAccess: BundlingFileAccess.VOLUME_COPY,
+      });
+      return dockerBundler.bundle(options);
+    }
+
+    this.image.run({
+      command: this.command,
+      entrypoint: this.entrypoint,
+      environment: this.environment,
+      workingDirectory: this.workingDirectory,
+      user:
+        this.user ??
+        `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`,
+      network: this.network,
+      securityOpt: this.securityOpt,
+      volumes: [
+        { hostPath: options.source, containerPath: BUNDLING_INPUT_DIR },
+        { hostPath: options.outputDir, containerPath: BUNDLING_OUTPUT_DIR },
+        ...(this.volumes ?? []),
+      ],
+      volumesFrom: this.volumesFrom,
+    });
+    return BundleResult.directory(options.outputDir);
   }
 
   private createBundlingCommand(options: BundlingCommandOptions): string {

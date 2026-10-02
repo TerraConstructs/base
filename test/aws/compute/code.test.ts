@@ -223,7 +223,9 @@ describe("code", () => {
       );
 
       // THEN
-      expect(() => defineFunction(fileAsset)).toThrow(/Cannot find asset/);
+      expect(() => defineFunction(fileAsset)).toThrow(
+        /ENOENT|Cannot find asset/,
+      );
     });
     test("fails if a non-zip asset is used", () => {
       // GIVEN

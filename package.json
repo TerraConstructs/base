@@ -48,7 +48,7 @@
     "@types/node": "ts5.9",
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
-    "cdktn": "0.24.0",
+    "cdktn": "0.25.0-pre.40",
     "commit-and-tag-version": "^12",
     "constructs": "10.7.2",
     "delay": "^5.0.0",
@@ -79,11 +79,13 @@
     "@cdktn/provider-docker": "^16.0.0",
     "@cdktn/provider-time": "^14.0.0",
     "@cdktn/provider-tls": "^14.0.0",
-    "cdktn": "^0.24.0",
+    "cdktn": "^0.25.0-pre.40",
     "constructs": "^10.7.2"
   },
   "dependencies": {
     "@balena/dockerignore": "^1.0.2",
+    "@cdktn/bundler-docker": "0.0.0",
+    "@cdktn/bundler-local": "0.0.0",
     "change-case": "^5.4.4",
     "ignore": "^7.0.6",
     "mime-types": "^2.1.35",

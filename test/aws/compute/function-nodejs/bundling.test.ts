@@ -106,7 +106,7 @@ test("esbuild bundling in Docker", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       environment: {
         KEY: "value",
       },
@@ -144,7 +144,7 @@ test("esbuild bundling with handler named index.ts", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith("/project", {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -168,7 +168,7 @@ test("esbuild bundling with verbose log level", () => {
   // Correctly bundles with esbuild with log level VERBOSE
   expect(Code.fromAsset).toHaveBeenCalledWith("/project", {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -191,7 +191,7 @@ test("esbuild bundling with tsx handler", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith("/project", {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -224,7 +224,7 @@ test.skip("esbuild with Windows paths", () => {
   expect(Code.fromAsset).toHaveBeenCalledWith(
     expect.any(String),
     expect.objectContaining({
-      bundling: expect.objectContaining({
+      bundler: expect.objectContaining({
         command: expect.arrayContaining([
           expect.stringContaining("/lib/entry.ts"),
         ]),
@@ -251,7 +251,7 @@ test("esbuild bundling with externals and dependencies", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(packageLock), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -312,7 +312,7 @@ test("esbuild bundling with esbuild options", () => {
     '--define:process.env.KEY="\\"VALUE\\"" --define:process.env.BOOL="true" --define:process.env.NUMBER="7777" --define:process.env.STRING="\\"this is a \\\\\\"test\\\\\\"\\""';
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -374,7 +374,7 @@ test("esbuild bundling source map default", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -409,7 +409,7 @@ test.each([[Runtime.NODEJS_20_X, "node20"]])(
       path.dirname(depsLockFilePath),
       {
         assetHashType: AssetHashType.OUTPUT,
-        bundling: expect.objectContaining({
+        bundler: expect.objectContaining({
           command: [
             "bash",
             "-c",
@@ -440,7 +440,7 @@ test("esbuild bundling with bundleAwsSdk true with feature flag enabled using No
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -468,7 +468,7 @@ test("esbuild bundling with feature flag enabled using Node Latest", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -496,7 +496,7 @@ test("esbuild bundling with feature flag enabled using Node 16", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -518,7 +518,7 @@ test("esbuild bundling without aws-sdk v3 when use greater than or equal Runtime
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -541,7 +541,7 @@ test("esbuild bundling includes aws-sdk", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -565,7 +565,7 @@ test("esbuild bundling source map inline", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -592,7 +592,7 @@ test("esbuild bundling is correctly done with custom runtime matching predefined
 
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -618,7 +618,7 @@ test("esbuild bundling source map enabled when only source map mode exists", () 
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -660,7 +660,7 @@ test("Detects yarn.lock", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(yarnLock), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: expect.arrayContaining([
         expect.stringMatching(/yarn\.lock.+yarn install --no-immutable/),
       ]),
@@ -683,7 +683,7 @@ test("Detects pnpm-lock.yaml", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(pnpmLock), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: expect.arrayContaining([
         expect.stringMatching(
           /echo '' > "\/asset-output\/pnpm-workspace.yaml\".+pnpm-lock\.yaml.+pnpm install --config.node-linker=hoisted --config.package-import-method=clone-or-copy --no-prefer-frozen-lockfile && rm -f "\/asset-output\/node_modules\/.modules.yaml"/,
@@ -708,7 +708,7 @@ test("Detects bun.lockb", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(bunLock), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: expect.arrayContaining([
         expect.stringMatching(/bun\.lockb.+bun install/),
       ]),
@@ -761,12 +761,11 @@ test("Local bundling", () => {
     logLevel: EsbuildLogLevel.ERROR,
   });
 
-  expect(bundler.local).toBeDefined();
-
-  const tryBundle = bundler.local?.tryBundle("/outdir", {
-    image: STANDARD_RUNTIME.bundlingImage,
+  const result = bundler.bundle({
+    source: projectRoot,
+    outputDir: "/outdir",
   });
-  expect(tryBundle).toBe(true);
+  expect(result.path).toBe("/outdir");
 
   expect(spawnSyncMock).toHaveBeenCalledWith(
     "bash",
@@ -798,9 +797,7 @@ test("Incorrect esbuild version", () => {
   });
 
   expect(() =>
-    bundler.local?.tryBundle("/outdir", {
-      image: STANDARD_RUNTIME.bundlingImage,
-    }),
+    bundler.bundle({ source: projectRoot, outputDir: "/outdir" }),
   ).toThrow(/Expected esbuild version 0.x but got 3.4.5/);
 });
 
@@ -817,7 +814,7 @@ test("Custom bundling docker image", () => {
 
   expect(Code.fromAsset).toHaveBeenCalledWith("/project", {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       image: { image: "my-custom-image" },
     }),
   });
@@ -849,7 +846,7 @@ test("with command hooks", () => {
 
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(depsLockFilePath), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -874,7 +871,7 @@ test("esbuild bundling with projectRoot", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith("/project", {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -901,7 +898,7 @@ test("esbuild bundling with projectRoot and externals and dependencies", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(repoRoot, {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -940,7 +937,7 @@ test.skip("esbuild bundling with pre compilations", () => {
   // Correctly bundles with esbuild
   expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(packageLock), {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       command: [
         "bash",
         "-c",
@@ -1006,7 +1003,7 @@ test("Custom bundling entrypoint", () => {
 
   expect(Code.fromAsset).toHaveBeenCalledWith("/project", {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       entrypoint: ["/cool/entrypoint", "--cool-entrypoint-arg"],
     }),
   });
@@ -1025,7 +1022,7 @@ test("Custom bundling volumes", () => {
 
   expect(Code.fromAsset).toHaveBeenCalledWith("/project", {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       volumes: [{ hostPath: "/host-path", containerPath: "/container-path" }],
     }),
   });
@@ -1044,7 +1041,7 @@ test("Custom bundling volumesFrom", () => {
 
   expect(Code.fromAsset).toHaveBeenCalledWith("/project", {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       volumesFrom: ["777f7dc92da7"],
     }),
   });
@@ -1063,7 +1060,7 @@ test("Custom bundling workingDirectory", () => {
 
   expect(Code.fromAsset).toHaveBeenCalledWith("/project", {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       workingDirectory: "/working-directory",
     }),
   });
@@ -1082,7 +1079,7 @@ test("Custom bundling user", () => {
 
   expect(Code.fromAsset).toHaveBeenCalledWith("/project", {
     assetHashType: AssetHashType.OUTPUT,
-    bundling: expect.objectContaining({
+    bundler: expect.objectContaining({
       user: "user:group",
     }),
   });
@@ -1103,7 +1100,7 @@ test("Custom bundling securityOpt", () => {
     "/project",
     expect.objectContaining({
       // assetHashType: AssetHashType.OUTPUT,
-      bundling: expect.objectContaining({
+      bundler: expect.objectContaining({
         securityOpt: "no-new-privileges",
       }),
     }),
@@ -1125,7 +1122,7 @@ test("Custom bundling network", () => {
     "/project",
     expect.objectContaining({
       // assetHashType: AssetHashType.OUTPUT,
-      bundling: expect.objectContaining({
+      bundler: expect.objectContaining({
         network: "host",
       }),
     }),
@@ -1147,7 +1144,7 @@ test("Custom bundling file copy variant", () => {
     "/project",
     expect.objectContaining({
       // assetHashType: AssetHashType.OUTPUT,
-      bundling: expect.objectContaining({
+      bundler: expect.objectContaining({
         bundlingFileAccess: BundlingFileAccess.VOLUME_COPY,
       }),
     }),
@@ -1167,7 +1164,7 @@ test("bundling using NODEJS_LATEST doesn't externalize anything by default", () 
     "/project",
     expect.objectContaining({
       // assetHashType: AssetHashType.OUTPUT,
-      bundling: expect.objectContaining({
+      bundler: expect.objectContaining({
         command: [
           "bash",
           "-c",

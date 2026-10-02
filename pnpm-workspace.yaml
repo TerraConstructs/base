@@ -1,3 +1,17 @@
 allowBuilds:
   unrs-resolver: true
 nodeLinker: hoisted
+minimumReleaseAgeExclude:
+  - "@cdktn/bundler-docker"
+  - "@cdktn/bundler-local"
+  - cdktn
+overrides:
+  "@cdktn/bundler-docker": "https://github.com/eduardomourar/cdk-terrain/releases/download/v0.25.0-rc/bundler-docker@0.25.0-rc.2.jsii.tgz"
+  "@cdktn/bundler-local": "https://github.com/eduardomourar/cdk-terrain/releases/download/v0.25.0-rc/bundler-local@0.25.0-rc.2.jsii.tgz"
+patchedDependencies:
+  "@cdktn/provider-archive@14.0.0": patches/@cdktn__provider-archive@14.0.0.patch
+  "@cdktn/provider-aws@25.0.0": patches/@cdktn__provider-aws@25.0.0.patch
+  "@cdktn/provider-cloudinit@14.0.0": patches/@cdktn__provider-cloudinit@14.0.0.patch
+  "@cdktn/provider-docker@16.0.0": patches/@cdktn__provider-docker@16.0.0.patch
+  "@cdktn/provider-time@14.0.0": patches/@cdktn__provider-time@14.0.0.patch
+  "@cdktn/provider-tls@14.0.0": patches/@cdktn__provider-tls@14.0.0.patch

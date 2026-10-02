@@ -65,7 +65,7 @@ const project = new cdk.JsiiProject({
 
   // cdktn construct lib config
   peerDeps: [
-    "cdktn@^0.24.0",
+    "cdktn@^0.25.0-pre.40",
     "@cdktn/provider-aws@^25.0.0",
     "@cdktn/provider-time@^14.0.0",
     "@cdktn/provider-archive@^14.0.0",
@@ -76,8 +76,18 @@ const project = new cdk.JsiiProject({
     "@aws-cdk/cloud-assembly-schema@^54.17.0",
     "@aws-cdk/region-info@^2.233.0",
   ],
+  // NOTE: not published to npm yet, installed from the GitHub release
+  // tarballs directly (see the `overrides` entry in pnpm-workspace.yaml --
+  // jsii's dependency resolver requires package.json's declared version to
+  // parse as semver, so it can't be the tarball URL itself; "0.0.0" matches
+  // these packages' own actual (pre-release) version). src/bundling.ts's
+  // public API (DockerImage, BundlingOptions, etc.) references their types
+  // directly, so jsii requires them declared as a real "dependency" (not
+  // devDependency). Switch to a real npm semver range and drop the override
+  // once published to the registry.
+  deps: ["@cdktn/bundler-docker@0.0.0", "@cdktn/bundler-local@0.0.0"],
   devDeps: [
-    "cdktn@0.24.0",
+    "cdktn@0.25.0-pre.40",
     "@cdktn/provider-aws@25.0.0",
     "@cdktn/provider-time@14.0.0",
     "@cdktn/provider-archive@14.0.0",
@@ -104,7 +114,6 @@ const project = new cdk.JsiiProject({
     "ignore@^7.0.6",
     "minimatch@^10.2.6",
   ],
-  // deps: ["@balena/dockerignore@^1.0.2", "ignore@^7.0.6"],
 
   workflowNodeVersion,
   workflowBootstrapSteps,
@@ -149,7 +158,38 @@ const project = new cdk.JsiiProject({
 });
 
 new TextFile(project, "pnpm-workspace.yaml", {
-  lines: ["allowBuilds:", "  unrs-resolver: true", "nodeLinker: hoisted"],
+  lines: [
+    "allowBuilds:",
+    "  unrs-resolver: true",
+    "nodeLinker: hoisted",
+    "minimumReleaseAgeExclude:",
+    '  - "@cdktn/bundler-docker"',
+    '  - "@cdktn/bundler-local"',
+    "  - cdktn",
+    // @cdktn/bundler-docker and @cdktn/bundler-local are not published to
+    // npm yet; resolve the "0.0.0" placeholder versions in package.json to
+    // the published GitHub release tarballs. Remove once published to npm.
+    "overrides:",
+    '  "@cdktn/bundler-docker": "https://github.com/eduardomourar/cdk-terrain/releases/download/v0.25.0-rc/bundler-docker@0.25.0-rc.2.jsii.tgz"',
+    '  "@cdktn/bundler-local": "https://github.com/eduardomourar/cdk-terrain/releases/download/v0.25.0-rc/bundler-local@0.25.0-rc.2.jsii.tgz"',
+    // @cdktn/bundler-docker/-local's own `cdktn: ^0.0.0` peer is patched by
+    // scripts/patch-local-bundler-peers.mjs instead of a pnpm patch here --
+    // that release's tarball content churns under the same URL/tag, and
+    // pnpm's patch apply needs an exact git-blob-hash match against the
+    // bytes recorded when the patch was generated, which a later re-fetch
+    // of "the same" content can fail even when byte-identical by other
+    // comparisons. Every @cdktn/provider-* package still declares
+    // `cdktn: ^0.24.0`, which doesn't change release to release, so those
+    // stay as ordinary pnpm patches. Remove each once its package is
+    // republished against a compatible cdktn version.
+    "patchedDependencies:",
+    '  "@cdktn/provider-archive@14.0.0": patches/@cdktn__provider-archive@14.0.0.patch',
+    '  "@cdktn/provider-aws@25.0.0": patches/@cdktn__provider-aws@25.0.0.patch',
+    '  "@cdktn/provider-cloudinit@14.0.0": patches/@cdktn__provider-cloudinit@14.0.0.patch',
+    '  "@cdktn/provider-docker@16.0.0": patches/@cdktn__provider-docker@16.0.0.patch',
+    '  "@cdktn/provider-time@14.0.0": patches/@cdktn__provider-time@14.0.0.patch',
+    '  "@cdktn/provider-tls@14.0.0": patches/@cdktn__provider-tls@14.0.0.patch',
+  ],
 });
 
 pinGitHubActions(project);
@@ -219,6 +259,7 @@ project.testTask.updateStep(0, {
 
 project.package.addField("packageManager", `pnpm@${pnpmVersion}`); // silence COREPACK_ENABLE_AUTO_PIN warning
 project.package.addEngine("node", nodeVersion);
+
 new TextFile(project, ".nvmrc", {
   lines: [workflowNodeVersion],
 });
@@ -236,6 +277,13 @@ new S3BucketCorsConfigurationConfigStructBuilder(project);
 new S3BucketLifecycleConfigurationRuleStructBuilder(project);
 new LbListenerConfigStructBuilder(project);
 new LbTargetGroupAttachmentConfigStructBuilder(project);
+
+// See scripts/patch-local-bundler-peers.mjs: @cdktn/bundler-docker/-local
+// are unpublished GitHub-release-tarball deps whose own declared cdktn peer
+// range doesn't match this repo's cdktn version; patch it before every
+// compile (pnpm's own patch mechanism is too fragile for this -- see the
+// comment above the `patchedDependencies` block in pnpm-workspace.yaml).
+project.compileTask.prependExec("node scripts/patch-local-bundler-peers.mjs");
 
 // Copy non-TypeScript resource files (e.g., .vtl templates) to lib/ after compilation
 project.compileTask.exec(

@@ -50,7 +50,7 @@ describe("s3-assets", () => {
       bucket: "${aws_s3_bucket.AssetBucket.bucket}",
       key: "6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2.zip",
       source:
-        "assets/FileAsset/6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2/archive.zip",
+        "assets/MyAsset_Stage_7DFEE3E1/6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2/archive.zip",
       source_hash:
         "6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
     });
@@ -124,7 +124,7 @@ describe("s3-assets", () => {
       key: "78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197.txt",
       // path: "asset.78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197.txt",
       source:
-        "assets/FileAsset/78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197/asset.78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197.txt",
+        "assets/MyAsset_Stage_7DFEE3E1/78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197/file-asset.txt",
       source_hash:
         "78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197",
     });
@@ -222,7 +222,7 @@ describe("s3-assets", () => {
         new Asset(stack, "MyDirectory", {
           path: "/path/not/found/" + Math.random() * 999999,
         }),
-    ).toThrow(/Cannot find asset/);
+    ).toThrow(/ENOENT|Cannot find asset/);
   });
 
   test("multiple assets under the same parent", () => {
