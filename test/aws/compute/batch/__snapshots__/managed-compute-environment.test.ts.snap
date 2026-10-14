@@ -383,7 +383,7 @@ exports[`ManagedComputeEnvironment synth FargateComputeEnvironment synthesizes a
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -832,7 +832,7 @@ exports[`ManagedComputeEnvironment synth ManagedEc2EcsComputeEnvironment synthes
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }

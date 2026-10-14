@@ -646,7 +646,7 @@ exports[`DeploymentLifecycleHookTarget synth default role and multiple lifecycle
       },
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }

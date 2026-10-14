@@ -108,7 +108,7 @@ exports[`PublicCertificate Create multi-zone should synth and match SnapShot 1`]
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -198,7 +198,7 @@ exports[`PublicCertificate Create should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -280,7 +280,7 @@ exports[`PublicCertificate Imported DnsZone should synth and match SnapShot 1`] 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }

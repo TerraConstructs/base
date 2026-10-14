@@ -17,7 +17,7 @@
     },
     {
       "name": "@cdktn/provider-aws",
-      "version": "25.0.0",
+      "version": "25.7.2",
       "type": "build"
     },
     {
@@ -207,7 +207,7 @@
     },
     {
       "name": "@cdktn/provider-aws",
-      "version": "^25.0.0",
+      "version": "^25.7.1",
       "type": "peer"
     },
     {

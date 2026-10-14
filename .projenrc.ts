@@ -66,7 +66,7 @@ const project = new cdk.JsiiProject({
   // cdktn construct lib config
   peerDeps: [
     "cdktn@^0.24.0",
-    "@cdktn/provider-aws@^25.0.0",
+    "@cdktn/provider-aws@^25.7.1",
     "@cdktn/provider-time@^14.0.0",
     "@cdktn/provider-archive@^14.0.0",
     "@cdktn/provider-tls@^14.0.0",
@@ -78,7 +78,7 @@ const project = new cdk.JsiiProject({
   ],
   devDeps: [
     "cdktn@0.24.0",
-    "@cdktn/provider-aws@25.0.0",
+    "@cdktn/provider-aws@25.7.2",
     "@cdktn/provider-time@14.0.0",
     "@cdktn/provider-archive@14.0.0",
     "@cdktn/provider-tls@14.0.0",
