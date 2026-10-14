@@ -112,12 +112,10 @@ describe("build cache", () => {
     template.expect.toHaveResourceWithProperties(dockerImage.Image, {
       build: {
         builder: "default",
-        context:
-          "assets/DockerAsset/0a3355be12051c9984bf2b0b2bba4e6ea535968e5b6e7396449701732fe5ed14",
+        context: "assets/DockerAsset/5DE08ABECE802F1501FF14874D96AEA5",
       },
       triggers: {
-        dir_sha1:
-          "0a3355be12051c9984bf2b0b2bba4e6ea535968e5b6e7396449701732fe5ed14",
+        dir_sha1: "5DE08ABECE802F1501FF14874D96AEA5",
       },
     });
     // expect(
