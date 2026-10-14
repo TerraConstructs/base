@@ -92,6 +92,10 @@ apigw-definition-inline: ## Test API Gateway with inline definition
 	go test -v -count 1 -timeout 15m ./... -run ^TestApiDefinitionInline$
 .PHONY: apigw-definition-inline
 
+apigw-private-vpce: ## Test private API Gateway restricted to a VPC endpoint (resource policy, no drift)
+	go test -v -count 1 -timeout 20m ./... -run ^TestApigwPrivateVpce$
+.PHONY: apigw-private-vpce
+
 ecs.awslogs-driver: ## Test Fargate service with the awslogs log driver
 	go test -v -count 1 -timeout 30m ./... -run ^TestEcsAwslogsDriver$
 .PHONY: ecs.awslogs-driver
