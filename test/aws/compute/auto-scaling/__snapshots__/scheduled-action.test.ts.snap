@@ -490,7 +490,7 @@ exports[`ScheduledAction Should synth and match SnapShot with minCapacity only 1
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -990,7 +990,7 @@ exports[`ScheduledAction Should synth and match SnapShot with startTime, endTime
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }

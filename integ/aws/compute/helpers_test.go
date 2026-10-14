@@ -19,6 +19,25 @@ func replanUsingTerraform(t *testing.T, workingDir string) {
 	require.Equal(t, 0, countReplaceActions(plan))
 }
 
+// assertNoPlanChangesForTypes re-plans the deployed stack and requires a
+// no-op plan for every resource of the given types: any change right after a
+// clean apply is state drift. Other resource types are logged but tolerated
+// (e.g. security group rules, see TerraConstructs/base#40).
+func assertNoPlanChangesForTypes(t *testing.T, workingDir string, resourceTypes ...string) {
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+	plan := terraform.InitAndPlanAndShowWithStructNoLogTempPlanFile(t, terraformOptions)
+	summarizePlan(t, plan)
+	for _, change := range plan.ResourceChangesMap {
+		if change.Change.Actions.NoOp() {
+			continue
+		}
+		for _, resourceType := range resourceTypes {
+			require.NotEqual(t, resourceType, change.Type,
+				"expected no changes for %s after apply (drift), got %v", change.Address, change.Change.Actions)
+		}
+	}
+}
+
 func summarizePlan(t *testing.T, plan *terraform.PlanStruct) int {
 	count := 0
 	for _, change := range plan.ResourceChangesMap {

@@ -100,7 +100,7 @@ exports[`EnvironmentFile synth EnvironmentFile.fromAsset synth matches snapshot 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -204,7 +204,7 @@ exports[`EnvironmentFile synth EnvironmentFile.fromBucket synth matches snapshot
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }

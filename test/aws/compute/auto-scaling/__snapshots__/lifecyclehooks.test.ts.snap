@@ -546,7 +546,7 @@ exports[`LifecycleHook Should synth and match SnapShot with a notificationTarget
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -1101,7 +1101,7 @@ exports[`LifecycleHook Should synth and match SnapShot with a role and a notific
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }

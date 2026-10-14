@@ -126,7 +126,7 @@ exports[`Bucket Should support multiple sources 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -268,7 +268,7 @@ exports[`Bucket Should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }

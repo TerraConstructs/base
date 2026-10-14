@@ -45,7 +45,7 @@ exports[`namespace snapshots HTTP namespace should synth and match SnapShot 1`] 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -395,7 +395,7 @@ exports[`namespace snapshots Private DNS namespace should synth and match SnapSh
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -447,7 +447,7 @@ exports[`namespace snapshots Public DNS namespace should synth and match SnapSho
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }

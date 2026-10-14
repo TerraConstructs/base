@@ -204,7 +204,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -266,7 +266,7 @@ exports[`DnsZone Import should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }

@@ -3,11 +3,14 @@ package test
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
+	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 
@@ -182,6 +185,71 @@ func TestApiDefinitionInline(t *testing.T) {
 				expectedStatusCode: 200,
 			},
 		})
+	})
+}
+
+// Test the apigw.private-vpce app: a private REST API restricted to a VPC
+// interface endpoint via grantInvokeFromVpcEndpointsOnly (TerraConstructs/base#167).
+func TestApigwPrivateVpce(t *testing.T) {
+	options := integrationTestOptions{
+		Region: region,
+	}
+	runComputeIntegrationTest(t, "apigw.private-vpce", options, func(t *testing.T, tfWorkingDir, awsRegion string) {
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+		outputs := terraform.OutputAll(t, terraformOptions)
+		apiUrl := outputs["ApiUrl"].(string)
+		restApiId := outputs["RestApiId"].(string)
+		functionName := outputs["InvokerFunctionName"].(string)
+
+		// The policy stored by API Gateway must use the full execution ARN of
+		// the API: the `execute-api:/*` shorthand would be expanded service-side
+		// and diff on every plan.
+		policy := util.GetRestApiPolicy(t, awsRegion, restApiId)
+		require.NotEmpty(t, policy, "private API should have a resource policy")
+		require.Contains(t, policy, fmt.Sprintf(":execute-api:%s:", awsRegion))
+		require.Contains(t, policy, restApiId+"/*")
+		require.NotContains(t, policy, "execute-api:/")
+
+		// A re-plan right after apply must not touch the API: the resource policy
+		// used to diff on every plan (TerraConstructs/base#167).
+		assertNoPlanChangesForTypes(t, tfWorkingDir,
+			"aws_api_gateway_rest_api",
+			"aws_api_gateway_rest_api_policy",
+			"aws_api_gateway_deployment",
+			"aws_api_gateway_stage",
+		)
+
+		// Invoking through the VPC endpoint is allowed. Private DNS for a new
+		// interface endpoint can lag, so retry.
+		_, err := retry.DoWithRetryE(t, "invoke private API from inside the VPC", 6, 10*time.Second, func() (string, error) {
+			out, err := util.InvokeFunctionWithParamsE(t, awsRegion, functionName, &util.LambdaOptions{})
+			if err != nil {
+				return "", err
+			}
+			var result struct {
+				StatusCode int    `json:"statusCode"`
+				Body       string `json:"body"`
+			}
+			if err := json.Unmarshal(out.Payload, &result); err != nil {
+				return "", fmt.Errorf("unexpected payload %q: %w", string(out.Payload), err)
+			}
+			if result.StatusCode != 200 {
+				return "", fmt.Errorf("expected 200 from inside the VPC, got %d: %s", result.StatusCode, result.Body)
+			}
+			if !strings.Contains(result.Body, "private ok") {
+				return "", fmt.Errorf("unexpected body: %s", result.Body)
+			}
+			return result.Body, nil
+		})
+		require.NoError(t, err)
+
+		// A private API is not reachable from the public internet: its
+		// execute-api hostname only resolves through the interface endpoint's
+		// private DNS, so the lookup fails from outside the VPC.
+		apiHost, err := url.Parse(apiUrl)
+		require.NoError(t, err)
+		_, err = net.LookupHost(apiHost.Hostname())
+		require.Error(t, err, "private API hostname %s must not resolve publicly", apiHost.Hostname())
 	})
 }
 

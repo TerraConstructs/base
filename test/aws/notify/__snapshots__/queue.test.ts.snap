@@ -45,7 +45,7 @@ exports[`Queue Should synth and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -100,7 +100,7 @@ exports[`Queue Should synth and match SnapShot with prefix 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -167,7 +167,7 @@ exports[`Queue Should synth with DLQ and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -224,7 +224,7 @@ exports[`Queue Should synth with contentBasedDeduplication and match SnapShot 1`
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
@@ -280,7 +280,7 @@ exports[`Queue Should synth with fifo suffix and match SnapShot 1`] = `
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }

@@ -645,7 +645,7 @@ exports[`external service synth ExternalService with only required properties sh
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.58.0"
+        "version": "6.67.0"
       }
     }
   }
