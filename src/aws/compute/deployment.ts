@@ -4,13 +4,14 @@ import {
   apiGatewayRestApi,
   apiGatewayStage,
 } from "@cdktn/provider-aws";
-import { Lazy } from "cdktn";
+import { Fn, Lazy } from "cdktn";
 import { Construct } from "constructs";
 import { Method } from "./method";
 import { IRestApi, RestApi, RestApiBase, SpecRestApi } from "./restapi";
 // import { Fn } from "../../terra-func";
 import { md5hash } from "../../helpers-internal";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
+import * as cxapi from "../cx-api";
 
 export interface DeploymentProps extends AwsConstructProps {
   /**
@@ -45,6 +46,21 @@ export interface DeploymentProps extends AwsConstructProps {
    * @default - No stage is created or associated with this deployment.
    */
   readonly stageName?: string;
+
+  /**
+   * Keep the legacy, synth-time only, redeployment trigger.
+   *
+   * By default the deployment also carries plan-time `triggers` entries
+   * (`body = sha1(...)` and `policy = sha1(...)`) so that changes to
+   * token-valued attributes of the REST API redeploy it. Set to `true` to keep
+   * only the synth-time `redeployment` checksum, e.g. to avoid the one-time
+   * replacement of an existing deployment.
+   *
+   * @default - the value of the
+   * `terraconstructs/compute:legacy-apigateway-deployment-triggers` context
+   * flag, or `false`
+   */
+  readonly legacyTriggers?: boolean;
 }
 
 /**
@@ -71,10 +87,19 @@ export interface DeploymentProps extends AwsConstructProps {
  * Furthermore, a deployment should depend on all API Gateway resources (Methods, Resources, etc.)
  * that define the API. Use the `_addMethodDependency` or directly add dependencies to ensure correct
  * provisioning order. This is also handled for `restApi.latestDeployment`.
+ *
+ * The `triggers` of the underlying `aws_api_gateway_deployment` contain a
+ * synth-time checksum (`redeployment`) of the REST API configuration and, for
+ * token-valued attributes that Terraform only knows at plan time, plan-time
+ * entries: `body = sha1(<rest api body>)` and
+ * `policy = sha1(<rest api resource policy>)`. The plan-time entries can be
+ * disabled with the `legacyTriggers` prop or the
+ * `terraconstructs/compute:legacy-apigateway-deployment-triggers` context flag.
  */
 export class Deployment extends AwsConstructBase {
   public readonly deploymentId: string;
   public readonly api: IRestApi;
+  private readonly legacyTriggers: boolean;
   /**
    * The name of the stage created and associated with this deployment, if `stageName` was provided.
    */
@@ -89,6 +114,10 @@ export class Deployment extends AwsConstructBase {
     super(scope, id, props);
 
     this.api = props.api;
+
+    this.legacyTriggers =
+      props.legacyTriggers ??
+      !!this.node.tryGetContext(cxapi.LEGACY_APIGATEWAY_DEPLOYMENT_TRIGGERS);
 
     this.deploymentResource = new apiGatewayDeployment.ApiGatewayDeployment(
       this,
@@ -144,6 +173,8 @@ export class Deployment extends AwsConstructBase {
 
   private calculateTriggers(): { [key: string]: string } | undefined {
     const triggers = [...this.triggerComponents];
+    // Plan-time triggers for token-valued attributes (see below).
+    const planTimeTriggers: { [key: string]: string } = {};
 
     // Ignore IRestApi that are imported
     if (this.api instanceof RestApi || this.api instanceof SpecRestApi) {
@@ -159,6 +190,21 @@ export class Deployment extends AwsConstructBase {
         const tfPolicy = policyResource.toTerraform();
         triggers.push(tfPolicy.resource.aws_api_gateway_rest_api_policy);
       }
+
+      // The checksum below is computed at synth time, so a token such as
+      // `${aws_lambda_function.X.invoke_arn}` inside the OpenAPI body, or the
+      // `${data.aws_iam_policy_document.X.json}` policy, hashes to its constant
+      // reference: when the referenced value changes at plan time the
+      // deployment would not be replaced. Hash those attributes with Terraform
+      // `sha1()` instead, so they are evaluated at plan time.
+      if (!this.legacyTriggers) {
+        if (apiInternal.bodyInput !== undefined) {
+          planTimeTriggers.body = Fn.sha1(apiInternal.body);
+        }
+        if (policyResource) {
+          planTimeTriggers.policy = Fn.sha1(policyResource.policy);
+        }
+      }
     }
 
     // NOTE: AWSCDK calculates checksum against function properties.
@@ -170,7 +216,7 @@ export class Deployment extends AwsConstructBase {
         .join(""),
     );
     // triggers has to be Record<string, string> for Terraform to accept it.
-    return { redeployment: checksum };
+    return { redeployment: checksum, ...planTimeTriggers };
 
     // // NOTE: consider checksum too confusing and use full trigger objects instead?
     // // TODO: This causes "missing attributer separator" errors

@@ -9,6 +9,29 @@ export const PROVIDER_ERROR_KEY = "$providerError";
 
 export const TARGET_PARTITIONS = "terraconstructs/core:target-partitions";
 
+/**
+ * Context flag: keep the legacy (synth-time only) API Gateway deployment
+ * triggers.
+ *
+ * By default, `aws.compute.Deployment` adds plan-time `triggers` entries
+ * (`body = sha1(<rest api body>)`, `policy = sha1(<rest api policy>)`) so that
+ * a change in a token-valued attribute (e.g. a lambda `invoke_arn` inside the
+ * OpenAPI body, or the resource policy statements) redeploys the API. Adding
+ * these entries replaces every existing deployment of an API with a body or
+ * a resource policy once (create before destroy).
+ *
+ * Set this context key to `true` to opt out and keep only the synth-time
+ * `redeployment` checksum, e.g. in `cdktf.json`:
+ *
+ * ```json
+ * { "context": { "terraconstructs/compute:legacy-apigateway-deployment-triggers": true } }
+ * ```
+ *
+ * The `Deployment` prop `legacyTriggers` overrides this flag per deployment.
+ */
+export const LEGACY_APIGATEWAY_DEPLOYMENT_TRIGGERS =
+  "terraconstructs/compute:legacy-apigateway-deployment-triggers";
+
 // Ref: https://github.com/aws/aws-cdk/blob/v2.232.2/packages/aws-cdk-lib/cx-api/lib/context/vpc.ts
 
 /**
