@@ -359,8 +359,6 @@ export abstract class RestApiBase
   protected cloudWatchAccount?: apiGatewayAccount.ApiGatewayAccount;
   protected internalPolicy?: iam.PolicyDocument;
   protected policyAttachment?: apiGatewayRestApiPolicy.ApiGatewayRestApiPolicy;
-  /** Deployments of this API, which must wait for the resource policy (if any) */
-  private readonly policyDependentDeployments: Deployment[] = [];
 
   constructor(scope: Construct, id: string, props: RestApiBaseProps = {}) {
     super(scope, id, props);
@@ -392,7 +390,8 @@ export abstract class RestApiBase
 
   /**
    * The `aws_api_gateway_rest_api_policy` resource managing this API's resource
-   * policy, if any. Used by `Deployment` to redeploy on policy changes.
+   * policy, if any. Used by `Deployment` to depend on it and to redeploy on
+   * policy changes.
    *
    * @internal
    */
@@ -418,12 +417,6 @@ export abstract class RestApiBase
         policy: this.internalPolicy.json,
       },
     );
-    // API Gateway refuses to create a deployment of a private API without a
-    // resource policy ("Private REST API doesn't have a resource policy
-    // attached to it"), so every deployment must wait for the policy resource.
-    for (const deployment of this.policyDependentDeployments) {
-      deployment.node.addDependency(this.policyAttachment);
-    }
   }
 
   /**
@@ -680,11 +673,8 @@ export abstract class RestApiBase
    *
    * @internal
    */
-  public _attachDeployment(deployment: Deployment) {
-    this.policyDependentDeployments.push(deployment);
-    if (this.policyAttachment) {
-      deployment.node.addDependency(this.policyAttachment);
-    }
+  public _attachDeployment(_deployment: Deployment) {
+    // Similar to _attachMethod, for managing deployment dependencies.
   }
 
   /**
@@ -1075,7 +1065,6 @@ export class RestApi extends RestApiBase {
 
   /** @internal */
   public _attachDeployment(deployment: Deployment) {
-    super._attachDeployment(deployment);
     // In TF, deployment triggers would handle this implicitly or explicitly
     this.deployments.push(deployment);
     for (const method of this.methods) {

@@ -209,6 +209,24 @@ export class Deployment extends AwsConstructBase {
   }
 
   /**
+   * Adds resource dependencies to the Terraform JSON output at synth time.
+   *
+   * called by TerraformStack.prepareStack()
+   */
+  public toTerraform(): any {
+    // API Gateway refuses to create a deployment of a private API without a
+    // resource policy ("Private REST API doesn't have a resource policy
+    // attached to it"). The policy may be added to the API after this
+    // deployment was created (e.g. grantInvokeFromVpcEndpointsOnly), so the
+    // dependency is wired in the prepare pass, before construct dependencies
+    // are mapped to Terraform `depends_on`.
+    if (this.api instanceof RestApiBase && this.api._resourcePolicyResource) {
+      this.node.addDependency(this.api._resourcePolicyResource);
+    }
+    return {};
+  }
+
+  /**
    * Adds a dependency from this Deployment to an API Gateway Method.
    * This ensures that the method is created before the deployment.
    *
