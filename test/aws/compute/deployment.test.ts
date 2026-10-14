@@ -1,17 +1,24 @@
 // https://github.com/aws/aws-cdk/blob/v2.186.0/packages/aws-cdk-lib/aws-apigateway/test/deployment.test.ts
 
 import * as path from "path";
-import { apiGatewayDeployment, apiGatewayStage } from "@cdktn/provider-aws";
+import {
+  apiGatewayDeployment,
+  apiGatewayRestApi,
+  apiGatewayStage,
+} from "@cdktn/provider-aws";
 import { App, Lazy, TerraformResource, Testing } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AwsStack } from "../../../src/aws";
 import {
+  ApiDefinition,
   Deployment,
   LambdaIntegration,
   RestApi,
+  SpecRestApi,
   Stage,
 } from "../../../src/aws/compute";
 import * as lambda from "../../../src/aws/compute";
+import { LEGACY_APIGATEWAY_DEPLOYMENT_TRIGGERS } from "../../../src/aws/cx-api";
 import * as iam from "../../../src/aws/iam";
 import { Template } from "../../assertions";
 
@@ -237,6 +244,94 @@ describe("deployment", () => {
       // picks it up once redeployed, so policy changes must trigger redeployment.
       expect(withPolicy).not.toEqual(without);
     });
+
+    /** Resolve a resource `fqn` token to its bare Terraform reference */
+    const ref = (scope: AwsStack, fqn: string): string =>
+      (scope.resolve(fqn) as string).replace(/^\$\{|\}$/g, "");
+
+    test("plan-time triggers for the resource policy and the OpenAPI body", () => {
+      // GIVEN
+      const api = new RestApi(stack, "api", {
+        deploy: false,
+        cloudWatchRole: false,
+      });
+      new Deployment(stack, "deployment", { api });
+      api.root.addMethod("GET");
+      api.addToResourcePolicy(
+        new iam.PolicyStatement({
+          actions: ["execute-api:Invoke"],
+          resources: [api.arnForExecuteApi()],
+          principals: [new iam.AnyPrincipal()],
+        }),
+      );
+      const specStack = new AwsStack(app, "Spec");
+      const specApi = new SpecRestApi(specStack, "api", {
+        deploy: false,
+        cloudWatchRole: false,
+        apiDefinition: ApiDefinition.fromInline({ openapi: "3.0.2" }),
+      });
+      new Deployment(specStack, "deployment", { api: specApi });
+
+      // THEN
+      // Token-valued attributes are hashed by Terraform at plan time, so a
+      // change in the referenced value (not only in the reference) redeploys.
+      const [deployment] = new Template(stack).resourceTypeArray(
+        apiGatewayDeployment.ApiGatewayDeployment,
+      ) as Array<{ triggers: Record<string, string> }>;
+      expect(deployment.triggers).toEqual({
+        redeployment: expect.stringMatching(/^[0-9a-f]{32}$/),
+        policy: `\${sha1(${ref(stack, api._resourcePolicyResource!.fqn)}.policy)}`,
+      });
+      const [specDeployment] = new Template(specStack).resourceTypeArray(
+        apiGatewayDeployment.ApiGatewayDeployment,
+      ) as Array<{ triggers: Record<string, string> }>;
+      expect(specDeployment.triggers).toEqual({
+        redeployment: expect.stringMatching(/^[0-9a-f]{32}$/),
+        body: `\${sha1(${ref(
+          specStack,
+          (specApi.node.defaultChild as apiGatewayRestApi.ApiGatewayRestApi)
+            .fqn,
+        )}.body)}`,
+      });
+    });
+
+    test.each([
+      [
+        "context flag",
+        (scope: AwsStack) =>
+          scope.node.setContext(LEGACY_APIGATEWAY_DEPLOYMENT_TRIGGERS, true),
+        {},
+      ],
+      ["legacyTriggers prop", () => {}, { legacyTriggers: true }],
+    ])(
+      "legacy synth-time only triggers (%s)",
+      (_name, prepare, deploymentProps) => {
+        // GIVEN
+        const legacyStack = new AwsStack(app, "Legacy");
+        prepare(legacyStack);
+        const api = new SpecRestApi(legacyStack, "api", {
+          deploy: false,
+          cloudWatchRole: false,
+          apiDefinition: ApiDefinition.fromInline({ openapi: "3.0.2" }),
+        });
+        new Deployment(legacyStack, "deployment", { api, ...deploymentProps });
+        api.addToResourcePolicy(
+          new iam.PolicyStatement({
+            actions: ["execute-api:Invoke"],
+            resources: [api.arnForExecuteApi()],
+            principals: [new iam.AnyPrincipal()],
+          }),
+        );
+
+        // THEN
+        const [deployment] = new Template(legacyStack).resourceTypeArray(
+          apiGatewayDeployment.ApiGatewayDeployment,
+        ) as Array<{ triggers: Record<string, string> }>;
+        expect(deployment.triggers).toEqual({
+          redeployment: expect.stringMatching(/^[0-9a-f]{32}$/),
+        });
+      },
+    );
 
     test("after setting a resolved trigger value", () => {
       const api = new RestApi(stack, "api", {
