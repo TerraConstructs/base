@@ -152,6 +152,13 @@ export class Deployment extends AwsConstructBase {
       // TODO: AWSCDK Triggers redeployment on any changes (not just the body property).
       const tfRestAPI = apiInternal.toTerraform();
       triggers.push(tfRestAPI.resource.aws_api_gateway_rest_api);
+      // The resource policy is managed by a separate resource; a private API
+      // only picks up policy changes once redeployed, so include it as well.
+      const policyResource = this.api._resourcePolicyResource;
+      if (policyResource) {
+        const tfPolicy = policyResource.toTerraform();
+        triggers.push(tfPolicy.resource.aws_api_gateway_rest_api_policy);
+      }
     }
 
     // NOTE: AWSCDK calculates checksum against function properties.

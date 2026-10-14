@@ -27,6 +27,7 @@ import * as apigw from "../../../src/aws/compute";
 import {
   Vpc,
   GatewayVpcEndpoint,
+  InterfaceVpcEndpoint,
   InterfaceVpcEndpointAwsService,
 } from "../../../src/aws/compute";
 import * as iam from "../../../src/aws/iam";
@@ -1521,6 +1522,58 @@ describe("SpecRestApi", () => {
   });
 
   describe("addToResourcePolicy", () => {
+    test.each([
+      [
+        "RestApi",
+        (policy: iam.PolicyDocument) =>
+          new apigw.RestApi(stack, "Api", { policy }),
+      ],
+      [
+        "SpecRestApi",
+        (policy: iam.PolicyDocument) =>
+          new apigw.SpecRestApi(stack, "Api", {
+            apiDefinition: apigw.ApiDefinition.fromInline({ foo: "bar" }),
+            policy,
+          }),
+      ],
+    ])(
+      "%s with policy provided only manages the policy through aws_api_gateway_rest_api_policy",
+      (_name, create) => {
+        // GIVEN
+        const policy = new iam.PolicyDocument(stack, "Policy", {
+          statement: [
+            new iam.PolicyStatement({
+              actions: ["execute-api:Invoke"],
+              resources: ["*"],
+            }),
+          ],
+        });
+        const api = create(policy);
+        api.root.addMethod("GET", undefined, {});
+
+        // THEN
+        const template = new Template(stack);
+        // The inline `policy` attribute must never be set: it cannot reference the
+        // API's own execution ARN and conflicts with aws_api_gateway_rest_api_policy.
+        const restApis = template.resourceTypeArray(
+          apiGatewayRestApi.ApiGatewayRestApi,
+        );
+        expect(restApis).toHaveLength(1);
+        expect(restApis[0]).not.toHaveProperty("policy");
+        template.resourceCountIs(
+          apiGatewayRestApiPolicy.ApiGatewayRestApiPolicy,
+          1,
+        );
+        template.expect.toHaveResourceWithProperties(
+          apiGatewayRestApiPolicy.ApiGatewayRestApiPolicy,
+          {
+            rest_api_id: stack.resolve(api.restApiId),
+            policy: stack.resolve(policy.json),
+          },
+        );
+      },
+    );
+
     test("add a statement to the resource policy for RestApi", () => {
       // GIVEN
       const api = new apigw.RestApi(stack, "Api");
@@ -1823,6 +1876,54 @@ describe("SpecRestApi", () => {
   });
 
   describe("grantInvokeFromVpcEndpointOnly", () => {
+    // API Gateway refuses to deploy a private API without a resource policy,
+    // so the deployment must depend on aws_api_gateway_rest_api_policy
+    // regardless of whether the policy is attached before or after the
+    // deployment is created.
+    test.each([
+      [
+        "policy attached after the deployment",
+        (api: apigw.RestApi, vpcEndpoint: InterfaceVpcEndpoint) =>
+          api.grantInvokeFromVpcEndpointsOnly([vpcEndpoint]),
+      ],
+      [
+        "policy provided before the deployment",
+        (api: apigw.RestApi, _vpcEndpoint: InterfaceVpcEndpoint) =>
+          api.addToResourcePolicy(
+            new iam.PolicyStatement({
+              actions: ["execute-api:Invoke"],
+              resources: [api.arnForExecuteApi()],
+              principals: [new iam.AnyPrincipal()],
+            }),
+          ),
+      ],
+    ])("deployment depends on the resource policy (%s)", (_name, attach) => {
+      // GIVEN
+      const vpc = new Vpc(stack, "VPC");
+      const vpcEndpoint = vpc.addInterfaceEndpoint("APIGatewayEndpoint", {
+        service: InterfaceVpcEndpointAwsService.APIGATEWAY,
+      });
+      const api = new apigw.RestApi(stack, "my-api", {
+        endpointTypes: [apigw.EndpointType.PRIVATE],
+      });
+      api.root.addMethod("GET");
+      attach(api, vpcEndpoint);
+
+      // THEN
+      const template = new Template(stack);
+      const policies = template.resourcesByType(
+        apiGatewayRestApiPolicy.ApiGatewayRestApiPolicy,
+      ) as Record<string, unknown>;
+      const [policyId] = Object.keys(policies);
+      expect(policyId).toBeDefined();
+      const [deployment] = template.resourceTypeArray(
+        apiGatewayDeployment.ApiGatewayDeployment,
+      ) as Array<{ depends_on?: string[] }>;
+      expect(deployment.depends_on).toEqual(
+        expect.arrayContaining([`aws_api_gateway_rest_api_policy.${policyId}`]),
+      );
+    });
+
     test("called once", () => {
       // GIVEN
       const vpc = new Vpc(stack, "VPC");
@@ -1857,7 +1958,7 @@ describe("SpecRestApi", () => {
                   type: "AWS",
                 },
               ],
-              resources: ["execute-api:/*"],
+              resources: [stack.resolve(api.arnForExecuteApi())],
             },
             {
               actions: ["execute-api:Invoke"],
@@ -1868,7 +1969,7 @@ describe("SpecRestApi", () => {
                   type: "AWS",
                 },
               ],
-              resources: ["execute-api:/*"],
+              resources: [stack.resolve(api.arnForExecuteApi())],
             },
           ],
         },
@@ -1923,7 +2024,7 @@ describe("SpecRestApi", () => {
                   type: "AWS",
                 },
               ],
-              resources: ["execute-api:/*"],
+              resources: [stack.resolve(api.arnForExecuteApi())],
             },
             {
               actions: ["execute-api:Invoke"],
@@ -1934,7 +2035,7 @@ describe("SpecRestApi", () => {
                   type: "AWS",
                 },
               ],
-              resources: ["execute-api:/*"],
+              resources: [stack.resolve(api.arnForExecuteApi())],
             },
           ],
         },
@@ -1982,7 +2083,7 @@ describe("SpecRestApi", () => {
                   type: "AWS",
                 },
               ],
-              resources: ["execute-api:/*"],
+              resources: [stack.resolve(api.arnForExecuteApi())],
             },
             {
               actions: ["execute-api:Invoke"],
@@ -1993,7 +2094,7 @@ describe("SpecRestApi", () => {
                   type: "AWS",
                 },
               ],
-              resources: ["execute-api:/*"],
+              resources: [stack.resolve(api.arnForExecuteApi())],
             },
           ],
         },
@@ -2035,7 +2136,7 @@ describe("SpecRestApi", () => {
                   type: "AWS",
                 },
               ],
-              resources: ["execute-api:/*"],
+              resources: [stack.resolve(api.arnForExecuteApi())],
             },
             {
               actions: ["execute-api:Invoke"],
@@ -2046,7 +2147,7 @@ describe("SpecRestApi", () => {
                   type: "AWS",
                 },
               ],
-              resources: ["execute-api:/*"],
+              resources: [stack.resolve(api.arnForExecuteApi())],
             },
           ],
         },

@@ -359,6 +359,8 @@ export abstract class RestApiBase
   protected cloudWatchAccount?: apiGatewayAccount.ApiGatewayAccount;
   protected internalPolicy?: iam.PolicyDocument;
   protected policyAttachment?: apiGatewayRestApiPolicy.ApiGatewayRestApiPolicy;
+  /** Deployments of this API, which must wait for the resource policy (if any) */
+  private readonly policyDependentDeployments: Deployment[] = [];
 
   constructor(scope: Construct, id: string, props: RestApiBaseProps = {}) {
     super(scope, id, props);
@@ -367,9 +369,62 @@ export abstract class RestApiBase
     Object.defineProperty(this, RESTAPI_SYMBOL, { value: true });
   }
 
-  public abstract addToResourcePolicy(
+  /**
+   * Adds a statement to the resource policy of this API.
+   *
+   * The policy is managed by a dedicated `aws_api_gateway_rest_api_policy`
+   * resource (never through the `policy` attribute of `aws_api_gateway_rest_api`),
+   * so statements can safely reference the API's own execution ARN.
+   */
+  public addToResourcePolicy(
     statement: iam.PolicyStatement,
-  ): iam.AddToResourcePolicyResult;
+  ): iam.AddToResourcePolicyResult {
+    if (!this.internalPolicy) {
+      this.internalPolicy = new iam.PolicyDocument(this, "PolicyDocument");
+    }
+    this.internalPolicy.addStatements(statement);
+    this.attachResourcePolicy();
+    return {
+      statementAdded: true,
+      policyDependable: this.policyAttachment,
+    };
+  }
+
+  /**
+   * The `aws_api_gateway_rest_api_policy` resource managing this API's resource
+   * policy, if any. Used by `Deployment` to redeploy on policy changes.
+   *
+   * @internal
+   */
+  public get _resourcePolicyResource():
+    | apiGatewayRestApiPolicy.ApiGatewayRestApiPolicy
+    | undefined {
+    return this.policyAttachment;
+  }
+
+  /**
+   * Ensure the internal policy document is attached through a dedicated
+   * `aws_api_gateway_rest_api_policy` resource.
+   */
+  protected attachResourcePolicy(): void {
+    if (!this.internalPolicy || this.policyAttachment) {
+      return;
+    }
+    this.policyAttachment = new apiGatewayRestApiPolicy.ApiGatewayRestApiPolicy(
+      this,
+      "Policy",
+      {
+        restApiId: this.restApiId,
+        policy: this.internalPolicy.json,
+      },
+    );
+    // API Gateway refuses to create a deployment of a private API without a
+    // resource policy ("Private REST API doesn't have a resource policy
+    // attached to it"), so every deployment must wait for the policy resource.
+    for (const deployment of this.policyDependentDeployments) {
+      deployment.node.addDependency(this.policyAttachment);
+    }
+  }
 
   /**
    * Returns the URL for an HTTP path.
@@ -466,6 +521,11 @@ export abstract class RestApiBase
    *
    * @see https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-resource-policies-examples.html#apigateway-resource-policies-source-vpc-example
    *
+   * Unlike AWS CDK, the statements use the full execution ARN of this API
+   * (`arnForExecuteApi()`) instead of the `execute-api:/*` shorthand. API Gateway
+   * stores the expanded ARN and the Terraform AWS provider does not treat the
+   * shorthand as equivalent, so the shorthand causes a permanent plan diff.
+   *
    * @param vpcEndpoints the interface VPC endpoints to grant access to
    */
   public grantInvokeFromVpcEndpointsOnly(
@@ -485,7 +545,7 @@ export abstract class RestApiBase
       new iam.PolicyStatement({
         principals: [new iam.AnyPrincipal()],
         actions: ["execute-api:Invoke"],
-        resources: ["execute-api:/*"],
+        resources: [this.arnForExecuteApi()],
         effect: iam.Effect.DENY,
         condition: [
           {
@@ -500,7 +560,7 @@ export abstract class RestApiBase
       new iam.PolicyStatement({
         principals: [new iam.AnyPrincipal()],
         actions: ["execute-api:Invoke"],
-        resources: ["execute-api:/*"],
+        resources: [this.arnForExecuteApi()],
         effect: iam.Effect.ALLOW,
       }),
     );
@@ -620,8 +680,11 @@ export abstract class RestApiBase
    *
    * @internal
    */
-  public _attachDeployment(_deployment: Deployment) {
-    // Similar to _attachMethod, for managing deployment dependencies.
+  public _attachDeployment(deployment: Deployment) {
+    this.policyDependentDeployments.push(deployment);
+    if (this.policyAttachment) {
+      deployment.node.addDependency(this.policyAttachment);
+    }
   }
 
   /**
@@ -784,9 +847,6 @@ export class SpecRestApi extends RestApiBase {
 
     this.resource = new apiGatewayRestApi.ApiGatewayRestApi(this, "Resource", {
       name: this.restApiName,
-      policy: Lazy.stringValue({
-        produce: () => this.internalPolicy?.json,
-      }),
       failOnWarnings: props.failOnWarnings,
       minimumCompressionSize: props.minCompressionSize?.toBytes()?.toString(),
       body: apiDefConfig.inlineDefinition, // ?? apiDefConfig.s3Location, // TF body can be inline or S3 URI
@@ -804,31 +864,15 @@ export class SpecRestApi extends RestApiBase {
     this.restApiRootResourceId = this.resource.rootResourceId;
     this.root = new RootResource(this, {}, this.restApiRootResourceId);
 
+    // ensure the iam policy is associated with the resource.
+    this.attachResourcePolicy();
+
     this._configureCloudWatchRole(this.resource, props.cloudWatchRole);
     this._configureDeployment(props);
 
     if (props.domainName) {
       this.addDomainName("CustomDomain", props.domainName);
     }
-  }
-
-  public addToResourcePolicy(
-    statement: iam.PolicyStatement,
-  ): iam.AddToResourcePolicyResult {
-    if (!this.internalPolicy) {
-      this.internalPolicy = new iam.PolicyDocument(this, "PolicyDocument");
-    }
-    if (!this.policyAttachment) {
-      this.policyAttachment =
-        new apiGatewayRestApiPolicy.ApiGatewayRestApiPolicy(this, "Policy", {
-          restApiId: this.restApiId,
-          policy: this.internalPolicy.json,
-        });
-    }
-    this.internalPolicy.addStatements(statement);
-    // Note: The policy on apiGatewayRestApi will be updated due to Lazy evaluation.
-    // If a separate ApiGatewayRestApiPolicy resource is preferred, this logic would change.
-    return { statementAdded: true, policyDependable: this.resource }; // or this
   }
 }
 
@@ -963,9 +1007,6 @@ export class RestApi extends RestApiBase {
     this.resource = new apiGatewayRestApi.ApiGatewayRestApi(this, "Resource", {
       name: this.restApiName,
       description: props.description,
-      policy: Lazy.stringValue({
-        produce: () => this.internalPolicy?.json,
-      }),
       failOnWarnings: props.failOnWarnings,
       minimumCompressionSize: props.minCompressionSize?.toBytes()?.toString(),
       binaryMediaTypes: props.binaryMediaTypes,
@@ -980,13 +1021,7 @@ export class RestApi extends RestApiBase {
     this.restApiRootResourceId = this.resource.rootResourceId;
 
     // ensure the iam policy is associated with the resource.
-    if (this.internalPolicy) {
-      this.policyAttachment =
-        new apiGatewayRestApiPolicy.ApiGatewayRestApiPolicy(this, "Policy", {
-          restApiId: this.restApiId,
-          policy: this.internalPolicy.json,
-        });
-    }
+    this.attachResourcePolicy();
 
     this._configureCloudWatchRole(this.resource, props.cloudWatchRole);
     this._configureDeployment(props);
@@ -1000,23 +1035,6 @@ export class RestApi extends RestApiBase {
     this.node.addValidation({ validate: () => this.validateRestApi() });
 
     Object.defineProperty(this, APIGATEWAY_RESTAPI_SYMBOL, { value: true });
-  }
-
-  public addToResourcePolicy(
-    statement: iam.PolicyStatement,
-  ): iam.AddToResourcePolicyResult {
-    if (!this.internalPolicy) {
-      this.internalPolicy = new iam.PolicyDocument(this, "PolicyDocument");
-    }
-    if (!this.policyAttachment) {
-      this.policyAttachment =
-        new apiGatewayRestApiPolicy.ApiGatewayRestApiPolicy(this, "Policy", {
-          restApiId: this.restApiId,
-          policy: this.internalPolicy.json,
-        });
-    }
-    this.internalPolicy.addStatements(statement);
-    return { statementAdded: true, policyDependable: this.resource };
   }
 
   public addModel(id: string, props: ModelOptions): Model {
@@ -1057,6 +1075,7 @@ export class RestApi extends RestApiBase {
 
   /** @internal */
   public _attachDeployment(deployment: Deployment) {
+    super._attachDeployment(deployment);
     // In TF, deployment triggers would handle this implicitly or explicitly
     this.deployments.push(deployment);
     for (const method of this.methods) {

@@ -12,6 +12,7 @@ import {
   Stage,
 } from "../../../src/aws/compute";
 import * as lambda from "../../../src/aws/compute";
+import * as iam from "../../../src/aws/iam";
 import { Template } from "../../assertions";
 
 const terraformResourceType = "test_resource";
@@ -200,6 +201,41 @@ describe("deployment", () => {
           },
         },
       );
+    });
+
+    test("after adding a resource policy statement", () => {
+      // GIVEN
+      const stackWithPolicy = new AwsStack(app, "WithPolicy");
+      const triggersFor = (scope: AwsStack, withPolicy: boolean) => {
+        const api = new RestApi(scope, "api", {
+          deploy: false,
+          cloudWatchRole: false,
+        });
+        new Deployment(scope, "deployment", { api });
+        api.root.addMethod("GET");
+        if (withPolicy) {
+          api.addToResourcePolicy(
+            new iam.PolicyStatement({
+              actions: ["execute-api:Invoke"],
+              resources: [api.arnForExecuteApi()],
+              principals: [new iam.AnyPrincipal()],
+            }),
+          );
+        }
+        const [deployment] = new Template(scope).resourceTypeArray(
+          apiGatewayDeployment.ApiGatewayDeployment,
+        ) as Array<{ triggers: { redeployment: string } }>;
+        return deployment.triggers.redeployment;
+      };
+
+      // WHEN
+      const without = triggersFor(stack, false);
+      const withPolicy = triggersFor(stackWithPolicy, true);
+
+      // THEN
+      // The resource policy is a separate resource, but a (private) API only
+      // picks it up once redeployed, so policy changes must trigger redeployment.
+      expect(withPolicy).not.toEqual(without);
     });
 
     test("after setting a resolved trigger value", () => {
