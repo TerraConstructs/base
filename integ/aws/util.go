@@ -77,6 +77,14 @@ func SynthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string,
 		synthDependencies = make(map[string]string)
 	}
 	synthDependencies["terraconstructs"] = relPath
+	// bun >= 1.2 honours bundledDependencies of the local terraconstructs
+	// package and expects them in its node_modules, which isn't copied.
+	// Install them at the top level instead, where lib/ resolves them.
+	for name, version := range loadBundledDependencies(t) {
+		if _, ok := synthDependencies[name]; !ok {
+			synthDependencies[name] = version
+		}
+	}
 
 	thisFs := afero.NewOsFs()
 	app := synth.NewApp(executors.NewBunExecutor, zapLogger)
@@ -138,6 +146,25 @@ func LoadSynthDependencies(t *testing.T, testFolder string, dependencies *map[st
 		return
 	}
 	test_structure.LoadTestData(t, path, dependencies)
+}
+
+// loadBundledDependencies returns the bundledDependencies of the repo root package.json
+// with their version ranges from dependencies.
+func loadBundledDependencies(t *testing.T) map[string]string {
+	pkgJson, err := os.ReadFile(filepath.Join(repoRoot, "package.json"))
+	require.NoError(t, err, "Failed to read repo package.json")
+	var pkg struct {
+		Dependencies        map[string]string `json:"dependencies"`
+		BundledDependencies []string          `json:"bundledDependencies"`
+	}
+	require.NoError(t, json.Unmarshal(pkgJson, &pkg), "Failed to parse repo package.json")
+	bundled := make(map[string]string, len(pkg.BundledDependencies))
+	for _, name := range pkg.BundledDependencies {
+		version, ok := pkg.Dependencies[name]
+		require.True(t, ok, "bundled dependency %q missing from dependencies", name)
+		bundled[name] = version
+	}
+	return bundled
 }
 
 // formatSynthDependenciesPath formats a path to save Synth Dependencies in the given folder.

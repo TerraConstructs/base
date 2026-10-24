@@ -1,6 +1,6 @@
 module github.com/terraconstructs/base
 
-go 1.26.10
+go 1.27.3
 
 // replace github.com/terraconstructs/go-synth => /path/to/terraconstructs/go-synth
 
