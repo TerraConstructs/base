@@ -366,7 +366,9 @@ export class Bundling implements CoreBundlingOptions {
       );
 
       const isPnpm = this.packageManager.lockFile === LockFile.PNPM;
-      const isBun = this.packageManager.lockFile === LockFile.BUN;
+      const isBun =
+        this.packageManager.lockFile === LockFile.BUN ||
+        this.packageManager.lockFile === LockFile.BUN_LOCK;
 
       // Create dummy package.json, copy lock file if any and then install
       depsCommand = chain([

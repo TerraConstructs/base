@@ -12,7 +12,10 @@ interface PackageManagerProps {
 export enum LockFile {
   NPM = "package-lock.json",
   YARN = "yarn.lock",
+  /** Binary lock file, bun < 1.2 */
   BUN = "bun.lockb",
+  /** Text lock file, default since bun 1.2 */
+  BUN_LOCK = "bun.lock",
   PNPM = "pnpm-lock.yaml",
 }
 
@@ -71,8 +74,9 @@ export class PackageManager {
           argsSeparator: "--",
         });
       case LockFile.BUN:
+      case LockFile.BUN_LOCK:
         return new PackageManager({
-          lockFile: LockFile.BUN,
+          lockFile,
           // Bun's default is to not force `--frozen-lockfile`, so it's not specified here. If they ever add a
           // flag to explicitly disable it, we should add it here. https://github.com/oven-sh/bun/issues/16387
           installCommand:

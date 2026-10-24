@@ -128,6 +128,21 @@ test("from a bun.lockb with LogLevel.ERROR", () => {
   ]);
 });
 
+test("from a bun.lock", () => {
+  const packageManager = PackageManager.fromLockFile("/path/to/bun.lock");
+  expect(packageManager.lockFile).toEqual(LockFile.BUN_LOCK);
+  expect(packageManager.argsSeparator).toBeUndefined();
+  expect(packageManager.installCommand).toEqual([
+    "bun",
+    "install",
+    "--backend",
+    "copyfile",
+  ]);
+  expect(packageManager.runCommand).toEqual(["bun", "run"]);
+
+  expect(packageManager.runBinCommand("my-bin")).toBe("bun run my-bin");
+});
+
 test("defaults to NPM", () => {
   const packageManager = PackageManager.fromLockFile("/path/to/other.lock");
   expect(packageManager.lockFile).toEqual(LockFile.NPM);
