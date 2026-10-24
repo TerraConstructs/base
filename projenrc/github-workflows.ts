@@ -122,7 +122,9 @@ export const workflowBootstrapSteps: JobStep[] = [
   {
     uses: pinned("actions/setup-go"),
     if: `\${{ ${LEAN_BOOTSTRAP_GATE} }}`,
-    with: { "go-version": "^1.23.0" },
+    // keep in sync with go.mod and .mise.toml; go-version-file can't be used
+    // because some jobs (package-js, release_npm) run this before checkout
+    with: { "go-version": "1.26.10" },
   },
   {
     uses: pinned("oven-sh/setup-bun"),
