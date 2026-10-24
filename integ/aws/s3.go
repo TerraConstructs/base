@@ -28,13 +28,13 @@ func UploadS3FileE(t testing.TestingT, awsRegion string, s3BucketName string, ke
 		Body:   strings.NewReader(body),
 	}
 
-	uploader := terratestaws.NewS3Uploader(t, awsRegion)
-
-	_, err := uploader.Upload(context.Background(), params)
+	s3Client, err := terratestaws.NewS3ClientE(t, awsRegion)
 	if err != nil {
 		return err
 	}
-	return nil
+
+	_, err = s3Client.PutObject(context.Background(), params)
+	return err
 }
 
 // AssertS3BucketNotificationExists checks if the given S3 bucket has a notification configuration and returns an error if it does not.
