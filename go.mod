@@ -43,7 +43,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.11.1
-	github.com/terraconstructs/go-synth v0.0.0-20250722181906-13022f215955
+	github.com/terraconstructs/go-synth v0.0.0-20261024133125-563d6ddff18b
 	go.uber.org/zap v1.27.1
 )
 
