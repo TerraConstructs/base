@@ -51,6 +51,17 @@ var (
 			"dist",
 			"test",
 			"coverage",
+			// local synth / staging outputs, not needed in the synth app fs
+			"cdktf.out",
+			"tcons-staging",
+			".terraform.d",
+			// AI agent working directories (may contain large worktrees and symlink fixtures)
+			".claude",
+			".codex",
+			".cursor",
+			".gemini",
+			".agents",
+			".aider",
 		},
 	}
 )
