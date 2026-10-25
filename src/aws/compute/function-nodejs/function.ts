@@ -68,7 +68,7 @@ export interface NodejsFunctionProps extends FunctionOptions {
   readonly awsSdkConnectionReuse?: boolean;
 
   /**
-   * The path to the dependencies lock file (`yarn.lock`, `pnpm-lock.yaml`, `bun.lockb` or `package-lock.json`).
+   * The path to the dependencies lock file (`yarn.lock`, `pnpm-lock.yaml`, `bun.lock`, `bun.lockb` or `package-lock.json`).
    *
    * This will be used as the source for the volume mounted in the Docker
    * container.
@@ -77,7 +77,7 @@ export interface NodejsFunctionProps extends FunctionOptions {
    * installer (`yarn`, `pnpm`, `bun` or `npm`) along with this lock file.
    *
    * @default - the path is found by walking up parent directories searching for
-   *   a `yarn.lock`, `pnpm-lock.yaml`, `bun.lockb` or `package-lock.json` file
+   *   a `yarn.lock`, `pnpm-lock.yaml`, `bun.lock`, `bun.lockb` or `package-lock.json` file
    */
   readonly depsLockFilePath?: string;
 
@@ -200,13 +200,14 @@ function findLockFile(depsLockFilePath?: string): string {
   const lockFiles = findUpMultiple([
     LockFile.PNPM,
     LockFile.YARN,
+    LockFile.BUN_LOCK,
     LockFile.BUN,
     LockFile.NPM,
   ]);
 
   if (lockFiles.length === 0) {
     throw new Error(
-      "Cannot find a package lock file (`pnpm-lock.yaml`, `yarn.lock`, `bun.lockb` or `package-lock.json`). Please specify it with `depsLockFilePath`.",
+      "Cannot find a package lock file (`pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `bun.lockb` or `package-lock.json`). Please specify it with `depsLockFilePath`.",
     );
   }
   if (lockFiles.length > 1) {

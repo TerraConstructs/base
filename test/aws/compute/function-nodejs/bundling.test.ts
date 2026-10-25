@@ -716,6 +716,31 @@ test("Detects bun.lockb", () => {
   });
 });
 
+test("Detects bun.lock", () => {
+  const bunLock = path.join(__dirname, "..", "bun.lock");
+  Bundling.bundle(stack, {
+    entry: __filename,
+    projectRoot: path.dirname(bunLock),
+    depsLockFilePath: bunLock,
+    runtime: STANDARD_RUNTIME,
+    architecture: Architecture.X86_64,
+    nodeModules: ["delay"],
+    forceDockerBundling: true,
+  });
+
+  // Copies the text lock file and installs with bun
+  expect(Code.fromAsset).toHaveBeenCalledWith(path.dirname(bunLock), {
+    assetHashType: AssetHashType.OUTPUT,
+    bundling: expect.objectContaining({
+      command: expect.arrayContaining([
+        expect.stringMatching(
+          /cp ".+\/bun\.lock" ".+\/bun\.lock".+bun install.+rm -rf ".+\/node_modules\/\.cache"/,
+        ),
+      ]),
+    }),
+  });
+});
+
 test("with Docker build args", () => {
   Bundling.bundle(stack, {
     entry,
