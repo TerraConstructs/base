@@ -38,11 +38,11 @@ jobs:
       - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
-          go-version: ^1.23.0
+          go-version: 1.27.3
       - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
         uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
-          bun-version: 1.1.26
+          bun-version: 1.4.4
       - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
         uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
         with:
@@ -166,11 +166,11 @@ jobs:
       - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
-          go-version: ^1.23.0
+          go-version: 1.27.3
       - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
         uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
-          bun-version: 1.1.26
+          bun-version: 1.4.4
       - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
         uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
         with:
