@@ -977,7 +977,7 @@ export abstract class BucketBase extends AwsConstructBase implements IBucket {
    * outside this stack, and declaring a second `aws_s3_bucket_notification`
    * against the same bucket causes a perpetual difference.
    *
-   * Set the `"@terraconstructs/aws-s3:keepNotificationInImportedBucket"`
+   * Set the `"terraconstructs/aws-s3:keep-notification-in-imported-bucket"`
    * app/stack context key to a truthy value to manage notifications through a
    * `Custom::S3BucketNotifications` custom resource instead - the mechanism an
    * imported bucket always uses. The custom resource merges this stack's own

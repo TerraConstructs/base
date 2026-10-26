@@ -18,7 +18,7 @@ import { Template } from "../../assertions";
 // (`S3_KEEP_NOTIFICATION_IN_IMPORTED_BUCKET`). Not imported directly: cx-api.ts is not
 // part of the public API (see `addEventNotification`'s JSDoc, which documents this key).
 const KEEP_NOTIFICATION_IN_IMPORTED_BUCKET =
-  "@terraconstructs/aws-s3:keepNotificationInImportedBucket";
+  "terraconstructs/aws-s3:keep-notification-in-imported-bucket";
 
 describe("notification custom resource", () => {
   let app: App;

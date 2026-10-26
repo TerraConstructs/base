@@ -1,7 +1,7 @@
 // No upstream integ equivalent: three stacks (a/b/c) each add their own prefix-filtered
 // notification entry to one shared bucket, owned by stack a and only ever imported
 // (`Bucket.fromBucketName`) by b/c, exercising `BucketNotificationsResource` and the
-// `@terraconstructs/aws-s3:keepNotificationInImportedBucket` context key end to end.
+// `terraconstructs/aws-s3:keep-notification-in-imported-bucket` context key end to end.
 import { App, LocalBackend, TerraformOutput } from "cdktn";
 import { Construct } from "constructs";
 import { aws } from "../../../../src";
@@ -30,7 +30,7 @@ const app = new App({
   // add notification entries to a bucket they do not own, and lets a share its own
   // bucket with them without clobbering their entries on every apply.
   context: {
-    "@terraconstructs/aws-s3:keepNotificationInImportedBucket": true,
+    "terraconstructs/aws-s3:keep-notification-in-imported-bucket": true,
   },
 });
 

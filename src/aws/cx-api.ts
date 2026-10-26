@@ -23,11 +23,15 @@ export const TARGET_PARTITIONS = "terraconstructs/core:target-partitions";
  * migration step, not a no-op: destroying the native resource wipes the whole
  * notification configuration, unordered against the custom resource's Put.
  *
+ * Mirrors aws-cdk's `@aws-cdk/aws-s3:keepNotificationInImportedBucket` flag;
+ * the key follows the `terraconstructs/<module>:<kebab-case>` convention of
+ * `TARGET_PARTITIONS`.
+ *
  * Read with `node.tryGetContext`; jsii has no exported-const support, so this
  * is not re-exported from the package barrels (as with `TARGET_PARTITIONS`).
  */
 export const S3_KEEP_NOTIFICATION_IN_IMPORTED_BUCKET =
-  "@terraconstructs/aws-s3:keepNotificationInImportedBucket";
+  "terraconstructs/aws-s3:keep-notification-in-imported-bucket";
 
 // Ref: https://github.com/aws/aws-cdk/blob/v2.232.2/packages/aws-cdk-lib/cx-api/lib/context/vpc.ts
 

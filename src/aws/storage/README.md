@@ -20,7 +20,7 @@ implementation when the context key below is truthy:
 
 ```ts
 const app = new App({
-  context: { "@terraconstructs/aws-s3:keepNotificationInImportedBucket": true },
+  context: { "terraconstructs/aws-s3:keep-notification-in-imported-bucket": true },
 });
 ```
 

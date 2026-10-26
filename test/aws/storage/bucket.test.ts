@@ -14,7 +14,7 @@ import { Template } from "../../assertions";
 // (`S3_KEEP_NOTIFICATION_IN_IMPORTED_BUCKET`). Not imported directly: cx-api.ts is not
 // part of the public API (see `addEventNotification`'s JSDoc, which documents this key).
 const KEEP_NOTIFICATION_IN_IMPORTED_BUCKET =
-  "@terraconstructs/aws-s3:keepNotificationInImportedBucket";
+  "terraconstructs/aws-s3:keep-notification-in-imported-bucket";
 
 const gridBackendConfig = {
   address: "http://localhost:3000",
@@ -794,7 +794,7 @@ describe("Bucket", () => {
     template.resourceCountIs(customResource.CustomResource, 0);
   });
 
-  test("addEventNotification on an owned bucket uses the custom resource when the keepNotificationInImportedBucket context key is set", () => {
+  test("addEventNotification on an owned bucket uses the custom resource when the keep-notification-in-imported-bucket context key is set", () => {
     // GIVEN - a fresh app/stack: `Node.setContext` refuses to set context
     // once a scope already has children, and the shared `stack` from
     // `beforeEach` already has the `HttpBackend` child attached.
