@@ -218,9 +218,10 @@ func validateEventSourceSqs(t *testing.T, tfWorkingDir string, awsRegion string)
 	functionLogGroup := fmt.Sprintf("/aws/lambda/%s", functionName)
 
 	messageBody := "Test message"
+	since := time.Now()
 	aws.SendMessageToQueue(t, awsRegion, queueUrl, messageBody)
 	aws.SendMessageToQueue(t, awsRegion, queueUrl, messageBody)
-	assertFunctionLogMessage(t, awsRegion, functionLogGroup, integ.Assertion{
+	assertFunctionLogMessage(t, awsRegion, functionLogGroup, since, integ.Assertion{
 		Path:           "Records[0].body",
 		ExpectedRegexp: &messageBody,
 	})
@@ -235,9 +236,10 @@ func validateEventSourceSqsFiltered(t *testing.T, tfWorkingDir string, awsRegion
 	functionLogGroup := fmt.Sprintf("/aws/lambda/%s", functionName)
 
 	messageBody := `{"id": "test"}`
+	since := time.Now()
 	aws.SendMessageToQueue(t, awsRegion, queueUrl, "random message") // should not trigger function
 	aws.SendMessageToQueue(t, awsRegion, queueUrl, messageBody)
-	assertFunctionLogMessage(t, awsRegion, functionLogGroup, integ.Assertion{
+	assertFunctionLogMessage(t, awsRegion, functionLogGroup, since, integ.Assertion{
 		Path:           "Records[0].body",
 		ExpectedRegexp: &messageBody,
 	})
@@ -252,16 +254,19 @@ func validateEventSourceS3(t *testing.T, tfWorkingDir string, awsRegion string) 
 	functionLogGroup := fmt.Sprintf("/aws/lambda/%s", functionName)
 
 	objectKey := "subdir/test.txt"
+	since := time.Now()
 	util.UploadS3File(t, awsRegion, bucketName, objectKey, "sample content")
-	assertFunctionLogMessage(t, awsRegion, functionLogGroup, integ.Assertion{
+	assertFunctionLogMessage(t, awsRegion, functionLogGroup, since, integ.Assertion{
 		Path:           "Records[0].s3.object.key",
 		ExpectedRegexp: &objectKey,
 	})
 }
 
-// Assert function is called and structured log message matches assertions
-func assertFunctionLogMessage(t *testing.T, awsRegion string, functionLogGroup string, assertions ...integ.Assertion) {
-	logEntries := util.WaitForLogEvents(t, awsRegion, functionLogGroup, 12, 5*time.Second)
+// Assert function is called and structured log message matches assertions.
+// Only log events newer than `since` are considered: CloudWatch Logs may resurrect streams of a
+// recently deleted log group with the same name, which would surface events from previous test runs.
+func assertFunctionLogMessage(t *testing.T, awsRegion string, functionLogGroup string, since time.Time, assertions ...integ.Assertion) {
+	logEntries := util.WaitForLogEventsSince(t, awsRegion, functionLogGroup, since, 12, 5*time.Second)
 	var logMessage map[string]interface{}
 	for _, entry := range logEntries {
 		err := json.Unmarshal([]byte(entry), &logMessage)
@@ -273,7 +278,7 @@ func assertFunctionLogMessage(t *testing.T, awsRegion string, functionLogGroup s
 		if _, ok := logMessage["message"]; ok {
 			var event map[string]interface{}
 			err := json.Unmarshal([]byte(logMessage["message"].(string)), &event)
-			require.NoError(t, err, "Failed to unmarshal event data")
+			require.NoError(t, err, "Failed to unmarshal event data from message: %q", logMessage["message"])
 			integ.Assert(t, event, assertions)
 		}
 	}

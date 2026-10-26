@@ -39,6 +39,36 @@ func WaitForLogEventsE(
 	maxRetries int,
 	sleepBetweenRetries time.Duration,
 ) ([]string, error) {
+	return WaitForLogEventsSinceE(t, awsRegion, logGroupName, time.Time{}, maxRetries, sleepBetweenRetries)
+}
+
+// WaitForLogEventsSince waits for log events newer than `since` to appear in the given CloudWatch Log group.
+//
+// Use this when a test re-creates a log group with the same name: CloudWatch Logs may resurrect the
+// streams of a recently deleted log group, so older events from previous test runs can show up again.
+func WaitForLogEventsSince(
+	t testing.TestingT,
+	awsRegion string,
+	logGroupName string,
+	since time.Time,
+	maxRetries int,
+	sleepBetweenRetries time.Duration,
+) []string {
+	events, err := WaitForLogEventsSinceE(t, awsRegion, logGroupName, since, maxRetries, sleepBetweenRetries)
+	require.NoError(t, err)
+	return events
+}
+
+// WaitForLogEventsSinceE waits for log events newer than `since` to appear in the given CloudWatch Log group.
+// A zero `since` returns all events.
+func WaitForLogEventsSinceE(
+	t testing.TestingT,
+	awsRegion string,
+	logGroupName string,
+	since time.Time,
+	maxRetries int,
+	sleepBetweenRetries time.Duration,
+) ([]string, error) {
 	var result []string
 
 	description := fmt.Sprintf("Waiting for log events in log group %s", logGroupName)
@@ -49,7 +79,7 @@ func WaitForLogEventsE(
 		maxRetries,
 		sleepBetweenRetries,
 		func() (string, error) {
-			messages, err := FilterLogEventsE(t, awsRegion, logGroupName)
+			messages, err := FilterLogEventsSinceE(t, awsRegion, logGroupName, since)
 			if err != nil {
 				return "", err
 			}
@@ -79,14 +109,24 @@ func FilterLogEvents(t testing.TestingT, awsRegion string, logGroupName string) 
 
 // GetCloudWatchLogEntriesE returns the CloudWatch log messages in the given region for the given log stream and log group.
 func FilterLogEventsE(t testing.TestingT, awsRegion string, logGroupName string) ([]string, error) {
+	return FilterLogEventsSinceE(t, awsRegion, logGroupName, time.Time{})
+}
+
+// FilterLogEventsSinceE returns the CloudWatch log messages newer than `since` for the given log group.
+// A zero `since` returns all events.
+func FilterLogEventsSinceE(t testing.TestingT, awsRegion string, logGroupName string, since time.Time) ([]string, error) {
 	client, err := terratestaws.NewCloudWatchLogsClientE(t, awsRegion)
 	if err != nil {
 		return nil, err
 	}
 
-	output, err := client.FilterLogEvents(context.Background(), &cloudwatchlogs.FilterLogEventsInput{
+	input := &cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName: aws.String(logGroupName),
-	})
+	}
+	if !since.IsZero() {
+		input.StartTime = aws.Int64(since.UnixMilli())
+	}
+	output, err := client.FilterLogEvents(context.Background(), input)
 
 	if err != nil {
 		return nil, err
