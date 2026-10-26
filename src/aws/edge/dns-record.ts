@@ -3,8 +3,14 @@ import { Token } from "cdktn";
 import { Construct } from "constructs";
 // import { GeoLocation } from "./geo-location";
 import { IDnsZone, IAliasRecordTarget } from ".";
+import { CrossAccountZoneDelegationProvider } from "./cross-account-zone-delegation-provider";
 import { IAwsConstruct, AwsConstructProps, AwsConstructBase } from "../";
 import { Duration } from "../..";
+import { CustomResource } from "../custom-resource";
+import * as iam from "../iam";
+
+const CROSS_ACCOUNT_ZONE_DELEGATION_RESOURCE_TYPE =
+  "Custom::CrossAccountZoneDelegation";
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-route53/lib/record-set.ts
 
@@ -846,6 +852,140 @@ export class ZoneDelegationRecord extends RecordSet {
       ),
       ttl: props.ttl || Duration.days(2),
     });
+  }
+}
+
+// ref: https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-route53/lib/record-set.ts
+
+/**
+ * Construction properties for a CrossAccountZoneDelegationRecord
+ *
+ * Differences from AWS CDK:
+ *
+ * - There is no `removalPolicy`: Terraform has no `DeletionPolicy`
+ *   equivalent and `CustomResource` always sends a `Delete` request to the
+ *   handler on destroy, so the NS record is always removed from the parent
+ *   zone (upstream default `RemovalPolicy.DESTROY`).
+ * - `delegationRole` is an `iam.IRole` (TerraConstructs has no `IRoleRef`).
+ */
+export interface CrossAccountZoneDelegationRecordProps {
+  /**
+   * The zone to be delegated
+   */
+  // TERRACONSTRUCTS DEVIATION: `IDnsZone` replaces upstream `IHostedZone`.
+  readonly delegatedZone: IDnsZone;
+
+  /**
+   * The hosted zone name in the parent account
+   *
+   * @default - no zone name
+   */
+  readonly parentHostedZoneName?: string;
+
+  /**
+   * The hosted zone id in the parent account
+   *
+   * @default - no zone id
+   */
+  readonly parentHostedZoneId?: string;
+
+  /**
+   * The delegation role in the parent account
+   */
+  // TERRACONSTRUCTS DEVIATION: `iam.IRole` replaces upstream `iam.IRoleRef`.
+  readonly delegationRole: iam.IRole;
+
+  /**
+   * The resource record cache time to live (TTL).
+   *
+   * @default Duration.days(2)
+   */
+  readonly ttl?: Duration;
+
+  /**
+   * Region from which to obtain temporary credentials.
+   *
+   * @default - the Route53 signing region in the current partition
+   */
+  readonly assumeRoleRegion?: string;
+}
+
+/**
+ * A Cross Account Zone Delegation record. This construct uses custom resource lambda that calls Route53
+ * ChangeResourceRecordSets API to upsert a NS record into the `parentHostedZone`.
+ *
+ * WARNING: The removal policy of this resource is always DESTROY, therefore, if this resource's logical ID changes or
+ * if this resource is removed from the stack, the existing NS record will be removed.
+ *
+ * The custom resource is a `cfncompat_custom_resource` backed by a stack-level
+ * singleton Lambda function (custom resource provider). Each record
+ * grants the provider role `sts:AssumeRole` on its `delegationRole` with its
+ * own `aws_iam_role_policy`, which the custom resource depends on (so the
+ * grant exists before Create and is removed only after Delete).
+ */
+export class CrossAccountZoneDelegationRecord extends Construct {
+  constructor(
+    scope: Construct,
+    id: string,
+    props: CrossAccountZoneDelegationRecordProps,
+  ) {
+    super(scope, id);
+
+    if (!props.parentHostedZoneName && !props.parentHostedZoneId) {
+      throw Error(
+        "At least one of parentHostedZoneName or parentHostedZoneId is required",
+      );
+    }
+
+    if (props.parentHostedZoneName && props.parentHostedZoneId) {
+      throw Error(
+        "Only one of parentHostedZoneName and parentHostedZoneId is supported",
+      );
+    }
+
+    const provider = CrossAccountZoneDelegationProvider.getOrCreateProvider(
+      this,
+      CROSS_ACCOUNT_ZONE_DELEGATION_RESOURCE_TYPE,
+    );
+
+    const role = iam.Role.fromRoleArn(
+      this,
+      "cross-account-zone-delegation-handler-role",
+      provider.roleArn,
+    );
+
+    const addToPrinciplePolicyResult = role.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["sts:AssumeRole"],
+        resources: [props.delegationRole.roleArn],
+      }),
+    );
+
+    // TERRACONSTRUCTS DEVIATION: no `removalPolicy` (see props doc).
+    const customResource = new CustomResource(
+      this,
+      "CrossAccountZoneDelegationCustomResource",
+      {
+        resourceType: CROSS_ACCOUNT_ZONE_DELEGATION_RESOURCE_TYPE,
+        serviceToken: provider.serviceToken,
+        properties: {
+          AssumeRoleArn: props.delegationRole.roleArn,
+          ParentZoneName: props.parentHostedZoneName,
+          ParentZoneId: props.parentHostedZoneId,
+          DelegatedZoneName: props.delegatedZone.zoneName,
+          DelegatedZoneNameServers: props.delegatedZone.nameServers,
+          TTL: (props.ttl || Duration.days(2)).toSeconds(),
+          AssumeRoleRegion: props.assumeRoleRegion,
+        },
+      },
+    );
+
+    if (addToPrinciplePolicyResult.policyDependable) {
+      customResource.node.addDependency(
+        addToPrinciplePolicyResult.policyDependable,
+      );
+    }
   }
 }
 
