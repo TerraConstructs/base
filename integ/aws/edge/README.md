@@ -17,6 +17,7 @@ Test Targets:
   distribution-policies      Test Distribution Policies
   distribution-function      Test Distribution Function association
   service-with-http-namespace Test CloudMap Service with HTTP Namespace
+  zone-delegation            Test Route53 zone delegation (CrossAccountZoneDelegationRecord)
 
 Other Targets:
   help                       Print out every target with a description

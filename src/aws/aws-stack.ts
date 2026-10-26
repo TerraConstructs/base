@@ -10,6 +10,7 @@ import {
   s3Bucket,
 } from "@cdktn/provider-aws";
 import { provider as cfncompatProvider } from "@cdktn/provider-cfncompat";
+import { provider as timeProvider } from "@cdktn/provider-time";
 import {
   TerraformStack,
   TerraformIterator,
@@ -209,6 +210,7 @@ export class AwsStack extends StackBase implements IAwsStack {
   private _urlSuffixToken: string | undefined;
   private cfncompatProviderSingleton?: cfncompatProvider.CfncompatProvider;
   private customResourceResponseBucketSingleton?: s3Bucket.S3Bucket;
+  private timeProviderSingleton?: timeProvider.TimeProvider;
 
   constructor(scope?: Construct, id?: string, props: AwsStackProps = {}) {
     super(scope, id, props);
@@ -277,6 +279,23 @@ export class AwsStack extends StackBase implements IAwsStack {
       );
     }
     return this.cfncompatProviderSingleton;
+  }
+
+  /**
+   * The `hashicorp/time` provider for this stack, used by constructs that
+   * need a `time_sleep` (for example to wait for IAM propagation).
+   *
+   * Lazily instantiated on first access, so stacks that never need it never
+   * synthesize a `time` provider block.
+   */
+  public get timeProvider(): timeProvider.TimeProvider {
+    if (!this.timeProviderSingleton) {
+      this.timeProviderSingleton = new timeProvider.TimeProvider(
+        this,
+        "TimeProvider",
+      );
+    }
+    return this.timeProviderSingleton;
   }
 
   /**

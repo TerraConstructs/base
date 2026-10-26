@@ -1,5 +1,5 @@
 import { route53Zone, dataAwsRoute53Zone } from "@cdktn/provider-aws";
-import { Lazy, IResolvable } from "cdktn";
+import { Lazy, IResolvable, Token } from "cdktn";
 import { Construct } from "constructs";
 import {
   AwsStack,
@@ -7,8 +7,9 @@ import {
   AwsConstructBase,
   AwsConstructProps,
 } from "../";
-import { ValidationError } from "../../errors";
+import { UnscopedValidationError, ValidationError } from "../../errors";
 import * as ec2 from "../compute";
+import * as iam from "../iam";
 import { INetwork } from "../network";
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-route53/lib/hosted-zone.ts
@@ -153,6 +154,39 @@ export interface IDnsZone extends IAwsConstruct {
    * The Route 53 name server that created the SOA record.
    */
   readonly primaryNameServer: string;
+
+  /**
+   * Grant permissions to add delegation records to this zone
+   *
+   * NOTE: TerraConstructs adds this member directly to `IDnsZone` (as with
+   * the `grant*` methods added to other interfaces such as `IQueue`), so
+   * custom `IDnsZone` implementations outside this library must implement it.
+   */
+  grantDelegation(
+    grantee: iam.IGrantable,
+    options?: GrantDelegationOptions,
+  ): iam.Grant;
+}
+
+// ref: https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-route53/lib/hosted-zone-ref.ts
+
+/**
+ * Options for the delegation permissions granted
+ */
+export interface GrantDelegationOptions {
+  /**
+   * List of hosted zone names to allow delegation to in the grant permissions.
+   * If the delegated zone name contains an unresolved token,
+   * it must resolve to a zone name that satisfies the requirements according to the documentation:
+   * https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/specifying-conditions-route53.html#route53_rrset_conditionkeys_normalization
+   *
+   * > All letters must be lowercase.
+   * > The DNS name must be without the trailing dot.
+   * > Characters other than a–z, 0–9, - (hyphen), _ (underscore), and . (period, as a delimiter between labels) must use escape codes in the format \three-digit octal code. For example, \052 is the octal code for character *.
+   *
+   * @default the grant allows delegation to any hosted zone
+   */
+  readonly delegatedZoneNames?: string[];
 }
 
 /**
@@ -212,6 +246,12 @@ export class DnsZone extends AwsConstructBase implements IDnsZone {
           nameServers: this.datasource.nameServers,
           primaryNameServer: this.datasource.primaryNameServer,
         };
+      }
+      public grantDelegation(
+        grantee: iam.IGrantable,
+        options?: GrantDelegationOptions,
+      ): iam.Grant {
+        return makeGrantDelegation(grantee, this, options);
       }
     }
 
@@ -283,6 +323,16 @@ export class DnsZone extends AwsConstructBase implements IDnsZone {
   }
 
   /**
+   * Grant permissions to add delegation records to this zone
+   */
+  public grantDelegation(
+    grantee: iam.IGrantable,
+    options?: GrantDelegationOptions,
+  ): iam.Grant {
+    return makeGrantDelegation(grantee, this, options);
+  }
+
+  /**
    * Add another VPC to this private hosted zone.
    *
    * @param vpc the other VPC to add.
@@ -351,4 +401,147 @@ export function validateZoneName(scope: Construct, zoneName: string) {
       scope,
     );
   }
+}
+
+// ref: https://github.com/aws/aws-cdk/blob/v2.233.0/packages/aws-cdk-lib/aws-route53/lib/util.ts
+
+function stripTrailingDot(zoneName: string) {
+  return zoneName.endsWith(".")
+    ? zoneName.substring(0, zoneName.length - 1)
+    : zoneName;
+}
+
+const octalConversionIgnoreRegex = /[a-z0-9-_\\.]/;
+
+// Required to octal encode characters other than a–z, 0–9, - (hyphen), _ (underscore), and . (period) for IAM conditions
+// https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/specifying-conditions-route53.html#route53_rrset_conditionkeys_normalization
+function octalEncodeDelegatedZoneName(delegatedZoneName: string): string {
+  if (Token.isUnresolved(delegatedZoneName)) {
+    return delegatedZoneName;
+  }
+
+  return delegatedZoneName
+    .split("")
+    .map((c) => {
+      if (octalConversionIgnoreRegex.test(c)) {
+        return c;
+      }
+      return "\\" + c.charCodeAt(0).toString(8).padStart(3, "0");
+    })
+    .join("");
+}
+
+// TERRACONSTRUCTS DEVIATION: takes a `scope` (the zone) because TerraConstructs'
+// `validateZoneName(scope, zoneName)` needs one; upstream passes only the names.
+function validateDelegatedZoneName(
+  scope: Construct,
+  parentZoneName: string,
+  delegatedZoneName: string,
+) {
+  if (delegatedZoneName.endsWith(".")) {
+    throw new UnscopedValidationError(
+      `Error while validating delegate zone name '${delegatedZoneName}': delegated zone name cannot have a trailing period`,
+    );
+  }
+
+  if (Token.isUnresolved(delegatedZoneName)) {
+    return;
+  }
+
+  try {
+    validateZoneName(scope, delegatedZoneName);
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      throw new UnscopedValidationError(
+        `Error while validating delegated zone name '${delegatedZoneName}': ${error.message}`,
+      );
+    }
+  }
+
+  if (delegatedZoneName.toLowerCase() !== delegatedZoneName) {
+    throw new UnscopedValidationError(
+      `Error while validating delegate zone name '${delegatedZoneName}': delegated zone name cannot contain uppercase characters`,
+    );
+  }
+
+  if (Token.isUnresolved(parentZoneName)) {
+    return;
+  }
+
+  const parentZoneNameNoTrailingDot = stripTrailingDot(parentZoneName);
+
+  if (!delegatedZoneName.endsWith(parentZoneNameNoTrailingDot)) {
+    throw new UnscopedValidationError(
+      `Error while validating delegate zone name '${delegatedZoneName}': delegated zone name must be suffixed by parent zone name`,
+    );
+  }
+
+  if (delegatedZoneName === parentZoneNameNoTrailingDot) {
+    throw new UnscopedValidationError(
+      `Error while validating delegate zone name '${delegatedZoneName}': delegated zone name cannot be the same as the parent zone name`,
+    );
+  }
+}
+
+/**
+ * Grants `route53:ChangeResourceRecordSets` for NS records (UPSERT/DELETE,
+ * optionally restricted to `delegatedZoneNames`) on the zone, plus
+ * `route53:ListHostedZonesByName` on `*`.
+ *
+ * Upstream `makeGrantDelegation` (util.ts); kept module private here.
+ *
+ * TERRACONSTRUCTS DEVIATION: upstream also exposes this via `HostedZoneGrants`
+ * (`hostedZone.grants.delegation`); TerraConstructs has no grants class for
+ * zones, so only `IDnsZone.grantDelegation` is provided.
+ */
+function makeGrantDelegation(
+  grantee: iam.IGrantable,
+  hostedZone: IDnsZone,
+  delegationOptions?: GrantDelegationOptions,
+): iam.Grant {
+  const delegatedZoneNames = delegationOptions?.delegatedZoneNames?.map(
+    (delegatedZoneName) => {
+      validateDelegatedZoneName(
+        hostedZone,
+        hostedZone.zoneName,
+        delegatedZoneName,
+      );
+      return octalEncodeDelegatedZoneName(delegatedZoneName);
+    },
+  );
+  const g1 = iam.Grant.addToPrincipal({
+    grantee,
+    actions: ["route53:ChangeResourceRecordSets"],
+    resourceArns: [makeHostedZoneArn(hostedZone, hostedZone.zoneId)],
+    // TERRACONSTRUCTS DEVIATION: `iam.Conditions` is a list of { test, variable, values }
+    // (upstream: a `{ [test]: { [variable]: values } }` map); renders the same.
+    conditions: [
+      {
+        test: "ForAllValues:StringEquals",
+        variable: "route53:ChangeResourceRecordSetsRecordTypes",
+        values: ["NS"],
+      },
+      {
+        test: "ForAllValues:StringEquals",
+        variable: "route53:ChangeResourceRecordSetsActions",
+        values: ["UPSERT", "DELETE"],
+      },
+      ...(delegatedZoneNames
+        ? [
+            {
+              test: "ForAllValues:StringEquals",
+              variable: "route53:ChangeResourceRecordSetsNormalizedRecordNames",
+              values: delegatedZoneNames,
+            },
+          ]
+        : []),
+    ],
+  });
+  const g2 = iam.Grant.addToPrincipal({
+    grantee,
+    actions: ["route53:ListHostedZonesByName"],
+    resourceArns: ["*"],
+  });
+
+  return g1.combine(g2);
 }
