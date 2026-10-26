@@ -6,6 +6,7 @@ import {
   lambdaFunction,
 } from "@cdktn/provider-aws";
 import { customResource as cfncompatCustomResource } from "@cdktn/provider-cfncompat";
+import { sleep } from "@cdktn/provider-time";
 import { App, Testing, Token } from "cdktn";
 import "cdktn/lib/testing/adapters/jest";
 import { AssetStaging, Duration } from "../../../src";
@@ -809,6 +810,19 @@ describe("CrossAccountZoneDelegationRecord", () => {
         `aws_iam_role_policy.${grantPolicy[0]}`,
         `aws_iam_role_policy.${assumeRolePolicy[0]}`,
       ]),
+    );
+    // TERRACONSTRUCTS DEVIATION: the handler is only invoked once the
+    // sts:AssumeRole grant has had time to propagate in IAM
+    const sleeps = template.resourcesByType(sleep.Sleep) as Record<string, any>;
+    const [sleepId, sleepResource] = Object.entries(sleeps).find(([id]) =>
+      id.includes("GrantPropagation"),
+    ) as [string, any];
+    expect(sleepResource.create_duration).toEqual("15s");
+    expect(sleepResource.depends_on).toEqual(
+      expect.arrayContaining([`aws_iam_role_policy.${assumeRolePolicy[0]}`]),
+    );
+    expect(cr.depends_on).toEqual(
+      expect.arrayContaining([`time_sleep.${sleepId}`]),
     );
   });
 

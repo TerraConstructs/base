@@ -1,4 +1,5 @@
 import { route53Record } from "@cdktn/provider-aws";
+import { sleep } from "@cdktn/provider-time";
 import { Token } from "cdktn";
 import { Construct } from "constructs";
 // import { GeoLocation } from "./geo-location";
@@ -6,6 +7,7 @@ import { IDnsZone, IAliasRecordTarget } from ".";
 import { CrossAccountZoneDelegationProvider } from "./cross-account-zone-delegation-provider";
 import { IAwsConstruct, AwsConstructProps, AwsConstructBase } from "../";
 import { Duration } from "../..";
+import { AwsStack } from "../aws-stack";
 import { CustomResource } from "../custom-resource";
 import * as iam from "../iam";
 
@@ -981,13 +983,35 @@ export class CrossAccountZoneDelegationRecord extends Construct {
       },
     );
 
+    // TERRACONSTRUCTS DEVIATION: IAM propagation delay. cfncompat invokes the
+    // handler within a second of the `sts:AssumeRole` grant and the delegation
+    // role's trust policy being created, and the handler's AssumeRole then fails
+    // with AccessDenied until IAM has propagated them (observed: fails on first
+    // apply, succeeds on an identical re-apply ~45s later). CloudFormation is
+    // slow enough that upstream rarely hits this. Wait only on create; updates
+    // and deletes reuse the already propagated grant.
+    const grantPropagation = new sleep.Sleep(this, "GrantPropagation", {
+      createDuration: IAM_GRANT_PROPAGATION_DELAY,
+      provider: AwsStack.ofAwsConstruct(this).timeProvider,
+    });
+    grantPropagation.node.addDependency(props.delegationRole);
     if (addToPrinciplePolicyResult.policyDependable) {
+      grantPropagation.node.addDependency(
+        addToPrinciplePolicyResult.policyDependable,
+      );
       customResource.node.addDependency(
         addToPrinciplePolicyResult.policyDependable,
       );
     }
+    customResource.node.addDependency(grantPropagation);
   }
 }
+
+/**
+ * How long `CrossAccountZoneDelegationRecord` waits after creating the
+ * `sts:AssumeRole` grant before invoking the delegation handler.
+ */
+const IAM_GRANT_PROPAGATION_DELAY = "15s";
 
 // ref https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-route53/lib/util.ts
 
