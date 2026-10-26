@@ -246,10 +246,17 @@ describe("custom resource", () => {
 
     // THEN only one bucket is synthesized, and both resources point at it
     const template = new Template(stack);
-    const bucketName = stack.resolve(
-      stack.customResourceResponseBucket!.bucketName,
-    );
+    const bucketName = stack.resolve(stack.customResourceResponseBucketName);
     template.resourceCountIs(s3Bucket.S3Bucket, 1);
+    template.expect.toHaveResourceWithProperties(s3Bucket.S3Bucket, {
+      bucket_prefix: "gteststack553bdd39rceresponsesbucket",
+      force_destroy: true,
+      tags: {
+        Name: "Default-CustomResourceResponsesBucket",
+        "grid:EnvironmentName": "Default",
+        "grid:UUID": stack.gridUUID,
+      },
+    });
     template
       .expectResources(customResource.CustomResource)
       .toEqual([
@@ -267,7 +274,7 @@ describe("custom resource", () => {
     });
 
     // THEN no per-stack response bucket is created, and response_bucket is unset
-    expect(stack2.customResourceResponseBucket).toBeUndefined();
+    expect(stack2.customResourceResponseBucketName).toBeUndefined();
     const template2 = new Template(stack2);
     template2.resourceCountIs(s3Bucket.S3Bucket, 0);
     template2

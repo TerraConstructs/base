@@ -7,6 +7,7 @@ import {
   dataAwsRegion,
   dataAwsServicePrincipal,
   provider,
+  s3Bucket,
 } from "@cdktn/provider-aws";
 import { provider as cfncompatProvider } from "@cdktn/provider-cfncompat";
 import {
@@ -34,9 +35,6 @@ import { toTerraformIdentifier } from "./util";
 import { ValidationError } from "../errors";
 import { deployTimeLookup } from "./region-lookup";
 import { SKIP_DEPENDENCY_PROPAGATION } from "../private/terraform-dependables-aspect";
-// Type-only: `storage/bucket.ts` imports `AwsStack`, so a value import here would be
-// circular; `customResourceResponseBucket` requires the class lazily instead.
-import type { Bucket } from "./storage/bucket";
 // import { TagType } from "./aws-construct";
 // import { TagManager, ITaggableV2 } from "./tag-manager";
 
@@ -210,7 +208,7 @@ export class AwsStack extends StackBase implements IAwsStack {
   private _paritionToken: string | undefined;
   private _urlSuffixToken: string | undefined;
   private cfncompatProviderSingleton?: cfncompatProvider.CfncompatProvider;
-  private customResourceResponseBucketSingleton?: Bucket;
+  private customResourceResponseBucketSingleton?: s3Bucket.S3Bucket;
 
   constructor(scope?: Construct, id?: string, props: AwsStackProps = {}) {
     super(scope, id, props);
@@ -282,30 +280,45 @@ export class AwsStack extends StackBase implements IAwsStack {
   }
 
   /**
-   * A per-stack S3 bucket used as the default response transport for
-   * `CustomResource`s in this stack (the pre-signed PUT/GET URL the handler
-   * uses to deliver its response).
+   * Name of the per-stack S3 bucket used as the default response transport
+   * for `CustomResource`s in this stack (the pre-signed PUT/GET URL the
+   * handler uses to deliver its response).
    *
-   * Lazily created on first access. Returns `undefined` when
+   * The bucket is a plain `aws_s3_bucket` (`force_destroy`), lazily created on
+   * first access. Returns `undefined` when
    * `cfncompatProviderConfig.customResourceBucket` is set, deferring to the
    * provider's own default bucket instead.
    */
-  public get customResourceResponseBucket(): Bucket | undefined {
+  public get customResourceResponseBucketName(): string | undefined {
     if (this._cfncompatProviderConfig?.customResourceBucket) {
       return undefined;
     }
     if (!this.customResourceResponseBucketSingleton) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const bucketModule: typeof import("./storage/bucket") = require("./storage/bucket");
-      this.customResourceResponseBucketSingleton = new bucketModule.Bucket(
-        this,
-        "CustomResourceResponsesBucket",
+      // L1 rather than `storage.Bucket`: `storage/bucket.ts` imports `AwsStack`,
+      // so using the L2 here would be an import cycle. Naming and tags match
+      // what the L2 (a `TerraConstructBase`) would produce.
+      const id = "CustomResourceResponsesBucket";
+      const bucket = new s3Bucket.S3Bucket(this, id, {
         // force_destroy: response objects are written by handlers at apply time
         // and are not tracked in state, so destroy would fail on a non-empty bucket.
-        { forceDestroy: true },
-      );
+        forceDestroy: true,
+        tags: {
+          "grid:EnvironmentName": this.environmentName,
+          "grid:UUID": this.gridUUID,
+          Name: `${this.environmentName}-${id}`,
+        },
+      });
+      // Bucket names must be lowercase and 3-63 characters long. Derived from
+      // the bucket's own construct path, so it needs the node to exist first.
+      bucket.bucketPrefix = this.uniqueResourceNamePrefix(bucket, {
+        prefix: this.gridUUID + "-",
+        lowerCase: true,
+        allowedSpecialCharacters: ".-",
+        maxLength: 63,
+      });
+      this.customResourceResponseBucketSingleton = bucket;
     }
-    return this.customResourceResponseBucketSingleton;
+    return this.customResourceResponseBucketSingleton.bucket;
   }
 
   /**

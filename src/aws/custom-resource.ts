@@ -77,7 +77,7 @@ export interface CustomResourceProps extends AwsConstructProps {
    * S3 bucket used to transport the handler's response (the pre-signed PUT
    * URL the handler writes its response to).
    *
-   * @default - `stack.customResourceResponseBucket?.bucketName`, or the
+   * @default - `stack.customResourceResponseBucketName`, or the
    * provider's own `customResourceBucket` if neither is set.
    */
   readonly responseBucket?: string;
@@ -179,8 +179,7 @@ export class CustomResource
         stackId: this.stack.gridUUID,
         logicalResourceId: this.stack.uniqueResourceName(this),
         responseBucket:
-          props.responseBucket ??
-          this.stack.customResourceResponseBucket?.bucketName,
+          props.responseBucket ?? this.stack.customResourceResponseBucketName,
         responseKeyPrefix: props.responseKeyPrefix,
         provider: this.stack.cfncompatProvider,
       },

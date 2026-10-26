@@ -50,8 +50,9 @@ included — attach notifications to one bucket without clobbering each other. S
 ### Response transport
 
 The custom resource delivers the handler's response through a pre-signed S3 URL. By default
-each stack lazily creates one `CustomResourceResponsesBucket` (`force_destroy`) for this,
-exposed as `AwsStack.customResourceResponseBucket`. Set
+each stack lazily creates one plain `aws_s3_bucket` (`CustomResourceResponsesBucket`,
+`force_destroy`) for this, whose name is exposed as `AwsStack.customResourceResponseBucketName`.
+Set
 `cfncompatProviderConfig.customResourceBucket` on `AwsStackProps` to use a bucket of your own
 instead, in which case no per-stack bucket is created.
 
