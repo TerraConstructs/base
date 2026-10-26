@@ -28,3 +28,7 @@ distribution-function: ## Test Distribution Function association
 service-with-http-namespace: ## Test CloudMap Service with HTTP Namespace
 	go test -v -timeout 30m ./... -run ^TestServiceWithHttpNamespace$
 .PHONY: service-with-http-namespace
+
+zone-delegation: ## Test Route53 zone delegation (CrossAccountZoneDelegationRecord)
+	go test -v -timeout 30m ./... -run ^TestZoneDelegation$
+.PHONY: zone-delegation

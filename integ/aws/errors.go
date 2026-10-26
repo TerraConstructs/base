@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	acmTypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
+	route53Types "github.com/aws/aws-sdk-go-v2/service/route53/types"
 )
 
 // CloudFrontFunctionValidationFailed is an error that occurs if response validation fails.
@@ -76,4 +77,36 @@ func (err BucketNotificationNotEnabledError) Error() string {
 
 func NewBucketNotificationNotEnabledError(region, bucketName string) BucketNotificationNotEnabledError {
 	return BucketNotificationNotEnabledError{bucketName, region}
+}
+
+// LogGroupNotFoundError is returned when a CloudWatch Logs log group does not exist.
+type LogGroupNotFoundError struct {
+	logGroupName string
+}
+
+// Error implements the error interface.
+func (err LogGroupNotFoundError) Error() string {
+	return fmt.Sprintf("Log group %s not found", err.logGroupName)
+}
+
+// NewLogGroupNotFoundError returns a LogGroupNotFoundError for the given log group name.
+func NewLogGroupNotFoundError(logGroupName string) LogGroupNotFoundError {
+	return LogGroupNotFoundError{logGroupName}
+}
+
+// Route53RecordSetNotFoundError is returned when a Route 53 record set does not exist.
+type Route53RecordSetNotFoundError struct {
+	hostedZoneID string
+	recordName   string
+	recordType   route53Types.RRType
+}
+
+// Error implements the error interface.
+func (err Route53RecordSetNotFoundError) Error() string {
+	return fmt.Sprintf("%s record %s not found in hosted zone %s", err.recordType, err.recordName, err.hostedZoneID)
+}
+
+// NewRoute53RecordSetNotFoundError returns a Route53RecordSetNotFoundError for the given hosted zone, record name and type.
+func NewRoute53RecordSetNotFoundError(hostedZoneID, recordName string, recordType route53Types.RRType) Route53RecordSetNotFoundError {
+	return Route53RecordSetNotFoundError{hostedZoneID, recordName, recordType}
 }

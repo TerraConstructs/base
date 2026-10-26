@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -308,9 +309,40 @@ func GetLogGroupE(t testing.TestingT, awsRegion string, logGroupName string) (*l
 		return nil, err
 	}
 	if len(output.LogGroups) == 0 {
-		return nil, fmt.Errorf("no log groups found")
+		return nil, NewLogGroupNotFoundError(logGroupName)
 	}
 	return &output.LogGroups[0], nil
+}
+
+// LogGroupExistsE reports whether a log group with exactly the given name exists.
+func LogGroupExistsE(t testing.TestingT, awsRegion string, logGroupName string) (bool, error) {
+	// DescribeLogGroups sorts by name, so an exact match is always the first
+	// result of the prefix search.
+	logGroup, err := GetLogGroupE(t, awsRegion, logGroupName)
+	if err != nil {
+		var notFound LogGroupNotFoundError
+		if errors.As(err, &notFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return aws.ToString(logGroup.LogGroupName) == logGroupName, nil
+}
+
+// AssertLogGroupStaysDeleted checks that the log group does not exist and
+// keeps not existing for the given duration, polling every interval. Use it
+// after a destroy to catch late log delivery re-creating a Lambda log group.
+func AssertLogGroupStaysDeleted(t testing.TestingT, awsRegion string, logGroupName string, duration, interval time.Duration) {
+	deadline := time.Now().Add(duration)
+	for {
+		exists, err := LogGroupExistsE(t, awsRegion, logGroupName)
+		require.NoError(t, err)
+		require.False(t, exists, "log group %s exists after destroy", logGroupName)
+		if !time.Now().Before(deadline) {
+			return
+		}
+		time.Sleep(interval)
+	}
 }
 
 // GetMetricAlarm returns the details of the specified alarm.

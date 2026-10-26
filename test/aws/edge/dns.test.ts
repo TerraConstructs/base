@@ -761,4 +761,80 @@ describe("CrossAccountZoneDelegationRecord", () => {
       ]);
     }
   });
+
+  // upstream integ.zone-delegation-iam-stack.ts: `record.node.addDependency(delegationGrant)`
+  test("Cross account zone delegation record can depend on the parent zone delegation grant", () => {
+    // GIVEN
+    const stack = makeStack();
+    const parentZone = new edge.DnsZone(stack, "ParentHostedZone", {
+      zoneName: "myzone.com",
+    });
+    const delegationRole = new iam.Role(stack, "DelegationRole", {
+      assumedBy: new iam.AccountRootPrincipal(),
+    });
+    const delegationGrant = parentZone.grantDelegation(delegationRole, {
+      delegatedZoneNames: ["sub.myzone.com"],
+    });
+    const childZone = new edge.DnsZone(stack, "ChildHostedZone", {
+      zoneName: "sub.myzone.com",
+    });
+
+    // WHEN
+    new edge.CrossAccountZoneDelegationRecord(stack, "Delegation", {
+      delegatedZone: childZone,
+      parentHostedZoneId: parentZone.zoneId,
+      delegationRole,
+    }).node.addDependency(delegationGrant);
+
+    // THEN
+    const template = new Template(stack);
+    const rolePolicyIds = Object.keys(
+      template.resourcesByType(iamRolePolicy.IamRolePolicy),
+    );
+    const grantPolicy = rolePolicyIds.filter((id) =>
+      id.startsWith("DelegationRole_DefaultPolicy_"),
+    );
+    const assumeRolePolicy = rolePolicyIds.filter((id) =>
+      id.startsWith(
+        "Delegation_cross-account-zone-delegation-handler-role_Policy_",
+      ),
+    );
+    expect(grantPolicy).toHaveLength(1);
+    expect(assumeRolePolicy).toHaveLength(1);
+    const [cr] = Object.values(customResources(stack));
+    // the NS record is only UPSERTed once the delegation role may change the
+    // parent zone, and DELETEd before that permission is removed
+    expect(cr.depends_on).toEqual(
+      expect.arrayContaining([
+        `aws_iam_role_policy.${grantPolicy[0]}`,
+        `aws_iam_role_policy.${assumeRolePolicy[0]}`,
+      ]),
+    );
+  });
+
+  test("Cross account zone delegation record with an imported delegated zone", () => {
+    // GIVEN
+    const { stack, delegationRole } = setup();
+    const childZone = edge.DnsZone.fromZoneId(stack, "ImportedChild", "Z1234");
+
+    // WHEN
+    new edge.CrossAccountZoneDelegationRecord(stack, "Delegation", {
+      delegatedZone: childZone,
+      parentHostedZoneName: "myzone.com",
+      delegationRole,
+    });
+
+    // THEN
+    // TERRACONSTRUCTS DEVIATION: imported zones read name and name servers from
+    // `data.aws_route53_zone` (upstream imports have no name servers)
+    const [cr] = Object.values(customResources(stack));
+    expect(cr.resource_properties).toMatchObject({
+      DelegatedZoneName: expect.stringMatching(
+        /^\$\{data\.aws_route53_zone\.ImportedChild_[0-9A-F]+\.name\}$/,
+      ),
+      DelegatedZoneNameServers: expect.stringMatching(
+        /^\$\{data\.aws_route53_zone\.ImportedChild_[0-9A-F]+\.name_servers\}$/,
+      ),
+    });
+  });
 });

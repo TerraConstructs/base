@@ -10,11 +10,15 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	cftypes "github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
+	r53types "github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"github.com/aws/aws-sdk-go-v2/service/servicediscovery/types"
 	"github.com/stretchr/testify/require"
 	"github.com/terraconstructs/base/integ"
 	util "github.com/terraconstructs/base/integ/aws"
 	"github.com/terraconstructs/go-synth/executors"
+
+	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/gruntwork-io/terratest/modules/terraform"
 
 	// loggers "github.com/gruntwork-io/terratest/modules/logger"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
@@ -73,6 +77,71 @@ func TestDistributionFunction(t *testing.T) {
 func TestServiceWithHttpNamespace(t *testing.T) {
 	envVars := executors.EnvMap(os.Environ())
 	runEdgeIntegrationTest(t, "service-with-http-namespace", "us-east-1", envVars, validateServiceWithHttpNamespace)
+}
+
+// Test the apps/zone-delegation.ts app: a single-account port of upstream
+// integ.zone-delegation-iam-stack.ts (CrossAccountZoneDelegationRecord +
+// DnsZone.grantDelegation on the cfncompat custom resource provider).
+// ref: https://github.com/aws/aws-cdk/blob/v2.233.0/packages/@aws-cdk-testing/framework-integ/test/aws-route53/test/integ.zone-delegation-iam-stack.ts
+//
+// TODO(follow-up): second apply with a changed TTL (Update path) and the
+// remaining lifecycle cases (create failure, update rollback, delete failure).
+func TestZoneDelegation(t *testing.T) {
+	t.Parallel()
+	testApp := "zone-delegation"
+	awsRegion := "us-east-1"
+	tfWorkingDir := filepath.Join("tf", testApp)
+
+	envVars := executors.EnvMap(os.Environ())
+	envVars["AWS_REGION"] = awsRegion
+	envVars["ENVIRONMENT_NAME"] = "test"
+	envVars["STACK_NAME"] = testApp
+	// Public hosted zones need not be delegated from the real parent, a random
+	// name under a domain we own keeps repeated / parallel runs apart.
+	envVars["PARENT_ZONE_NAME"] = fmt.Sprintf("zd-%s.e2e.terraconstructs.dev", strings.ToLower(random.UniqueId()))
+
+	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+		logGroupName := terraform.Output(t, terraformOptions, "provider_log_group_name")
+		util.UndeployUsingTerraform(t, tfWorkingDir)
+		// The provider Lambda has no logs:CreateLogGroup, so late log delivery
+		// from the Delete invocation must not resurrect its log group.
+		util.AssertLogGroupStaysDeleted(t, awsRegion, logGroupName, 2*time.Minute, 30*time.Second)
+	})
+
+	test_structure.RunTestStage(t, "synth_app", func() {
+		util.SynthApp(t, testApp, tfWorkingDir, envVars)
+	})
+	test_structure.RunTestStage(t, "deploy_terraform", func() {
+		util.DeployUsingTerraform(t, tfWorkingDir, nil)
+	})
+	test_structure.RunTestStage(t, "validate", func() {
+		validateZoneDelegation(t, tfWorkingDir, awsRegion)
+	})
+}
+
+// validateZoneDelegation asserts the delegation custom resource UPSERTed an NS
+// record for the child zone into the parent zone, pointing at the child zone's
+// name servers with the TTL set in apps/zone-delegation.ts (60s).
+func validateZoneDelegation(t *testing.T, workingDir string, awsRegion string) {
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+	parentZoneId := terraform.Output(t, terraformOptions, "parent_zone_id")
+	childZoneName := terraform.Output(t, terraformOptions, "child_zone_name")
+	childNameServers := terraform.OutputList(t, terraformOptions, "child_name_servers")
+	require.NotEmpty(t, childNameServers)
+
+	record := util.GetRoute53RecordSet(t, awsRegion, parentZoneId, childZoneName, r53types.RRTypeNs)
+	require.EqualValues(t, 60, aws.ToInt64(record.TTL))
+	require.ElementsMatch(t, normalizeNameServers(childNameServers), normalizeNameServers(util.Route53RecordValues(record)))
+}
+
+// normalizeNameServers strips trailing dots so Terraform and Route 53 values compare equal.
+func normalizeNameServers(nameServers []string) []string {
+	out := make([]string, 0, len(nameServers))
+	for _, ns := range nameServers {
+		out = append(out, strings.ToLower(strings.TrimSuffix(ns, ".")))
+	}
+	return out
 }
 
 func validateMultiZoneAcmPubCert(t *testing.T, workingDir string, awsRegion string) {
