@@ -1,12 +1,18 @@
-# Copied verbatim from aws-cdk v2.233.0:
+# Copied from aws-cdk v2.233.0:
 # packages/@aws-cdk/custom-resource-handlers/lib/aws-s3/notifications-resource-handler/index.py
 # https://github.com/aws/aws-cdk/blob/v2.233.0/packages/%40aws-cdk/custom-resource-handlers/lib/aws-s3/notifications-resource-handler/index.py
+#
+# Verbatim except for the block marked TERRACONSTRUCTS DEVIATION in handle_unmanaged.get_id:
+# upstream mutates the notification passed in (sets Id = '' and sorts filter rules in place),
+# which blanks the Id of notifications owned by other stacks during an unmanaged Update.
+# S3 then assigns those a random Id, so the owning stack can no longer recognise and delete them.
 #
 # TerraConstructs loads this file via fs.readFileSync in notifications-resource-handler.ts,
 # which strips this leading comment block (up to and including the first blank line)
 # before passing the source to Code.fromInline.
 
 import boto3  # type: ignore
+import copy
 import json
 import logging
 import urllib.request
@@ -45,6 +51,8 @@ def handle_managed(request_type, notification_configuration):
 
 def handle_unmanaged(bucket, stack_id, request_type, notification_configuration, old):
   def get_id(n):
+    # TERRACONSTRUCTS DEVIATION: hash a copy so external notifications keep their Id
+    n = copy.deepcopy(n)
     n['Id'] = ''
     sorted_notifications = sort_filter_rules(n)
     strToHash=json.dumps(sorted_notifications, sort_keys=True).replace('"Name": "prefix"', '"Name": "Prefix"').replace('"Name": "suffix"', '"Name": "Suffix"')
