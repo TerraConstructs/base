@@ -98,6 +98,71 @@ func WaitForLogEventsSinceE(
 	return result, nil
 }
 
+// WaitForLogEventMatching waits for a log event newer than `since` that satisfies `match` to appear in
+// the given CloudWatch Log group, and returns the first matching event message.
+func WaitForLogEventMatching(
+	t testing.TestingT,
+	awsRegion string,
+	logGroupName string,
+	since time.Time,
+	maxRetries int,
+	sleepBetweenRetries time.Duration,
+	match func(message string) bool,
+) string {
+	event, err := WaitForLogEventMatchingE(t, awsRegion, logGroupName, since, maxRetries, sleepBetweenRetries, match)
+	require.NoError(t, err)
+	return event
+}
+
+// WaitForLogEventMatchingE waits for a log event newer than `since` that satisfies `match` to appear in
+// the given CloudWatch Log group, and returns the first matching event message. A zero `since` considers
+// all events.
+//
+// Unlike WaitForLogEventsSinceE, unrelated events (such as Lambda's START/END/REPORT platform lines) do
+// not end the wait. When the retries are exhausted, the error lists every event seen in the last poll.
+func WaitForLogEventMatchingE(
+	t testing.TestingT,
+	awsRegion string,
+	logGroupName string,
+	since time.Time,
+	maxRetries int,
+	sleepBetweenRetries time.Duration,
+	match func(message string) bool,
+) (string, error) {
+	var result string
+	var seen []string
+
+	description := fmt.Sprintf("Waiting for a matching log event in log group %s", logGroupName)
+
+	_, err := retry.DoWithRetryE(
+		t,
+		description,
+		maxRetries,
+		sleepBetweenRetries,
+		func() (string, error) {
+			messages, err := FilterLogEventsSinceE(t, awsRegion, logGroupName, since)
+			if err != nil {
+				return "", err
+			}
+			seen = messages
+			for _, message := range messages {
+				if match(message) {
+					result = message
+					return "Matching log event found", nil
+				}
+			}
+			return "", fmt.Errorf("no matching log event among %d event(s) yet", len(messages))
+		},
+	)
+	if err != nil {
+		return "", fmt.Errorf(
+			"no log event in %s since %s matched after %d retries (%d event(s) seen in the last poll: %q): %w",
+			logGroupName, since.Format(time.RFC3339), maxRetries, len(seen), seen, err,
+		)
+	}
+	return result, nil
+}
+
 // GetCloudWatchLogEntries returns the CloudWatch log messages in the given region for the given log stream and log group.
 func FilterLogEvents(t testing.TestingT, awsRegion string, logGroupName string) []string {
 	out, err := FilterLogEventsE(t, awsRegion, logGroupName)
