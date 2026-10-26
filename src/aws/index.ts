@@ -8,6 +8,11 @@ export * from "./aws-tags";
 export * from "./aws-asset-manager";
 export * from "./log-retention";
 export * from "./custom-resource";
+export * from "./custom-resource-provider-shared";
+export * from "./custom-resource-provider-base";
+export * from "./custom-resource-provider";
+// NOTE: "./custom-resource-provider-runtime" (determineLatestNodeRuntimeName)
+// is intentionally not exported.
 export * from "./environment-aware";
 // NOTE: This is note exported on purpose for JSII compatibility.
 // export * from "./partition";
