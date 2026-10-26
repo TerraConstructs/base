@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/testing"
@@ -69,4 +70,25 @@ func GetS3BucketNotificationE(t testing.TestingT, region string, bucketName stri
 	return s3Client.GetBucketNotificationConfiguration(context.Background(), &s3.GetBucketNotificationConfigurationInput{
 		Bucket: &bucketName,
 	})
+}
+
+// GetS3BucketNotificationLambdaConfigurations fetches the given bucket's notification
+// configuration and returns its `LambdaFunctionConfigurations` as S3 reports them
+// (including each entry's `Id` and key filter), failing the test on any error.
+func GetS3BucketNotificationLambdaConfigurations(t testing.TestingT, region string, bucketName string) []s3types.LambdaFunctionConfiguration {
+	configs, err := GetS3BucketNotificationLambdaConfigurationsE(t, region, bucketName)
+	require.NoError(t, err)
+	return configs
+}
+
+// GetS3BucketNotificationLambdaConfigurationsE fetches the given bucket's notification
+// configuration and returns its `LambdaFunctionConfigurations` as S3 reports them
+// (including each entry's `Id` and key filter) - e.g. to assert the Ids a cross-stack
+// `Custom::S3BucketNotifications` handler wrote survive another stack's apply.
+func GetS3BucketNotificationLambdaConfigurationsE(t testing.TestingT, region string, bucketName string) ([]s3types.LambdaFunctionConfiguration, error) {
+	config, err := GetS3BucketNotificationE(t, region, bucketName)
+	if err != nil {
+		return nil, err
+	}
+	return config.LambdaFunctionConfigurations, nil
 }

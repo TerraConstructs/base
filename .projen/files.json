@@ -18,6 +18,7 @@
     "LICENSE",
     "pnpm-workspace.yaml",
     "projenrc/tsconfig.json",
+    "src/aws/cfncompat-provider-config.generated.ts",
     "src/aws/compute/function-vpc-config.generated.ts",
     "src/aws/compute/lb-shared/lb-listener-config.generated.ts",
     "src/aws/compute/lb-shared/lb-target-group-attachment-config.generated.ts",

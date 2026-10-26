@@ -1,6 +1,7 @@
 import { cdk, javascript, ReleasableCommits, TextFile } from "projen";
 import {
   AwsProviderStructBuilder,
+  CfncompatProviderStructBuilder,
   LambdaFunctionVpcConfigStructBuilder,
   S3BucketWebsiteConfigurationConfigStructBuilder,
   S3BucketCorsConfigurationConfigStructBuilder,
@@ -69,6 +70,7 @@ const project = new cdk.JsiiProject({
     "@cdktn/provider-aws@^25.7.1",
     "@cdktn/provider-time@^14.0.0",
     "@cdktn/provider-archive@^14.0.0",
+    "@cdktn/provider-cfncompat@^1.0.0",
     "@cdktn/provider-tls@^14.0.0",
     "@cdktn/provider-cloudinit@^14.0.0",
     "@cdktn/provider-docker@^16.0.0",
@@ -81,6 +83,7 @@ const project = new cdk.JsiiProject({
     "@cdktn/provider-aws@25.7.2",
     "@cdktn/provider-time@14.0.0",
     "@cdktn/provider-archive@14.0.0",
+    "@cdktn/provider-cfncompat@1.0.0",
     "@cdktn/provider-tls@14.0.0",
     "@cdktn/provider-cloudinit@14.0.0",
     "@cdktn/provider-docker@16.0.0",
@@ -228,6 +231,7 @@ new TextFile(project, ".nvmrc", {
 project.npmrc?.addConfig("node-linker", "hoisted");
 
 new AwsProviderStructBuilder(project);
+new CfncompatProviderStructBuilder(project);
 new PolicyDocumentStatementStructBuilder(project);
 new PolicyDocumentConfigStructBuilder(project);
 new LambdaFunctionVpcConfigStructBuilder(project);
@@ -237,9 +241,10 @@ new S3BucketLifecycleConfigurationRuleStructBuilder(project);
 new LbListenerConfigStructBuilder(project);
 new LbTargetGroupAttachmentConfigStructBuilder(project);
 
-// Copy non-TypeScript resource files (e.g., .vtl templates) to lib/ after compilation
+// Copy non-TypeScript resource files (.vtl templates, .py Lambda handlers, Dockerfiles) to lib/
+// after compilation. The -o alternatives must be grouped, or -type f/-exec bind to the last one only.
 project.compileTask.exec(
-  'find src -name "*.vtl" -or -name "Dockerfile" -type f -exec sh -c \'mkdir -p "lib/$(dirname "${1#src/}")" && cp "$1" "lib/${1#src/}"\' _ {} \\;',
+  'find src \\( -name "*.vtl" -o -name "*.py" -o -name "Dockerfile" \\) -type f -exec sh -c \'mkdir -p "lib/$(dirname "${1#src/}")" && cp "$1" "lib/${1#src/}"\' _ {} \\;',
 );
 
 project.synth();

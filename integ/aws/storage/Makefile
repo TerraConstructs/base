@@ -27,3 +27,33 @@ table.policy: ## Test Table with Policy
 bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 	go test -v -count 1 -timeout 15m ./... -run ^TestBucketNotifications$
 .PHONY: bucket-notifications
+
+bucket-notifications-cross-stack: ## Test cross-stack S3 notifications via the cfncompat custom resource
+	go test -v -count 1 -timeout 45m ./... -run ^TestBucketNotificationsCrossStack$
+.PHONY: bucket-notifications-cross-stack
+
+# This test names its own stages (deploy_a, validate_ab, ...) rather than the
+# deploy_terraform/validate stages ../../common.mk's %-synth-only and friends skip by
+# name, so it spells out its own suffix targets - an explicit target wins over a `%`
+# pattern rule with the same stem. (%-no-cleanup works as is: it only skips
+# cleanup_terraform, which this test does use.)
+CROSS_STACK_DEPLOY_STAGES = SKIP_deploy_a=true SKIP_deploy_b=true SKIP_deploy_c=true \
+	SKIP_update_a=true SKIP_destroy_b=true
+CROSS_STACK_VALIDATE_STAGES = SKIP_validate_a=true SKIP_validate_ab=true SKIP_validate_abc=true \
+	SKIP_validate_abc_updated=true SKIP_validate_ac=true
+
+bucket-notifications-cross-stack-synth-only: ## Synth only (no deploy/validate/cleanup) - runs without AWS creds
+	$(CROSS_STACK_DEPLOY_STAGES) $(CROSS_STACK_VALIDATE_STAGES) SKIP_cleanup_terraform=true \
+	make bucket-notifications-cross-stack
+.PHONY: bucket-notifications-cross-stack-synth-only
+
+bucket-notifications-cross-stack-validate-only: ## Re-run the final validate_ac stage after a -no-cleanup run
+	$(CROSS_STACK_DEPLOY_STAGES) SKIP_validate_a=true SKIP_validate_ab=true SKIP_validate_abc=true \
+	SKIP_validate_abc_updated=true SKIP_synth_app=true SKIP_cleanup_terraform=true \
+	make bucket-notifications-cross-stack
+.PHONY: bucket-notifications-cross-stack-validate-only
+
+bucket-notifications-cross-stack-cleanup-only: ## Skip straight to teardown of stacks a/b/c
+	$(CROSS_STACK_DEPLOY_STAGES) $(CROSS_STACK_VALIDATE_STAGES) SKIP_synth_app=true \
+	make bucket-notifications-cross-stack
+.PHONY: bucket-notifications-cross-stack-cleanup-only

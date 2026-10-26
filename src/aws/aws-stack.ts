@@ -7,7 +7,9 @@ import {
   dataAwsRegion,
   dataAwsServicePrincipal,
   provider,
+  s3Bucket,
 } from "@cdktn/provider-aws";
+import { provider as cfncompatProvider } from "@cdktn/provider-cfncompat";
 import {
   TerraformStack,
   TerraformIterator,
@@ -17,6 +19,7 @@ import {
 } from "cdktn";
 import { Construct, IConstruct } from "constructs";
 import { Arn, ArnComponents, ArnFormat } from "./arn";
+import { CfncompatProviderConfig } from "./cfncompat-provider-config.generated";
 import * as cxapi from "./cx-api";
 import { AwsProviderConfig } from "./provider-config.generated";
 import { IAssetManager } from "../asset-manager";
@@ -48,6 +51,15 @@ export interface AwsStackProps extends StackBaseProps {
    * The AWS Provider configuration (without the alias field)
    */
   readonly providerConfig?: AwsProviderConfig;
+
+  /**
+   * The Cfncompat Provider configuration (without the alias field), used by
+   * `CustomResource` to drive the `cfncompat_custom_resource` Terraform
+   * resource.
+   *
+   * @default - provider configured with the stack's region
+   */
+  readonly cfncompatProviderConfig?: CfncompatProviderConfig;
 
   /**
    * Asset manager for handling file and Docker image assets
@@ -187,11 +199,16 @@ export class AwsStack extends StackBase implements IAwsStack {
    * - https://github.com/hashicorp/terraform-cdk/blob/v0.20.10/packages/cdktf/lib/tokens/private/token-map.ts#L50-L66
    */
   private readonly _providerConfig: AwsProviderConfig | undefined;
+  private readonly _cfncompatProviderConfig:
+    | CfncompatProviderConfig
+    | undefined;
   private readonly _assetOptions: AwsAssetManagerOptions | undefined;
   private _regionToken: string;
   private _accountIdToken: string | undefined;
   private _paritionToken: string | undefined;
   private _urlSuffixToken: string | undefined;
+  private cfncompatProviderSingleton?: cfncompatProvider.CfncompatProvider;
+  private customResourceResponseBucketSingleton?: s3Bucket.S3Bucket;
 
   constructor(scope?: Construct, id?: string, props: AwsStackProps = {}) {
     super(scope, id, props);
@@ -202,6 +219,7 @@ export class AwsStack extends StackBase implements IAwsStack {
     // );
     this._missingContext = new Array<cxschema.MissingContext>();
     this._providerConfig = props.providerConfig;
+    this._cfncompatProviderConfig = props.cfncompatProviderConfig;
     this._assetOptions = props.assetOptions;
     this._assetManager = props.assetManager;
     this._regionToken = "";
@@ -238,6 +256,69 @@ export class AwsStack extends StackBase implements IAwsStack {
 
   public get provider(): provider.AwsProvider {
     return this.lookup.awsProvider;
+  }
+
+  /**
+   * A singleton Cfncompat Provider used by `CustomResource` to drive the
+   * `cfncompat_custom_resource` Terraform resource.
+   *
+   * Lazily instantiated on first access, so stacks that never create a
+   * `CustomResource` never synthesize a `cfncompat` provider block.
+   */
+  public get cfncompatProvider(): cfncompatProvider.CfncompatProvider {
+    if (!this.cfncompatProviderSingleton) {
+      this.cfncompatProviderSingleton = new cfncompatProvider.CfncompatProvider(
+        this,
+        "CfncompatProvider",
+        {
+          region: this.region,
+          ...(this._cfncompatProviderConfig ?? {}),
+        },
+      );
+    }
+    return this.cfncompatProviderSingleton;
+  }
+
+  /**
+   * Name of the per-stack S3 bucket used as the default response transport
+   * for `CustomResource`s in this stack (the pre-signed PUT/GET URL the
+   * handler uses to deliver its response).
+   *
+   * The bucket is a plain `aws_s3_bucket` (`force_destroy`), lazily created on
+   * first access. Returns `undefined` when
+   * `cfncompatProviderConfig.customResourceBucket` is set, deferring to the
+   * provider's own default bucket instead.
+   */
+  public get customResourceResponseBucketName(): string | undefined {
+    if (this._cfncompatProviderConfig?.customResourceBucket) {
+      return undefined;
+    }
+    if (!this.customResourceResponseBucketSingleton) {
+      // L1 rather than `storage.Bucket`: `storage/bucket.ts` imports `AwsStack`,
+      // so using the L2 here would be an import cycle. Naming and tags match
+      // what the L2 (a `TerraConstructBase`) would produce.
+      const id = "CustomResourceResponsesBucket";
+      const bucket = new s3Bucket.S3Bucket(this, id, {
+        // force_destroy: response objects are written by handlers at apply time
+        // and are not tracked in state, so destroy would fail on a non-empty bucket.
+        forceDestroy: true,
+        tags: {
+          "grid:EnvironmentName": this.environmentName,
+          "grid:UUID": this.gridUUID,
+          Name: `${this.environmentName}-${id}`,
+        },
+      });
+      // Bucket names must be lowercase and 3-63 characters long. Derived from
+      // the bucket's own construct path, so it needs the node to exist first.
+      bucket.bucketPrefix = this.uniqueResourceNamePrefix(bucket, {
+        prefix: this.gridUUID + "-",
+        lowerCase: true,
+        allowedSpecialCharacters: ".-",
+        maxLength: 63,
+      });
+      this.customResourceResponseBucketSingleton = bucket;
+    }
+    return this.customResourceResponseBucketSingleton.bucket;
   }
 
   /**

@@ -7,12 +7,14 @@ export * from "./aws-stack";
 export * from "./aws-tags";
 export * from "./aws-asset-manager";
 export * from "./log-retention";
+export * from "./custom-resource";
 export * from "./environment-aware";
 // NOTE: This is note exported on purpose for JSII compatibility.
 // export * from "./partition";
 
 // core JSII compatible generated interfaces
 export * from "./provider-config.generated";
+export * from "./cfncompat-provider-config.generated";
 
 // classes
 export * as iam from "./iam";

@@ -57,6 +57,7 @@ tcons-staging/
 !/.npmrc
 !/.projenrc.ts
 !/src/aws/provider-config.generated.ts
+!/src/aws/cfncompat-provider-config.generated.ts
 !/src/aws/iam/policy-statement-props.generated.ts
 !/src/aws/iam/policy-document-config.generated.ts
 !/src/aws/compute/function-vpc-config.generated.ts

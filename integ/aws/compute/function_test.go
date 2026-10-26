@@ -218,9 +218,10 @@ func validateEventSourceSqs(t *testing.T, tfWorkingDir string, awsRegion string)
 	functionLogGroup := fmt.Sprintf("/aws/lambda/%s", functionName)
 
 	messageBody := "Test message"
+	since := time.Now()
 	aws.SendMessageToQueue(t, awsRegion, queueUrl, messageBody)
 	aws.SendMessageToQueue(t, awsRegion, queueUrl, messageBody)
-	assertFunctionLogMessage(t, awsRegion, functionLogGroup, integ.Assertion{
+	assertFunctionLogMessage(t, awsRegion, functionLogGroup, since, integ.Assertion{
 		Path:           "Records[0].body",
 		ExpectedRegexp: &messageBody,
 	})
@@ -235,9 +236,10 @@ func validateEventSourceSqsFiltered(t *testing.T, tfWorkingDir string, awsRegion
 	functionLogGroup := fmt.Sprintf("/aws/lambda/%s", functionName)
 
 	messageBody := `{"id": "test"}`
+	since := time.Now()
 	aws.SendMessageToQueue(t, awsRegion, queueUrl, "random message") // should not trigger function
 	aws.SendMessageToQueue(t, awsRegion, queueUrl, messageBody)
-	assertFunctionLogMessage(t, awsRegion, functionLogGroup, integ.Assertion{
+	assertFunctionLogMessage(t, awsRegion, functionLogGroup, since, integ.Assertion{
 		Path:           "Records[0].body",
 		ExpectedRegexp: &messageBody,
 	})
@@ -252,31 +254,52 @@ func validateEventSourceS3(t *testing.T, tfWorkingDir string, awsRegion string) 
 	functionLogGroup := fmt.Sprintf("/aws/lambda/%s", functionName)
 
 	objectKey := "subdir/test.txt"
+	since := time.Now()
 	util.UploadS3File(t, awsRegion, bucketName, objectKey, "sample content")
-	assertFunctionLogMessage(t, awsRegion, functionLogGroup, integ.Assertion{
+	assertFunctionLogMessage(t, awsRegion, functionLogGroup, since, integ.Assertion{
 		Path:           "Records[0].s3.object.key",
 		ExpectedRegexp: &objectKey,
 	})
 }
 
-// Assert function is called and structured log message matches assertions
-func assertFunctionLogMessage(t *testing.T, awsRegion string, functionLogGroup string, assertions ...integ.Assertion) {
-	logEntries := util.WaitForLogEvents(t, awsRegion, functionLogGroup, 12, 5*time.Second)
-	var logMessage map[string]interface{}
-	for _, entry := range logEntries {
-		err := json.Unmarshal([]byte(entry), &logMessage)
-		if err != nil {
-			// ignore, this shouldn't happen (but sometimes lambda system start message is unstructured)
+// Assert function is called and structured log message matches assertions.
+//
+// Waits until a log event carries a structured application message: the entry is a JSON object whose
+// `message` field is a string that itself parses as a JSON object. Platform lines (START/END/REPORT,
+// unstructured init output) and entries with a non-string `message` never satisfy the wait, so the
+// assertions always run against an application event. Only log events newer than `since` are
+// considered: CloudWatch Logs may resurrect streams of a recently deleted log group with the same
+// name, which would surface events from previous test runs.
+func assertFunctionLogMessage(t *testing.T, awsRegion string, functionLogGroup string, since time.Time, assertions ...integ.Assertion) {
+	var event map[string]interface{}
+	util.WaitForLogEventMatching(t, awsRegion, functionLogGroup, since, 12, 5*time.Second, func(entry string) bool {
+		parsed, ok := parseStructuredLogMessage(entry)
+		if !ok {
 			terratestLogger.Logf(t, "Ignoring log message: %s", entry)
-			continue
+			return false
 		}
-		if _, ok := logMessage["message"]; ok {
-			var event map[string]interface{}
-			err := json.Unmarshal([]byte(logMessage["message"].(string)), &event)
-			require.NoError(t, err, "Failed to unmarshal event data")
-			integ.Assert(t, event, assertions)
-		}
+		event = parsed
+		return true
+	})
+	integ.Assert(t, event, assertions)
+}
+
+// parseStructuredLogMessage returns the JSON object carried in the `message` string field of a
+// structured (JSON object) Lambda log entry, and false for any other entry.
+func parseStructuredLogMessage(entry string) (map[string]interface{}, bool) {
+	var logMessage map[string]interface{}
+	if err := json.Unmarshal([]byte(entry), &logMessage); err != nil {
+		return nil, false
 	}
+	message, ok := logMessage["message"].(string)
+	if !ok {
+		return nil, false
+	}
+	var event map[string]interface{}
+	if err := json.Unmarshal([]byte(message), &event); err != nil || event == nil {
+		return nil, false
+	}
+	return event, true
 }
 
 type integrationTestOptions struct {

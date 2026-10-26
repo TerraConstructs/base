@@ -22,6 +22,7 @@ import (
 
 	"github.com/gruntwork-io/terratest/modules/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
+	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
@@ -42,6 +43,268 @@ func validateBucketNotifications(t *testing.T, tfWorkingDir string, awsRegion st
 	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 	bucketName := util.LoadOutputAttribute(t, terraformOptions, "bucket", "name")
 	util.AssertS3BucketNotificationExists(t, awsRegion, bucketName)
+}
+
+// crossStackOwners are the three stacks the bucket-notifications-cross-stack app
+// synthesizes, in creation order: `a` owns the shared bucket, `b`/`c` only ever import
+// it by name (see apps/bucket-notifications-cross-stack.ts).
+var crossStackOwners = []string{"a", "b", "c"}
+
+// crossStackUpdatedAPrefix is the `A_PREFIX` stack a is re-synthesized with in the
+// "update_a" stage (the app defaults to "a/"). Changing it changes a's
+// `Custom::S3BucketNotifications` properties, so the handler runs an unmanaged `Update`.
+const crossStackUpdatedAPrefix = "a-updated/"
+
+// TestBucketNotificationsCrossStack exercises the cfncompat custom-resource port of AWS
+// CDK's bucket-notifications construct (`BucketNotificationsResource`) across three
+// independent stacks sharing one S3 bucket: stack `a` owns the bucket, `b` and `c` only
+// ever import it by name, and all three add their own (prefix-filtered) notification
+// entry via the `Custom::S3BucketNotifications` custom resource. Each apply must merge
+// with, not clobber, what the other stacks already put there - the whole point of the
+// handler's "unmanaged" mode (`Managed: "false"`, see notifications-resource-handler.ts).
+//
+// The sequence is create a, b, c; then *update* a (re-synthesized with a different
+// prefix, so the handler receives RequestType=Update); then destroy b. Across the update,
+// b's and c's entry Ids must stay byte-for-byte identical: the handler recognises its own
+// entries on Delete by their `<StackId>-` Id prefix, so an Id rewritten by another stack's
+// Update (as upstream's mutating `get_id` did) leaks the entry when its owner is
+// destroyed. After destroy_b exactly b's entry must be gone.
+func TestBucketNotificationsCrossStack(t *testing.T) {
+	t.Parallel()
+
+	testApp := "bucket-notifications-cross-stack"
+	awsRegion := "us-east-1"
+	// testDir holds test data shared across stages (and across `-no-cleanup` /
+	// `-cleanup-only` runs): the random suffix and the captured notification Ids.
+	testDir := filepath.Join("tf", testApp)
+
+	tfWorkingDirs := map[string]string{
+		"a": filepath.Join(testDir, "a"),
+		"b": filepath.Join(testDir, "b"),
+		"c": filepath.Join(testDir, "c"),
+	}
+
+	synthEnv := func(suffix, aPrefix string) map[string]string {
+		envVars := executors.EnvMap(os.Environ())
+		envVars["AWS_REGION"] = awsRegion
+		envVars["ENVIRONMENT_NAME"] = "test"
+		envVars["STACK_NAME"] = testApp
+		envVars["SUFFIX"] = suffix
+		if aPrefix != "" {
+			envVars["A_PREFIX"] = aPrefix
+		} else {
+			delete(envVars, "A_PREFIX")
+		}
+		return envVars
+	}
+
+	test_structure.RunTestStage(t, "synth_app", func() {
+		suffix := strings.ToLower(random.UniqueId())
+		if len(suffix) > 6 {
+			suffix = suffix[:6]
+		}
+		// persisted so later stages of a run that skipped synth_app (e.g. `-cleanup-only`)
+		// target the same bucket and stacks.
+		test_structure.SaveString(t, testDir, "suffix", suffix)
+		util.SynthMultiStackApp(t, testApp, crossStackOwners, tfWorkingDirs, synthEnv(suffix, ""))
+	})
+
+	suffix := test_structure.LoadString(t, testDir, "suffix")
+	bucketName := "s3n-" + suffix
+	idsAfterCreatePath := test_structure.FormatTestDataPath(testDir, "notification-ids-abc.json")
+	idsAfterUpdatePath := test_structure.FormatTestDataPath(testDir, "notification-ids-updated.json")
+
+	// destroyedB tracks whether the "destroy_b" stage actually ran (it may have been
+	// skipped, e.g. for a `-synth-only`/`-cleanup-only` run), so cleanup knows whether
+	// it still needs to tear stack b down itself.
+	destroyedB := false
+
+	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
+		// force_destroy on the bucket (stack a) empties it on `terraform destroy`, but
+		// the delivery-check objects put directly by the validators are cleaned up
+		// defensively first regardless of which stages ran. Best effort: the bucket may
+		// not exist (e.g. a re-run `-cleanup-only`), and that must not skip the destroys.
+		if err := aws.EmptyS3BucketE(t, awsRegion, bucketName); err != nil {
+			terratestLogger.Logf(t, "could not empty bucket %s (continuing with destroy): %v", bucketName, err)
+		}
+		// destroy in reverse dependency order: c and (if still up) b before a, since a
+		// owns the bucket both b and c only ever import by name.
+		test_structure.RunTestStage(t, "cleanup_c", func() {
+			util.UndeployUsingTerraform(t, tfWorkingDirs["c"])
+		})
+		if !destroyedB {
+			test_structure.RunTestStage(t, "cleanup_b", func() {
+				util.UndeployUsingTerraform(t, tfWorkingDirs["b"])
+			})
+		}
+		test_structure.RunTestStage(t, "cleanup_a", func() {
+			util.UndeployUsingTerraform(t, tfWorkingDirs["a"])
+		})
+	})
+
+	test_structure.RunTestStage(t, "deploy_a", func() {
+		util.DeployUsingTerraform(t, tfWorkingDirs["a"], nil)
+	})
+	test_structure.RunTestStage(t, "validate_a", func() {
+		validateBucketNotificationsCrossStackIds(t, awsRegion, bucketName, tfWorkingDirs, "a")
+	})
+
+	test_structure.RunTestStage(t, "deploy_b", func() {
+		util.DeployUsingTerraform(t, tfWorkingDirs["b"], nil)
+	})
+	test_structure.RunTestStage(t, "validate_ab", func() {
+		validateBucketNotificationsCrossStackIds(t, awsRegion, bucketName, tfWorkingDirs, "a", "b")
+	})
+
+	test_structure.RunTestStage(t, "deploy_c", func() {
+		util.DeployUsingTerraform(t, tfWorkingDirs["c"], nil)
+	})
+	test_structure.RunTestStage(t, "validate_abc", func() {
+		ids := validateBucketNotificationsCrossStackIds(t, awsRegion, bucketName, tfWorkingDirs, "a", "b", "c")
+		test_structure.SaveTestData(t, idsAfterCreatePath, true, ids)
+		validateBucketNotificationsCrossStackDelivery(t, awsRegion, bucketName, tfWorkingDirs, crossStackOwners...)
+	})
+
+	test_structure.RunTestStage(t, "update_a", func() {
+		// Re-synth only stack a with a different prefix and re-apply it on top of its
+		// existing state (SynthMultiStackApp overlays the synthesized files onto the
+		// working dir, leaving the local tfstate in place). The changed
+		// NotificationConfiguration makes the custom resource send RequestType=Update,
+		// while b's and c's entries are on the bucket as "external" notifications.
+		util.SynthMultiStackApp(t, testApp, []string{"a"}, tfWorkingDirs, synthEnv(suffix, crossStackUpdatedAPrefix))
+		util.DeployUsingTerraform(t, tfWorkingDirs["a"], nil)
+	})
+	test_structure.RunTestStage(t, "validate_abc_updated", func() {
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDirs["a"])
+		require.Equal(t, crossStackUpdatedAPrefix, terraform.Output(t, terraformOptions, "notification_prefix"),
+			"stack a should have been re-applied with the updated prefix")
+
+		var before map[string]string
+		test_structure.LoadTestData(t, idsAfterCreatePath, &before)
+		after := validateBucketNotificationsCrossStackIds(t, awsRegion, bucketName, tfWorkingDirs, "a", "b", "c")
+		test_structure.SaveTestData(t, idsAfterUpdatePath, true, after)
+
+		// The regression check: a's Update must write other stacks' entries back with
+		// their Ids untouched, or their own later Delete can't find them.
+		assert.Equal(t, before["b"], after["b"], "stack a's Update must not change stack b's notification Id")
+		assert.Equal(t, before["c"], after["c"], "stack a's Update must not change stack c's notification Id")
+		assert.NotEqual(t, before["a"], after["a"], "stack a's own notification Id should change with its properties")
+
+		// a's updated entry still routes to a's target under the new prefix
+		validateBucketNotificationsCrossStackDelivery(t, awsRegion, bucketName, tfWorkingDirs, "a")
+	})
+
+	test_structure.RunTestStage(t, "destroy_b", func() {
+		util.UndeployUsingTerraform(t, tfWorkingDirs["b"])
+		destroyedB = true
+	})
+	test_structure.RunTestStage(t, "validate_ac", func() {
+		var updated map[string]string
+		test_structure.LoadTestData(t, idsAfterUpdatePath, &updated)
+		remaining := validateBucketNotificationsCrossStackIds(t, awsRegion, bucketName, tfWorkingDirs, "a", "c")
+		assert.Equal(t, map[string]string{"a": updated["a"], "c": updated["c"]}, remaining,
+			"destroying stack b should remove exactly b's notification entry")
+	})
+}
+
+// validateBucketNotificationsCrossStackIds asserts the shared bucket's
+// `LambdaFunctionConfigurations` are exactly one entry per given owner - matched by the
+// owner's own `lambda_arn` output, no more, no less - and that each owner's entry carries
+// the owner's `notification_prefix` key filter and an Id prefixed with the owner's
+// `<stack_id>-` (the prefix the handler relies on to recognise its own entries on
+// Delete). Returns each owner's entry Id.
+func validateBucketNotificationsCrossStackIds(t *testing.T, awsRegion, bucketName string, tfWorkingDirs map[string]string, owners ...string) map[string]string {
+	type ownerOutputs struct {
+		owner, stackID, prefix string
+	}
+	byArn := make(map[string]ownerOutputs, len(owners))
+	for _, owner := range owners {
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDirs[owner])
+		byArn[terraform.Output(t, terraformOptions, "lambda_arn")] = ownerOutputs{
+			owner:   owner,
+			stackID: terraform.Output(t, terraformOptions, "stack_id"),
+			prefix:  terraform.Output(t, terraformOptions, "notification_prefix"),
+		}
+	}
+
+	configs := util.GetS3BucketNotificationLambdaConfigurations(t, awsRegion, bucketName)
+	ids := make(map[string]string, len(owners))
+	for _, c := range configs {
+		arn := awssdk.ToString(c.LambdaFunctionArn)
+		id := awssdk.ToString(c.Id)
+		o, ok := byArn[arn]
+		if !assert.True(t, ok, "unexpected notification entry %q targeting %s (expected owners %v)", id, arn, owners) {
+			continue
+		}
+		if _, dup := ids[o.owner]; !assert.False(t, dup, "owner %s has more than one notification entry", o.owner) {
+			continue
+		}
+		ids[o.owner] = id
+		assert.True(t, strings.HasPrefix(id, o.stackID+"-"), "owner %s notification Id %q should start with its stack id %q", o.owner, id, o.stackID+"-")
+
+		var prefixes []string
+		if c.Filter != nil && c.Filter.Key != nil {
+			for _, r := range c.Filter.Key.FilterRules {
+				if strings.EqualFold(string(r.Name), "prefix") {
+					prefixes = append(prefixes, awssdk.ToString(r.Value))
+				}
+			}
+		}
+		assert.Equal(t, []string{o.prefix}, prefixes, "owner %s notification entry %q key prefix filter", o.owner, id)
+	}
+	for _, owner := range owners {
+		assert.Contains(t, ids, owner, "owner %s has no notification entry on bucket %s", owner, bucketName)
+	}
+	terratestLogger.Logf(t, "bucket %s notification Ids by owner: %v", bucketName, ids)
+	return ids
+}
+
+// validateBucketNotificationsCrossStackDelivery puts an object under each owner's own
+// prefix (`<notification_prefix>N`) and polls that owner's own results queue for the
+// forwarded event - proving the merged notification configuration actually routes to
+// the right target, not just that the configuration looks right. Each received message
+// is deleted so a later delivery check on the same queue only sees new events.
+//
+// S3 applies a notification configuration change eventually, and an object put before
+// the change has propagated (e.g. right after "update_a" rewrote it) never produces an
+// event - S3 does not replay it. So rather than waiting on one object, upload a fresh key
+// every attempt until one is delivered or the overall timeout runs out. (Observed: ~5
+// minutes between a's Update and the first delivered event under its new prefix.)
+func validateBucketNotificationsCrossStackDelivery(t *testing.T, awsRegion, bucketName string, tfWorkingDirs map[string]string, owners ...string) {
+	const (
+		attemptTimeoutSeconds = 60
+		attempts              = 10
+	)
+
+	for _, owner := range owners {
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDirs[owner])
+		queueURL := terraform.Output(t, terraformOptions, "queue_url")
+		prefix := terraform.Output(t, terraformOptions, "notification_prefix")
+
+		uploaded := map[string]bool{}
+		var response util.QueueMessageResponse
+		for attempt := 1; attempt <= attempts; attempt++ {
+			key := fmt.Sprintf("%s%d", prefix, attempt)
+			util.UploadS3File(t, awsRegion, bucketName, key, fmt.Sprintf("cross-stack delivery check for owner %s", owner))
+			uploaded[key] = true
+
+			response = util.WaitForQueueMessage(t, awsRegion, queueURL, attemptTimeoutSeconds)
+			if response.Error == nil {
+				break
+			}
+			terratestLogger.Logf(t, "owner %s: no delivery-check event for %s after %ds (attempt %d/%d)", owner, key, attemptTimeoutSeconds, attempt, attempts)
+		}
+		require.NoError(t, response.Error, "owner %s never received a delivery-check event on %s", owner, queueURL)
+		aws.DeleteMessageFromQueue(t, awsRegion, queueURL, response.ReceiptHandle)
+
+		var body struct {
+			Owner string `json:"owner"`
+			Key   string `json:"key"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(response.MessageBody), &body))
+		assert.Equal(t, owner, body.Owner)
+		assert.True(t, uploaded[body.Key], "owner %s received an event for %q, expected one of the keys just uploaded %v", owner, body.Key, uploaded)
+	}
 }
 
 // Test the table.alarm-metrics integration
