@@ -8,7 +8,6 @@ export * from "./aws-tags";
 export * from "./aws-asset-manager";
 export * from "./log-retention";
 export * from "./custom-resource";
-export * from "./custom-resource-handler";
 export * from "./environment-aware";
 // NOTE: This is note exported on purpose for JSII compatibility.
 // export * from "./partition";

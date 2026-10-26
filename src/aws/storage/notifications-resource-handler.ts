@@ -33,6 +33,8 @@ const SINGLETON_ID =
 
 /**
  * Construction properties for `NotificationsResourceHandler`.
+ *
+ * @internal
  */
 export interface NotificationsResourceHandlerProps extends AwsConstructProps {
   /**
@@ -59,6 +61,11 @@ export interface NotificationsResourceHandlerProps extends AwsConstructProps {
  *
  * For 'Delete' operations, an empty `NotificationConfiguration` is sent, as
  * required. Errors and results are propagated as-is.
+ *
+ * Like upstream AWS CDK, this class is internal and not exported in the public
+ * API; it is created on demand by `BucketNotificationsResource`.
+ *
+ * @internal
  */
 export class NotificationsResourceHandler extends AwsConstructBase {
   /**

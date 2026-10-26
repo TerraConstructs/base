@@ -8,6 +8,8 @@ import { Duration } from "../duration";
 
 /**
  * Construction properties for `CustomResourceHandler`.
+ *
+ * @internal
  */
 export interface CustomResourceHandlerProps extends AwsConstructProps {
   /**
@@ -60,15 +62,22 @@ export interface CustomResourceHandlerProps extends AwsConstructProps {
 /**
  * A stack-singleton Lambda function backing one or more `CustomResource`s.
  *
- * Construct library authors that need a custom-resource handler should call
+ * Constructs in this library that need a custom-resource handler call
  * `CustomResourceHandler.getOrCreate` under a well-known construct id so that
  * every custom resource in the stack that needs the same handler shares one
  * Lambda function, instead of each provisioning its own.
+ *
+ * This class is internal: it is not part of the public (jsii) API because its
+ * shape is not yet aligned with AWS CDK's core `CustomResourceProvider`. The
+ * public primitive is `CustomResource`, whose `serviceToken` accepts the ARN of
+ * any Lambda function.
  *
  * Unlike AWS CDK's `CustomResourceProviderBase`/`custom-resources` provider
  * framework, this does not implement an `onEvent`/`isComplete` async state
  * machine: Terraform applies are synchronous, so a plain Lambda function
  * invoked by `cfncompat_custom_resource` is sufficient.
+ *
+ * @internal
  */
 export class CustomResourceHandler extends AwsConstructBase {
   /**

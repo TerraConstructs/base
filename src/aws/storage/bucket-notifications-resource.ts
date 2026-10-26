@@ -13,6 +13,11 @@ import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { CustomResource } from "../custom-resource";
 import * as iam from "../iam";
 
+/**
+ * Construction properties for `BucketNotificationsResource`.
+ *
+ * @internal
+ */
 export interface BucketNotificationsResourceProps extends AwsConstructProps {
   /**
    * The bucket to manage notifications for.
@@ -58,11 +63,13 @@ export interface BucketNotificationsResourceProps extends AwsConstructProps {
  *
  * Since only a single `BucketNotificationsResource` is allowed for each
  * bucket, this construct is not exported in the public API of this module.
- * Instead, it is created just-in-time by `BucketBase.addEventNotification`,
- * so a 1:1 relationship is ensured.
+ * Instead, it is created just-in-time by `BucketBase.addEventNotification`
+ * (and `enableEventBridgeNotification`), so a 1:1 relationship is ensured.
  *
  * @see
  * https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket-notificationconfig.html
+ *
+ * @internal
  */
 export class BucketNotificationsResource extends AwsConstructBase {
   public resource?: CustomResource;

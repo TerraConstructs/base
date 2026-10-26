@@ -31,9 +31,12 @@ internal definition).
 
 ### What the custom resource does
 
-`BucketNotificationsResource` provisions a `cfncompat_custom_resource` backed by a
-stack-singleton Python Lambda function (`NotificationsResourceHandler`, AWS CDK's handler
-verbatim). The custom resource always runs the handler in *unmanaged* mode
+`Bucket.addEventNotification` (and `enableEventBridgeNotification`) are the entry points:
+they create, just in time and once per bucket, an internal construct that provisions a
+`cfncompat_custom_resource` backed by a stack-singleton Python Lambda function (AWS CDK's
+`notifications-resource-handler`, verbatim). As in AWS CDK, these notification constructs
+and the shared handler helper are internal and not part of the public API; the public
+custom-resource primitive is `aws.CustomResource`. The custom resource always runs the handler in *unmanaged* mode
 (`Managed: "false"`): on every apply the handler `GetBucketNotification`s the bucket, keeps
 every entry it does not recognise, and merges in only this stack's own entries — identified
 by an `Id` prefixed with the stack's `gridUUID`. On destroy it removes only that stack's
