@@ -66,6 +66,7 @@ app.synth();
 
 /* eslint-disable no-console */
 async function handler(event: any) {
-  console.log("event:", JSON.stringify(event, undefined, 2));
+  // structured log message must be plain JSON for assertFunctionLogMessage
+  console.log(JSON.stringify(event));
   return { event };
 }
