@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/testing"
@@ -71,20 +72,23 @@ func GetS3BucketNotificationE(t testing.TestingT, region string, bucketName stri
 	})
 }
 
-// GetS3BucketNotificationLambdaArns fetches the given bucket's notification
-// configuration and returns the set of `LambdaFunctionArn`s currently configured on it -
-// e.g. to assert a cross-stack `Custom::S3BucketNotifications` merge (see
-// `BucketNotificationsResource`) landed the entries several stacks contributed, and
-// only those, without asserting a single stack's exact ordering of the others'.
-func GetS3BucketNotificationLambdaArns(t testing.TestingT, region string, bucketName string) map[string]bool {
-	config, err := GetS3BucketNotificationE(t, region, bucketName)
+// GetS3BucketNotificationLambdaConfigurations fetches the given bucket's notification
+// configuration and returns its `LambdaFunctionConfigurations` as S3 reports them
+// (including each entry's `Id` and key filter), failing the test on any error.
+func GetS3BucketNotificationLambdaConfigurations(t testing.TestingT, region string, bucketName string) []s3types.LambdaFunctionConfiguration {
+	configs, err := GetS3BucketNotificationLambdaConfigurationsE(t, region, bucketName)
 	require.NoError(t, err)
+	return configs
+}
 
-	arns := make(map[string]bool, len(config.LambdaFunctionConfigurations))
-	for _, c := range config.LambdaFunctionConfigurations {
-		if c.LambdaFunctionArn != nil {
-			arns[*c.LambdaFunctionArn] = true
-		}
+// GetS3BucketNotificationLambdaConfigurationsE fetches the given bucket's notification
+// configuration and returns its `LambdaFunctionConfigurations` as S3 reports them
+// (including each entry's `Id` and key filter) - e.g. to assert the Ids a cross-stack
+// `Custom::S3BucketNotifications` handler wrote survive another stack's apply.
+func GetS3BucketNotificationLambdaConfigurationsE(t testing.TestingT, region string, bucketName string) ([]s3types.LambdaFunctionConfiguration, error) {
+	config, err := GetS3BucketNotificationE(t, region, bucketName)
+	if err != nil {
+		return nil, err
 	}
-	return arns
+	return config.LambdaFunctionConfigurations, nil
 }

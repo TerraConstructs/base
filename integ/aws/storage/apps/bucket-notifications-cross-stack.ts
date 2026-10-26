@@ -17,6 +17,13 @@ if (!suffix) {
   );
 }
 
+// Stack a's notification prefix is overridable so the terratest harness can re-synth
+// stack a with a different value and re-apply it: that changes the
+// `Custom::S3BucketNotifications` resource's `NotificationConfiguration`, so the handler
+// runs an unmanaged `Update` while b/c's entries are on the bucket (a no-change re-apply
+// never invokes the custom resource at all). b/c's prefixes are fixed.
+const aPrefix = process.env.A_PREFIX ?? "a/";
+
 // Shared bucket name every stack derives independently from SUFFIX: b/c never read a's
 // outputs, so the stacks stay genuinely independent.
 const bucketName = `s3n-${suffix}`;
@@ -95,10 +102,11 @@ exports.handler = async (event) => {
   });
   queue.grantSendMessages(fn);
 
+  const prefix = owner === "a" ? aPrefix : `${owner}/`;
   bucket.addEventNotification(
     aws.storage.EventType.OBJECT_CREATED,
     new aws.storage.targets.FunctionDestination(fn),
-    { prefix: `${owner}/` },
+    { prefix },
   );
 
   // Flat outputs (not `registerOutputs`, which emits one nested object output) so
@@ -107,6 +115,11 @@ exports.handler = async (event) => {
   new TerraformOutput(stack, "lambda_arn", { value: fn.functionArn, staticId: true });
   new TerraformOutput(stack, "queue_url", { value: queue.queueUrl, staticId: true });
   new TerraformOutput(stack, "owner", { value: owner, staticId: true });
+  new TerraformOutput(stack, "notification_prefix", { value: prefix, staticId: true });
+  // The custom resource's `StackId`: the handler prefixes the Id of every notification
+  // entry it writes with `<stack_id>-` and recognises its own entries by that prefix on
+  // Delete, so the harness asserts each owner's entry carries it.
+  new TerraformOutput(stack, "stack_id", { value: stack.gridUUID, staticId: true });
 }
 
 buildStack(app, "a");
