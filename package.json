@@ -7,6 +7,7 @@
   "scripts": {
     "build": "projen build",
     "bump": "projen bump",
+    "bump:releasable-commits": "projen bump:releasable-commits",
     "clobber": "projen clobber",
     "compat": "projen compat",
     "compile": "projen compile",
@@ -35,21 +36,21 @@
   "devDependencies": {
     "@aws-cdk/cloud-assembly-schema": "54.17.0",
     "@aws-cdk/region-info": "2.233.0",
-    "@cdktn/provider-archive": "14.0.0",
-    "@cdktn/provider-aws": "25.7.1",
-    "@cdktn/provider-cloudinit": "14.0.0",
-    "@cdktn/provider-docker": "16.0.0",
-    "@cdktn/provider-time": "14.0.0",
-    "@cdktn/provider-tls": "14.0.0",
+    "@cdktn/provider-archive": "15.0.0",
+    "@cdktn/provider-aws": "26.0.0",
+    "@cdktn/provider-cloudinit": "15.0.0",
+    "@cdktn/provider-docker": "17.0.0",
+    "@cdktn/provider-time": "15.0.0",
+    "@cdktn/provider-tls": "15.0.0",
     "@jsii/spec": "^1.102.0",
     "@mrgrain/jsii-struct-builder": "^0.7.64",
     "@types/jest": "^29.5.14",
     "@types/mime-types": "^2.1.4",
-    "@types/node": "ts5.9",
+    "@types/node": "ts6.0",
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
-    "cdktn": "0.24.0",
-    "commit-and-tag-version": "^12",
+    "cdktn": "0.25.0",
+    "commit-and-tag-version": "^13",
     "constructs": "10.7.2",
     "delay": "^5.0.0",
     "eslint": "^9",
@@ -60,26 +61,26 @@
     "fast-check": "^3.23.2",
     "jest": "^29.7.0",
     "jest-junit": "^17",
-    "jsii": "~5.9",
-    "jsii-diff": "^1.137.0",
-    "jsii-pacmak": "^1.137.0",
-    "jsii-rosetta": "~5.9",
+    "jsii": "~6.0",
+    "jsii-diff": "^1.142.0",
+    "jsii-pacmak": "^1.142.0",
+    "jsii-rosetta": "~6.0",
     "prettier": "3.3.3",
-    "projen": "^0.100.7",
+    "projen": "^0.104.17",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
-    "typescript": "~5.9"
+    "typescript": "~6.0"
   },
   "peerDependencies": {
     "@aws-cdk/cloud-assembly-schema": "^54.17.0",
     "@aws-cdk/region-info": "^2.233.0",
-    "@cdktn/provider-archive": "^14.0.0",
-    "@cdktn/provider-aws": "^25.7.1",
-    "@cdktn/provider-cloudinit": "^14.0.0",
-    "@cdktn/provider-docker": "^16.0.0",
-    "@cdktn/provider-time": "^14.0.0",
-    "@cdktn/provider-tls": "^14.0.0",
-    "cdktn": "^0.24.0",
+    "@cdktn/provider-archive": "^15.0.0",
+    "@cdktn/provider-aws": "^26.0.0",
+    "@cdktn/provider-cloudinit": "^15.0.0",
+    "@cdktn/provider-docker": "^17.0.0",
+    "@cdktn/provider-time": "^15.0.0",
+    "@cdktn/provider-tls": "^15.0.0",
+    "cdktn": "^0.25.0",
     "constructs": "^10.7.2"
   },
   "dependencies": {
@@ -101,7 +102,7 @@
     "terraconstructs"
   ],
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.23.4"
   },
   "devEngines": {
     "packageManager": {

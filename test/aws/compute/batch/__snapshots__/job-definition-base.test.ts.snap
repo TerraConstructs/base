@@ -114,7 +114,7 @@ exports[`JobDefinitionBase synth EcsJobDefinition synthesizes and matches snapsh
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }
@@ -228,7 +228,7 @@ exports[`JobDefinitionBase synth MultiNodeJobDefinition synthesizes and matches 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }

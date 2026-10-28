@@ -12,32 +12,32 @@
     },
     {
       "name": "@cdktn/provider-archive",
-      "version": "14.0.0",
+      "version": "15.0.0",
       "type": "build"
     },
     {
       "name": "@cdktn/provider-aws",
-      "version": "25.7.2",
+      "version": "26.0.0",
       "type": "build"
     },
     {
       "name": "@cdktn/provider-cloudinit",
-      "version": "14.0.0",
+      "version": "15.0.0",
       "type": "build"
     },
     {
       "name": "@cdktn/provider-docker",
-      "version": "16.0.0",
+      "version": "17.0.0",
       "type": "build"
     },
     {
       "name": "@cdktn/provider-time",
-      "version": "14.0.0",
+      "version": "15.0.0",
       "type": "build"
     },
     {
       "name": "@cdktn/provider-tls",
-      "version": "14.0.0",
+      "version": "15.0.0",
       "type": "build"
     },
     {
@@ -59,7 +59,7 @@
     },
     {
       "name": "@types/node",
-      "version": "ts5.9",
+      "version": "ts6.0",
       "type": "build"
     },
     {
@@ -74,12 +74,12 @@
     },
     {
       "name": "cdktn",
-      "version": "0.24.0",
+      "version": "0.25.0",
       "type": "build"
     },
     {
       "name": "commit-and-tag-version",
-      "version": "^12",
+      "version": "^13",
       "type": "build"
     },
     {
@@ -137,12 +137,12 @@
     },
     {
       "name": "jsii-rosetta",
-      "version": "~5.9",
+      "version": "~6.0",
       "type": "build"
     },
     {
       "name": "jsii",
-      "version": "~5.9",
+      "version": "~6.0",
       "type": "build"
     },
     {
@@ -151,6 +151,7 @@
     },
     {
       "name": "projen",
+      "version": "^0.104.17",
       "type": "build"
     },
     {
@@ -163,7 +164,7 @@
     },
     {
       "name": "typescript",
-      "version": "~5.9",
+      "version": "~6.0",
       "type": "build"
     },
     {
@@ -202,37 +203,37 @@
     },
     {
       "name": "@cdktn/provider-archive",
-      "version": "^14.0.0",
+      "version": "^15.0.0",
       "type": "peer"
     },
     {
       "name": "@cdktn/provider-aws",
-      "version": "^25.7.1",
+      "version": "^26.0.0",
       "type": "peer"
     },
     {
       "name": "@cdktn/provider-cloudinit",
-      "version": "^14.0.0",
+      "version": "^15.0.0",
       "type": "peer"
     },
     {
       "name": "@cdktn/provider-docker",
-      "version": "^16.0.0",
+      "version": "^17.0.0",
       "type": "peer"
     },
     {
       "name": "@cdktn/provider-time",
-      "version": "^14.0.0",
+      "version": "^15.0.0",
       "type": "peer"
     },
     {
       "name": "@cdktn/provider-tls",
-      "version": "^14.0.0",
+      "version": "^15.0.0",
       "type": "peer"
     },
     {
       "name": "cdktn",
-      "version": "^0.24.0",
+      "version": "^0.25.0",
       "type": "peer"
     },
     {

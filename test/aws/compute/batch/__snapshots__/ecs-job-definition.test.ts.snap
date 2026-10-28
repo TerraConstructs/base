@@ -108,7 +108,7 @@ exports[`EcsJobDefinition Should synth and match SnapShot for EC2 container 1`] 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }
@@ -222,7 +222,7 @@ exports[`EcsJobDefinition Should synth and match SnapShot for Fargate container 
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }
