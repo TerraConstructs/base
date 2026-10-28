@@ -212,9 +212,13 @@ export class AssetApiDefinition extends ApiDefinition {
   public bind(scope: Construct): ApiDefinitionConfig {
     // If the same AssetAPIDefinition is used multiple times, retain only the first instantiation.
     if (this.asset === undefined) {
+      // Forward only `assetHash`. cdktn >=0.25 TerraformAssetConfig also reads
+      // `assetHashType` (its own enum, without BUNDLE) and `exclude`; spreading
+      // the S3 AssetOptions would no longer type-check and would silently
+      // change asset hashing/staging compared to cdktn 0.24.
       this.asset = new TerraformAsset(scope, "APIDefinition", {
         path: this.path,
-        ...this.options,
+        assetHash: this.options.assetHash,
       });
     }
 
