@@ -599,7 +599,7 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 1
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }
@@ -852,7 +852,7 @@ exports[`cross stack synth Should synth ALB next to Service and match SnapShot 2
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }

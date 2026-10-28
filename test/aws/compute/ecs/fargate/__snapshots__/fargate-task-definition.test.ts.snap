@@ -149,7 +149,7 @@ exports[`fargate task definition synth FargateTaskDefinition with all properties
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }

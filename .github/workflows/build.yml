@@ -55,7 +55,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: 24.12.0
+          node-version: 24.22.1
           package-manager-cache: false
       - name: Install dependencies
         run: pnpm i --no-frozen-lockfile
@@ -108,23 +108,28 @@ jobs:
     if: always() && needs.build.outputs.self_mutation_happened && !(github.event.pull_request.head.repo.full_name != github.repository)
     steps:
       - name: Checkout
+        id: checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           token: ${{ secrets.PROJEN_GITHUB_TOKEN }}
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
       - name: Download patch
+        id: download_patch
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: repo.patch
           path: ${{ runner.temp }}
       - name: Apply patch
+        id: apply_patch
         run: '[ -s ${{ runner.temp }}/repo.patch ] && git apply ${{ runner.temp }}/repo.patch || echo "Empty patch. Skipping."'
       - name: Set git identity
+        id: set_git_identity
         run: |-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Push changes
+        id: push_changes
         env:
           PULL_REQUEST_REF: ${{ github.event.pull_request.head.ref }}
         run: |-
@@ -140,17 +145,20 @@ jobs:
     steps:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: 24.12.0
+          node-version: 24.22.1
           package-manager-cache: false
       - name: Download build artifacts
+        id: download_build_artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           artifact-ids: ${{ needs.build.outputs.artifact_id }}
           path: dist
       - name: Restore build artifact permissions
+        id: restore_build_artifact_permissions
         run: cd dist && setfacl --restore=permissions-backup.acl
         continue-on-error: true
       - name: set up Docker
+        id: set_up_docker
         if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
       - name: Load docker images
@@ -161,40 +169,51 @@ jobs:
           path: ~/.docker-images.tar
           key: docker-cache-${{ runner.os }}
       - name: Restore docker images
+        id: restore_docker_images
         if: ${{ env.LEAN_BOOTSTRAP != 'true' && steps.docker-cache.outputs.cache-hit }}
         run: docker image load --input ~/.docker-images.tar
-      - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+      - id: auto_1e88277c
+        if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
           go-version: 1.27.3
-      - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+      - id: auto_97f0b63c
+        if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
         uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
           bun-version: 1.4.4
-      - if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
+      - id: auto_e68580bd
+        if: ${{ env.LEAN_BOOTSTRAP != 'true' }}
         uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
         with:
           tofu_wrapper: false
           tofu_version: 1.8.2
       - name: Setup pnpm
+        id: setup_pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
         with:
           version: 11.5.0
       - name: Checkout
+        id: checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           path: .repo
       - name: Install Dependencies
+        id: install_dependencies
         run: cd .repo && pnpm i --frozen-lockfile
       - name: Extract build artifact
+        id: extract_build_artifact
         run: tar --strip-components=1 -xzvf dist/js/*.tgz -C .repo
       - name: Move build artifact out of the way
+        id: move_build_artifact_out_of_the_way
         run: mv dist dist.old
       - name: Create js artifact
+        id: create_js_artifact
         run: cd .repo && pnpm exec projen package:js
       - name: Collect js artifact
+        id: collect_js_artifact
         run: mv .repo/dist dist
     env:
       LEAN_BOOTSTRAP: "true"
@@ -228,7 +247,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: 24.12.0
+          node-version: 24.22.1
           package-manager-cache: false
       - name: Install dependencies
         run: pnpm i --no-frozen-lockfile
@@ -274,7 +293,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: 24.12.0
+          node-version: 24.22.1
           package-manager-cache: false
       - name: Install dependencies
         run: pnpm i --no-frozen-lockfile

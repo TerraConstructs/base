@@ -1,4 +1,10 @@
-import { cdk, javascript, ReleasableCommits, TextFile } from "projen";
+import {
+  cdk,
+  javascript,
+  ReleasableCommits,
+  TaskShell,
+  TextFile,
+} from "projen";
 import {
   AwsProviderStructBuilder,
   LambdaFunctionVpcConfigStructBuilder,
@@ -18,10 +24,13 @@ import {
   workflowBootstrapSteps,
 } from "./projenrc/github-workflows";
 
-// cdktn 0.24+ requires Node 22 minimum
-const nodeVersion = ">=22.12.0";
+// cdktn 0.25 (cdktn-cli engines) requires Node >=22.23.4, the patched line from
+// the 2026-10-21 Node.js security release (CVE-2026-111497 Brotli,
+// CVE-2026-106069 / CVE-2026-106072 tls).
+const nodeVersion = ">=22.23.4";
 const pnpmVersion = "11.5.0";
-const workflowNodeVersion = "24.12.0";
+// Node 24 patched line from the 2026-10-21 Node.js security release.
+const workflowNodeVersion = "24.22.1";
 
 // Number of parallel shards the jest suite is split across in the PR build.
 const testShardCount = 5;
@@ -39,8 +48,22 @@ const project = new cdk.JsiiProject({
   defaultReleaseBranch: "main",
   typescriptVersion: "~5.9",
   jsiiVersion: "~5.9",
+  projenVersion: "^0.104.17",
   packageManager: javascript.NodePackageManager.PNPM,
   pnpmVersion,
+  pnpmOptions: {
+    workspaceYamlOptions: {
+      nodeLinker: javascript.PnpmWorkspaceYamlSchemaNodeLinker.HOISTED,
+      // pnpm 11 waits 24h (minimumReleaseAge) before installing a freshly
+      // published version. cdktn and the @cdktn/* providers are first-party
+      // packages published from CI we control and already trusted as
+      // peerDependencies; every cdktn release ships its provider majors the
+      // same day, so this exclusion lets us adopt them on day one. The gate
+      // stays on for everything else, i.e. the long tail of transitive
+      // devDependencies where the Dependabot alerts come from.
+      minimumReleaseAgeExclude: ["cdktn", "cdktn-cli", "@cdktn/*"],
+    },
+  },
   projenrcTs: true,
   prettier: true,
   eslint: true,
@@ -65,25 +88,25 @@ const project = new cdk.JsiiProject({
 
   // cdktn construct lib config
   peerDeps: [
-    "cdktn@^0.24.0",
-    "@cdktn/provider-aws@^25.7.1",
-    "@cdktn/provider-time@^14.0.0",
-    "@cdktn/provider-archive@^14.0.0",
-    "@cdktn/provider-tls@^14.0.0",
-    "@cdktn/provider-cloudinit@^14.0.0",
-    "@cdktn/provider-docker@^16.0.0",
+    "cdktn@^0.25.0",
+    "@cdktn/provider-aws@^26.0.0",
+    "@cdktn/provider-time@^15.0.0",
+    "@cdktn/provider-archive@^15.0.0",
+    "@cdktn/provider-tls@^15.0.0",
+    "@cdktn/provider-cloudinit@^15.0.0",
+    "@cdktn/provider-docker@^17.0.0",
     "constructs@^10.7.2",
     "@aws-cdk/cloud-assembly-schema@^54.17.0",
     "@aws-cdk/region-info@^2.233.0",
   ],
   devDeps: [
-    "cdktn@0.24.0",
-    "@cdktn/provider-aws@25.7.2",
-    "@cdktn/provider-time@14.0.0",
-    "@cdktn/provider-archive@14.0.0",
-    "@cdktn/provider-tls@14.0.0",
-    "@cdktn/provider-cloudinit@14.0.0",
-    "@cdktn/provider-docker@16.0.0",
+    "cdktn@0.25.0",
+    "@cdktn/provider-aws@26.0.0",
+    "@cdktn/provider-time@15.0.0",
+    "@cdktn/provider-archive@15.0.0",
+    "@cdktn/provider-tls@15.0.0",
+    "@cdktn/provider-cloudinit@15.0.0",
+    "@cdktn/provider-docker@17.0.0",
     "constructs@10.7.0",
     "@aws-cdk/cloud-assembly-schema@54.17.0",
     "@aws-cdk/region-info@^2.233.0",
@@ -148,8 +171,10 @@ const project = new cdk.JsiiProject({
   },
 });
 
-new TextFile(project, "pnpm-workspace.yaml", {
-  lines: ["allowBuilds:", "  unrs-resolver: true", "nodeLinker: hoisted"],
+// projen >=0.104 owns pnpm-workspace.yaml (PnpmWorkspaceYaml). pnpm 11 reads
+// `allowBuilds` (not in projen's schema yet) and `nodeLinker` from it.
+javascript.PnpmWorkspaceYaml.of(project)?.file.addOverride("allowBuilds", {
+  "unrs-resolver": true,
 });
 
 pinGitHubActions(project);
@@ -240,6 +265,9 @@ new LbTargetGroupAttachmentConfigStructBuilder(project);
 // Copy non-TypeScript resource files (e.g., .vtl templates) to lib/ after compilation
 project.compileTask.exec(
   'find src -name "*.vtl" -or -name "Dockerfile" -type f -exec sh -c \'mkdir -p "lib/$(dirname "${1#src/}")" && cp "$1" "lib/${1#src/}"\' _ {} \\;',
+  // projen >=0.104 defaults to its built-in cross-platform shell, which does
+  // not pass find's escaped `\;` terminator through; run this one via /bin/sh.
+  { shell: TaskShell.system() },
 );
 
 project.synth();

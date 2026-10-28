@@ -736,7 +736,7 @@ exports[`ec2 service synth Ec2Service with all properties set should synth and m
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }
@@ -1389,7 +1389,7 @@ exports[`ec2 service synth Ec2Service with only required properties set should s
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }

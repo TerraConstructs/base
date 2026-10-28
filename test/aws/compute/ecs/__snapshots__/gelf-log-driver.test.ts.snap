@@ -87,7 +87,7 @@ exports[`gelf log driver synth Should synth and match SnapShot with minimum opti
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }

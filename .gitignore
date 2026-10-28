@@ -4,10 +4,11 @@
 !/.projen/deps.json
 !/.projen/files.json
 !/.github/workflows/pull-request-lint.yml
+!/pnpm-workspace.yaml
 !/package.json
 !/LICENSE
 !/.npmignore
-logs
+/logs
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -50,7 +51,6 @@ junit.xml
 !/.eslintrc.json
 !/projenrc/tsconfig.json
 .jsii
-!/pnpm-workspace.yaml
 .env
 tcons-staging/
 !/.nvmrc

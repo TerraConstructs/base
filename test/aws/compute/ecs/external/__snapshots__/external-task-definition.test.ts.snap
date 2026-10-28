@@ -147,7 +147,7 @@ exports[`ExternalTaskDefinition synth Should synth and match SnapShot with a ful
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }
@@ -241,7 +241,7 @@ exports[`ExternalTaskDefinition synth Should synth and match SnapShot with defau
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }

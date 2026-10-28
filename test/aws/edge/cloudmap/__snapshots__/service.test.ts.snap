@@ -60,7 +60,7 @@ exports[`service snapshots Service for HTTP namespace should synth and match Sna
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }
@@ -432,7 +432,7 @@ exports[`service snapshots Service for Private DNS namespace should synth and ma
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }
@@ -509,7 +509,7 @@ exports[`service snapshots Service for Public DNS namespace should synth and mat
     "required_providers": {
       "aws": {
         "source": "hashicorp/aws",
-        "version": "6.67.0"
+        "version": "6.70.0"
       }
     }
   }
