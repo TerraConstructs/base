@@ -33,11 +33,12 @@ export class FileSystem {
   /**
    * Produces fingerprint based on the contents of a single file or an entire directory tree.
    *
-   * Line endings are converted from CRLF to LF.
+   * Matches cdktn's own (non-canonical) asset hash: MD5 over raw file bytes
+   * in natural directory order. Nested symlinks are hashed by path+target,
+   * never followed; only a root-level symlink is followed.
    *
-   * The fingerprint will also include:
-   * 1. An extra string if defined in `options.extra`.
-   * 2. The symlink follow mode value.
+   * The fingerprint will also include an extra string if defined in
+   * `options.extraHash`.
    *
    * @param fileOrDirectory The directory or file to fingerprint
    * @param options Fingerprinting options
