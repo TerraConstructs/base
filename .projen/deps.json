@@ -2,7 +2,7 @@
   "dependencies": [
     {
       "name": "@aws-cdk/cloud-assembly-schema",
-      "version": "54.17.0",
+      "version": "55.0.0",
       "type": "build"
     },
     {
@@ -193,7 +193,7 @@
     },
     {
       "name": "@aws-cdk/cloud-assembly-schema",
-      "version": "^54.17.0",
+      "version": "^55.0.0",
       "type": "peer"
     },
     {
