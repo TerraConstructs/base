@@ -36,3 +36,6 @@ export * from "./auth-token";
 
 // s3 and ECR assets
 export * as assets from "./assets";
+
+// aws-rds
+export * as rds from "./rds";
