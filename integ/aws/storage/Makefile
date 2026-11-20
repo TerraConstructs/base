@@ -24,6 +24,10 @@ table.policy: ## Test Table with Policy
 	go test -v -count 1 -timeout 15m ./... -run ^TestTablePolicy$
 .PHONY: table.policy
 
+rds.groups: ## Test RDS SubnetGroup, ParameterGroup (both binds), OptionGroup, DatabaseSecret
+	go test -v -count 1 -timeout 20m ./... -run ^TestRdsGroups$
+.PHONY: rds.groups
+
 bucket-notifications: ## Test S3 Bucket with EventBridge Notifications
 	go test -v -count 1 -timeout 15m ./... -run ^TestBucketNotifications$
 .PHONY: bucket-notifications
