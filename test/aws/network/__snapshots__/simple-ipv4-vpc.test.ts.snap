@@ -118,6 +118,7 @@ exports[`Environment Should synth and match SnapShot 1`] = `
             "local_gateway_id": null,
             "nat_gateway_id": "\${aws_nat_gateway.network_PublicSubnet0_NatGateway_CEADEB3D.id}",
             "network_interface_id": null,
+            "odb_network_arn": null,
             "transit_gateway_id": null,
             "vpc_endpoint_id": null,
             "vpc_peering_connection_id": null
@@ -146,6 +147,7 @@ exports[`Environment Should synth and match SnapShot 1`] = `
             "local_gateway_id": null,
             "nat_gateway_id": "\${aws_nat_gateway.network_PublicSubnet1_NatGateway_159BCDA9.id}",
             "network_interface_id": null,
+            "odb_network_arn": null,
             "transit_gateway_id": null,
             "vpc_endpoint_id": null,
             "vpc_peering_connection_id": null
