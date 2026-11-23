@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    if: github.repository == 'TerraConstructs/base'
     steps:
       - name: Checkout
         id: checkout
@@ -35,6 +36,12 @@ jobs:
         with:
           tofu_wrapper: false
           tofu_version: 1.8.2
+      - name: Setup OpenTofu plugin cache
+        id: setup_opentofu_plugin_cache
+        run: |-
+          mkdir -p "$RUNNER_TEMP/tf-plugin-cache"
+          echo "TF_PLUGIN_CACHE_DIR=$RUNNER_TEMP/tf-plugin-cache" >> "$GITHUB_ENV"
+          echo "TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE=true" >> "$GITHUB_ENV"
       - name: Setup pnpm
         id: setup_pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
@@ -52,11 +59,25 @@ jobs:
       - name: Compile
         id: compile
         run: pnpm exec projen compile
+      - name: Start AWS emulator
+        id: emulator
+        uses: xSAVIKx/run-aws-emulator@f26496537177fd799f424012f533862a6569d1bd
+        with:
+          image: ghcr.io/xsavikx/aws-emulator:latest
+          memory: 2g
+          wait-timeout: "120"
       - name: Run AWS integration tests against aws-emulator
         id: run_aws_integration_tests_against_aws-emulator
         env:
           EMULATOR_SERVICE: ${{ inputs.service }}
+          EMULATOR_EXTERNAL: "1"
         run: make -C integ aws-emulator
+      - name: Show AWS emulator logs
+        id: show_aws_emulator_logs
+        if: failure()
+        env:
+          EMULATOR_CONTAINER: ${{ steps.emulator.outputs.container }}
+        run: docker logs "$EMULATOR_CONTAINER"
     timeout-minutes: 300
 concurrency:
   group: integ-aws-emulator

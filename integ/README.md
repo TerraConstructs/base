@@ -81,9 +81,31 @@ Set `EMULATOR_SKIP_FILE` to use a different file.
 | `EMULATOR_NAME` | `terraconstructs-aws-emulator` | Container name. `emulator-up` removes a container with this name. |
 | `EMULATOR_IMAGE` | `ghcr.io/xsavikx/aws-emulator:latest` | Container image. |
 
-The `-emulator` target removes the AWS credential variables, sets `AWS_EC2_METADATA_DISABLED=true`, and uses an empty `AWS_CONFIG_FILE`.
+The `-emulator` target removes the AWS credential variables, sets `AWS_EC2_METADATA_DISABLED=true` and `AWS_DISABLE_HOST_PREFIX_INJECTION=true`, and uses an empty `AWS_CONFIG_FILE`.
+The Go SDK v2 and the Terraform AWS provider ignore `AWS_DISABLE_HOST_PREFIX_INJECTION`. It does not fix the skipped S3 Control and Cloud Map targets.
 
-The `integ-aws-emulator` GitHub workflow runs `make aws-emulator` every night and on demand. The full run takes hours, so it does not run on pull requests.
+### Use an emulator that already runs
+
+Set `EMULATOR_EXTERNAL=1` to use an emulator that another process started.
+The targets then do not start or stop a container, and do not check the port.
+They read the endpoint, CA bundle, credentials file and config file from the environment, and still remove the AWS credential variables.
+`AWS_ENDPOINT_URL` must be set. The run stops with an error if it is empty.
+
+```sh
+EMULATOR_EXTERNAL=1 make -C integ aws-emulator EMULATOR_SERVICE=network
+```
+
+### CI
+
+CI starts the emulator with the [run-aws-emulator](https://github.com/xSAVIKx/run-aws-emulator) action and sets `EMULATOR_EXTERNAL=1`.
+The action exports the environment variables. Local runs use Docker through `make`.
+The action step uses the same image as `EMULATOR_IMAGE`.
+A failed job prints the container log.
+
+The `build` workflow runs the `integ-aws-emulator` job on every pull request.
+The job uses a matrix with one leg per service directory in `integ/aws/*/Makefile`. Each leg runs in parallel on its own runner with its own emulator container, and runs `make aws-emulator EMULATOR_SERVICE=<service>`.
+The `integ-aws-emulator` workflow runs the full suite sequentially (`make aws-emulator`) every night and on demand.
+Both jobs run only in the `TerraConstructs/base` repository.
 
 Run all e2e tests:
 

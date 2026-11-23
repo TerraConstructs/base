@@ -61,6 +61,7 @@ EMULATOR_IMAGE ?= ghcr.io/xsavikx/aws-emulator:latest
 EMULATOR_PORT ?= 9397
 EMULATOR_NAME ?= terraconstructs-aws-emulator
 EMULATOR_DIR := $(HOME)/.aws/emulator/$(EMULATOR_PORT)
+EMULATOR_EXTERNAL ?=
 
 emulator-up: ## Start the AWS emulator container (reuses a running one, port: EMULATOR_PORT)
 	@if [ "$$(docker inspect -f '{{.State.Health.Status}}' $(EMULATOR_NAME) 2>/dev/null)" = "healthy" ] \
@@ -104,15 +105,23 @@ emulator-down: ## Stop the AWS emulator container
 	@docker rm -f $(EMULATOR_NAME) >/dev/null 2>&1 || true
 .PHONY: emulator-down
 
-## %-emulator:                Run a target against the AWS emulator (i.e. key-emulator, requires Docker)
+## %-emulator:                Run a target against the AWS emulator (i.e. key-emulator, requires Docker or EMULATOR_EXTERNAL=1)
 %-emulator:
 	@$(MAKE) --no-print-directory -n $* >/dev/null 2>&1 || { \
 		echo "No target '$*' in $$(pwd). Run make from the directory that defines it, for example integ/aws/encryption."; exit 1; }; \
+	if [ -n "$(EMULATOR_EXTERNAL)" ]; then \
+		if [ -z "$$AWS_ENDPOINT_URL" ]; then \
+			echo "EMULATOR_EXTERNAL is set but AWS_ENDPOINT_URL is empty. Start the emulator first, for example with the run-aws-emulator action."; exit 1; \
+		fi; \
+		exec env -u AWS_PROFILE -u AWS_SESSION_TOKEN -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SECURITY_TOKEN \
+			$(MAKE) --no-print-directory $*; \
+	fi; \
 	was_running=$$(docker ps -q -f name=^$(EMULATOR_NAME)$$); \
 	$(MAKE) --no-print-directory emulator-up || { [ -n "$$was_running" ] || $(MAKE) --no-print-directory emulator-down; exit 1; }; \
 	mkdir -p "$(EMULATOR_DIR)" && : > "$(EMULATOR_DIR)/empty-config"; \
 	env -u AWS_PROFILE -u AWS_SESSION_TOKEN -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SECURITY_TOKEN \
 	AWS_CONFIG_FILE=$(EMULATOR_DIR)/empty-config AWS_EC2_METADATA_DISABLED=true \
+	AWS_DISABLE_HOST_PREFIX_INJECTION=true \
 	AWS_ENDPOINT_URL=https://127.0.0.1:$(EMULATOR_PORT) \
 	AWS_CA_BUNDLE=$(EMULATOR_DIR)/ca.pem \
 	AWS_SHARED_CREDENTIALS_FILE=$(EMULATOR_DIR)/emulator_credentials \

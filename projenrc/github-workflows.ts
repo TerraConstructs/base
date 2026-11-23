@@ -1,3 +1,5 @@
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { cdk, github } from "projen";
 
 type JobStep = github.workflows.JobStep;
@@ -44,6 +46,8 @@ export const PINNED_ACTIONS: Record<string, string> = {
   // v6
   "amannn/action-semantic-pull-request":
     "48f256284bd46cdaab1048c3721360e808335d50",
+  // v1.1.1
+  "xSAVIKx/run-aws-emulator": "f26496537177fd799f424012f533862a6569d1bd",
   // v8
   "peter-evans/create-pull-request": "5f6978faf089d4d20b00c7766989d076bb2fc7f1",
 };
@@ -353,16 +357,105 @@ export interface EmulatorWorkflowOptions {
   readonly workflowNodeVersion: string;
   /** Cron expression (UTC) for the scheduled run. */
   readonly cron: string;
-  /** Job timeout in minutes. */
+  /** Job timeout in minutes for the full nightly run. */
   readonly timeoutMinutes: number;
+  /** Job timeout in minutes for one service on a pull request. */
+  readonly pullRequestTimeoutMinutes: number;
+  /**
+   * Repository (`owner/name`) that runs the emulator jobs.
+   *
+   * Other repositories skip the jobs instead of failing.
+   */
+  readonly repository: string;
 }
+
+/**
+ * Service directories under integ/aws that have their own Makefile.
+ *
+ * This is the same discovery rule as integ/emulator-all.sh, so the matrix
+ * and the nightly run cover the same services. Adding a service directory
+ * changes the generated workflow and needs a new `projen` run.
+ */
+export function emulatorServices(project: cdk.JsiiProject): string[] {
+  const root = join(project.outdir, "integ", "aws");
+  return readdirSync(root, { withFileTypes: true })
+    .filter(
+      (e) => e.isDirectory() && existsSync(join(root, e.name, "Makefile")),
+    )
+    .map((e) => e.name)
+    .sort();
+}
+
+/** Same image as `EMULATOR_IMAGE` in integ/common.mk, so CI and local runs match. */
+const EMULATOR_IMAGE = "ghcr.io/xsavikx/aws-emulator:latest";
+
+/**
+ * Steps that prepare a runner for `make -C integ aws-emulator`.
+ *
+ * Shared by the nightly workflow and the pull request job.
+ */
+function emulatorJobSteps(options: EmulatorWorkflowOptions): JobStep[] {
+  const toolSteps = workflowBootstrapSteps
+    .filter((step) => /setup-(go|bun|opentofu)@/.test(step.uses ?? ""))
+    .map(({ if: _gate, ...step }) => step);
+  return [
+    {
+      name: "Checkout",
+      uses: pinned("actions/checkout"),
+      with: { "persist-credentials": false },
+    },
+    ...toolSteps,
+    {
+      name: "Setup OpenTofu plugin cache",
+      run: [
+        'mkdir -p "$RUNNER_TEMP/tf-plugin-cache"',
+        'echo "TF_PLUGIN_CACHE_DIR=$RUNNER_TEMP/tf-plugin-cache" >> "$GITHUB_ENV"',
+        'echo "TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE=true" >> "$GITHUB_ENV"',
+      ].join("\n"),
+    },
+    {
+      name: "Setup pnpm",
+      uses: pinned("pnpm/action-setup"),
+      with: { version: options.pnpmVersion },
+    },
+    {
+      name: "Setup Node.js",
+      uses: pinned("actions/setup-node"),
+      with: {
+        "node-version": options.workflowNodeVersion,
+        "package-manager-cache": false,
+      },
+    },
+    { name: "Install dependencies", run: "pnpm i --no-frozen-lockfile" },
+    // The integ apps consume the compiled lib folder, not src.
+    { name: "Compile", run: "pnpm exec projen compile" },
+    {
+      name: "Start AWS emulator",
+      id: "emulator",
+      uses: pinned("xSAVIKx/run-aws-emulator"),
+      with: {
+        image: EMULATOR_IMAGE,
+        memory: "2g",
+        "wait-timeout": "120",
+      },
+    },
+  ];
+}
+
+/** Step that prints the emulator log when an earlier step of the job failed. */
+const emulatorLogsStep: JobStep = {
+  name: "Show AWS emulator logs",
+  if: "failure()",
+  env: { EMULATOR_CONTAINER: "${{ steps.emulator.outputs.container }}" },
+  run: 'docker logs "$EMULATOR_CONTAINER"',
+};
 
 /**
  * Nightly workflow that runs the AWS integration tests against aws-emulator.
  *
- * The full run takes hours, so it does not gate pull requests. It needs a
- * Docker daemon and no AWS credentials. Targets that the emulator cannot
- * serve are listed in integ/emulator-skip.txt.
+ * The full run takes more than an hour, so it stays sequential and does not
+ * gate pull requests. It needs a Docker daemon and no AWS credentials.
+ * Targets that the emulator cannot serve are listed in integ/emulator-skip.txt.
  */
 export function addEmulatorWorkflow(
   project: cdk.JsiiProject,
@@ -385,45 +478,73 @@ export function addEmulatorWorkflow(
       },
     },
   });
-  const toolSteps = workflowBootstrapSteps
-    .filter((step) => /setup-(go|bun|opentofu)@/.test(step.uses ?? ""))
-    .map(({ if: _gate, ...step }) => step);
   workflow.file?.addOverride("concurrency", {
     group: "integ-aws-emulator",
     "cancel-in-progress": false,
   });
   workflow.addJob("integ-aws-emulator", {
     name: "integ (aws-emulator)",
+    if: `github.repository == '${options.repository}'`,
     runsOn: ["ubuntu-latest"],
     timeoutMinutes: options.timeoutMinutes,
     permissions: { contents: github.workflows.JobPermission.READ },
     steps: [
-      {
-        name: "Checkout",
-        uses: pinned("actions/checkout"),
-        with: { "persist-credentials": false },
-      },
-      ...toolSteps,
-      {
-        name: "Setup pnpm",
-        uses: pinned("pnpm/action-setup"),
-        with: { version: options.pnpmVersion },
-      },
-      {
-        name: "Setup Node.js",
-        uses: pinned("actions/setup-node"),
-        with: {
-          "node-version": options.workflowNodeVersion,
-          "package-manager-cache": false,
-        },
-      },
-      { name: "Install dependencies", run: "pnpm i --no-frozen-lockfile" },
-      { name: "Compile", run: "pnpm exec projen compile" },
+      ...emulatorJobSteps(options),
       {
         name: "Run AWS integration tests against aws-emulator",
-        env: { EMULATOR_SERVICE: "${{ inputs.service }}" },
+        env: {
+          EMULATOR_SERVICE: "${{ inputs.service }}",
+          EMULATOR_EXTERNAL: "1",
+        },
         run: "make -C integ aws-emulator",
       },
+      emulatorLogsStep,
     ],
+  });
+}
+
+/**
+ * Add a job to the build workflow that runs each emulator service in parallel.
+ *
+ * Each matrix leg has its own runner and emulator container, started by the run-aws-emulator action. The job does not
+ * depend on the `build` job: that job uploads a packaged artifact and runs for
+ * longer than a compile, while the integ apps only need `lib/` from a compile
+ * in the same job. Running in parallel keeps the wall time near the slowest
+ * service.
+ */
+export function addEmulatorPullRequestJob(
+  project: cdk.JsiiProject,
+  options: EmulatorWorkflowOptions,
+): void {
+  const buildWorkflow = project.tryFindObjectFile(
+    ".github/workflows/build.yml",
+  );
+  if (!buildWorkflow) {
+    throw new Error("expected .github/workflows/build.yml to exist");
+  }
+  const steps = [
+    ...emulatorJobSteps(options),
+    {
+      name: "Run ${{ matrix.service }} integration tests against aws-emulator",
+      env: {
+        EMULATOR_SERVICE: "${{ matrix.service }}",
+        EMULATOR_EXTERNAL: "1",
+      },
+      run: "make -C integ aws-emulator",
+    },
+    emulatorLogsStep,
+  ];
+  buildWorkflow.addOverride("jobs.integ-aws-emulator", {
+    name: "integ (aws-emulator, ${{ matrix.service }})",
+    if: `github.repository == '${options.repository}'`,
+    "runs-on": "ubuntu-latest",
+    "timeout-minutes": options.pullRequestTimeoutMinutes,
+    permissions: { contents: "read" },
+    env: { CI: "true" },
+    strategy: {
+      "fail-fast": false,
+      matrix: { service: emulatorServices(project) },
+    },
+    steps,
   });
 }

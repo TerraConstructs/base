@@ -2,7 +2,8 @@
 # Run every AWS integ target through "<target>-emulator", skipping entries in the skip file.
 #
 # Usage: emulator-all.sh [--list]
-# Environment: EMULATOR_SERVICE (one service directory), EMULATOR_SKIP_FILE.
+# Environment: EMULATOR_SERVICE (one service directory), EMULATOR_SKIP_FILE,
+# EMULATOR_EXTERNAL (use the emulator that AWS_ENDPOINT_URL points at; the targets do not start or stop one).
 
 here="$(cd "$(dirname "$0")" && pwd)"
 skip_file="${EMULATOR_SKIP_FILE:-$here/emulator-skip.txt}"

@@ -17,6 +17,7 @@ import {
   LbTargetGroupAttachmentConfigStructBuilder,
 } from "./projenrc";
 import {
+  addEmulatorPullRequestJob,
   addEmulatorWorkflow,
   pinGitHubActions,
   postBuildSteps,
@@ -192,14 +193,18 @@ tuneBuildWorkflow(project, {
   dockerTestPath,
 });
 tuneUpgradeWorkflow(project);
-// Full run takes hours: nightly and on demand, not on pull requests.
-addEmulatorWorkflow(project, {
+// Nightly runs every service sequentially; pull requests run one service per
+// parallel job.
+const emulatorOptions = {
   pnpmVersion,
   workflowNodeVersion,
   cron: "0 3 * * *",
   timeoutMinutes: 300,
-});
-
+  pullRequestTimeoutMinutes: 45,
+  repository: "TerraConstructs/base",
+};
+addEmulatorWorkflow(project, emulatorOptions);
+addEmulatorPullRequestJob(project, emulatorOptions);
 project.prettier?.addIgnorePattern("*.generated.ts");
 project.eslint?.addRules({
   curly: "off",

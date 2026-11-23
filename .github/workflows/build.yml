@@ -315,6 +315,79 @@ jobs:
             echo "::error::test shards: ${{ needs.test.result }}, docker tests: ${{ needs.test-docker.result }}"
             exit 1
           fi
+  integ-aws-emulator:
+    name: integ (aws-emulator, ${{ matrix.service }})
+    if: github.repository == 'TerraConstructs/base'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      CI: "true"
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - compute
+          - edge
+          - encryption
+          - iam
+          - monitoring
+          - network
+          - notify
+          - staticsite
+          - stepfunctions
+          - storage
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: 1.27.3
+      - uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
+        with:
+          bun-version: 1.4.4
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
+        with:
+          tofu_wrapper: false
+          tofu_version: 1.8.2
+      - name: Setup OpenTofu plugin cache
+        run: |-
+          mkdir -p "$RUNNER_TEMP/tf-plugin-cache"
+          echo "TF_PLUGIN_CACHE_DIR=$RUNNER_TEMP/tf-plugin-cache" >> "$GITHUB_ENV"
+          echo "TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE=true" >> "$GITHUB_ENV"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
+        with:
+          version: 11.5.0
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.22.1
+          package-manager-cache: false
+      - name: Install dependencies
+        run: pnpm i --no-frozen-lockfile
+      - name: Compile
+        run: pnpm exec projen compile
+      - name: Start AWS emulator
+        id: emulator
+        uses: xSAVIKx/run-aws-emulator@f26496537177fd799f424012f533862a6569d1bd
+        with:
+          image: ghcr.io/xsavikx/aws-emulator:latest
+          memory: 2g
+          wait-timeout: "120"
+      - name: Run ${{ matrix.service }} integration tests against aws-emulator
+        env:
+          EMULATOR_SERVICE: ${{ matrix.service }}
+          EMULATOR_EXTERNAL: "1"
+        run: make -C integ aws-emulator
+      - name: Show AWS emulator logs
+        if: failure()
+        env:
+          EMULATOR_CONTAINER: ${{ steps.emulator.outputs.container }}
+        run: docker logs "$EMULATOR_CONTAINER"
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
