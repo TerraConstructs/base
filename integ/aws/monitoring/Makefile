@@ -5,21 +5,21 @@ all: ## Test all Monitoring integrations
 .PHONY: all
 
 ecs-insights-metrics: ## Test ECS/ContainerInsights service metrics and alarms
-	go test -v -count 1 -timeout 30m ./... -run ^TestEcsInsightsMetrics$
+	go test -v -count 1 -timeout 30m ./... -run ^TestEcsInsightsMetrics$$
 .PHONY: ecs-insights-metrics
 
 log-destination-kinesis: ## Test CloudWatch Log Delivery to Kinesis
-	go test -v -count 1 -timeout 15m ./... -run ^TestLogDestinationKinesis$
+	go test -v -count 1 -timeout 15m ./... -run ^TestLogDestinationKinesis$$
 .PHONY: log-destination-kinesis
 
 log-destination-lambda: ## Test CloudWatch Log Delivery to Lambda
-	go test -v -count 1 -timeout 15m ./... -run ^TestLogDestinationLambda$
+	go test -v -count 1 -timeout 15m ./... -run ^TestLogDestinationLambda$$
 .PHONY: log-destination-lambda
 
 log-group-dataprotection: ## Test CloudWatch Log Group Data Protection
-	go test -v -count 1 -timeout 15m ./... -run ^TestLogGroupDataProtection$
+	go test -v -count 1 -timeout 15m ./... -run ^TestLogGroupDataProtection$$
 .PHONY: log-group-dataprotection
 
 log-group-metrics: ## Test CloudWatch Log Group Metrics
-	go test -v -count 1 -timeout 15m ./... -run ^TestLogGroupMetrics$
+	go test -v -count 1 -timeout 15m ./... -run ^TestLogGroupMetrics$$
 .PHONY: log-group-metrics

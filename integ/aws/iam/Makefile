@@ -5,17 +5,17 @@ all: ## Test all IAM
 .PHONY: all
 
 role: ## Test IAM Role
-	go test -v -timeout 30m ./... -run ^TestRole$
+	go test -v -timeout 30m ./... -run ^TestRole$$
 .PHONY: role
 
 composite-principal: ## Test Composite Principal
-	go test -v -timeout 30m ./... -run ^TestCompositePrincipal$
+	go test -v -timeout 30m ./... -run ^TestCompositePrincipal$$
 .PHONY: composite-principal
 
 condition-with-ref: ## Test Condition with Ref
-	go test -v -timeout 30m ./... -run ^TestConditionWithRef$
+	go test -v -timeout 30m ./... -run ^TestConditionWithRef$$
 .PHONY: condition-with-ref
 
 managed-policy: ## Test Managed Policies
-	go test -v -timeout 30m ./... -run ^TestManagedPolicy$
+	go test -v -timeout 30m ./... -run ^TestManagedPolicy$$
 .PHONY: managed-policy

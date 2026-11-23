@@ -13,9 +13,9 @@ key-alias: ## Test AWS KMS CMK + alias creation
 .PHONY: key-alias
 
 secret-attach: ## Test SecretsManager Secret.attach() against an RDS DbInstance
-	go test -v -count 1 -timeout 30m ./... -run ^TestSecretAttach$
+	go test -v -count 1 -timeout 30m ./... -run ^TestSecretAttach$$
 .PHONY: secret-attach
 
 secret.replica: ## Test AWS Secrets Manager Secret + replica region
-	go test -v -count 1 -timeout 15m ./... -run ^TestSecretReplica$
+	go test -v -count 1 -timeout 15m ./... -run ^TestSecretReplica$$
 .PHONY: secret.replica
