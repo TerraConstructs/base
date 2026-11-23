@@ -35,6 +35,9 @@ func TestCdnWebsiteBucket(t *testing.T) {
 	// TODO: Test Curl with the domain name
 	envVars["DNS_ZONE_ID"] = "Z000441110FP43NILLF2D"
 
+	if util.IsEmulator() {
+		envVars["DNS_ZONE_ID"] = util.CreateEmulatorHostedZone(t, "us-east-1", hostname)
+	}
 	// save hostname for future stages
 	tfWorkingDir := filepath.Join("tf", testApp)
 	test_structure.SaveString(t, tfWorkingDir, "hostname", hostname)

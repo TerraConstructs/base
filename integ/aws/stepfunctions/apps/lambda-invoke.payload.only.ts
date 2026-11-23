@@ -37,6 +37,7 @@ new LocalBackend(stack, {
 
 const submitJob = new aws.compute.tasks.LambdaInvoke(stack, "Invoke Handler", {
   lambdaFunction: new aws.compute.NodejsFunction(stack, "submitJobLambda", {
+    depsLockFilePath: path.join(__dirname, "bun.lock"),
     entry: path.join(__dirname, "handlers", "hello-world-status", "index.ts"),
   }),
   payloadResponseOnly: true,
@@ -50,6 +51,7 @@ const checkJobState = new aws.compute.tasks.LambdaInvoke(
       stack,
       "checkJobStateLambda",
       {
+        depsLockFilePath: path.join(__dirname, "bun.lock"),
         entry: path.join(
           __dirname,
           "handlers",

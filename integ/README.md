@@ -47,6 +47,44 @@ To run the integration tests, you must not use the root AWS account. Instead, cr
     export AWS_PROFILE=terraconstructs-e2e
     ```
 
+## Run against the AWS emulator
+
+The AWS tests run against the [AWS emulator](https://xsavikx.github.io/aws-emulator-docker/) without AWS credentials.
+Docker must run on your machine.
+
+Run one target in its service directory. Add `-emulator` to the target name:
+
+```console
+cd integ/aws/encryption
+make key-emulator
+```
+
+Run all AWS targets against one emulator container from `integ`:
+
+```console
+make aws-emulator
+make aws-emulator EMULATOR_SERVICE=encryption
+make aws-emulator-list
+```
+
+The aggregate target finds the targets in `integ/aws/*/Makefile`, starts the container once, and removes it at the end.
+It continues after a failure, prints a summary, and exits with a non-zero code if any target fails.
+`EMULATOR_SERVICE` selects one service directory. `aws-emulator-list` shows the targets that run and the targets that skip.
+
+Targets that the emulator cannot serve are in [`emulator-skip.txt`](./emulator-skip.txt).
+Each line holds a service and a target. Edit this file to change the skip list.
+Set `EMULATOR_SKIP_FILE` to use a different file.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `EMULATOR_PORT` | `9397` | Host port of the emulator. |
+| `EMULATOR_NAME` | `terraconstructs-aws-emulator` | Container name. `emulator-up` removes a container with this name. |
+| `EMULATOR_IMAGE` | `ghcr.io/xsavikx/aws-emulator:latest` | Container image. |
+
+The `-emulator` target removes the AWS credential variables, sets `AWS_EC2_METADATA_DISABLED=true`, and uses an empty `AWS_CONFIG_FILE`.
+
+The `integ-aws-emulator` GitHub workflow runs `make aws-emulator` every night and on demand. The full run takes hours, so it does not run on pull requests.
+
 Run all e2e tests:
 
 > [!IMPORTANT]

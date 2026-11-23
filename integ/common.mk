@@ -56,3 +56,67 @@ clean: ## clean up temporary files (tf/*, apps/cdktf.out, /tmp/go-synth-*)
 	rm -rf apps/cdktf.out
 	rm -rf /tmp/go-synth-*
 .PHONY: clean
+
+EMULATOR_IMAGE ?= ghcr.io/xsavikx/aws-emulator:latest
+EMULATOR_PORT ?= 9397
+EMULATOR_NAME ?= terraconstructs-aws-emulator
+EMULATOR_DIR := $(HOME)/.aws/emulator/$(EMULATOR_PORT)
+
+emulator-up: ## Start the AWS emulator container (reuses a running one, port: EMULATOR_PORT)
+	@if [ "$$(docker inspect -f '{{.State.Health.Status}}' $(EMULATOR_NAME) 2>/dev/null)" = "healthy" ] \
+		&& docker port $(EMULATOR_NAME) 2>/dev/null | grep -q ':$(EMULATOR_PORT)$$'; then \
+		echo "Reusing the running AWS emulator $(EMULATOR_NAME) on port $(EMULATOR_PORT)"; exit 0; \
+	fi; \
+	docker rm -f $(EMULATOR_NAME) >/dev/null 2>&1 || true; \
+	if command -v lsof >/dev/null 2>&1; then \
+		lsof -nP -iTCP:$(EMULATOR_PORT) -sTCP:LISTEN >/dev/null 2>&1 && busy=1; \
+	elif command -v ss >/dev/null 2>&1; then \
+		ss -ltn "sport = :$(EMULATOR_PORT)" 2>/dev/null | grep -q LISTEN && busy=1; \
+	else \
+		bash -c 'exec 3<>/dev/tcp/127.0.0.1/$(EMULATOR_PORT)' >/dev/null 2>&1 && busy=1; \
+	fi; \
+	if [ -n "$$busy" ]; then \
+		echo "Port $(EMULATOR_PORT) is in use by another process:"; \
+		lsof -nP -iTCP:$(EMULATOR_PORT) -sTCP:LISTEN 2>/dev/null || ss -ltnp "sport = :$(EMULATOR_PORT)" 2>/dev/null || true; \
+		echo "Stop it or run with another port, for example: make EMULATOR_PORT=9398 ..."; exit 1; \
+	fi; \
+	$(MAKE) --no-print-directory emulator-start
+.PHONY: emulator-up
+
+emulator-start:
+	@mkdir -p "$(HOME)/.aws/emulator"
+	@docker run -d --name $(EMULATOR_NAME) --memory=2g --memory-swap=2g \
+		-p 127.0.0.1:$(EMULATOR_PORT):$(EMULATOR_PORT) \
+		--user "$$(id -u):$$(id -g)" -e HOME="$(HOME)" -e EMULATOR_TELEMETRY=off \
+		-e EMULATOR_HEALTHCHECK_PORT=$(EMULATOR_PORT) \
+		-v "$(HOME)/.aws/emulator:$(HOME)/.aws/emulator" \
+		$(EMULATOR_IMAGE) -p $(EMULATOR_PORT) >/dev/null
+	@echo "Waiting for the AWS emulator..."
+	@for i in $$(seq 1 60); do \
+		[ "$$(docker inspect -f '{{.State.Health.Status}}' $(EMULATOR_NAME))" = "healthy" ] && exit 0; \
+		sleep 1; \
+	done; \
+	docker logs $(EMULATOR_NAME); \
+	echo "The AWS emulator did not become healthy"; exit 1
+.PHONY: emulator-start
+
+emulator-down: ## Stop the AWS emulator container
+	@docker rm -f $(EMULATOR_NAME) >/dev/null 2>&1 || true
+.PHONY: emulator-down
+
+## %-emulator:                Run a target against the AWS emulator (i.e. key-emulator, requires Docker)
+%-emulator:
+	@$(MAKE) --no-print-directory -n $* >/dev/null 2>&1 || { \
+		echo "No target '$*' in $$(pwd). Run make from the directory that defines it, for example integ/aws/encryption."; exit 1; }; \
+	was_running=$$(docker ps -q -f name=^$(EMULATOR_NAME)$$); \
+	$(MAKE) --no-print-directory emulator-up || { [ -n "$$was_running" ] || $(MAKE) --no-print-directory emulator-down; exit 1; }; \
+	mkdir -p "$(EMULATOR_DIR)" && : > "$(EMULATOR_DIR)/empty-config"; \
+	env -u AWS_PROFILE -u AWS_SESSION_TOKEN -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SECURITY_TOKEN \
+	AWS_CONFIG_FILE=$(EMULATOR_DIR)/empty-config AWS_EC2_METADATA_DISABLED=true \
+	AWS_ENDPOINT_URL=https://127.0.0.1:$(EMULATOR_PORT) \
+	AWS_CA_BUNDLE=$(EMULATOR_DIR)/ca.pem \
+	AWS_SHARED_CREDENTIALS_FILE=$(EMULATOR_DIR)/emulator_credentials \
+	AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1 \
+	$(MAKE) --no-print-directory $*; \
+	status=$$?; [ -n "$$was_running" ] || $(MAKE) --no-print-directory emulator-down; exit $$status
+.PHONY: %-emulator

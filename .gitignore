@@ -51,6 +51,7 @@ junit.xml
 !/.eslintrc.json
 !/projenrc/tsconfig.json
 .jsii
+!/.github/workflows/integ-aws-emulator.yml
 .env
 tcons-staging/
 !/.nvmrc

@@ -345,3 +345,85 @@ export function tuneUpgradeWorkflow(project: cdk.JsiiProject): void {
     .tryFindObjectFile(".github/workflows/upgrade-main.yml")
     ?.addOverride("jobs.upgrade.env.LEAN_BOOTSTRAP", "true");
 }
+
+export interface EmulatorWorkflowOptions {
+  /** pnpm version used to compile the construct library. */
+  readonly pnpmVersion: string;
+  /** Node version used to compile the construct library. */
+  readonly workflowNodeVersion: string;
+  /** Cron expression (UTC) for the scheduled run. */
+  readonly cron: string;
+  /** Job timeout in minutes. */
+  readonly timeoutMinutes: number;
+}
+
+/**
+ * Nightly workflow that runs the AWS integration tests against aws-emulator.
+ *
+ * The full run takes hours, so it does not gate pull requests. It needs a
+ * Docker daemon and no AWS credentials. Targets that the emulator cannot
+ * serve are listed in integ/emulator-skip.txt.
+ */
+export function addEmulatorWorkflow(
+  project: cdk.JsiiProject,
+  options: EmulatorWorkflowOptions,
+): void {
+  const workflow = project.github?.addWorkflow("integ-aws-emulator");
+  if (!workflow) {
+    throw new Error("expected the GitHub component to be enabled");
+  }
+  workflow.on({
+    schedule: [{ cron: options.cron }],
+    workflowDispatch: {
+      inputs: {
+        service: {
+          description:
+            "Run only this service directory under integ/aws (default: all)",
+          required: false,
+          default: "",
+        },
+      },
+    },
+  });
+  const toolSteps = workflowBootstrapSteps
+    .filter((step) => /setup-(go|bun|opentofu)@/.test(step.uses ?? ""))
+    .map(({ if: _gate, ...step }) => step);
+  workflow.file?.addOverride("concurrency", {
+    group: "integ-aws-emulator",
+    "cancel-in-progress": false,
+  });
+  workflow.addJob("integ-aws-emulator", {
+    name: "integ (aws-emulator)",
+    runsOn: ["ubuntu-latest"],
+    timeoutMinutes: options.timeoutMinutes,
+    permissions: { contents: github.workflows.JobPermission.READ },
+    steps: [
+      {
+        name: "Checkout",
+        uses: pinned("actions/checkout"),
+        with: { "persist-credentials": false },
+      },
+      ...toolSteps,
+      {
+        name: "Setup pnpm",
+        uses: pinned("pnpm/action-setup"),
+        with: { version: options.pnpmVersion },
+      },
+      {
+        name: "Setup Node.js",
+        uses: pinned("actions/setup-node"),
+        with: {
+          "node-version": options.workflowNodeVersion,
+          "package-manager-cache": false,
+        },
+      },
+      { name: "Install dependencies", run: "pnpm i --no-frozen-lockfile" },
+      { name: "Compile", run: "pnpm exec projen compile" },
+      {
+        name: "Run AWS integration tests against aws-emulator",
+        env: { EMULATOR_SERVICE: "${{ inputs.service }}" },
+        run: "make -C integ aws-emulator",
+      },
+    ],
+  });
+}
