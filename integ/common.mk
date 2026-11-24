@@ -57,7 +57,8 @@ clean: ## clean up temporary files (tf/*, apps/cdktf.out, /tmp/go-synth-*)
 	rm -rf /tmp/go-synth-*
 .PHONY: clean
 
-EMULATOR_IMAGE ?= ghcr.io/xsavikx/aws-emulator:latest
+# Pinned by multi-arch index digest; keep in sync with EMULATOR_IMAGE in projenrc/github-workflows.ts.
+EMULATOR_IMAGE ?= ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78ff9e7b84ca2828c9e838cf4c5e8027da3996364a93cf0650e15b6b6f0
 EMULATOR_PORT ?= 9397
 EMULATOR_NAME ?= terraconstructs-aws-emulator
 EMULATOR_DIR := $(HOME)/.aws/emulator/$(EMULATOR_PORT)
@@ -87,6 +88,7 @@ emulator-up: ## Start the AWS emulator container (reuses a running one, port: EM
 emulator-start:
 	@mkdir -p "$(HOME)/.aws/emulator"
 	@docker run -d --name $(EMULATOR_NAME) --memory=2g --memory-swap=2g \
+		--read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
 		-p 127.0.0.1:$(EMULATOR_PORT):$(EMULATOR_PORT) \
 		--user "$$(id -u):$$(id -g)" -e HOME="$(HOME)" -e EMULATOR_TELEMETRY=off \
 		-e EMULATOR_HEALTHCHECK_PORT=$(EMULATOR_PORT) \

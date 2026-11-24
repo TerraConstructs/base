@@ -48,6 +48,8 @@ export const PINNED_ACTIONS: Record<string, string> = {
     "48f256284bd46cdaab1048c3721360e808335d50",
   // v1.1.1
   "xSAVIKx/run-aws-emulator": "f26496537177fd799f424012f533862a6569d1bd",
+  // v4.1.3
+  "sigstore/cosign-installer": "756fe2d284c7292c4e9b62c8a28f1e5629c59532",
   // v8
   "peter-evans/create-pull-request": "5f6978faf089d4d20b00c7766989d076bb2fc7f1",
 };
@@ -461,8 +463,20 @@ export function emulatorMatrix(project: cdk.JsiiProject): EmulatorLeg[] {
   });
 }
 
-/** Same image as `EMULATOR_IMAGE` in integ/common.mk, so CI and local runs match. */
-const EMULATOR_IMAGE = "ghcr.io/xsavikx/aws-emulator:latest";
+/**
+ * Same image as `EMULATOR_IMAGE` in integ/common.mk, so CI and local runs match.
+ *
+ * Pinned by the digest of the multi-arch index, so a new `:latest` push cannot
+ * change what runs. The tag only documents the emulator version. Bump the tag
+ * and digest together, and keep integ/common.mk in sync:
+ *   docker buildx imagetools inspect ghcr.io/xsavikx/aws-emulator:<version>
+ */
+const EMULATOR_IMAGE =
+  "ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78ff9e7b84ca2828c9e838cf4c5e8027da3996364a93cf0650e15b6b6f0";
+
+/** Keyless signing identity of the aws-emulator-docker release workflow. */
+const EMULATOR_IMAGE_SIGNER =
+  "https://github.com/xSAVIKx/aws-emulator-docker/.github/workflows/release.yml@refs/heads/main";
 
 /**
  * Steps that prepare a runner for `make -C integ aws-emulator`.
@@ -538,6 +552,25 @@ function emulatorJobSteps(
     { name: "Install dependencies", run: "pnpm i --no-frozen-lockfile" },
     // The integ apps consume the compiled lib folder, not src.
     { name: "Compile", run: "pnpm exec projen compile" },
+    // Verify the image before the emulator runs it. The emulator CA is trusted
+    // job-wide (SSL_CERT_FILE, NODE_EXTRA_CA_CERTS) once it starts.
+    {
+      name: "Install cosign",
+      uses: pinned("sigstore/cosign-installer"),
+    },
+    {
+      name: "Verify AWS emulator image signature",
+      env: {
+        EMULATOR_IMAGE,
+        EMULATOR_IMAGE_SIGNER,
+      },
+      run: [
+        'cosign verify "$EMULATOR_IMAGE" \\',
+        '  --certificate-identity "$EMULATOR_IMAGE_SIGNER" \\',
+        "  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\",
+        "  >/dev/null",
+      ].join("\n"),
+    },
     {
       name: "Start AWS emulator",
       id: "emulator",

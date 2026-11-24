@@ -82,7 +82,7 @@ An entry with a third word `slow` skips only when `EMULATOR_SKIP_SLOW=1`. The pu
 | --- | --- | --- |
 | `EMULATOR_PORT` | `9397` | Host port of the emulator. |
 | `EMULATOR_NAME` | `terraconstructs-aws-emulator` | Container name. `emulator-up` removes a container with this name. |
-| `EMULATOR_IMAGE` | `ghcr.io/xsavikx/aws-emulator:latest` | Container image. |
+| `EMULATOR_IMAGE` | `ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78f…` | Container image, pinned by digest. CI verifies its cosign signature before it runs. |
 
 The `-emulator` target removes the AWS credential variables, sets `AWS_EC2_METADATA_DISABLED=true` and `AWS_DISABLE_HOST_PREFIX_INJECTION=true`, and uses an empty `AWS_CONFIG_FILE`.
 The Go SDK v2 and the Terraform AWS provider ignore `AWS_DISABLE_HOST_PREFIX_INJECTION`. It does not fix the skipped S3 Control and Cloud Map targets.
