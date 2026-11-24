@@ -69,11 +69,14 @@ make aws-emulator-list
 
 The aggregate target finds the targets in `integ/aws/*/Makefile`, starts the container once, and removes it at the end.
 It continues after a failure, prints a summary, and exits with a non-zero code if any target fails.
-`EMULATOR_SERVICE` selects one service directory. `aws-emulator-list` shows the targets that run and the targets that skip.
+`EMULATOR_SERVICE` selects one service directory. `EMULATOR_TARGETS` (a space-separated list, with `EMULATOR_SERVICE`) runs only those targets of the service. The script exits with an error for an unknown target or an unknown third word in the skip file. `aws-emulator-list` shows the targets that run and the targets that skip.
 
 Targets that the emulator cannot serve are in [`emulator-skip.txt`](./emulator-skip.txt).
 Each line holds a service and a target. Edit this file to change the skip list.
 Set `EMULATOR_SKIP_FILE` to use a different file.
+
+An entry with a third word `slow` skips only when `EMULATOR_SKIP_SLOW=1`. The pull request job sets this variable to keep each service under 8 minutes. The nightly run and local runs keep these targets.
+`make aws-emulator-list EMULATOR_SKIP_SLOW=1` shows the pull request selection.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -104,6 +107,8 @@ A failed job prints the container log.
 
 The `build` workflow runs the `integ-aws-emulator` job on every pull request.
 The job uses a matrix with one leg per service directory in `integ/aws/*/Makefile`. Each leg runs in parallel on its own runner with its own emulator container, and runs `make aws-emulator EMULATOR_SERVICE=<service>`.
+The `notify` service runs as two legs, `notify-sqs` and `notify-stream-sns`. `EMULATOR_SPLIT_SERVICES` in `projenrc/github-workflows.ts` lists the targets of each leg and passes them as `EMULATOR_TARGETS`. When you add a target to a split service, add it to one leg and run `npx projen`. Projen fails if a leg list and the service Makefile differ. To split another service, add an entry to `EMULATOR_SPLIT_SERVICES`.
+Each leg restores and saves its own Go build cache (`go-emulator-<os>-<go.sum hash>-<leg>-<integ sources hash>`). A leg with no exact match restores the cache of any leg with the same `go.sum`. The nightly run uses the leg name `nightly`.
 The `integ-aws-emulator` workflow runs the full suite sequentially (`make aws-emulator`) every night and on demand.
 Both jobs run only in the `TerraConstructs/base` repository.
 

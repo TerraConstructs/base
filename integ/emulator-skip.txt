@@ -1,4 +1,5 @@
 # Targets that the AWS emulator run skips. One "service target" pair per line.
+# A third word "slow" marks a target that only pull request runs skip (EMULATOR_SKIP_SLOW=1). The nightly run keeps it.
 compute apigw-authorizer # runs the three apigw authorizer targets, which run on their own
 compute apigw-definition-asset # test calls the real execute-api host; emulator destroy fails on UpdateAccount, see .agents/issues/aws-emulator/03-apigateway-updateaccount-replace-without-value.md
 compute apigw-definition-inline # test calls the real execute-api host; emulator destroy fails on UpdateAccount, see .agents/issues/aws-emulator/03-apigateway-updateaccount-replace-without-value.md
@@ -42,3 +43,14 @@ stepfunctions sfn-invoke-activity # emulator: GetActivityTask returns a nil task
 stepfunctions sfn-start-execution # test: parent input lacks $.hello that the child expects, see .agents/issues/aws-emulator/README.md
 storage bucket-notifications # emulator: S3 Control host has the account-ID prefix, see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
 storage table.policy # emulator: DynamoDB resource policy returns "*"; not confirmed against AWS, see .agents/issues/aws-emulator/README.md
+
+# Slow targets: skipped on pull requests only, to keep each job under 8 minutes (about 435 s projected with a warm Go cache). Times are measured in run 45292699813.
+compute lambda-chain slow # 60 s; FunctionDestination is also covered by destinations
+compute lambda-vpc slow # 53 s; Lambda in VPC config only here, VPC resources covered by other targets
+compute lambda-runtime-inlinecode slow # 64 s; LambdaFunction is also covered by destinations
+notify dlq-queue slow # 151 s; redrive is also covered by source-queue-permission, and both do not fit with queue
+notify stream slow # 56 s; Stream is also covered by stream-resource-policy
+notify fifo-queue slow # 84 s; FIFO options are also covered by queue
+notify stream-dashboard slow # 57 s; Stream is also covered by stream-resource-policy; Dashboard and widgets only here
+notify sns slow # 24 s; Topic is also covered by sns-sqs and sns-lambda; logging and tracing options only here
+storage table.global slow # 210 s; global table apply takes 195 s

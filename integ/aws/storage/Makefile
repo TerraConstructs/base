@@ -17,7 +17,7 @@ table.kinesis-stream: ## Test Table with Kinesis Stream
 .PHONY: table.kinesis-stream
 
 table.mixed-keys: ## Test Table with Mixed Keys
-	go test -v -count 1 -timeout 15m ./... -run ^TestTableMixedKeys$$
+	go test -v -count 1 -timeout 15m ./... -run ^TestTableMixedKey$$
 .PHONY: table.mixed-keys
 
 table.policy: ## Test Table with Policy

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cdk, github } from "projen";
 
@@ -386,6 +386,81 @@ export function emulatorServices(project: cdk.JsiiProject): string[] {
     .sort();
 }
 
+/**
+ * Services that run as more than one matrix leg, as `leg name -> targets`.
+ *
+ * The legs of a service must list every target in integ/aws/<service>/Makefile
+ * exactly once; `emulatorMatrix` throws otherwise. Add a new target of a split
+ * service to one leg here, then run `projen`. Services that are not listed run
+ * as one leg with all targets.
+ */
+const EMULATOR_SPLIT_SERVICES: Record<string, Record<string, string[]>> = {
+  notify: {
+    "notify-sqs": [
+      "queue",
+      "fifo-queue",
+      "source-queue-permission",
+      "dlq-queue",
+    ],
+    "notify-stream-sns": [
+      "stream",
+      "stream-dashboard",
+      "stream-resource-policy",
+      "sns",
+      "sns-lambda",
+      "sns-sqs",
+      "sns-url",
+    ],
+  },
+};
+
+/** Targets of a service: the `## Test` targets that integ/emulator-all.sh runs. */
+function emulatorTargets(project: cdk.JsiiProject, service: string): string[] {
+  const makefile = readFileSync(
+    join(project.outdir, "integ", "aws", service, "Makefile"),
+    "utf8",
+  );
+  return makefile
+    .split("\n")
+    .map((line) => /^([a-zA-Z0-9_.-]+):.*## Test/.exec(line)?.[1])
+    .filter((t): t is string => !!t && t !== "all");
+}
+
+interface EmulatorLeg {
+  /** Name of the leg, shown in the job name and used in the cache key. */
+  readonly leg: string;
+  /** Service directory under integ/aws. */
+  readonly service: string;
+  /** Space-separated targets to run, or an empty string for all targets. */
+  readonly targets: string;
+}
+
+/** Matrix legs of the pull request job: one per service, or per split leg. */
+export function emulatorMatrix(project: cdk.JsiiProject): EmulatorLeg[] {
+  return emulatorServices(project).flatMap((service) => {
+    const split = EMULATOR_SPLIT_SERVICES[service];
+    if (!split) {
+      return [{ leg: service, service, targets: "" }];
+    }
+    const assigned = Object.values(split).flat();
+    const actual = emulatorTargets(project, service);
+    const missing = actual.filter((t) => !assigned.includes(t));
+    const unknown = assigned.filter((t) => !actual.includes(t));
+    const duplicated = assigned.filter((t, i) => assigned.indexOf(t) !== i);
+    if (missing.length || unknown.length || duplicated.length) {
+      throw new Error(
+        `EMULATOR_SPLIT_SERVICES.${service} is out of sync with integ/aws/${service}/Makefile: ` +
+          `missing [${missing}], unknown [${unknown}], duplicated [${duplicated}]`,
+      );
+    }
+    return Object.entries(split).map(([leg, targets]) => ({
+      leg,
+      service,
+      targets: targets.join(" "),
+    }));
+  });
+}
+
 /** Same image as `EMULATOR_IMAGE` in integ/common.mk, so CI and local runs match. */
 const EMULATOR_IMAGE = "ghcr.io/xsavikx/aws-emulator:latest";
 
@@ -394,10 +469,22 @@ const EMULATOR_IMAGE = "ghcr.io/xsavikx/aws-emulator:latest";
  *
  * Shared by the nightly workflow and the pull request job.
  */
-function emulatorJobSteps(options: EmulatorWorkflowOptions): JobStep[] {
+function emulatorJobSteps(
+  options: EmulatorWorkflowOptions,
+  cacheLeg: string,
+): JobStep[] {
   const toolSteps = workflowBootstrapSteps
     .filter((step) => /setup-(go|bun|opentofu)@/.test(step.uses ?? ""))
-    .map(({ if: _gate, ...step }) => step);
+    .map(({ if: _gate, ...step }) =>
+      /setup-go@/.test(step.uses ?? "")
+        ? { ...step, with: { ...step.with, cache: false } }
+        : step,
+    );
+  // The Go build cache holds the compiled aws-sdk-go-v2 and go-synth packages,
+  // which cost 120-165 s on a cold runner. Each leg saves its own key, so legs
+  // never race to save one key. Restore falls back to any leg with the same
+  // go.sum, so a new leg or an edited integ test still starts warm.
+  const goCacheKey = "go-emulator-${{ runner.os }}-${{ hashFiles('go.sum') }}";
   return [
     {
       name: "Checkout",
@@ -405,6 +492,28 @@ function emulatorJobSteps(options: EmulatorWorkflowOptions): JobStep[] {
       with: { "persist-credentials": false },
     },
     ...toolSteps,
+    {
+      name: "Locate Go caches",
+      id: "go-cache",
+      run: [
+        'echo "build=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"',
+        'echo "mod=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"',
+      ].join("\n"),
+    },
+    {
+      name: "Cache Go build and modules",
+      uses: pinned("actions/cache"),
+      with: {
+        path: [
+          "${{ steps.go-cache.outputs.build }}",
+          "${{ steps.go-cache.outputs.mod }}",
+        ].join("\n"),
+        key: `${goCacheKey}-${cacheLeg}-\${{ hashFiles('integ/**/*.go') }}`,
+        "restore-keys": [`${goCacheKey}-${cacheLeg}-`, `${goCacheKey}-`].join(
+          "\n",
+        ),
+      },
+    },
     {
       name: "Setup OpenTofu plugin cache",
       run: [
@@ -489,7 +598,7 @@ export function addEmulatorWorkflow(
     timeoutMinutes: options.timeoutMinutes,
     permissions: { contents: github.workflows.JobPermission.READ },
     steps: [
-      ...emulatorJobSteps(options),
+      ...emulatorJobSteps(options, "nightly"),
       {
         name: "Run AWS integration tests against aws-emulator",
         env: {
@@ -523,19 +632,21 @@ export function addEmulatorPullRequestJob(
     throw new Error("expected .github/workflows/build.yml to exist");
   }
   const steps = [
-    ...emulatorJobSteps(options),
+    ...emulatorJobSteps(options, "${{ matrix.leg }}"),
     {
-      name: "Run ${{ matrix.service }} integration tests against aws-emulator",
+      name: "Run ${{ matrix.leg }} integration tests against aws-emulator",
       env: {
         EMULATOR_SERVICE: "${{ matrix.service }}",
+        EMULATOR_TARGETS: "${{ matrix.targets }}",
         EMULATOR_EXTERNAL: "1",
+        EMULATOR_SKIP_SLOW: "1",
       },
       run: "make -C integ aws-emulator",
     },
     emulatorLogsStep,
   ];
   buildWorkflow.addOverride("jobs.integ-aws-emulator", {
-    name: "integ (aws-emulator, ${{ matrix.service }})",
+    name: "integ (aws-emulator, ${{ matrix.leg }})",
     if: `github.repository == '${options.repository}'`,
     "runs-on": "ubuntu-latest",
     "timeout-minutes": options.pullRequestTimeoutMinutes,
@@ -543,7 +654,7 @@ export function addEmulatorPullRequestJob(
     env: { CI: "true" },
     strategy: {
       "fail-fast": false,
-      matrix: { service: emulatorServices(project) },
+      matrix: { include: emulatorMatrix(project) },
     },
     steps,
   });

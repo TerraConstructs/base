@@ -12,7 +12,7 @@ assert: ## Test assert
 terraform-output-jmes: ## Test terraform output with jmespath
 	go test -v -count 1 . -run ^TestTerraformOutputJMES
 .PHONY: terraform-output-jmes
-aws-emulator: ## Run all AWS integ targets against one AWS emulator (EMULATOR_SERVICE, EMULATOR_SKIP_FILE, EMULATOR_EXTERNAL)
+aws-emulator: ## Run all AWS integ targets against one AWS emulator (EMULATOR_SERVICE, EMULATOR_TARGETS, EMULATOR_SKIP_FILE, EMULATOR_SKIP_SLOW, EMULATOR_EXTERNAL)
 	@if [ -n "$(EMULATOR_EXTERNAL)" ]; then \
 		EMULATOR_EXTERNAL=$(EMULATOR_EXTERNAL) exec ./emulator-all.sh; \
 	fi; \

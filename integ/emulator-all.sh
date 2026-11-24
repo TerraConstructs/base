@@ -2,18 +2,31 @@
 # Run every AWS integ target through "<target>-emulator", skipping entries in the skip file.
 #
 # Usage: emulator-all.sh [--list]
-# Environment: EMULATOR_SERVICE (one service directory), EMULATOR_SKIP_FILE,
+# Skip file lines: "<service> <target> [slow] # reason". A "slow" entry skips only when EMULATOR_SKIP_SLOW=1 (pull requests).
+# Environment: EMULATOR_SERVICE (one service directory), EMULATOR_TARGETS (space-separated targets of that service; default all),
+# EMULATOR_SKIP_FILE, EMULATOR_SKIP_SLOW,
 # EMULATOR_EXTERNAL (use the emulator that AWS_ENDPOINT_URL points at; the targets do not start or stop one).
 
 here="$(cd "$(dirname "$0")" && pwd)"
 skip_file="${EMULATOR_SKIP_FILE:-$here/emulator-skip.txt}"
 only_service="${EMULATOR_SERVICE:-}"
+only_targets="${EMULATOR_TARGETS:-}"
+skip_slow="${EMULATOR_SKIP_SLOW:-}"
 list_only=false
 [ "${1:-}" = "--list" ] && list_only=true
 
+if [ -f "$skip_file" ]; then
+  unknown="$(sed 's/#.*//' "$skip_file" | awk 'NF > 3 || (NF == 3 && $3 != "slow") { print NR ": " $0 }')"
+  if [ -n "$unknown" ]; then
+    echo "Invalid entries in $skip_file (the third word must be 'slow'):" >&2
+    echo "$unknown" >&2
+    exit 2
+  fi
+fi
 is_skipped() {
   [ -f "$skip_file" ] || return 1
-  sed 's/#.*//' "$skip_file" | awk -v s="$1" -v t="$2" '$1 == s && $2 == t { found = 1 } END { exit !found }'
+  sed 's/#.*//' "$skip_file" | awk -v s="$1" -v t="$2" -v slow="$skip_slow" \
+    '$1 == s && $2 == t && ($3 != "slow" || slow == "1") { found = 1 } END { exit !found }'
 }
 
 targets_of() {
@@ -35,12 +48,28 @@ if [ -n "$only_service" ]; then
   services=("$only_service")
 fi
 
+if [ -n "$only_targets" ]; then
+  if [ -z "$only_service" ]; then
+    echo "EMULATOR_TARGETS needs EMULATOR_SERVICE" >&2
+    exit 2
+  fi
+  available=" $(targets_of "$only_service" | tr '\n' ' ')"
+  for t in $only_targets; do
+    case "$available" in
+      *" $t "*) ;;
+      *) echo "Unknown target '$t' in service '$only_service'" >&2; exit 2 ;;
+    esac
+  done
+fi
 passed=()
 failed=()
 skipped=()
 for service in "${services[@]}"; do
   while IFS= read -r target; do
     [ -n "$target" ] || continue
+    if [ -n "$only_targets" ]; then
+      case " $only_targets " in *" $target "*) ;; *) continue ;; esac
+    fi
     if is_skipped "$service" "$target"; then
       skipped+=("$service/$target")
       echo "SKIP $service/$target"
