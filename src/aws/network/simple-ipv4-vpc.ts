@@ -6,7 +6,7 @@ import {
   defaultRouteTable,
   serviceDiscoveryPrivateDnsNamespace,
 } from "@cdktn/provider-aws";
-import { Fn, Lazy } from "cdktn";
+import { Fn, Lazy, Token } from "cdktn";
 import { Construct } from "constructs";
 import { AwsConstructBase, AwsConstructProps } from "../aws-construct";
 import { INetwork, NetworkOutputs } from "./network";
@@ -246,6 +246,8 @@ export class SimpleIPv4Vpc extends AwsConstructBase implements INetwork {
               {
                 cidrBlock: "0.0.0.0/0",
                 natGatewayId: gw.id,
+                // The provider binding omits this attribute, but Terraform requires it in inline routes.
+                odbNetworkArn: Token.asString(null),
               },
             ],
             tags: {

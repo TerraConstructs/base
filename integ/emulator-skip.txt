@@ -1,0 +1,56 @@
+# Targets that the AWS emulator run skips. One "service target" pair per line.
+# A third word "slow" marks a target that only pull request runs skip (EMULATOR_SKIP_SLOW=1). The nightly run keeps it.
+compute apigw-authorizer # runs the three apigw authorizer targets, which run on their own
+compute apigw-definition-asset # test calls the real execute-api host; emulator destroy fails on UpdateAccount, see .agents/issues/aws-emulator/03-apigateway-updateaccount-replace-without-value.md
+compute apigw-definition-inline # test calls the real execute-api host; emulator destroy fails on UpdateAccount, see .agents/issues/aws-emulator/03-apigateway-updateaccount-replace-without-value.md
+compute apigw-lambda # test calls the real execute-api host; emulator destroy fails on UpdateAccount, see .agents/issues/aws-emulator/03-apigateway-updateaccount-replace-without-value.md
+compute apigw-private-vpce # test: policy resource execute-api:/* is expanded by the emulator, so plan shows an update; see .agents/issues/aws-emulator/README.md
+compute apigw-request-authorizer # emulator: S3 Control host has the account-ID prefix, see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+compute apigw-sfn # test calls the real execute-api host; emulator destroy fails on UpdateAccount, see .agents/issues/aws-emulator/03-apigateway-updateaccount-replace-without-value.md
+compute apigw-token-authorizer # emulator: S3 Control host has the account-ID prefix, see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+compute apigw-token-authorizer-iam-role # emulator: S3 Control host has the account-ID prefix, see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+compute autoscaling.custom-scaling # emulator: PutScheduledUpdateGroupAction rejects max below min; not confirmed against AWS, see .agents/issues/aws-emulator/README.md
+compute ecs.asg-capacity-provider # emulator: ECS tasks and container instances do not run, see .agents/issues/aws-emulator/README.md
+compute ecs.ebs-taskattach # emulator: ECS tasks do not run, so no EBS attachment, see .agents/issues/aws-emulator/README.md
+compute ecs.lb-awsvpc-nw # emulator: load balancer port is not published in Docker, see .agents/issues/aws-emulator/06-resource-listener-ports-unreachable-in-docker.md
+compute ecs.sd-awsvpc-nw # emulator: no container instance registers with the ECS cluster, see .agents/issues/aws-emulator/README.md
+compute event-source-s3 # emulator: S3 Control host has the account-ID prefix, see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+compute event-source-sqs # emulator: Lambda log message is not plain JSON; not confirmed against AWS, see .agents/issues/aws-emulator/README.md
+compute event-source-sqs-filtered # emulator: Lambda log message is not plain JSON; not confirmed against AWS, see .agents/issues/aws-emulator/README.md
+compute instance # emulator: test pings a public IP and EC2 instances do not run, see .agents/issues/aws-emulator/README.md
+compute instance-public # emulator: test pings a public IP and EC2 instances do not run, see .agents/issues/aws-emulator/README.md
+compute machine-image # test: AMI id is not known to the emulator, which removes the SSM parameter; see .agents/issues/aws-emulator/README.md
+compute nodejs-function-url # emulator: function URL port is not published in Docker, see .agents/issues/aws-emulator/06-resource-listener-ports-unreachable-in-docker.md
+compute sfn.batch-submit-job # emulator: Step Functions batch integration is unsupported, see .agents/issues/aws-emulator/04-stepfunctions-unsupported-service-integrations.md
+edge kvs-jwt-verify # emulator: KeyValueStore returns comment "" where the provider expects null; not confirmed against AWS, see .agents/issues/aws-emulator/README.md
+edge multi-zone-acm-pub-cert # emulator: ACM validation record does not match the Route 53 record, see .agents/issues/aws-emulator/README.md
+edge service-with-http-namespace # emulator: Cloud Map DiscoverInstances host has the data- prefix, see .agents/issues/aws-emulator/02-servicediscovery-discoverinstances-data-host-prefix.md
+edge url-rewrite-spa # test: parallel subtests run after the deferred destroy, see .agents/issues/aws-emulator/README.md
+encryption secret-attach # emulator: RDS CreateDBInstance rejects an empty engine version, see .agents/issues/aws-emulator/05-rds-createdbinstance-empty-engine-version.md
+monitoring log-group-dataprotection # emulator: S3 Control host has the account-ID prefix, see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+staticsite cdn-website-bucket # emulator: S3 Control host prefix and ACM validation record mismatch, see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+staticsite public-website-bucket # emulator: S3 Control host has the account-ID prefix, see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+stepfunctions call-aws-service # emulator: S3 Control host has the account-ID prefix, see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+stepfunctions call-aws-service-efs # emulator: Step Functions efs integration is unsupported, see .agents/issues/aws-emulator/04-stepfunctions-unsupported-service-integrations.md
+stepfunctions call-aws-service-logs # emulator: Step Functions cloudwatchlogs integration is unsupported, see .agents/issues/aws-emulator/04-stepfunctions-unsupported-service-integrations.md
+stepfunctions call-aws-service-mediapackagevod # emulator: Step Functions mediapackagevod integration is unsupported, see .agents/issues/aws-emulator/04-stepfunctions-unsupported-service-integrations.md
+stepfunctions call-aws-service-mwaa # emulator: Step Functions mwaa integration is unsupported, see .agents/issues/aws-emulator/04-stepfunctions-unsupported-service-integrations.md
+stepfunctions call-aws-service-sfn # test: child state machine passes Output as an object to sendTaskSuccess, see .agents/issues/aws-emulator/README.md
+stepfunctions lambda-invoke # emulator: S3 Control host has the account-ID prefix (asset bucket), see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+stepfunctions lambda-invoke-function # emulator: S3 Control host has the account-ID prefix (asset bucket), see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+stepfunctions lambda-invoke-payload-only # emulator: S3 Control host has the account-ID prefix (asset bucket), see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+stepfunctions sfn-invoke-activity # emulator: GetActivityTask returns a nil task token in the run; not reproduced with the CLI, see .agents/issues/aws-emulator/README.md
+stepfunctions sfn-start-execution # test: parent input lacks $.hello that the child expects, see .agents/issues/aws-emulator/README.md
+storage bucket-notifications # emulator: S3 Control host has the account-ID prefix, see .agents/issues/aws-emulator/01-s3control-account-id-host-prefix.md
+storage table.policy # emulator: DynamoDB resource policy returns "*"; not confirmed against AWS, see .agents/issues/aws-emulator/README.md
+
+# Slow targets: skipped on pull requests only, to keep each job under 8 minutes (about 435 s projected with a warm Go cache). Times are measured in run 45292699813.
+compute lambda-chain slow # 60 s; FunctionDestination is also covered by destinations
+compute lambda-vpc slow # 53 s; Lambda in VPC config only here, VPC resources covered by other targets
+compute lambda-runtime-inlinecode slow # 64 s; LambdaFunction is also covered by destinations
+notify dlq-queue slow # 151 s; redrive is also covered by source-queue-permission, and both do not fit with queue
+notify stream slow # 56 s; Stream is also covered by stream-resource-policy
+notify fifo-queue slow # 84 s; FIFO options are also covered by queue
+notify stream-dashboard slow # 57 s; Stream is also covered by stream-resource-policy; Dashboard and widgets only here
+notify sns slow # 24 s; Topic is also covered by sns-sqs and sns-lambda; logging and tracing options only here
+storage table.global slow # 210 s; global table apply takes 195 s

@@ -17,6 +17,8 @@ import {
   LbTargetGroupAttachmentConfigStructBuilder,
 } from "./projenrc";
 import {
+  addEmulatorPullRequestJob,
+  addEmulatorWorkflow,
   pinGitHubActions,
   postBuildSteps,
   tuneBuildWorkflow,
@@ -191,7 +193,18 @@ tuneBuildWorkflow(project, {
   dockerTestPath,
 });
 tuneUpgradeWorkflow(project);
-
+// Nightly runs every service sequentially; pull requests run one service per
+// parallel job.
+const emulatorOptions = {
+  pnpmVersion,
+  workflowNodeVersion,
+  cron: "0 3 * * *",
+  timeoutMinutes: 300,
+  pullRequestTimeoutMinutes: 45,
+  repository: "TerraConstructs/base",
+};
+addEmulatorWorkflow(project, emulatorOptions);
+addEmulatorPullRequestJob(project, emulatorOptions);
 project.prettier?.addIgnorePattern("*.generated.ts");
 project.eslint?.addRules({
   curly: "off",
@@ -264,7 +277,7 @@ new LbTargetGroupAttachmentConfigStructBuilder(project);
 
 // Copy non-TypeScript resource files (e.g., .vtl templates) to lib/ after compilation
 project.compileTask.exec(
-  'find src -name "*.vtl" -or -name "Dockerfile" -type f -exec sh -c \'mkdir -p "lib/$(dirname "${1#src/}")" && cp "$1" "lib/${1#src/}"\' _ {} \\;',
+  'find src -type f \\( -name "*.vtl" -or -name "Dockerfile" \\) -exec sh -c \'mkdir -p "lib/$(dirname "${1#src/}")" && cp "$1" "lib/${1#src/}"\' _ {} \\;',
   // projen >=0.104 defaults to its built-in cross-platform shell, which does
   // not pass find's escaped `\;` terminator through; run this one via /bin/sh.
   { shell: TaskShell.system() },

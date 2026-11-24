@@ -195,18 +195,21 @@ func validateLambdaRuntimeInlineCode(t *testing.T, tfWorkingDir string, awsRegio
 	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 	// Test individual Lambda Functions from TerraformOutputs
 	outputs := terraform.OutputAll(t, terraformOptions)
-	for _, outputValue := range outputs {
-		functionName, ok := outputValue.(string)
-		if !ok {
-			continue // ignore any non-string outputs
+	// The group subtest returns only after its parallel children finish,
+	// which keeps the functions deployed until the deferred cleanup runs.
+	t.Run("invoke", func(t *testing.T) {
+		for _, outputValue := range outputs {
+			functionName, ok := outputValue.(string)
+			if !ok {
+				continue // ignore any non-string outputs
+			}
+			t.Run(functionName, func(t *testing.T) {
+				t.Parallel()
+				util.InvokeFunctionSync(t, awsRegion, functionName)
+				terratestLogger.Logf(t, "Successfully Invoked Function %q", functionName)
+			})
 		}
-		t.Run(functionName, func(t *testing.T) {
-			// parallel subtests for each function
-			t.Parallel()
-			util.InvokeFunctionSync(t, awsRegion, functionName)
-			terratestLogger.Logf(t, "Successfully Invoked Function %q", functionName)
-		})
-	}
+	})
 }
 
 // Validate the Destionation integration test

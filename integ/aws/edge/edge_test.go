@@ -29,6 +29,10 @@ func TestMultiZoneAcmPubCert(t *testing.T) {
 	envVars["DNS_ZONE_ID1"] = "Z08908061QI3ISWIOB5X"
 	envVars["DNS_DOMAIN_NAME2"] = "test1.e2e.terraconstructs.dev"
 	envVars["DNS_ZONE_ID2"] = "Z08908052RMPRLAUIXH2Z"
+	if util.IsEmulator() {
+		envVars["DNS_ZONE_ID1"] = util.CreateEmulatorHostedZone(t, "us-east-1", envVars["DNS_DOMAIN_NAME1"])
+		envVars["DNS_ZONE_ID2"] = util.CreateEmulatorHostedZone(t, "us-east-1", envVars["DNS_DOMAIN_NAME2"])
+	}
 	runEdgeIntegrationTest(t, "multi-zone-acm-pub-cert", "us-east-1", envVars, validateMultiZoneAcmPubCert)
 }
 

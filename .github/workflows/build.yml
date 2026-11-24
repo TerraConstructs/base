@@ -315,6 +315,131 @@ jobs:
             echo "::error::test shards: ${{ needs.test.result }}, docker tests: ${{ needs.test-docker.result }}"
             exit 1
           fi
+  integ-aws-emulator:
+    name: integ (aws-emulator, ${{ matrix.leg }})
+    if: github.repository == 'TerraConstructs/base'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      CI: "true"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - leg: compute
+            service: compute
+            targets: ""
+          - leg: edge
+            service: edge
+            targets: ""
+          - leg: encryption
+            service: encryption
+            targets: ""
+          - leg: iam
+            service: iam
+            targets: ""
+          - leg: monitoring
+            service: monitoring
+            targets: ""
+          - leg: network
+            service: network
+            targets: ""
+          - leg: notify-sqs
+            service: notify
+            targets: queue fifo-queue source-queue-permission dlq-queue
+          - leg: notify-stream-sns
+            service: notify
+            targets: stream stream-dashboard stream-resource-policy sns sns-lambda sns-sqs sns-url
+          - leg: staticsite
+            service: staticsite
+            targets: ""
+          - leg: stepfunctions
+            service: stepfunctions
+            targets: ""
+          - leg: storage
+            service: storage
+            targets: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: 1.27.3
+          cache: false
+      - uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
+        with:
+          bun-version: 1.4.4
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
+        with:
+          tofu_wrapper: false
+          tofu_version: 1.8.2
+      - name: Locate Go caches
+        id: go-cache
+        run: |-
+          echo "build=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+          echo "mod=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+      - name: Cache Go build and modules
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |-
+            ${{ steps.go-cache.outputs.build }}
+            ${{ steps.go-cache.outputs.mod }}
+          key: go-emulator-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ matrix.leg }}-${{ hashFiles('integ/**/*.go') }}
+          restore-keys: |-
+            go-emulator-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ matrix.leg }}-
+            go-emulator-${{ runner.os }}-${{ hashFiles('go.sum') }}-
+      - name: Setup OpenTofu plugin cache
+        run: |-
+          mkdir -p "$RUNNER_TEMP/tf-plugin-cache"
+          echo "TF_PLUGIN_CACHE_DIR=$RUNNER_TEMP/tf-plugin-cache" >> "$GITHUB_ENV"
+          echo "TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE=true" >> "$GITHUB_ENV"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
+        with:
+          version: 11.5.0
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.22.1
+          package-manager-cache: false
+      - name: Install dependencies
+        run: pnpm i --no-frozen-lockfile
+      - name: Compile
+        run: pnpm exec projen compile
+      - name: Install cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532
+      - name: Verify AWS emulator image signature
+        env:
+          EMULATOR_IMAGE: ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78ff9e7b84ca2828c9e838cf4c5e8027da3996364a93cf0650e15b6b6f0
+          EMULATOR_IMAGE_SIGNER: https://github.com/xSAVIKx/aws-emulator-docker/.github/workflows/release.yml@refs/heads/main
+        run: |-
+          cosign verify "$EMULATOR_IMAGE" \
+            --certificate-identity "$EMULATOR_IMAGE_SIGNER" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            >/dev/null
+      - name: Start AWS emulator
+        id: emulator
+        uses: xSAVIKx/run-aws-emulator@f26496537177fd799f424012f533862a6569d1bd
+        with:
+          image: ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78ff9e7b84ca2828c9e838cf4c5e8027da3996364a93cf0650e15b6b6f0
+          memory: 2g
+          wait-timeout: "120"
+      - name: Run ${{ matrix.leg }} integration tests against aws-emulator
+        env:
+          EMULATOR_SERVICE: ${{ matrix.service }}
+          EMULATOR_TARGETS: ${{ matrix.targets }}
+          EMULATOR_EXTERNAL: "1"
+          EMULATOR_SKIP_SLOW: "1"
+        run: make -C integ aws-emulator
+      - name: Show AWS emulator logs
+        if: failure()
+        env:
+          EMULATOR_CONTAINER: ${{ steps.emulator.outputs.container }}
+        run: docker logs "$EMULATOR_CONTAINER"
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true

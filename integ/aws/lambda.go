@@ -90,7 +90,7 @@ func InvokeFunctionSyncE(t testing.TestingT, region, functionName string) (*terr
 // struct. Checks for failure using "require".
 func InvokeFunctionWithParams(t testing.TestingT, region, functionName string, input *LambdaOptions) *terratestaws.LambdaOutput {
 	out, err := InvokeFunctionWithParamsE(t, region, functionName, input)
-	if err != nil && out.Payload != nil {
+	if err != nil && out != nil && out.Payload != nil {
 		terratestLogger.Logf(t, "out: %q", string(out.Payload))
 	}
 	require.NoError(t, err, "Error invoking function %s: %q", functionName, err)

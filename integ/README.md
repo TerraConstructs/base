@@ -47,6 +47,71 @@ To run the integration tests, you must not use the root AWS account. Instead, cr
     export AWS_PROFILE=terraconstructs-e2e
     ```
 
+## Run against the AWS emulator
+
+The AWS tests run against the [AWS emulator](https://xsavikx.github.io/aws-emulator-docker/) without AWS credentials.
+Docker must run on your machine.
+
+Run one target in its service directory. Add `-emulator` to the target name:
+
+```console
+cd integ/aws/encryption
+make key-emulator
+```
+
+Run all AWS targets against one emulator container from `integ`:
+
+```console
+make aws-emulator
+make aws-emulator EMULATOR_SERVICE=encryption
+make aws-emulator-list
+```
+
+The aggregate target finds the targets in `integ/aws/*/Makefile`, starts the container once, and removes it at the end.
+It continues after a failure, prints a summary, and exits with a non-zero code if any target fails.
+`EMULATOR_SERVICE` selects one service directory. `EMULATOR_TARGETS` (a space-separated list, with `EMULATOR_SERVICE`) runs only those targets of the service. The script exits with an error for an unknown target or an unknown third word in the skip file. `aws-emulator-list` shows the targets that run and the targets that skip.
+
+Targets that the emulator cannot serve are in [`emulator-skip.txt`](./emulator-skip.txt).
+Each line holds a service and a target. Edit this file to change the skip list.
+Set `EMULATOR_SKIP_FILE` to use a different file.
+
+An entry with a third word `slow` skips only when `EMULATOR_SKIP_SLOW=1`. The pull request job sets this variable to keep each service under 8 minutes. The nightly run and local runs keep these targets.
+`make aws-emulator-list EMULATOR_SKIP_SLOW=1` shows the pull request selection.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `EMULATOR_PORT` | `9397` | Host port of the emulator. |
+| `EMULATOR_NAME` | `terraconstructs-aws-emulator` | Container name. `emulator-up` removes a container with this name. |
+| `EMULATOR_IMAGE` | `ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78f…` | Container image, pinned by digest. CI verifies its cosign signature before it runs. |
+
+The `-emulator` target removes the AWS credential variables, sets `AWS_EC2_METADATA_DISABLED=true` and `AWS_DISABLE_HOST_PREFIX_INJECTION=true`, and uses an empty `AWS_CONFIG_FILE`.
+The Go SDK v2 and the Terraform AWS provider ignore `AWS_DISABLE_HOST_PREFIX_INJECTION`. It does not fix the skipped S3 Control and Cloud Map targets.
+
+### Use an emulator that already runs
+
+Set `EMULATOR_EXTERNAL=1` to use an emulator that another process started.
+The targets then do not start or stop a container, and do not check the port.
+They read the endpoint, CA bundle, credentials file and config file from the environment, and still remove the AWS credential variables.
+`AWS_ENDPOINT_URL` must be set. The run stops with an error if it is empty.
+
+```sh
+EMULATOR_EXTERNAL=1 make -C integ aws-emulator EMULATOR_SERVICE=network
+```
+
+### CI
+
+CI starts the emulator with the [run-aws-emulator](https://github.com/xSAVIKx/run-aws-emulator) action and sets `EMULATOR_EXTERNAL=1`.
+The action exports the environment variables. Local runs use Docker through `make`.
+The action step uses the same image as `EMULATOR_IMAGE`.
+A failed job prints the container log.
+
+The `build` workflow runs the `integ-aws-emulator` job on every pull request.
+The job uses a matrix with one leg per service directory in `integ/aws/*/Makefile`. Each leg runs in parallel on its own runner with its own emulator container, and runs `make aws-emulator EMULATOR_SERVICE=<service>`.
+The `notify` service runs as two legs, `notify-sqs` and `notify-stream-sns`. `EMULATOR_SPLIT_SERVICES` in `projenrc/github-workflows.ts` lists the targets of each leg and passes them as `EMULATOR_TARGETS`. When you add a target to a split service, add it to one leg and run `npx projen`. Projen fails if a leg list and the service Makefile differ. To split another service, add an entry to `EMULATOR_SPLIT_SERVICES`.
+Each leg restores and saves its own Go build cache (`go-emulator-<os>-<go.sum hash>-<leg>-<integ sources hash>`). A leg with no exact match restores the cache of any leg with the same `go.sum`. The nightly run uses the leg name `nightly`.
+The `integ-aws-emulator` workflow runs the full suite sequentially (`make aws-emulator`) every night and on demand.
+Both jobs run only in the `TerraConstructs/base` repository.
+
 Run all e2e tests:
 
 > [!IMPORTANT]

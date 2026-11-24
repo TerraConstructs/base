@@ -23,6 +23,7 @@ new LocalBackend(stack, {
 });
 
 const handler = new aws.compute.NodejsFunction(stack, "Handler", {
+  depsLockFilePath: path.join(__dirname, "bun.lock"),
   entry: path.join(__dirname, "handlers", "hello-world", "index.ts"),
 });
 
@@ -35,6 +36,7 @@ const callBackHandler = new aws.compute.NodejsFunction(
   stack,
   "CallbackHandler",
   {
+    depsLockFilePath: path.join(__dirname, "bun.lock"),
     entry: path.join(__dirname, "handlers", "callback", "index.ts"),
   },
 );
