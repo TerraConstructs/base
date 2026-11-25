@@ -48,7 +48,7 @@ export const PINNED_ACTIONS: Record<string, string> = {
     "48f256284bd46cdaab1048c3721360e808335d50",
   // main, 2026-11-25
   "TerraConstructs/run-aws-emulator":
-    "1fe3c99aa756c399e9059c6738c2006c68174169",
+    "fbbccdd5b9aac122dcac94bb35d327e685604ab8",
   // v4.1.3
   "sigstore/cosign-installer": "756fe2d284c7292c4e9b62c8a28f1e5629c59532",
   // v8
