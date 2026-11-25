@@ -46,8 +46,9 @@ export const PINNED_ACTIONS: Record<string, string> = {
   // v6
   "amannn/action-semantic-pull-request":
     "48f256284bd46cdaab1048c3721360e808335d50",
-  // v1.1.1
-  "xSAVIKx/run-aws-emulator": "f26496537177fd799f424012f533862a6569d1bd",
+  // main, 2026-11-25
+  "TerraConstructs/run-aws-emulator":
+    "1fe3c99aa756c399e9059c6738c2006c68174169",
   // v4.1.3
   "sigstore/cosign-installer": "756fe2d284c7292c4e9b62c8a28f1e5629c59532",
   // v8
@@ -464,19 +465,36 @@ export function emulatorMatrix(project: cdk.JsiiProject): EmulatorLeg[] {
 }
 
 /**
- * Same image as `EMULATOR_IMAGE` in integ/common.mk, so CI and local runs match.
- *
- * Pinned by the digest of the multi-arch index, so a new `:latest` push cannot
- * change what runs. The tag only documents the emulator version. Bump the tag
- * and digest together, and keep integ/common.mk in sync:
- *   docker buildx imagetools inspect ghcr.io/xsavikx/aws-emulator:<version>
+ * Emulator image and signer, read from integ/emulator-image.env, the single
+ * source of truth shared with integ/common.mk. See that file for how to bump.
  */
-const EMULATOR_IMAGE =
-  "ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78ff9e7b84ca2828c9e838cf4c5e8027da3996364a93cf0650e15b6b6f0";
+function readEmulatorConfig(): { image: string; signer: string } {
+  const text = readFileSync(
+    join(__dirname, "..", "integ", "emulator-image.env"),
+    "utf8",
+  );
+  const values: Record<string, string> = {};
+  for (const line of text.split("\n")) {
+    if (line.trim() === "" || line.startsWith("#")) continue;
+    const match = /^([A-Z_]+)=(\S+)$/.exec(line);
+    if (!match) {
+      throw new Error(`integ/emulator-image.env: invalid line: ${line}`);
+    }
+    values[match[1]] = match[2];
+  }
+  for (const key of ["EMULATOR_IMAGE", "EMULATOR_IMAGE_SIGNER"]) {
+    if (!values[key]) {
+      throw new Error(`integ/emulator-image.env: missing ${key}`);
+    }
+  }
+  return {
+    image: values.EMULATOR_IMAGE,
+    signer: values.EMULATOR_IMAGE_SIGNER,
+  };
+}
 
-/** Keyless signing identity of the aws-emulator-docker release workflow. */
-const EMULATOR_IMAGE_SIGNER =
-  "https://github.com/xSAVIKx/aws-emulator-docker/.github/workflows/release.yml@refs/heads/main";
+const { image: EMULATOR_IMAGE, signer: EMULATOR_IMAGE_SIGNER } =
+  readEmulatorConfig();
 
 /**
  * Steps that prepare a runner for `make -C integ aws-emulator`.
@@ -552,31 +570,18 @@ function emulatorJobSteps(
     { name: "Install dependencies", run: "pnpm i --no-frozen-lockfile" },
     // The integ apps consume the compiled lib folder, not src.
     { name: "Compile", run: "pnpm exec projen compile" },
-    // Verify the image before the emulator runs it. The emulator CA is trusted
-    // job-wide (SSL_CERT_FILE, NODE_EXTRA_CA_CERTS) once it starts.
+    // The action verifies the image signature itself and needs cosign on PATH.
     {
       name: "Install cosign",
       uses: pinned("sigstore/cosign-installer"),
     },
     {
-      name: "Verify AWS emulator image signature",
-      env: {
-        EMULATOR_IMAGE,
-        EMULATOR_IMAGE_SIGNER,
-      },
-      run: [
-        'cosign verify "$EMULATOR_IMAGE" \\',
-        '  --certificate-identity "$EMULATOR_IMAGE_SIGNER" \\',
-        "  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\",
-        "  >/dev/null",
-      ].join("\n"),
-    },
-    {
       name: "Start AWS emulator",
       id: "emulator",
-      uses: pinned("xSAVIKx/run-aws-emulator"),
+      uses: pinned("TerraConstructs/run-aws-emulator"),
       with: {
         image: EMULATOR_IMAGE,
+        "certificate-identity": EMULATOR_IMAGE_SIGNER,
         memory: "2g",
         "wait-timeout": "120",
       },

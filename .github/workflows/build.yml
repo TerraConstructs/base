@@ -412,20 +412,12 @@ jobs:
         run: pnpm exec projen compile
       - name: Install cosign
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532
-      - name: Verify AWS emulator image signature
-        env:
-          EMULATOR_IMAGE: ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78ff9e7b84ca2828c9e838cf4c5e8027da3996364a93cf0650e15b6b6f0
-          EMULATOR_IMAGE_SIGNER: https://github.com/xSAVIKx/aws-emulator-docker/.github/workflows/release.yml@refs/heads/main
-        run: |-
-          cosign verify "$EMULATOR_IMAGE" \
-            --certificate-identity "$EMULATOR_IMAGE_SIGNER" \
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            >/dev/null
       - name: Start AWS emulator
         id: emulator
-        uses: xSAVIKx/run-aws-emulator@f26496537177fd799f424012f533862a6569d1bd
+        uses: TerraConstructs/run-aws-emulator@1fe3c99aa756c399e9059c6738c2006c68174169
         with:
-          image: ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78ff9e7b84ca2828c9e838cf4c5e8027da3996364a93cf0650e15b6b6f0
+          image: ghcr.io/terraconstructs/aws-emulator:1.0.598.1@sha256:dd2f8609f8ed2854369bf9fd639a7ee04facec9d9984e6f769da691809743577
+          certificate-identity: https://github.com/TerraConstructs/aws-emulator-docker/.github/workflows/release.yml@refs/heads/main
           memory: 2g
           wait-timeout: "120"
       - name: Run ${{ matrix.leg }} integration tests against aws-emulator
