@@ -57,8 +57,9 @@ clean: ## clean up temporary files (tf/*, apps/cdktf.out, /tmp/go-synth-*)
 	rm -rf /tmp/go-synth-*
 .PHONY: clean
 
-# Pinned by multi-arch index digest; keep in sync with EMULATOR_IMAGE in projenrc/github-workflows.ts.
-EMULATOR_IMAGE ?= ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78ff9e7b84ca2828c9e838cf4c5e8027da3996364a93cf0650e15b6b6f0
+# The image ref lives in emulator-image.env, shared with projenrc/github-workflows.ts (CI).
+EMULATOR_ENV_FILE := $(dir $(lastword $(MAKEFILE_LIST)))emulator-image.env
+EMULATOR_IMAGE ?= $(shell sed -n 's/^EMULATOR_IMAGE=//p' $(EMULATOR_ENV_FILE))
 EMULATOR_PORT ?= 9397
 EMULATOR_NAME ?= terraconstructs-aws-emulator
 EMULATOR_DIR := $(HOME)/.aws/emulator/$(EMULATOR_PORT)

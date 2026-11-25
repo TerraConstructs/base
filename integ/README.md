@@ -49,7 +49,7 @@ To run the integration tests, you must not use the root AWS account. Instead, cr
 
 ## Run against the AWS emulator
 
-The AWS tests run against the [AWS emulator](https://xsavikx.github.io/aws-emulator-docker/) without AWS credentials.
+The AWS tests run against the [AWS emulator](https://github.com/TerraConstructs/aws-emulator-docker) without AWS credentials.
 Docker must run on your machine.
 
 Run one target in its service directory. Add `-emulator` to the target name:
@@ -82,7 +82,7 @@ An entry with a third word `slow` skips only when `EMULATOR_SKIP_SLOW=1`. The pu
 | --- | --- | --- |
 | `EMULATOR_PORT` | `9397` | Host port of the emulator. |
 | `EMULATOR_NAME` | `terraconstructs-aws-emulator` | Container name. `emulator-up` removes a container with this name. |
-| `EMULATOR_IMAGE` | `ghcr.io/xsavikx/aws-emulator:1.0.598.1@sha256:ddcdd78f…` | Container image, pinned by digest. CI verifies its cosign signature before it runs. |
+| `EMULATOR_IMAGE` | `ghcr.io/terraconstructs/aws-emulator:1.0.598.1@sha256:dd2f8609…` | Container image, pinned by digest. Default read from `integ/emulator-image.env`. CI verifies its cosign signature before it runs. |
 
 The `-emulator` target removes the AWS credential variables, sets `AWS_EC2_METADATA_DISABLED=true` and `AWS_DISABLE_HOST_PREFIX_INJECTION=true`, and uses an empty `AWS_CONFIG_FILE`.
 The Go SDK v2 and the Terraform AWS provider ignore `AWS_DISABLE_HOST_PREFIX_INJECTION`. It does not fix the skipped S3 Control and Cloud Map targets.
@@ -100,9 +100,13 @@ EMULATOR_EXTERNAL=1 make -C integ aws-emulator EMULATOR_SERVICE=network
 
 ### CI
 
-CI starts the emulator with the [run-aws-emulator](https://github.com/xSAVIKx/run-aws-emulator) action and sets `EMULATOR_EXTERNAL=1`.
+CI starts the emulator with the [run-aws-emulator](https://github.com/TerraConstructs/run-aws-emulator) action and sets `EMULATOR_EXTERNAL=1`.
 The action exports the environment variables. Local runs use Docker through `make`.
-The action step uses the same image as `EMULATOR_IMAGE`.
+The action verifies the image cosign signature before it starts the container.
+The image reference and signer identity live in one file, `integ/emulator-image.env`.
+`make` and the workflow generator (`projenrc/github-workflows.ts`) both read it.
+To bump the image, run `docker buildx imagetools inspect ghcr.io/terraconstructs/aws-emulator:<version>`,
+put the new tag and index digest in `EMULATOR_IMAGE`, and run `pnpm exec projen`.
 A failed job prints the container log.
 
 The `build` workflow runs the `integ-aws-emulator` job on every pull request.

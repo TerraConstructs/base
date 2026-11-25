@@ -29,7 +29,7 @@ Special pattern targets:
 
 ## Running against the AWS emulator
 
-The tests run against the [AWS emulator](https://xsavikx.github.io/aws-emulator-docker/) without AWS credentials. Docker must run.
+The tests run against the [AWS emulator](https://github.com/TerraConstructs/aws-emulator-docker) without AWS credentials. Docker must run.
 
 Run these commands in `integ/aws/encryption`. Add `-emulator` to a target name:
 
