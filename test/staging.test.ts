@@ -39,13 +39,10 @@ enum DockerStubCommand {
 }
 
 const FIXTURE_TEST1_DIR = path.join(__dirname, "fs", "fixtures", "test1");
-const FIXTURE_TEST1_HASH =
-  "2f37f937c51e2c191af66acf9b09f548926008ec68c575bd2ee54b6e997c0e00";
+const FIXTURE_TEST1_HASH = "A7DE90CA9F89DEBC7C455A5722864F9F";
 const FIXTURE_TARBALL = path.join(__dirname, "fs", "fixtures.tar.gz");
-const NOT_ARCHIVED_ZIP_TXT_HASH =
-  "95c924c84f5d023be4edee540cb2cb401a49f115d01ed403b288f6cb412771df";
-const ARCHIVE_TARBALL_TEST_HASH =
-  "3e948ff54a277d6001e2452fdbc4a9ef61f916ff662ba5e05ece1e2ec6dec9f5";
+const NOT_ARCHIVED_ZIP_TXT_HASH = "D41D8CD98F00B204E9800998ECF8427E";
+const ARCHIVE_TARBALL_TEST_HASH = "323E30577D398D28925FF8A63543CCC8";
 
 const userInfo = os.userInfo();
 const USER_ARG = `-u ${userInfo.uid}:${userInfo.gid}`;
@@ -292,7 +289,7 @@ describe("staging", () => {
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
       expect.arrayContaining([
         `asset.${FIXTURE_TEST1_HASH}`,
-        "asset.af10ac04b3b607b0f8659c8f0cee8c343025ee75baf0b146f10f0e5311d2c46b.tar.gz",
+        "asset.E2713C16222EE1F6A1DDBC5BE634574C.tar.gz",
       ]),
     );
   });
@@ -337,9 +334,7 @@ describe("staging", () => {
     // THEN
     expect(withoutExtra.assetHash).not.toEqual(withExtra.assetHash);
     expect(withoutExtra.assetHash).toEqual(FIXTURE_TEST1_HASH);
-    expect(withExtra.assetHash).toEqual(
-      "c95c915a5722bb9019e2c725d11868e5a619b55f36172f76bcbcaa8bb2d10c5f",
-    );
+    expect(withExtra.assetHash).toEqual("41AEDB476D2BC80303F7CA8C88E37407");
   });
 
   //TODO: Fix assetHashSalt
@@ -400,9 +395,7 @@ describe("staging", () => {
         // recursive: true
       }),
     ).toEqual(
-      expect.arrayContaining([
-        "asset.b1e32e86b3523f2fa512eb99180ee2975a50a4439e63e8badd153f2a68d61aa4",
-      ]),
+      expect.arrayContaining(["asset.7894B3F9E7F4D18CB116C037E16AB94D"]),
     );
 
     // shows a message before bundling
@@ -433,7 +426,7 @@ describe("staging", () => {
   //   const assembly = app.synth();
 
   //   expect(fs.readdirSync(assembly.directory)).toEqual([
-  //     "asset.b1e32e86b3523f2fa512eb99180ee2975a50a4439e63e8badd153f2a68d61aa4",
+  //     "asset.7894B3F9E7F4D18CB116C037E16AB94D",
   //     "cdk.out",
   //     "manifest.json",
   //     "stack.template.json",
@@ -441,7 +434,7 @@ describe("staging", () => {
   //   ]);
 
   //   expect(asset.assetHash).toEqual(
-  //     "b1e32e86b3523f2fa512eb99180ee2975a50a4439e63e8badd153f2a68d61aa4",
+  //     "7894B3F9E7F4D18CB116C037E16AB94D",
   //   );
   //   expect(asset.sourcePath).toEqual(directory);
 
@@ -450,7 +443,7 @@ describe("staging", () => {
   //   expect(path.isAbsolute(resolvedStagePath)).toEqual(true);
   //   expect(
   //     new RegExp(
-  //       "asset.b1e32e86b3523f2fa512eb99180ee2975a50a4439e63e8badd153f2a68d61aa4$",
+  //       "asset.7894B3F9E7F4D18CB116C037E16AB94D$",
   //     ).test(resolvedStagePath),
   //   ).toEqual(true);
   // });
@@ -490,7 +483,7 @@ describe("staging", () => {
     );
 
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual([
-      "asset.b1e32e86b3523f2fa512eb99180ee2975a50a4439e63e8badd153f2a68d61aa4",
+      "asset.7894B3F9E7F4D18CB116C037E16AB94D",
       "cdk.out",
       "manifest.json",
       "stack.template.json",
@@ -541,9 +534,7 @@ describe("staging", () => {
         TEST_STAGING_DIR, //{ recursive: true }
       ),
     ).toEqual(
-      expect.arrayContaining([
-        "asset.33cbf2cae5432438e0f046bc45ba8c3cef7b6afcf47b59d1c183775c1918fb1f",
-      ]),
+      expect.arrayContaining(["asset.D41D8CD98F00B204E9800998ECF8427E"]),
     );
 
     // Only one fingerprinting
@@ -590,7 +581,7 @@ describe("staging", () => {
     );
 
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual([
-      "asset.b1e32e86b3523f2fa512eb99180ee2975a50a4439e63e8badd153f2a68d61aa4", // 'Asset'
+      "asset.7894B3F9E7F4D18CB116C037E16AB94D", // 'Asset'
       "asset.e80bb8f931b87e84975de193f5a7ecddd7558d3caf3d35d3a536d9ae6539234f", // 'AssetWithDifferentBundlingOptions'
       "cdk.out",
       "manifest.json",
@@ -642,7 +633,7 @@ describe("staging", () => {
 
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
       expect.arrayContaining([
-        "asset.2de2347dd01e3f43a463652635acaae09539cdf32769d9a60ac0ad4622b1e943", // 'Asset'
+        "asset.117BDC73B85A3FE4995CAF5EB41CD072", // 'Asset'
       ]),
     );
   });
@@ -715,7 +706,7 @@ describe("staging", () => {
   //   ).toEqual(true);
 
   //   expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual([
-  //     "asset.33cbf2cae5432438e0f046bc45ba8c3cef7b6afcf47b59d1c183775c1918fb1f", // 'Asset'
+  //     "asset.D41D8CD98F00B204E9800998ECF8427E", // 'Asset'
   //     "cdk.out",
   //     "manifest.json",
   //     "stack.template.json",
@@ -799,7 +790,7 @@ describe("staging", () => {
 
   //   expect(appAssembly.directory).toEqual(app2Assembly.directory);
   //   expect(fs.readdirSync(appAssembly.directory)).toEqual([
-  //     "asset.b1e32e86b3523f2fa512eb99180ee2975a50a4439e63e8badd153f2a68d61aa4",
+  //     "asset.7894B3F9E7F4D18CB116C037E16AB94D",
   //     "cdk.out",
   //     "manifest.json",
   //     "stack.template.json",
@@ -951,9 +942,7 @@ describe("staging", () => {
     expect(readDockerStubInput()).toEqual(
       `run --rm ${USER_ARG} -v /input:/asset-input:delegated -v /output:/asset-output:delegated -w /asset-input alpine DOCKER_STUB_SUCCESS`,
     );
-    expect(asset.assetHash).toEqual(
-      "33cbf2cae5432438e0f046bc45ba8c3cef7b6afcf47b59d1c183775c1918fb1f",
-    );
+    expect(asset.assetHash).toEqual("D41D8CD98F00B204E9800998ECF8427E");
   });
 
   test("bundling with docker security option", () => {
@@ -975,9 +964,7 @@ describe("staging", () => {
     expect(readDockerStubInput()).toEqual(
       `run --rm --security-opt no-new-privileges ${USER_ARG} -v /input:/asset-input:delegated -v /output:/asset-output:delegated -w /asset-input alpine DOCKER_STUB_SUCCESS`,
     );
-    expect(asset.assetHash).toEqual(
-      "33cbf2cae5432438e0f046bc45ba8c3cef7b6afcf47b59d1c183775c1918fb1f",
-    );
+    expect(asset.assetHash).toEqual("D41D8CD98F00B204E9800998ECF8427E");
   });
 
   test("bundling with docker entrypoint", () => {
@@ -999,9 +986,7 @@ describe("staging", () => {
     expect(readDockerStubInput()).toEqual(
       `run --rm ${USER_ARG} -v /input:/asset-input:delegated -v /output:/asset-output:delegated -w /asset-input --entrypoint DOCKER_STUB_SUCCESS alpine DOCKER_STUB_SUCCESS`,
     );
-    expect(asset.assetHash).toEqual(
-      "33cbf2cae5432438e0f046bc45ba8c3cef7b6afcf47b59d1c183775c1918fb1f",
-    );
+    expect(asset.assetHash).toEqual("D41D8CD98F00B204E9800998ECF8427E");
   });
 
   test("bundling with OUTPUT asset hash type", () => {
@@ -1019,9 +1004,7 @@ describe("staging", () => {
     });
 
     // THEN
-    expect(asset.assetHash).toEqual(
-      "33cbf2cae5432438e0f046bc45ba8c3cef7b6afcf47b59d1c183775c1918fb1f",
-    );
+    expect(asset.assetHash).toEqual("D41D8CD98F00B204E9800998ECF8427E");
   });
 
   test("custom hash", () => {
@@ -1036,9 +1019,7 @@ describe("staging", () => {
 
     // THEN
     expect(fs.existsSync(STUB_INPUT_FILE)).toEqual(false);
-    expect(asset.assetHash).toEqual(
-      "b9c77053f5b83bbe5ba343bc18e92db939a49017010813225fea91fa892c4823",
-    ); // hash of 'my-custom-hash'
+    expect(asset.assetHash).toEqual("C11468A636006F7D2BCB6E5227F78C74"); // hash of 'my-custom-hash'
   });
 
   test("throws with assetHash and not CUSTOM hash type", () => {
@@ -1152,7 +1133,7 @@ describe("staging", () => {
     });
 
     // THEN
-    expect(dir && /asset.[0-9a-f]{16,}/.test(dir)).toEqual(true);
+    expect(dir && /asset.[0-9a-f]{16,}/i.test(dir)).toEqual(true);
     expect(opts?.command?.[0]).toEqual(DockerStubCommand.SUCCESS);
     expect(() => readDockerStubInput()).toThrow();
 
@@ -1418,9 +1399,7 @@ describe("staging", () => {
     expect(readDockerStubInput()).toEqual(
       `run --rm ${USER_ARG} -v /input:/asset-input:delegated -v /output:/asset-output:delegated -w /asset-input alpine DOCKER_STUB_SUCCESS`,
     );
-    expect(asset.assetHash).toEqual(
-      "33cbf2cae5432438e0f046bc45ba8c3cef7b6afcf47b59d1c183775c1918fb1f",
-    ); // hash of MyStack/Asset
+    expect(asset.assetHash).toEqual("D41D8CD98F00B204E9800998ECF8427E"); // hash of MyStack/Asset
   });
 
   test.skip("bundling still occurs with a single wildcard", () => {
@@ -1441,9 +1420,7 @@ describe("staging", () => {
     expect(readDockerStubInput()).toEqual(
       `run --rm ${USER_ARG} -v /input:/asset-input:delegated -v /output:/asset-output:delegated -w /asset-input alpine DOCKER_STUB_SUCCESS`,
     );
-    expect(asset.assetHash).toEqual(
-      "33cbf2cae5432438e0f046bc45ba8c3cef7b6afcf47b59d1c183775c1918fb1f",
-    ); // hash of MyStack/Asset
+    expect(asset.assetHash).toEqual("D41D8CD98F00B204E9800998ECF8427E"); // hash of MyStack/Asset
   });
 
   test("bundling that produces a single archive file is autodiscovered", () => {
@@ -1463,16 +1440,13 @@ describe("staging", () => {
     // const stackDir = getSynthDir(app, stack);
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
       expect.arrayContaining([
-        "asset.f43148c61174f444925231b5849b468f21e93b5d1469cd07c53625ffd039ef48.zip",
-        "asset.f43148c61174f444925231b5849b468f21e93b5d1469cd07c53625ffd039ef48", // this is the bundle dir
+        "asset.CD401C1E54F6D013A28C1CB2E9450992.zip",
+        "asset.CD401C1E54F6D013A28C1CB2E9450992", // this is the bundle dir
       ]),
     );
     expect(
       fs.readdirSync(
-        path.join(
-          TEST_STAGING_DIR,
-          "asset.f43148c61174f444925231b5849b468f21e93b5d1469cd07c53625ffd039ef48",
-        ),
+        path.join(TEST_STAGING_DIR, "asset.CD401C1E54F6D013A28C1CB2E9450992"),
       ),
     ).toEqual([
       "test.zip", // bundle dir with "touched" bundled output file
@@ -1545,9 +1519,7 @@ describe("staging", () => {
     // THEN
     // const stackDir = getSynthDir(app, stack);
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
-      expect.arrayContaining([
-        "asset.86ec07746e1d859290cfd8b9c648e581555649c75f51f741f11e22cab6775abc",
-      ]),
+      expect.arrayContaining(["asset.AD2D5107AF860598674B6389518871E4"]),
     );
     expect(staging.packaging).toEqual(FileAssetPackaging.ZIP_DIRECTORY);
     expect(staging.isArchive).toEqual(true);
@@ -1591,8 +1563,8 @@ describe("staging", () => {
     // const stackDir = getSynthDir(app, stack);
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
       expect.arrayContaining([
-        "asset.adb7bb3f9419564842d16f48e6b90468f63ec759d2775e8e40d6a87e6b8e3469",
-        "asset.adb7bb3f9419564842d16f48e6b90468f63ec759d2775e8e40d6a87e6b8e3469.txt",
+        "asset.CF19D3EEB025AAAD004EB9D6E4B94488",
+        "asset.CF19D3EEB025AAAD004EB9D6E4B94488.txt",
       ]),
     );
     expect(staging.packaging).toEqual(FileAssetPackaging.FILE);
@@ -1619,7 +1591,7 @@ describe("staging", () => {
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
       expect.arrayContaining([
         // 'bundling-temp-0e346bd27baa32f4f2d15d1d73c8972db3293080f6c2836328b7bf77747683db', this directory gets removed and does no longer exist
-        "asset.95c924c84f5d023be4edee540cb2cb401a49f115d01ed403b288f6cb412771df.txt",
+        "asset.D41D8CD98F00B204E9800998ECF8427E.txt",
       ]),
     );
     expect(staging.packaging).toEqual(FileAssetPackaging.FILE);
@@ -1645,8 +1617,8 @@ describe("staging", () => {
     // const stackDir = getSynthDir(app, stack);
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
       expect.arrayContaining([
-        "asset.ef734136dc22840a94140575a2f98cbc061074e09535589d1cd2c11a4ac2fd75",
-        "asset.ef734136dc22840a94140575a2f98cbc061074e09535589d1cd2c11a4ac2fd75_noext",
+        "asset.3AB6660918A85979139C350EAA49294D",
+        "asset.3AB6660918A85979139C350EAA49294D_noext",
       ]),
     );
     expect(staging.packaging).toEqual(FileAssetPackaging.FILE);
@@ -1673,8 +1645,8 @@ describe("staging", () => {
     // const stackDir = getSynthDir(app, stack);
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
       expect.arrayContaining([
-        "asset.f81c5ba9e81eebb202881a8e61a83ab4b69f6bee261989eb93625c9cf5d35335",
-        "asset.f81c5ba9e81eebb202881a8e61a83ab4b69f6bee261989eb93625c9cf5d35335_noext",
+        "asset.D27CDBEC41A32F69E79C25FB24131F6A",
+        "asset.D27CDBEC41A32F69E79C25FB24131F6A_noext",
       ]),
     );
     expect(staging.packaging).toEqual(FileAssetPackaging.FILE);
@@ -1741,16 +1713,13 @@ describe("staging with docker cp", () => {
     // const stackDir = getSynthDir(app, stack);
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
       expect.arrayContaining([
-        "asset.0ec371a2022d29dfd83f5df104e0f01b34233a4e3e839c3c4ec62008f0b9a0e8", // this is the bundle dir
-        "asset.0ec371a2022d29dfd83f5df104e0f01b34233a4e3e839c3c4ec62008f0b9a0e8.zip",
+        "asset.8E9D8E33F76C94ED8763A7F96DC2D216", // this is the bundle dir
+        "asset.8E9D8E33F76C94ED8763A7F96DC2D216.zip",
       ]),
     );
     expect(
       fs.readdirSync(
-        path.join(
-          TEST_STAGING_DIR,
-          "asset.0ec371a2022d29dfd83f5df104e0f01b34233a4e3e839c3c4ec62008f0b9a0e8",
-        ),
+        path.join(TEST_STAGING_DIR, "asset.8E9D8E33F76C94ED8763A7F96DC2D216"),
       ),
     ).toEqual([
       "test.zip", // bundle dir with "touched" bundled output file
@@ -1801,8 +1770,8 @@ describe("staging with docker cp", () => {
     // const stackDir = getSynthDir(app, stack);
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
       expect.arrayContaining([
-        "asset.93bd4079bff7440a725991ecf249416ae9ad73cb639f4a8d9e8f3ad8d491e89f",
-        "asset.93bd4079bff7440a725991ecf249416ae9ad73cb639f4a8d9e8f3ad8d491e89f_noext",
+        "asset.BD6DE3398FF7242F02E1CB19D947816B",
+        "asset.BD6DE3398FF7242F02E1CB19D947816B_noext",
       ]),
     );
     expect(staging.packaging).toEqual(FileAssetPackaging.FILE);
@@ -1830,8 +1799,8 @@ describe("staging with docker cp", () => {
     // const stackDir = getSynthDir(app, stack);
     expect(fs.readdirSync(TEST_STAGING_DIR)).toEqual(
       expect.arrayContaining([
-        "asset.53a51b4c68874a8e831e24e8982120be2a608f50b2e05edb8501143b3305baa8",
-        "asset.53a51b4c68874a8e831e24e8982120be2a608f50b2e05edb8501143b3305baa8_noext",
+        "asset.FD7D7EEF985A70FC8F1BCC7B4A2BC86D",
+        "asset.FD7D7EEF985A70FC8F1BCC7B4A2BC86D_noext",
       ]),
     );
     expect(staging.packaging).toEqual(FileAssetPackaging.FILE);

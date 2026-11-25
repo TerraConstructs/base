@@ -85,9 +85,9 @@ exports[`EnvironmentFile synth EnvironmentFile.fromAsset synth matches snapshot 
     "aws_s3_object": {
       "FileAsset_S3": {
         "bucket": "\${aws_s3_bucket.AssetBucket.bucket}",
-        "key": "872561bf078edd1685d50c9ff821cdd60d2b2ddfb0013c4087e79bf2bb50724d.env",
-        "source": "assets/FileAsset/872561bf078edd1685d50c9ff821cdd60d2b2ddfb0013c4087e79bf2bb50724d/asset.872561bf078edd1685d50c9ff821cdd60d2b2ddfb0013c4087e79bf2bb50724d.env",
-        "source_hash": "872561bf078edd1685d50c9ff821cdd60d2b2ddfb0013c4087e79bf2bb50724d"
+        "key": "A16462CE259294E96C40B239F006F992.env",
+        "source": "assets/FileAsset/A16462CE259294E96C40B239F006F992/asset.A16462CE259294E96C40B239F006F992.env",
+        "source_hash": "A16462CE259294E96C40B239F006F992"
       }
     }
   },

@@ -18,7 +18,7 @@ import { Template } from "../../../assertions";
 
 const SAMPLE_ASSET_DIR = path.join(__dirname, "sample-asset-directory");
 // const SAMPLE_ASSET_HASH =
-//   "6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2";
+//   "EBD21D757D188EF1FB59019F88B577F5";
 
 const TEST_OUTDIR = path.join(__dirname, "cdk.out");
 describe("s3-assets", () => {
@@ -46,37 +46,35 @@ describe("s3-assets", () => {
 
     const template = new Template(stack);
     template.expect.toHaveResourceWithProperties(s3Object.S3Object, {
-      // path: "asset.6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
+      // path: "asset.EBD21D757D188EF1FB59019F88B577F5",
       bucket: "${aws_s3_bucket.AssetBucket.bucket}",
-      key: "6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2.zip",
-      source:
-        "assets/FileAsset/6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2/archive.zip",
-      source_hash:
-        "6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
+      key: "EBD21D757D188EF1FB59019F88B577F5.zip",
+      source: "assets/FileAsset/EBD21D757D188EF1FB59019F88B577F5/archive.zip",
+      source_hash: "EBD21D757D188EF1FB59019F88B577F5",
     });
 
     // expect(stack.resolve(entry!.data)).toEqual({
     //   path: SAMPLE_ASSET_DIR,
-    //   id: "6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
+    //   id: "EBD21D757D188EF1FB59019F88B577F5",
     //   packaging: "zip",
     //   sourceHash:
-    //     "6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
+    //     "EBD21D757D188EF1FB59019F88B577F5",
     //   s3BucketParameter:
-    //     "AssetParameters6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2S3Bucket50B5A10B",
+    //     "AssetParametersEBD21D757D188EF1FB59019F88B577F5S3Bucket50B5A10B",
     //   s3KeyParameter:
-    //     "AssetParameters6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2S3VersionKey1F7D75F9",
+    //     "AssetParametersEBD21D757D188EF1FB59019F88B577F5S3VersionKey1F7D75F9",
     //   artifactHashParameter:
-    //     "AssetParameters6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2ArtifactHash220DE9BD",
+    //     "AssetParametersEBD21D757D188EF1FB59019F88B577F5ArtifactHash220DE9BD",
     // });
 
     // expect(
     //   template.Parameters
-    //     .AssetParameters6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2S3Bucket50B5A10B
+    //     .AssetParametersEBD21D757D188EF1FB59019F88B577F5S3Bucket50B5A10B
     //     .Type,
     // ).toBe("String");
     // expect(
     //   template.Parameters
-    //     .AssetParameters6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2S3VersionKey1F7D75F9
+    //     .AssetParametersEBD21D757D188EF1FB59019F88B577F5S3VersionKey1F7D75F9
     //     .Type,
     // ).toBe("String");
   });
@@ -93,20 +91,20 @@ describe("s3-assets", () => {
 
   //   const template = new Template(stack);
   //   template.expect.toHaveResourceWithProperties(s3Object.S3Object, {
-  //     path: "asset.6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
+  //     path: "asset.EBD21D757D188EF1FB59019F88B577F5",
   //   });
   //   // expect(meta["/my-stack"][0].data).toEqual({
-  //   //   path: "asset.6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
-  //   //   id: "6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
+  //   //   path: "asset.EBD21D757D188EF1FB59019F88B577F5",
+  //   //   id: "EBD21D757D188EF1FB59019F88B577F5",
   //   //   packaging: "zip",
   //   //   sourceHash:
-  //   //     "6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
+  //   //     "EBD21D757D188EF1FB59019F88B577F5",
   //   //   s3BucketParameter:
-  //   //     "AssetParameters6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2S3Bucket50B5A10B",
+  //   //     "AssetParametersEBD21D757D188EF1FB59019F88B577F5S3Bucket50B5A10B",
   //   //   s3KeyParameter:
-  //   //     "AssetParameters6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2S3VersionKey1F7D75F9",
+  //   //     "AssetParametersEBD21D757D188EF1FB59019F88B577F5S3VersionKey1F7D75F9",
   //   //   artifactHashParameter:
-  //   //     "AssetParameters6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2ArtifactHash220DE9BD",
+  //   //     "AssetParametersEBD21D757D188EF1FB59019F88B577F5ArtifactHash220DE9BD",
   //   // });
   // });
 
@@ -121,41 +119,40 @@ describe("s3-assets", () => {
     template.expect.toHaveResourceWithProperties(s3Object.S3Object, {
       bucket: "${aws_s3_bucket.AssetBucket.bucket}",
       content_type: "text/plain; charset=utf-8",
-      key: "78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197.txt",
-      // path: "asset.78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197.txt",
+      key: "0051B3AA83C727C8CB33FF664C20796E.txt",
+      // path: "asset.0051B3AA83C727C8CB33FF664C20796E.txt",
       source:
-        "assets/FileAsset/78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197/asset.78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197.txt",
-      source_hash:
-        "78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197",
+        "assets/FileAsset/0051B3AA83C727C8CB33FF664C20796E/asset.0051B3AA83C727C8CB33FF664C20796E.txt",
+      source_hash: "0051B3AA83C727C8CB33FF664C20796E",
     });
 
     // expect(stack.resolve(entry!.data)).toEqual({
-    //   path: "asset.78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197.txt",
+    //   path: "asset.0051B3AA83C727C8CB33FF664C20796E.txt",
     //   packaging: "file",
-    //   id: "78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197",
+    //   id: "0051B3AA83C727C8CB33FF664C20796E",
     //   sourceHash:
-    //     "78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197",
+    //     "0051B3AA83C727C8CB33FF664C20796E",
     //   s3BucketParameter:
-    //     "AssetParameters78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197S3Bucket2C60F94A",
+    //     "AssetParameters0051B3AA83C727C8CB33FF664C20796ES3Bucket2C60F94A",
     //   s3KeyParameter:
-    //     "AssetParameters78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197S3VersionKey9482DC35",
+    //     "AssetParameters0051B3AA83C727C8CB33FF664C20796ES3VersionKey9482DC35",
     //   artifactHashParameter:
-    //     "AssetParameters78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197ArtifactHash22BFFA67",
+    //     "AssetParameters0051B3AA83C727C8CB33FF664C20796EArtifactHash22BFFA67",
     // });
 
     // // verify that now the template contains parameters for this asset
     // expect(
     //   template.findParameters(
-    //     "AssetParameters78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197S3Bucket2C60F94A",
+    //     "AssetParameters0051B3AA83C727C8CB33FF664C20796ES3Bucket2C60F94A",
     //   )
-    //     .AssetParameters78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197S3Bucket2C60F94A
+    //     .AssetParameters0051B3AA83C727C8CB33FF664C20796ES3Bucket2C60F94A
     //     .Type,
     // ).toBe("String");
     // expect(
     //   template.findParameters(
-    //     "AssetParameters78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197S3VersionKey9482DC35",
+    //     "AssetParameters0051B3AA83C727C8CB33FF664C20796ES3VersionKey9482DC35",
     //   )
-    //     .AssetParameters78add9eaf468dfa2191da44a7da92a21baba4c686cf6053d772556768ef21197S3VersionKey9482DC35
+    //     .AssetParameters0051B3AA83C727C8CB33FF664C20796ES3VersionKey9482DC35
     //     .Type,
     // ).toBe("String");
   });
@@ -317,7 +314,7 @@ describe("s3-assets", () => {
   //   Template.fromStack(stack).hasResource("My::Resource::Type", {
   //     Metadata: {
   //       "aws:asset:path":
-  //         "asset.6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
+  //         "asset.EBD21D757D188EF1FB59019F88B577F5",
   //       "aws:asset:is-bundled": false,
   //       "aws:asset:property": "PropName",
   //     },
@@ -465,7 +462,7 @@ describe("s3-assets", () => {
   //     app.synth();
   //     expect(fs.existsSync(tempdir)).toBe(true);
   //     const hash =
-  //       "asset.6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2";
+  //       "asset.EBD21D757D188EF1FB59019F88B577F5";
   //     expect(
   //       fs.existsSync(path.join(tempdir, hash, "sample-asset-file.txt")),
   //     ).toBe(true);
@@ -503,7 +500,7 @@ describe("s3-assets", () => {
   //       template.findResources("My::Resource::Type").MyResource.Metadata,
   //     ).toEqual({
   //       "aws:asset:path":
-  //         "asset.6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
+  //         "asset.EBD21D757D188EF1FB59019F88B577F5",
   //       "aws:asset:is-bundled": false,
   //       "aws:asset:property": "PropName",
   //     });
@@ -557,7 +554,7 @@ describe("s3-assets", () => {
   //     const md = Object.values(metadata)[0]![0]!
   //       .data as cxschema.AssetMetadataEntry;
   //     expect(md.path).toBe(
-  //       "asset.6b84b87243a4a01c592d78e1fd3855c4bfef39328cd0a450cc97e81717fea2a2",
+  //       "asset.EBD21D757D188EF1FB59019F88B577F5",
   //     );
   //   });
   // });

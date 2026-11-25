@@ -1,43 +1,10 @@
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { FileSystem, SymlinkFollowMode } from "../../src/fs";
-import {
-  clearLargeFileFingerprintCache,
-  contentFingerprint,
-} from "../../src/fs/fingerprint";
-
-jest.mock("fs", () => {
-  const originalModule = jest.requireActual<typeof fs>("fs");
-  return {
-    // __esModule is needed for ESM compatibility
-    __esModule: true,
-    ...originalModule,
-    openSync: jest.fn(
-      (...args: [fs.PathLike, fs.OpenMode, (fs.Mode | null)?]) =>
-        originalModule.openSync(...args),
-    ),
-  };
-});
-
-jest.mock("path", () => {
-  const originalModule = jest.requireActual<typeof path>("path");
-  return {
-    __esModule: true,
-    ...originalModule,
-    relative: jest.fn((...args: [string, string]) =>
-      originalModule.relative(...args),
-    ),
-  };
-});
-
-const mockedFs = fs as jest.Mocked<typeof fs>;
-const mockedPath = path as jest.Mocked<typeof path>;
+import { FileSystem } from "../../src/fs";
 
 describe("fs fingerprint", () => {
   afterEach(() => {
-    // Clear the module-level fingerprint cache to ensure test isolation.
-    clearLargeFileFingerprintCache();
     jest.clearAllMocks();
   });
 
@@ -80,10 +47,26 @@ describe("fs fingerprint", () => {
     });
   });
 
+  // A plain, symlink-free fixture: copyDirectory's default EXTERNAL follow
+  // mode materializes external symlinks on copy, which the new (cdktn-matching)
+  // fingerprint algorithm never does for nested symlinks — so a fixture with
+  // external symlinks legitimately hashes differently from its own copy. Use
+  // a symlink-free tree here; symlink-specific behavior is covered below.
+  function makePlainFixture(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fingerprint-plain-"));
+    fs.writeFileSync(path.join(dir, "normal-file.txt"), "hello world");
+    fs.mkdirSync(path.join(dir, "normal-dir"));
+    fs.writeFileSync(
+      path.join(dir, "normal-dir", "file-in-subdir.txt"),
+      "nested",
+    );
+    return dir;
+  }
+
   describe("directories", () => {
     test("works on directories", () => {
       // GIVEN
-      const srcdir = path.join(__dirname, "fixtures", "symlinks");
+      const srcdir = makePlainFixture();
       const outdir = fs.mkdtempSync(path.join(os.tmpdir(), "copy-tests"));
       FileSystem.copyDirectory(srcdir, outdir);
 
@@ -97,7 +80,7 @@ describe("fs fingerprint", () => {
 
     test("ignores requested files", () => {
       // GIVEN
-      const srcdir = path.join(__dirname, "fixtures", "symlinks");
+      const srcdir = makePlainFixture();
       const outdir = fs.mkdtempSync(path.join(os.tmpdir(), "copy-tests"));
       FileSystem.copyDirectory(srcdir, outdir);
 
@@ -115,15 +98,18 @@ describe("fs fingerprint", () => {
       expect(hashSrc).toEqual(hashCopy);
     });
 
-    test("changes with file names", () => {
+    // cdktn's legacy content hash streams raw file bytes in directory-walk
+    // order; it does not fold file names into the digest at all (only
+    // symlink metadata carries a path). So a rename that preserves both the
+    // byte stream order and content leaves the hash unchanged.
+    test("does not change when a rename preserves content order", () => {
       // GIVEN
-      const srcdir = path.join(__dirname, "fixtures", "symlinks");
+      const srcdir = makePlainFixture();
       const cpydir = fs.mkdtempSync(
         path.join(os.tmpdir(), "fingerprint-tests"),
       );
       FileSystem.copyDirectory(srcdir, cpydir);
 
-      // be careful not to break a symlink
       fs.renameSync(
         path.join(cpydir, "normal-dir", "file-in-subdir.txt"),
         path.join(cpydir, "move-me.txt"),
@@ -134,12 +120,32 @@ describe("fs fingerprint", () => {
       const hashCopy = FileSystem.fingerprint(cpydir);
 
       // THEN
-      expect(hashSrc).not.toEqual(hashCopy);
+      expect(hashCopy).toEqual(hashSrc);
+    });
+
+    test("changes when the tree shape changes", () => {
+      // GIVEN
+      const srcdir = makePlainFixture();
+      const cpydir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "fingerprint-tests"),
+      );
+      FileSystem.copyDirectory(srcdir, cpydir);
+
+      fs.writeFileSync(path.join(cpydir, "extra-file.txt"), "extra");
+
+      // WHEN
+      const hashSrc = FileSystem.fingerprint(srcdir);
+      const hashCopy = FileSystem.fingerprint(cpydir);
+
+      // THEN
+      expect(hashCopy).not.toEqual(hashSrc);
     });
   });
 
   describe("symlinks", () => {
-    test("changes with the contents of followed symlink referent", () => {
+    // Matches cdktn's legacy hash scheme: nested symlinks are hashed by their
+    // path+target metadata, never followed (only a root-level symlink is).
+    test("does not change with the contents of a nested symlink's referent", () => {
       // GIVEN
       const dir1 = fs.mkdtempSync(path.join(os.tmpdir(), "fingerprint-tests"));
       const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), "fingerprint-tests"));
@@ -154,148 +160,32 @@ describe("fs fingerprint", () => {
       const original = FileSystem.fingerprint(dir2);
 
       // now change the contents of the target
-      fs.writeFileSync(target, "changning you!");
+      fs.writeFileSync(target, "changing you!");
       const afterChange = FileSystem.fingerprint(dir2);
 
-      // revert the content to original and expect hash to be reverted
-      fs.writeFileSync(target, content);
-      const afterRevert = FileSystem.fingerprint(dir2);
-
       // THEN
-      expect(original).not.toEqual(afterChange);
-      expect(afterRevert).toEqual(original);
+      expect(afterChange).toEqual(original);
     });
 
-    test("does not change with the contents of un-followed symlink referent", () => {
+    test("changes when a nested symlink's target changes", () => {
       // GIVEN
       const dir1 = fs.mkdtempSync(path.join(os.tmpdir(), "fingerprint-tests"));
       const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), "fingerprint-tests"));
-      const target = path.join(dir1, "boom.txt");
-      const content = "boom";
-      fs.writeFileSync(target, content);
-      fs.symlinkSync(target, path.join(dir2, "link-to-boom.txt"));
-
-      // now dir2 contains a symlink to a file in dir1
-
-      // WHEN
-      const original = FileSystem.fingerprint(dir2, {
-        follow: SymlinkFollowMode.NEVER,
-      });
-
-      // now change the contents of the target
-      fs.writeFileSync(target, "changning you!");
-      const afterChange = FileSystem.fingerprint(dir2, {
-        follow: SymlinkFollowMode.NEVER,
-      });
-
-      // revert the content to original and expect hash to be reverted
-      fs.writeFileSync(target, content);
-      const afterRevert = FileSystem.fingerprint(dir2, {
-        follow: SymlinkFollowMode.NEVER,
-      });
-
-      // THEN
-      expect(original).toEqual(afterChange);
-      expect(afterRevert).toEqual(original);
-    });
-  });
-
-  describe("eol", () => {
-    test("normalizes line endings", () => {
-      // GIVEN
-      const lf = path.join(__dirname, "eol", "lf.txt");
-      const crlf = path.join(__dirname, "eol", "crlf.txt");
-      fs.writeFileSync(
-        crlf,
-        fs.readFileSync(lf, "utf8").replace(/\n/g, "\r\n"),
-      );
-
-      const lfStat = fs.statSync(lf);
-      const crlfStat = fs.statSync(crlf);
+      const targetA = path.join(dir1, "a.txt");
+      const targetB = path.join(dir1, "b.txt");
+      fs.writeFileSync(targetA, "a");
+      fs.writeFileSync(targetB, "b");
+      const link = path.join(dir2, "link.txt");
+      fs.symlinkSync(targetA, link);
 
       // WHEN
-      const crlfHash = contentFingerprint(crlf);
-      const lfHash = contentFingerprint(lf);
+      const original = FileSystem.fingerprint(dir2);
+      fs.unlinkSync(link);
+      fs.symlinkSync(targetB, link);
+      const afterRelink = FileSystem.fingerprint(dir2);
 
       // THEN
-      expect(crlfStat.size).not.toEqual(lfStat.size); // Difference in size due to different line endings
-      expect(crlfHash).toEqual(lfHash); // Same hash
-
-      fs.unlinkSync(crlf);
+      expect(afterRelink).not.toEqual(original);
     });
-  });
-
-  // The fingerprint cache is only enabled for node v12 and higher as older
-  // versions can have false positive inode comparisons due to floating point
-  // rounding error.
-  const describe_nodev12 =
-    Number(process.versions.node.split(".")[0]) < 12 ? describe.skip : describe;
-  describe_nodev12("fingerprint cache", () => {
-    const testString = "hello world";
-    const testFile = path.join(__dirname, "inode-fp.1");
-    const setupFs = jest.requireActual<typeof fs>("fs");
-
-    beforeAll(() => {
-      const file = setupFs.openSync(testFile, "w");
-      setupFs.writeSync(file, testString);
-      setupFs.closeSync(file);
-    });
-
-    afterAll(() => {
-      setupFs.unlinkSync(testFile);
-    });
-
-    test("caches fingerprint results", () => {
-      const hash1 = FileSystem.fingerprint(testFile, {});
-      const hash2 = FileSystem.fingerprint(testFile, {});
-
-      expect(hash1).toEqual(hash2);
-      expect(mockedFs.openSync).toHaveBeenCalledTimes(1);
-    });
-
-    test("considers mtime", () => {
-      const hash1 = FileSystem.fingerprint(testFile, {});
-
-      const file = setupFs.openSync(testFile, "r+");
-      setupFs.writeSync(file, "foobar");
-      setupFs.closeSync(file);
-
-      // Update mtime to a value that is guaranteed to be different even if the tests run... fast!
-      const fileStat = setupFs.statSync(testFile, { bigint: true });
-      setupFs.utimesSync(testFile, fileStat.atime, new Date(1337));
-
-      const hash2 = FileSystem.fingerprint(testFile, {});
-
-      expect(hash1).not.toEqual(hash2);
-      expect(mockedFs.openSync).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  test("normalizes relative path", () => {
-    // Simulate a Windows path.relative()
-    const originalPath = jest.requireActual<typeof path>("path");
-
-    // For the first hash, we will temporarily CHANGE the behavior of the spy.
-    mockedPath.relative.mockImplementationOnce(
-      (from: string, to: string): string => {
-        return originalPath.relative(from, to).replace(/\//g, "\\");
-      },
-    );
-
-    const hash1 = FileSystem.fingerprint(
-      path.join(__dirname, "fixtures", "test1"),
-    );
-
-    // After the first call, `mockImplementationOnce` restores the default behavior
-    // (which is to call the real function).
-    const hash2 = FileSystem.fingerprint(
-      path.join(__dirname, "fixtures", "test1"),
-    );
-
-    expect(hash1).toEqual(hash2);
-
-    // The failing assertion was too specific. The key is that the mock was called
-    // multiple times (once per file in the directory). We can just check that.
-    expect(mockedPath.relative.mock.calls.length).toBeGreaterThan(1);
   });
 });

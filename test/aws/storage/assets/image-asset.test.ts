@@ -300,33 +300,15 @@ describe("image asset", () => {
       buildSsh: "default",
     });
 
-    expect(asset1.assetHash).toEqual(
-      "13248c55633f3b198a628bb2ea4663cb5226f8b2801051bd0c725950266fd590",
-    );
-    expect(asset2.assetHash).toEqual(
-      "36bf205fb9adc5e45ba1c8d534158a0aed96d190eff433af1d90f3b94f96e751",
-    );
-    expect(asset3.assetHash).toEqual(
-      "4c85bd70e73117b7129c2defbe6dc40a8a3872329f4ddca18d75afa671b38276",
-    );
-    expect(asset4.assetHash).toEqual(
-      "8a91219a7bb0f58b3282dd84acbf4c03c49c765be54ffb7b125be6a50b6c5645",
-    );
-    expect(asset5.assetHash).toEqual(
-      "c02bfba13b2e7e1ff5c778a76e10296b9e8d17f7f8252d097f4170ae04ce0eb4",
-    );
-    expect(asset6.assetHash).toEqual(
-      "3528d6838647a5e9011b0f35aec514d03ad11af05a94653cdcf4dacdbb070a06",
-    );
-    expect(asset7.assetHash).toEqual(
-      "ced0a3076efe217f9cbdff0943e543f36ecf77f70b9a6fe28b8633deb728a462",
-    );
-    expect(asset8.assetHash).toEqual(
-      "ffc2718e616141d18c8f4623d13cdfd68cb8f010ca5db31c916c8b5f10c162be",
-    );
-    expect(asset9.assetHash).toEqual(
-      "52617cbf463d1931a93da1357dfe99687f32e092619fc6d280cee8d9ee31b63b",
-    );
+    expect(asset1.assetHash).toEqual("49B18BE7DC808547C022850FCD8C5F73");
+    expect(asset2.assetHash).toEqual("BA2DE669259E6DE7D72CBEE98CB2D152");
+    expect(asset3.assetHash).toEqual("FAC762ADA2EA0E75B275A89F5FDAEFAA");
+    expect(asset4.assetHash).toEqual("52FE5A5F502420F8E420930AC2CF19A9");
+    expect(asset5.assetHash).toEqual("1D08F5055F6AFC795AB6715C7880B8CB");
+    expect(asset6.assetHash).toEqual("A241BFF1C2A46040CBC27CA845920AF4");
+    expect(asset7.assetHash).toEqual("8A5782A87FC8B1EA53EEC36DE197A982");
+    expect(asset8.assetHash).toEqual("344D9BE767130BD971666D5A3D4AC93A");
+    expect(asset9.assetHash).toEqual("0A32722F6BC9AC60779139CFFCDC6CDE");
   });
 
   // testDeprecated("repositoryName is included in the asset id", () => {

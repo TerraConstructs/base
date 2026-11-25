@@ -600,7 +600,7 @@ export class AssetStaging extends Construct {
       hashType == AssetHashType.CUSTOM ||
       (hashType == AssetHashType.SOURCE && bundling)
     ) {
-      const hash = crypto.createHash("sha256");
+      const hash = crypto.createHash("md5");
 
       // if asset hash is provided by user, use it, otherwise fingerprint the source.
       hash.update(
@@ -613,7 +613,10 @@ export class AssetStaging extends Construct {
         hash.update(JSON.stringify(bundling, sanitizeHashValue));
       }
 
-      return hash.digest("hex");
+      // Matches cdktn's hash-folding convention (md5, truncated-to-32,
+      // uppercased) so the result stays comparable with a cdktn-native
+      // asset hash of the same inputs.
+      return hash.digest("hex").slice(0, 32).toUpperCase();
     }
 
     switch (hashType) {
@@ -681,6 +684,9 @@ function determineHashType(
 
 /**
  * Calculates a cache key from the props. Normalize by sorting keys.
+ *
+ * Purely an in-memory dedupe key, never exposed as `assetHash` — stays on
+ * SHA256 intentionally; it has no cdktn-compatibility requirement.
  */
 function calculateCacheKey<A extends object>(props: A): string {
   return crypto

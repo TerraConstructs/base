@@ -21,7 +21,7 @@ export interface AssetOptions {
   /**
    * Specify a custom hash for this asset. If `assetHashType` is set it must
    * be set to `AssetHashType.CUSTOM`. For consistency, this custom hash will
-   * be SHA256 hashed and encoded as hex. The resulting hash will be the asset
+   * be MD5 hashed and encoded as hex. The resulting hash will be the asset
    * hash.
    *
    * NOTE: the hash is used in order to identify a specific revision of the asset, and
