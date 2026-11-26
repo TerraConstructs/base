@@ -7,7 +7,7 @@
     },
     {
       "name": "@aws-cdk/region-info",
-      "version": "^2.233.0",
+      "version": "^2.278.0",
       "type": "build"
     },
     {
@@ -198,7 +198,7 @@
     },
     {
       "name": "@aws-cdk/region-info",
-      "version": "^2.233.0",
+      "version": "^2.278.0",
       "type": "peer"
     },
     {

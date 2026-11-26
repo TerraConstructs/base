@@ -488,7 +488,7 @@ describe("Node 22+ runtimes", () => {
     Template.synth(stack).toHaveResourceWithProperties(
       lambdaFunction.LambdaFunction,
       {
-        runtime: "nodejs22.x",
+        runtime: "nodejs24.x",
       },
     );
   });

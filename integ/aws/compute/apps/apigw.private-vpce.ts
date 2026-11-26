@@ -15,7 +15,7 @@ const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
 const stackName = process.env.STACK_NAME ?? "apigw.private-vpce";
 
-export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_18_X;
+export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_24_X;
 
 class PrivateApiStack extends aws.AwsStack {
   constructor(scope: Construct, id: string, props: aws.AwsStackProps) {

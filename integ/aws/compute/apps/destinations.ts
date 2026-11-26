@@ -12,7 +12,7 @@ import { aws, Duration } from "../../../../src";
  * The runtime should be the lowest runtime currently supported by the AWS CDK.
  * Updating this value will require you to run a lot of integration tests.
  */
-export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_18_X;
+export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_24_X;
 
 /*
  * Stack verification steps:

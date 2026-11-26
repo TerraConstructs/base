@@ -184,7 +184,7 @@ exports[`RotationSchedule Should synth and match SnapShot 1`] = `
         "handler": "index.handler",
         "memory_size": 128,
         "role": "\${aws_iam_role.Lambda_ServiceRole_A8ED4D3B.arn}",
-        "runtime": "nodejs22.x",
+        "runtime": "nodejs24.x",
         "source_code_hash": "\${data.archive_file.Lambda_Lambda977ac4c4b02ffbf33727a2b3dfd94f40A3E2D98D_FA6D0A46.output_base64sha256}",
         "tags": {
           "Name": "Default-Lambda",

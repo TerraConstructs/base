@@ -296,7 +296,7 @@ exports[`latest Lambda node runtime with region agnostic stack 1`] = `
         "handler": "index.handler",
         "memory_size": 128,
         "role": "\${aws_iam_role.Lambda_ServiceRole_A8ED4D3B.arn}",
-        "runtime": "nodejs22.x",
+        "runtime": "nodejs24.x",
         "source_code_hash": "\${data.archive_file.Lambda_StackLambdaacbd18db4cc2f85cedef654fccc4a4d8996AFBA2_92C287E8.output_base64sha256}",
         "tags": {
           "Name": "Default-Lambda",

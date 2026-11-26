@@ -221,12 +221,7 @@ export class InstanceDrainHook extends Construct {
     const fn = new LambdaFunction(this, "Function", {
       code: Code.fromInline(DRAIN_HOOK_LAMBDA_SOURCE),
       handler: "index.lambda_handler",
-      // TERRACONSTRUCTS DEVIATION: upstream resolves this via
-      // `lambda.Runtime.determineLatestPythonRuntime(this)`, a convenience
-      // static that (as of the pinned upstream tag) simply returns
-      // `Runtime.PYTHON_3_13` and is not part of the ported `Runtime` class.
-      // Pinned directly to the same runtime it currently resolves to.
-      runtime: Runtime.PYTHON_3_13,
+      runtime: Runtime.determineLatestPythonRuntime(this),
       // Timeout: some extra margin for additional API calls made by the Lambda,
       // up to a maximum of 15 minutes.
       timeout: Duration.seconds(Math.min(drainTime.toSeconds() + 10, 900)),

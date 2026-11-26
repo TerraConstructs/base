@@ -24,7 +24,7 @@ new LocalBackend(stack, {
 // add a public echo endpoint for network connectivity tests
 const echoLambda = new aws.compute.LambdaFunction(stack, "Echo", {
   // entry: path.join(__dirname, "handlers", "echo", "index.ts"),
-  runtime: aws.compute.Runtime.NODEJS_18_X,
+  runtime: aws.compute.Runtime.NODEJS_24_X,
   handler: "index.handler",
   code: aws.compute.Code.fromInline(`exports.handler = async (event) => {
     return {

@@ -10,7 +10,7 @@ import { aws } from "../../../../src";
  * The runtime should be the lowest runtime currently supported by the AWS CDK.
  * Updating this value will require you to run a lot of integration tests.
  */
-export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_18_X;
+export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_24_X;
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
 const region = process.env.AWS_REGION ?? "us-east-1";
@@ -119,10 +119,11 @@ new LocalBackend(stack, {
 });
 app.synth();
 
-function handler(event: any, _context: any, callback: any) {
+// NOTE: nodejs24.x+ runtimes no longer support callback-based handlers
+async function handler(event: any) {
   /* eslint-disable no-console */
   console.log("====================================================");
   console.log(JSON.stringify(event, undefined, 2));
   console.log("====================================================");
-  return callback(undefined, event);
+  return event;
 }

@@ -27,7 +27,7 @@ import {
 import { FunctionUrl, FunctionUrlOptions } from "./function-url";
 import { VpcConfig } from "./function-vpc-config.generated";
 import { Handler } from "./handler";
-import { Runtime } from "./runtime";
+import { determineLatestNodeRuntime, Runtime } from "./runtime";
 import { ISecurityGroup, SecurityGroup } from "./security-group";
 import { addAlias } from "./util";
 import { IVpc, SubnetSelection } from "./vpc";
@@ -827,8 +827,13 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
       this.role.addToPrincipalPolicy(statement);
     }
 
+    const effectiveRuntime =
+      props.runtime === Runtime.NODEJS_LATEST
+        ? determineLatestNodeRuntime(this)
+        : props.runtime;
+
     // Must set runtime property used by bind
-    this.runtime = props.runtime;
+    this.runtime = effectiveRuntime;
     const code = props.code.bind(this);
     verifyCodeConfig(code, props);
 
@@ -873,7 +878,9 @@ export class LambdaFunction extends LambdaFunctionBase implements IFunction {
       timeout: timeout.toSeconds(),
       packageType: props.runtime === Runtime.FROM_IMAGE ? "Image" : undefined,
       runtime:
-        props.runtime === Runtime.FROM_IMAGE ? undefined : props.runtime.name,
+        props.runtime === Runtime.FROM_IMAGE
+          ? undefined
+          : effectiveRuntime.name,
       // // Source Code KMS not supported by Terraform provider?
       // // see: https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-lambda-function-code.html#cfn-lambda-function-code-sourcekmskeyarn
       // sourceKmsKeyArn: code.sourceKMSKeyArn,
