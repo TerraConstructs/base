@@ -29,7 +29,7 @@ const vpc = new aws.compute.Vpc(stack, "VPC", {
 new aws.compute.LambdaFunction(stack, "MyLambda", {
   code: new aws.compute.InlineCode("def main(event, context): pass"),
   handler: "index.main",
-  runtime: aws.compute.Runtime.PYTHON_3_9,
+  runtime: aws.compute.Runtime.PYTHON_3_13,
   vpc,
   outputName: "my_lambda",
   registerOutputs: true,

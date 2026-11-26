@@ -8,7 +8,7 @@ import { aws, Duration } from "../../../../src";
  * The runtime should be the lowest runtime currently supported by the AWS CDK.
  * Updating this value will require you to run a lot of integration tests.
  */
-export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_18_X;
+export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_24_X;
 
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
 const region = process.env.AWS_REGION ?? "us-east-1";
@@ -78,22 +78,28 @@ const fetchIpProps: aws.compute.FunctionProps = {
   // path: path.join(__dirname, "handlers", "fetch-ip", "index.ts"),
   runtime: STANDARD_NODEJS_RUNTIME,
   handler: "index.handler",
+  // NOTE: nodejs24.x+ runtimes no longer support callback-based handlers
   code: aws.compute.Code.fromInline(`const https = require('https');
-  exports.handler = async (event, context, callback) => {
-    https
-      .get(event.url, (res) => {
-        let data = "";
-        res.on("data", (chunk) => {
-          data += chunk;
+  exports.handler = async (event) => {
+    return new Promise((resolve, reject) => {
+      https
+        .get(event.url, (res) => {
+          let data = "";
+          res.on("data", (chunk) => {
+            data += chunk;
+          });
+          res.on("end", () => {
+            try {
+              resolve(JSON.parse(data));
+            } catch (e) {
+              reject(e);
+            }
+          });
+        })
+        .on("error", (e) => {
+          reject(e);
         });
-        res.on("end", () => {
-          const result = JSON.parse(data);
-          callback(null, result);
-        });
-      })
-      .on("error", (e) => {
-        callback(e);
-      });
+    });
   };`),
 };
 

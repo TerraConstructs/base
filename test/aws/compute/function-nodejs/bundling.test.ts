@@ -36,7 +36,7 @@ jest.mock("child_process");
 
 const STANDARD_RUNTIME = Runtime.NODEJS_20_X;
 const STANDARD_TARGET = "node20";
-const LATEST_TARGET = "node22";
+const LATEST_TARGET = "node24";
 const STANDARD_EXTERNAL = "@aws-sdk/*";
 const TEST_APPDIR = path.join(__dirname, "fixtures", "app");
 const CDKTFJSON_PATH = path.join(TEST_APPDIR, "cdktf.json");

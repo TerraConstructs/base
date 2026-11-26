@@ -17,7 +17,7 @@ const stackName = process.env.STACK_NAME ?? "apigw.request-authorizer";
  * The runtime should be the lowest runtime currently supported by the AWS CDK.
  * Updating this value will require you to run a lot of integration tests.
  */
-export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_18_X;
+export const STANDARD_NODEJS_RUNTIME = aws.compute.Runtime.NODEJS_24_X;
 
 class SampleStack extends aws.AwsStack {
   constructor(scope: Construct, id: string, props: aws.AwsStackProps) {

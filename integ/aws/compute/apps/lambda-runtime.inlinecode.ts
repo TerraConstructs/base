@@ -93,6 +93,17 @@ new TerraformOutput(stack, "PYTHON_3_14-functionName", {
   value: python314.functionName,
 });
 
+const python315 = new aws.compute.LambdaFunction(stack, "PYTHON_3_15", {
+  code: new aws.compute.InlineCode(
+    'def handler(event, context):\n  return "success"',
+  ),
+  handler: "index.handler",
+  runtime: aws.compute.Runtime.PYTHON_3_15,
+});
+new TerraformOutput(stack, "PYTHON_3_15-functionName", {
+  value: python315.functionName,
+});
+
 const node20xfn = new aws.compute.LambdaFunction(stack, "NODEJS_20_X", {
   code: new aws.compute.InlineCode(
     'exports.handler = async function(event) { return "success" }',
@@ -124,6 +135,17 @@ const node24xfn = new aws.compute.LambdaFunction(stack, "NODEJS_24_X", {
 });
 new TerraformOutput(stack, "NODEJS_24_X-functionName", {
   value: node24xfn.functionName,
+});
+
+const node26xfn = new aws.compute.LambdaFunction(stack, "NODEJS_26_X", {
+  code: new aws.compute.InlineCode(
+    'exports.handler = async function(event) { return "success" }',
+  ),
+  handler: "index.handler",
+  runtime: aws.compute.Runtime.NODEJS_26_X,
+});
+new TerraformOutput(stack, "NODEJS_26_X-functionName", {
+  value: node26xfn.functionName,
 });
 
 new LocalBackend(stack, {

@@ -135,7 +135,7 @@ describe("latest Lambda node runtime", () => {
         tfResourceType: "aws_lambda_function",
       },
       {
-        runtime: "nodejs22.x",
+        runtime: "nodejs24.x",
       },
     );
   });
@@ -162,7 +162,7 @@ describe("latest Lambda node runtime", () => {
         tfResourceType: "aws_lambda_function",
       },
       {
-        runtime: "nodejs22.x",
+        runtime: "nodejs24.x",
       },
     );
   });
@@ -189,7 +189,7 @@ describe("latest Lambda node runtime", () => {
         tfResourceType: "aws_lambda_function",
       },
       {
-        runtime: "nodejs22.x",
+        runtime: "nodejs24.x",
       },
     );
   });
@@ -216,7 +216,7 @@ describe("latest Lambda node runtime", () => {
         tfResourceType: "aws_lambda_function",
       },
       {
-        runtime: "nodejs22.x",
+        runtime: "nodejs24.x",
       },
     );
   });
@@ -243,7 +243,7 @@ describe("latest Lambda node runtime", () => {
         tfResourceType: "aws_lambda_function",
       },
       {
-        runtime: "nodejs22.x",
+        runtime: "nodejs24.x",
       },
     );
   });
